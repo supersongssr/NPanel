@@ -39,11 +39,17 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('autoJob')->everyMinute();
+        //$schedule->command('autoJob')->everyMinute();
+        //Song 定时任务改为30分钟一次
+        $schedule->command('autoJob')->everyThirtyMinutes();
+        //
         $schedule->command('autoClearLog')->everyThirtyMinutes();
         $schedule->command('autoDecGoodsTraffic')->everyTenMinutes();
         $schedule->command('autoResetUserTraffic')->daily();
-        $schedule->command('autoCheckNodeStatus')->everyMinute();
+        //$schedule->command('autoCheckNodeStatus')->everyMinute();
+        //Song
+        $schedule->command('autoCheckNodeStatus')->hourly();
+        //
         $schedule->command('autoStatisticsNodeDailyTraffic')->dailyAt('23:55');
         $schedule->command('autoStatisticsNodeHourlyTraffic')->hourly();
         $schedule->command('autoStatisticsUserDailyTraffic')->dailyAt('23:50');

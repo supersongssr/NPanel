@@ -35,6 +35,12 @@ class SubscribeController extends Controller
             return Redirect::to('login');
         }
 
+#Song 获取查询字符串
+        $ver = $request->get('ver');
+        if (empty($ver)) {
+            $ver = '1';
+        } 
+#end
         // 校验合法性
         $subscribe = UserSubscribe::query()->with('user')->where('code', $code)->where('status', 1)->first();
         if (!$subscribe) {
@@ -59,12 +65,12 @@ class SubscribeController extends Controller
         }
 
         $query = SsNode::query()->selectRaw('ss_node.*')->leftjoin("ss_node_label", "ss_node.id", "=", "ss_node_label.node_id");
-
+/** song
         // 启用混合订阅时，加入V2Ray节点，未启用时仅下发SSR节点信息
         if (!self::$systemConfig['mix_subscribe']) {
             $query->where('ss_node.type', 1);
         }
-
+**/
         $nodeList = $query->where('ss_node.status', 1)
             ->where('ss_node.is_subscribe', 1)
             ->whereIn('ss_node_label.label_id', $userLabelIds)
@@ -86,56 +92,195 @@ class SubscribeController extends Controller
 
         // 控制客户端最多获取节点数
         $scheme = '';
-
+/**song
         // 展示到期时间和剩余流量
         if (self::$systemConfig['is_custom_subscribe']) {
             $scheme .= $this->expireDate($user);
             $scheme .= $this->lastTraffic($user);
         }
+**/
 
-        foreach ($nodeList as $key => $node) {
-            // 控制显示的节点数
-            if (self::$systemConfig['subscribe_max'] && $key >= self::$systemConfig['subscribe_max']) {
-                break;
+//song add ver
+        if (($ver == "1") || empty($ver)) {
+            # code...
+            foreach ($nodeList as $key => $node) {
+//addnode
+                $addn = explode("#", $node['name']);
+// 控制显示的节点数
+                if (self::$systemConfig['subscribe_max'] && $key >= self::$systemConfig['subscribe_max']) {
+                    break;
+                }
+
+                // 获取分组名称
+                if ($node['type'] == 1) {
+                    if ( empty($addn['1']) ) {
+                        # code...
+                        $group = SsGroup::query()->where('id', $node['group_id'])->first();
+
+                        $obfs_param = $user->obfs_param ? $user->obfs_param : $node['obfs_param'];
+                        $protocol_param = $node['single'] ? $user->port . ':' . $user->passwd : $user->protocol_param;
+
+                        // 生成ssr scheme
+                        $ssr_str = ($node['server'] ? $node['server'] : $node['ip']) . ':' . ($node['single'] ? $node['single_port'] : $user->port);
+                        $ssr_str .= ':' . ($node['single'] ? $node['single_protocol'] : $user->protocol) . ':' . ($node['single'] ? $node['single_method'] : $user->method);
+                        $ssr_str .= ':' . ($node['single'] ? $node['single_obfs'] : $user->obfs) . ':' . ($node['single'] ? base64url_encode($node['single_passwd']) : base64url_encode($user->passwd));
+                        $ssr_str .= '/?obfsparam=' . base64url_encode($obfs_param);
+                        $ssr_str .= '&protoparam=' . ($node['single'] ? base64url_encode($user->port . ':' . $user->passwd) : base64url_encode($protocol_param));
+                        $ssr_str .= '&remarks=' . base64url_encode($node['name']);
+                        $ssr_str .= '&group=' . base64url_encode(empty($group) ? '' : $group->name);
+                        $ssr_str .= '&udpport=0';
+                        $ssr_str .= '&uot=0';
+                        $ssr_str = base64url_encode($ssr_str);
+                        $scheme .= 'ssr://' . $ssr_str . "\n";
+                    }elseif ( $addn['1'] == 'SSR') {
+                        # code...
+                        $addnode = explode("#", $node['desc']);
+                        # code...
+                        $group = SsGroup::query()->where('id', $node['group_id'])->first();
+                        // 生成ssr scheme
+                        $ssr_str = ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addnode['1'];
+                        $ssr_str .= ':origin' . ':' . $addnode['3'];
+                        $ssr_str .= ':plain' . ':' . base64url_encode($addnode['2']);
+                        $ssr_str .= '/?obfsparam=';
+                        $ssr_str .= '&protoparam=';
+                        $ssr_str .= '&remarks=' . base64url_encode($node['name']);
+                        $ssr_str .= '&group=' . base64url_encode(empty($group) ? '' : $group->name);
+                        $ssr_str .= '&udpport=0';
+                        $ssr_str .= '&uot=0';
+                        $ssr_str = base64url_encode($ssr_str);
+                        $scheme .= 'ssr://' . $ssr_str . "\n";
+                    }
+                    
+                }
             }
+            //add time 和流量
+            $scheme .= $this->expireDate($user);
+            $scheme .= $this->lastTraffic($user);
 
-            // 获取分组名称
-            if ($node['type'] == 1) {
-                $group = SsGroup::query()->where('id', $node['group_id'])->first();
+        }elseif ($ver == "2") {
+            # code...
+            foreach ($nodeList as $key => $node) {
+                //addnode
+                $addn = explode("#", $node['name']);
+                // 控制显示的节点数
+                if (self::$systemConfig['subscribe_max'] && $key >= self::$systemConfig['subscribe_max']) {
+                    break;
+                }
+                // 获取分组名称
+                if ($node['type'] == 2) {
+                    if ( empty($addn[1]) ) {
+                        // 生成v2ray scheme
+                        $v2_json = [
+                            "v"    => "2",
+                            "ps"   => $node['name'],
+                            "add"  => $node['server'] ? $node['server'] : $node['ip'],
+                            "port" => $node['v2_port'],
+                            "id"   => $user['vmess_id'],
+                            "aid"  => $node['v2_alter_id'],
+                            "net"  => $node['v2_net'],
+                            "type" => $node['v2_type'],
+                            "host" => $node['v2_host'],
+                            "path" => $node['v2_path'],
+                            "tls"  => $node['v2_tls'] == 1 ? "tls" : ""
+                        ];
 
-                $obfs_param = $user->obfs_param ? $user->obfs_param : $node['obfs_param'];
-                $protocol_param = $node['single'] ? $user->port . ':' . $user->passwd : $user->protocol_param;
+                        $scheme .= 'vmess://' . base64url_encode(json_encode($v2_json)) . "\n";
+                    }else{
+                        $addnode = explode("#", $node['desc']);
+                        // desc#UUID
+                        // 生成v2ray scheme
+                        $v2_json = [
+                            "v"    => "2",
+                            "ps"   => $node['name'],
+                            "add"  => $node['server'] ? $node['server'] : $node['ip'],
+                            "port" => $node['v2_port'],
+                            "id"   => $addnode['1'],
+                            "aid"  => '233',
+                            "net"  => $node['v2_net'],
+                            "type" => $node['v2_type'],
+                            "host" => $node['v2_host'],
+                            "path" => $node['v2_path'],
+                            "tls"  => $node['v2_tls'] == 1 ? "tls" : ""
+                        ];
 
-                // 生成ssr scheme
-                $ssr_str = ($node['server'] ? $node['server'] : $node['ip']) . ':' . ($node['single'] ? $node['single_port'] : $user->port);
-                $ssr_str .= ':' . ($node['single'] ? $node['single_protocol'] : $user->protocol) . ':' . ($node['single'] ? $node['single_method'] : $user->method);
-                $ssr_str .= ':' . ($node['single'] ? $node['single_obfs'] : $user->obfs) . ':' . ($node['single'] ? base64url_encode($node['single_passwd']) : base64url_encode($user->passwd));
-                $ssr_str .= '/?obfsparam=' . base64url_encode($obfs_param);
-                $ssr_str .= '&protoparam=' . ($node['single'] ? base64url_encode($user->port . ':' . $user->passwd) : base64url_encode($protocol_param));
-                $ssr_str .= '&remarks=' . base64url_encode($node['name']);
-                $ssr_str .= '&group=' . base64url_encode(empty($group) ? '' : $group->name);
-                $ssr_str .= '&udpport=0';
-                $ssr_str .= '&uot=0';
-                $ssr_str = base64url_encode($ssr_str);
-                $scheme .= 'ssr://' . $ssr_str . "\n";
-            } else {
-                // 生成v2ray scheme
-                $v2_json = [
-                    "v"    => "2",
-                    "ps"   => $node['name'],
-                    "add"  => $node['server'] ? $node['server'] : $node['ip'],
-                    "port" => $node['v2_port'],
-                    "id"   => $user['vmess_id'],
-                    "aid"  => $node['v2_alter_id'],
-                    "net"  => $node['v2_net'],
-                    "type" => $node['v2_type'],
-                    "host" => $node['v2_host'],
-                    "path" => $node['v2_path'],
-                    "tls"  => $node['v2_tls'] == 1 ? "tls" : ""
-                ];
-
-                $scheme .= 'vmess://' . base64url_encode(json_encode($v2_json)) . "\n";
+                        $scheme .= 'vmess://' . base64url_encode(json_encode($v2_json)) . "\n";
+                    }
+                }else{
+                    if ( empty($addn[1]) ) {
+                        # code...
+                        if ( $node['compatible'] && ($user['method'] != 'none')) {
+                        $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
+                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
+                        $ss_str = base64url_encode($ss_str) . '#' . $node['name'];
+                        $scheme .= 'ss://' . $ss_str . "\n";
+                        }
+                    }else{
+                        //DESC#port#pass#method
+                        $addnode = explode("#", $node['desc']);
+                        $ss_str = $addnode['3'] . ':' . $addnode['2'] . '@';
+                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addnode['1'];
+                        $ss_str = base64url_encode($ss_str) . '#' . $node['name'];
+                        $scheme .= 'ss://' . $ss_str . "\n";
+                    }
+                }   
             }
+            //增加  剩余时间和流量
+
+
+        }elseif ($ver == "3") {
+            # code...
+            foreach ($nodeList as $key => $node) {
+                // 控制显示的节点数
+                if (self::$systemConfig['subscribe_max'] && $key >= self::$systemConfig['subscribe_max']) {
+                    break;
+                }
+                //addnode
+                $addn = explode("#", $node['name']);
+                // 获取分组名称
+                if ($node['type'] == 2) {
+                    //判断是否添加的独立节点
+                    if (empty($addn[1])) {
+                        # code...
+                        // 生成v2ray scheme
+                        $v2_str = 'none' . ':' . $user['vmess_id'] . '@' . ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['v2_port'];
+                        $v2_str = base64url_encode($v2_str);
+                        $v2_str .= '?network=' . $node['v2_net'] .'&tls=' . ($node['v2_tls'] == 1 ? "tls" : "0") . '&allowInsecure=1&mux=0&muxConcurrency=8&remark=' . $node['name'] . "\n";
+                        $scheme .= 'vmess://' . $v2_str . "\n";
+                    }else{
+                        $addnode = explode("#", $node['desc']);
+                        // 生成v2ray scheme
+                        $v2_str = 'none' . ':' . $addnode['1'] . '@' . ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['v2_port'];
+                        $v2_str = base64url_encode($v2_str);
+                        $v2_str .= '?network=' . $node['v2_net'] .'&tls=' . ($node['v2_tls'] == 1 ? "tls" : "0") . '&allowInsecure=1&mux=0&muxConcurrency=8&remark=' . $node['name'] . "\n";
+                        $scheme .= 'vmess://' . $v2_str . "\n";
+                    }
+                    
+                }else{
+                    if (empty($addn[1])) {
+                        # code...
+                        if ( $node['compatible'] && ($user['method'] != 'none')) {
+                        $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
+                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
+                        $ss_str = base64url_encode($ss_str) . '#' . $node['name'];
+                        $scheme .= 'ss://' . $ss_str . "\n";
+                        }
+                    }else{
+                        //add addnode
+                        $addnode = explode("#", $node['desc']);
+                        //
+                        $ss_str = $addnode['3'] . ':' . $addnode['2'] . '@';
+                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addnode['1'];
+                        $ss_str = base64url_encode($ss_str) . '#' . $node['name'];
+                        $scheme .= 'ss://' . $ss_str . "\n";
+                    }
+                    
+                }
+            }
+            //增加用户剩余时间和流量
+
+            
+        }else{
+            $scheme = '';
         }
 
         exit(base64url_encode($scheme));

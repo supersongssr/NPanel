@@ -52,13 +52,15 @@ class AutoClearLog extends Command
         SsNodeOnlineLog::query()->where('log_time', '<=', strtotime("-60 minutes"))->delete();
 
         // 自动清除30天以前的用户流量日志
-        UserTrafficLog::query()->where('log_time', '<=', strtotime("-30 days"))->delete();
+        //Song 3天以前
+        UserTrafficLog::query()->where('log_time', '<=', strtotime("-3 days"))->delete();
 
         // 自动清除10天以前的用户每小时流量数据日志
         UserTrafficHourly::query()->where('created_at', '<=', date('Y-m-d H:i:s', strtotime('-10 days')))->delete();
 
         // 自动清除60天以前的节点每小时流量数据日志
-        SsNodeTrafficHourly::query()->where('created_at', '<=', date('Y-m-d H:i:s', strtotime('-60 days')))->delete();
+        //Song 10天以前的清除
+        SsNodeTrafficHourly::query()->where('created_at', '<=', date('Y-m-d H:i:s', strtotime('-10 days')))->delete();
 
         // 自动清除90天以前的节点每天流量数据日志
         SsNodeTrafficDaily::query()->where('created_at', '<=', date('Y-m-d H:i:s', strtotime('-90 days')))->delete();

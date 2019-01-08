@@ -21,8 +21,9 @@ class replyTicket extends Mailable
     }
 
     public function build()
-    {
-        return $this->view('emails.replyTicket')->subject('工单回复提醒')->with([
+    {   
+        //subject这里变成 titile可以有
+        return $this->view('emails.replyTicket')->subject("$this->title")->with([
             'title'   => $this->title,
             'content' => $this->content
         ]);
