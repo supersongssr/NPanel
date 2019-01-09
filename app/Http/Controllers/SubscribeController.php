@@ -105,7 +105,7 @@ class SubscribeController extends Controller
             # code...
             foreach ($nodeList as $key => $node) {
 //addnode
-                $addn = explode("#", $node['name']);
+                $addn = explode("#", $node['desc']);
 // 控制显示的节点数
                 if (self::$systemConfig['subscribe_max'] && $key >= self::$systemConfig['subscribe_max']) {
                     break;
@@ -132,15 +132,13 @@ class SubscribeController extends Controller
                         $ssr_str .= '&uot=0';
                         $ssr_str = base64url_encode($ssr_str);
                         $scheme .= 'ssr://' . $ssr_str . "\n";
-                    }elseif ( $addn['1'] == 'SSR') {
-                        # code...
-                        $addnode = explode("#", $node['desc']);
+                    }elseif ( $addn['0'] == 'SR') {
                         # code...
                         $group = SsGroup::query()->where('id', $node['group_id'])->first();
                         // 生成ssr scheme
-                        $ssr_str = ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addnode['1'];
-                        $ssr_str .= ':origin' . ':' . $addnode['3'];
-                        $ssr_str .= ':plain' . ':' . base64url_encode($addnode['2']);
+                        $ssr_str = ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addn['1'];
+                        $ssr_str .= ':origin' . ':' . $addn['3'];
+                        $ssr_str .= ':plain' . ':' . base64url_encode($addn['2']);
                         $ssr_str .= '/?obfsparam=';
                         $ssr_str .= '&protoparam=';
                         $ssr_str .= '&remarks=' . base64url_encode($node['name']);
@@ -161,7 +159,7 @@ class SubscribeController extends Controller
             # code...
             foreach ($nodeList as $key => $node) {
                 //addnode
-                $addn = explode("#", $node['name']);
+                $addn = explode("#", $node['desc']);
                 // 控制显示的节点数
                 if (self::$systemConfig['subscribe_max'] && $key >= self::$systemConfig['subscribe_max']) {
                     break;
@@ -186,15 +184,12 @@ class SubscribeController extends Controller
 
                         $scheme .= 'vmess://' . base64url_encode(json_encode($v2_json)) . "\n";
                     }else{
-                        $addnode = explode("#", $node['desc']);
-                        // desc#UUID
-                        // 生成v2ray scheme
                         $v2_json = [
                             "v"    => "2",
                             "ps"   => $node['name'],
                             "add"  => $node['server'] ? $node['server'] : $node['ip'],
                             "port" => $node['v2_port'],
-                            "id"   => $addnode['1'],
+                            "id"   => $addn['1'],
                             "aid"  => '233',
                             "net"  => $node['v2_net'],
                             "type" => $node['v2_type'],
@@ -208,17 +203,15 @@ class SubscribeController extends Controller
                 }else{
                     if ( empty($addn[1]) ) {
                         # code...
-                        if ( $node['compatible'] && ($user['method'] != 'none')) {
+                        if ( $node['compatible'] ) {
                         $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
                         $ss_str = base64url_encode($ss_str) . '#' . $node['name'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                         }
                     }else{
-                        //DESC#port#pass#method
-                        $addnode = explode("#", $node['desc']);
-                        $ss_str = $addnode['3'] . ':' . $addnode['2'] . '@';
-                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addnode['1'];
+                        $ss_str = $addn['3'] . ':' . $addn['2'] . '@';
+                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addn['1'];
                         $ss_str = base64url_encode($ss_str) . '#' . $node['name'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                     }
@@ -235,7 +228,7 @@ class SubscribeController extends Controller
                     break;
                 }
                 //addnode
-                $addn = explode("#", $node['name']);
+                $addn = explode("#", $node['desc']);
                 // 获取分组名称
                 if ($node['type'] == 2) {
                     //判断是否添加的独立节点
@@ -247,9 +240,8 @@ class SubscribeController extends Controller
                         $v2_str .= '?network=' . $node['v2_net'] .'&tls=' . ($node['v2_tls'] == 1 ? "tls" : "0") . '&allowInsecure=1&mux=0&muxConcurrency=8&remark=' . $node['name'] . "\n";
                         $scheme .= 'vmess://' . $v2_str . "\n";
                     }else{
-                        $addnode = explode("#", $node['desc']);
                         // 生成v2ray scheme
-                        $v2_str = 'none' . ':' . $addnode['1'] . '@' . ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['v2_port'];
+                        $v2_str = 'none' . ':' . $addn['1'] . '@' . ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['v2_port'];
                         $v2_str = base64url_encode($v2_str);
                         $v2_str .= '?network=' . $node['v2_net'] .'&tls=' . ($node['v2_tls'] == 1 ? "tls" : "0") . '&allowInsecure=1&mux=0&muxConcurrency=8&remark=' . $node['name'] . "\n";
                         $scheme .= 'vmess://' . $v2_str . "\n";
@@ -266,10 +258,8 @@ class SubscribeController extends Controller
                         }
                     }else{
                         //add addnode
-                        $addnode = explode("#", $node['desc']);
-                        //
-                        $ss_str = $addnode['3'] . ':' . $addnode['2'] . '@';
-                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addnode['1'];
+                        $ss_str = $addn['3'] . ':' . $addn['2'] . '@';
+                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addn['1'];
                         $ss_str = base64url_encode($ss_str) . '#' . $node['name'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                     }

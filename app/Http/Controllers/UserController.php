@@ -117,12 +117,9 @@ class UserController extends Controller
             // 获取分组名称
             $group = SsGroup::query()->where('id', $node->group_id)->first();
 
-
-
             if ($node->type == 1) {
-
                 //Song add node
-                $addn = explode('#', $node->name);
+                $addn = explode('#', $node->desc);
                 //
                 if (empty($addn['1'])) {
                     # code...
@@ -166,16 +163,15 @@ class UserController extends Controller
                     $node->txt = $txt;
                     $node->ssr_scheme = $ssr_scheme;
                     $node->ss_scheme = $node->compatible ? $ss_scheme : ''; // 节点兼容原版才显示
-
+                    //
                     $allNodes .= $ssr_scheme . '|';
                 }else{
                     //addnode的节点的展示
-                    $addnode = explode('#', $node->desc);
-                    $node->desc = $addnode['0'];
-
-                    $ssr_str = ($node->server ? $node->server : $node->ip) . ':' . $addnode['1'];
-                    $ssr_str .= ':origin:' . $addnode['3'];
-                    $ssr_str .= ':plain:' . base64url_encode($addnode['2']);
+                    $node->desc = $addn['0'];
+                    //
+                    $ssr_str = ($node->server ? $node->server : $node->ip) . ':' . $addn['1'];
+                    $ssr_str .= ':origin:' . $addn['3'];
+                    $ssr_str .= ':plain:' . base64url_encode($addn['2']);
                     $ssr_str .= '/?obfsparam=' ;
                     $ssr_str .= '&protoparam=' ;
                     $ssr_str .= '&remarks=' . base64url_encode($node->name);
@@ -186,8 +182,8 @@ class UserController extends Controller
                     $ssr_scheme = 'ssr://' . $ssr_str;
 
                     // 生成ss scheme
-                    $ss_str = $addnode['3'] . ':' . $addnode['2'] . '@';
-                    $ss_str .= ($node->server ? $node->server : $node->ip) . ':' . $addnode['1'];
+                    $ss_str = $addn['3'] . ':' . $addn['2'] . '@';
+                    $ss_str .= ($node->server ? $node->server : $node->ip) . ':' . $addn['1'];
                     $ss_str = base64url_encode($ss_str) . '#' . 'VPN';
                     $ss_scheme = 'ss://' . $ss_str;
 
@@ -196,9 +192,9 @@ class UserController extends Controller
                     if ($node->ipv6) {
                         $txt .= "IPv6：" . $node->ipv6 . "\r\n";
                     }
-                    $txt .= "远程端口：" . $addnode['1'] . "\r\n";
-                    $txt .= "密码：" . $addnode['2'] . "\r\n";
-                    $txt .= "加密方法：" . $addnode['3'] . "\r\n";
+                    $txt .= "远程端口：" . $addn['1'] . "\r\n";
+                    $txt .= "密码：" . $addn['2'] . "\r\n";
+                    $txt .= "加密方法：" . $addn['3'] . "\r\n";
                     $txt .= "路由：绕过局域网及中国大陆地址" . "\r\n\r\n";
                     $txt .= "协议：origin" . "\r\n";
                     $txt .= "协议参数："  . "\r\n";
@@ -217,17 +213,14 @@ class UserController extends Controller
                 // 生成v2ray scheme
 
                 // Song
-                $addn = explode('#', $node->name);
+                $addn = explode('#', $node->desc);
                 if (!empty($addn['1'])){
                     # code...
-                    $addnode = explode('#', $node->desc);
-                    $user->vmess_id = $addnode['1'];
+                    $user->vmess_id = $addn['1'];
                     $node->v2_alter_id = '233';
-                    $node->desc = $addnode['0'];
+                    $node->desc = $addn['0'];
                 }
                 //
-
-
                 $v2_json = [
                     "v"    => "2",
                     "ps"   => $node->name,
@@ -266,7 +259,7 @@ class UserController extends Controller
             $node->online_status = empty($nodeInfo) || empty($nodeInfo->load) ? 0 : 1;
 
             //song
-            $addn = explode('#', $node->name);
+            $addn = explode('#', $node->desc);
             if (!empty($addn['1'])) {
                 # code...
                 $node->online_status = 1;
