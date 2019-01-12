@@ -116,10 +116,11 @@ class UserController extends Controller
         foreach ($nodeList as &$node) {
             // 获取分组名称
             $group = SsGroup::query()->where('id', $node->group_id)->first();
+            //Song
+            $addn = explode('#', $node->desc);
 
             if ($node->type == 1) {
                 //Song add node
-                $addn = explode('#', $node->desc);
                 //
                 if (empty($addn['1'])) {
                     # code...
@@ -213,7 +214,6 @@ class UserController extends Controller
                 // 生成v2ray scheme
 
                 // Song
-                $addn = explode('#', $node->desc);
                 if (!empty($addn['1'])){
                     # code...
                     $user->vmess_id = $addn['1'];
@@ -259,10 +259,9 @@ class UserController extends Controller
             $node->online_status = empty($nodeInfo) || empty($nodeInfo->load) ? 0 : 1;
 
             //song
-            $addn = explode('#', $node->desc);
             if (!empty($addn['1'])) {
                 # code...
-                $node->online_status = 1;
+                $node->online_status = '1';
             }
             //
 

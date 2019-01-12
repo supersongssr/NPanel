@@ -101,7 +101,7 @@ class SubscribeController extends Controller
 **/
 
 //song add ver
-        if (($ver == "1") || empty($ver)) {
+        if (($ver == "1")) {
             # code...
             foreach ($nodeList as $key => $node) {
 //addnode
