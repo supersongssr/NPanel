@@ -62,8 +62,31 @@ class AdminController extends Controller
 
     public function index(Request $request)
     {
-        $past = strtotime(date('Y-m-d', strtotime("-" . self::$systemConfig['expire_days'] . " days")));
 
+        //Song
+        $past = strtotime(date('Y-m-d', strtotime("-" . self::$systemConfig['expire_days'] . " days")));
+        $view['expireDays'] = self::$systemConfig['expire_days'];
+        $view['totalUserCount'] = User::query()->count(); // 总用户数
+        $view['enableUserCount'] = User::query()->where('enable', 1)->count(); // 有效用户数
+        $view['activeUserCount'] = User::query()->where('t', '>=', $past)->count(); // 活跃用户数
+        $view['unActiveUserCount'] = User::query()->where('t', '<=', $past)->where('enable', 1)->where('t', '>', 0)->count(); // 不活跃用户数
+        $view['onlineUserCount'] = '0'; // 10分钟内在线用户数
+        $view['expireWarningUserCount'] = User::query()->where('expire_time', '>=', date('Y-m-d', strtotime("now")))->where('expire_time', '<=', date('Y-m-d', strtotime("+" . self::$systemConfig['expire_days'] . " days")))->count(); // 临近过期用户数
+        $view['largeTrafficUserCount'] = '0'; // 流量超过100G的用户
+        $view['flowAbnormalUserCount'] = '0';
+        $view['nodeCount'] = SsNode::query()->count();
+        $view['unnormalNodeCount'] = SsNode::query()->where('status', 0)->count();
+        $view['flowCount'] = '0';
+        $view['totalFlowCount'] = '0';
+        $view['totalBalance'] = User::query()->sum('balance') / 100;
+        $view['totalWaitRefAmount'] = ReferralLog::query()->whereIn('status', [0, 1])->sum('ref_amount') / 100;
+        $view['totalRefAmount'] = ReferralApply::query()->where('status', 2)->sum('amount') / 100;
+
+        $view['totalOrder'] = Order::query()->count();
+        $view['totalOnlinePayOrder'] = Order::query()->where('pay_way', 2)->count();
+        $view['totalSuccessOrder'] = Order::query()->where('status', 2)->count();
+        $view['todaySuccessOrder'] = Order::query()->where('status', 2)->where('created_at', '>=', date('Y-m-d 00:00:00'))->where('created_at', '<=', date('Y-m-d 23:59:59'))->count();
+/** Song
         $view['expireDays'] = self::$systemConfig['expire_days'];
         $view['totalUserCount'] = User::query()->count(); // 总用户数
         $view['enableUserCount'] = User::query()->where('enable', 1)->count(); // 有效用户数
@@ -102,7 +125,7 @@ class AdminController extends Controller
         $view['totalOnlinePayOrder'] = Order::query()->where('pay_way', 2)->count();
         $view['totalSuccessOrder'] = Order::query()->where('status', 2)->count();
         $view['todaySuccessOrder'] = Order::query()->where('status', 2)->where('created_at', '>=', date('Y-m-d 00:00:00'))->where('created_at', '<=', date('Y-m-d 23:59:59'))->count();
-
+**/
         return Response::view('admin.index', $view);
     }
 

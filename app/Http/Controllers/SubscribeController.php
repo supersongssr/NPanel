@@ -132,7 +132,7 @@ class SubscribeController extends Controller
                         $ssr_str .= '&uot=0';
                         $ssr_str = base64url_encode($ssr_str);
                         $scheme .= 'ssr://' . $ssr_str . "\n";
-                    }elseif ( $addn['0'] == 'SR') {
+                    }elseif ( $addn['4'] == 'SR') {
                         # code...
                         $group = SsGroup::query()->where('id', $node['group_id'])->first();
                         // 生成ssr scheme
@@ -267,10 +267,7 @@ class SubscribeController extends Controller
                 }
             }
             //增加用户剩余时间和流量
-
             
-        }else{
-            $scheme = '';
         }
 
         exit(base64url_encode($scheme));
