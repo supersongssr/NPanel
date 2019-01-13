@@ -7,7 +7,7 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="note note-info">
-                    <p>{{trans('home.promote_invite_code', ['traffic' => $referral_traffic, 'referral_percent' => $referral_percent * 100])}}</p>
+                    <p>{{trans('home.promote_invite_code', ['traffic' => $referral_traffic, 'referral_percent' => $referral_percent * 100])}};每邀请1人赠送1￥;</p>
                 </div>
             </div>
         </div>

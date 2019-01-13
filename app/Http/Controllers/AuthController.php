@@ -327,6 +327,9 @@ class AuthController extends Controller
                     $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
 
                     User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
+                    //song add money
+                    User::query()->where('id', $referral_uid)->increment('balance', '100');
+                    //
                     User::query()->where('id', $referral_uid)->update(['status' => 1, 'enable' => 1]);
                 }
 
@@ -355,6 +358,8 @@ class AuthController extends Controller
                         $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
 
                         User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
+                        // song add money
+                        User::query()->where('id', $referral_uid)->increment('balance', '100');
                         User::query()->where('id', $referral_uid)->update(['status' => 1, 'enable' => 1]);
                     }
 

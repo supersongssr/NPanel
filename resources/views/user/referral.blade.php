@@ -8,7 +8,7 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="note note-info">
-                    <p>{{trans('home.promote_link', ['traffic' => $referral_traffic, 'referral_percent' => $referral_percent * 100])}}</p>
+                    <p>{{trans('home.promote_link', ['traffic' => $referral_traffic, 'referral_percent' => $referral_percent * 100])}};每邀请1人赠送1￥;返利可提现;支持微信转账;</p>
                 </div>
             </div>
         </div>

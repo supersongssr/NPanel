@@ -803,25 +803,26 @@ class UserController extends Controller
                         $defaultLabels = explode(',', self::$systemConfig['initial_labels_for_user']);
                     }
 
+//Song 标签改为覆盖的方式
                     // 取出现有的标签
-                    $userLabels = UserLabel::query()->where('user_id', $user->id)->pluck('label_id')->toArray();
+                    //$userLabels = UserLabel::query()->where('user_id', $user->id)->pluck('label_id')->toArray();
                     $goodsLabels = GoodsLabel::query()->where('goods_id', $goods_id)->pluck('label_id')->toArray();
 
                     // 标签去重
-                    $newUserLabels = array_values(array_unique(array_merge($userLabels, $goodsLabels, $defaultLabels)));
+                    //$newUserLabels = arra_vaylues(array_unique(array_merge($userLabels, $goodsLabels, $defaultLabels)));
 
                     // 删除用户所有标签
                     UserLabel::query()->where('user_id', $user->id)->delete();
 
                     // 生成标签
-                    foreach ($newUserLabels as $vo) {
+                    foreach ($goodsLabels as $vo) {
                         $obj = new UserLabel();
                         $obj->user_id = $user->id;
                         $obj->label_id = $vo;
                         $obj->save();
                     }
                 }
-
+//
                 // 写入返利日志
                 if ($user->referral_uid) {
                     $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $amount, $amount * self::$systemConfig['referral_percent']);

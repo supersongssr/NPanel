@@ -59,6 +59,6 @@
     <!-- END LOGIN FORM -->
 <!-- song -->
 <script>
-alert("公益站点官网：www.ssrpanel.fun 保存书签呦 \n 支持V2Ray、SS、SSR \n 香港、韩国、日本、新加坡、台北节点 ; 支持Netflix! ; 邀请注册赠送64G流量每人 ; 50%免费节点 , 免费1-3M带宽, 永久免费续期 ; 公益不易 , 请勿浪费本站资源！\n QQ群：913585520 \n TG群：myssrclub \n 加群防失联^3^");  
+alert("公益站点: ssvss.xyz 保存书签呦 \nQQ群：913585520 \nTG群：ssvssxyz");  
 </script>  
 @endsection
