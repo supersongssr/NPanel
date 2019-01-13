@@ -128,7 +128,8 @@
             toolbars:[['source','undo','redo','bold','italic','underline','insertimage','insertvideo','lineheight','fontfamily','fontsize','justifyleft','justifycenter','justifyright','justifyjustify','forecolor','backcolor','link','unlink']],
             wordCount:true,                //关闭字数统计
             elementPathEnabled : false,    //是否启用元素路径
-            maximumWords:300,              //允许的最大字符数
+            //song 最大字数300 -1200方便些更多东西。
+            maximumWords:1200,              //允许的最大字符数
             initialContent:'',             //初始化编辑器的内容
             initialFrameWidth:null,        //初始化宽度
             autoClearinitialContent:false, //是否自动清除编辑器初始内容

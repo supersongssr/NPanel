@@ -8,6 +8,7 @@ howtouse
 5 登录页面弹窗提示
 6 首页订阅和教程
 7 账户过期流量不重置
+8 admin文章编辑字数限制从300改为1200.可以写更多公告了。
 ````
 
 ## 项目描述
@@ -66,6 +67,8 @@ cp .env.example .env
 php composer.phar install
 php artisan key:generate
 chown -R www:www storage/
+#这个images也需要权限
+chown -R www:www public/assets/images
 chmod -R 755 storage/
 ````
 #### 加入NGINX的URL重写规则
