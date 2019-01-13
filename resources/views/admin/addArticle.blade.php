@@ -123,7 +123,7 @@
             wordCount:true,                //关闭字数统计
             elementPathEnabled : false,    //是否启用元素路径
             //song 字数 300 -1200
-            maximumWords:300,              //允许的最大字符数
+            maximumWords:1200,              //允许的最大字符数
             initialContent:'',             //初始化编辑器的内容
             initialFrameWidth:null,        //初始化宽度
             autoClearinitialContent:false, //是否自动清除编辑器初始内容
