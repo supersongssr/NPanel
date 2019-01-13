@@ -36,10 +36,14 @@ class AutoReportNode extends Command
                         ->where('created_at', '<=', date('Y-m-d 23:59:59', strtotime("-1 day")))
                         ->first();
 
-                    $msg .= '|' . $node->name . '|' . flowAutoShow($log->u) . '|' . flowAutoShow($log->d) . '|' . $log->traffic . "\r\n";
+                    if ($log) {
+                        $msg .= '|' . $node->name . '|' . flowAutoShow($log->u) . '|' . flowAutoShow($log->d) . '|' . $log->traffic . "\r\n";
+                    } else {
+                        $msg .= '|' . $node->name . '|' . flowAutoShow(0) . '|' . flowAutoShow(0) . "|0B\r\n";
+                    }
                 }
 
-                $this->notifyMasterByServerchan('节点日报', $msg);
+                ServerChan::send('节点日报', $msg);
             }
         }
 
@@ -47,21 +51,5 @@ class AutoReportNode extends Command
         $jobUsedTime = round(($jobEndTime - $jobStartTime), 4);
 
         Log::info('执行定时任务【' . $this->description . '】，耗时' . $jobUsedTime . '秒');
-    }
-
-    /**
-     * 通过ServerChan发微信消息提醒管理员
-     *
-     * @param string $title   消息标题
-     * @param string $content 消息内容
-     *
-     * @throws \GuzzleHttp\Exception\GuzzleException
-     */
-    private function notifyMasterByServerchan($title, $content)
-    {
-        if (self::$systemConfig['is_server_chan'] && self::$systemConfig['server_chan_key']) {
-            $serverChan = new ServerChan();
-            $serverChan->send($title, $content);
-        }
     }
 }
