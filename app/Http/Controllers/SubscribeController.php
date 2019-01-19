@@ -182,7 +182,7 @@ class SubscribeController extends Controller
                             "tls"  => $node['v2_tls'] == 1 ? "tls" : ""
                         ];
 
-                        $scheme .= 'vmess://' . base64url_encode(json_encode($v2_json)) . "\n";
+                        $scheme .= 'vmess://' . base64_encode(json_encode($v2_json)) . "\n";
                     }else{
                         $v2_json = [
                             "v"    => "2",
@@ -190,7 +190,7 @@ class SubscribeController extends Controller
                             "add"  => $node['server'] ? $node['server'] : $node['ip'],
                             "port" => $node['v2_port'],
                             "id"   => $addn['1'],
-                            "aid"  => '233',
+                            "aid"  => $node['v2_alter_id'],
                             "net"  => $node['v2_net'],
                             "type" => $node['v2_type'],
                             "host" => $node['v2_host'],
@@ -198,7 +198,7 @@ class SubscribeController extends Controller
                             "tls"  => $node['v2_tls'] == 1 ? "tls" : ""
                         ];
 
-                        $scheme .= 'vmess://' . base64url_encode(json_encode($v2_json)) . "\n";
+                        $scheme .= 'vmess://' . base64_encode(json_encode($v2_json)) . "\n";
                     }
                 }else{
                     if ( empty($addn[1]) ) {
@@ -206,13 +206,13 @@ class SubscribeController extends Controller
                         if ( $node['compatible'] ) {
                         $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
-                        $ss_str = base64url_encode($ss_str) . '#' . $node['name'];
+                        $ss_str = base64_encode($ss_str) . '#' . $node['name'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                         }
                     }else{
                         $ss_str = $addn['3'] . ':' . $addn['2'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addn['1'];
-                        $ss_str = base64url_encode($ss_str) . '#' . $node['name'];
+                        $ss_str = base64_encode($ss_str) . '#' . $node['name'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                     }
                 }   
@@ -236,13 +236,13 @@ class SubscribeController extends Controller
                         # code...
                         // 生成v2ray scheme
                         $v2_str = 'none' . ':' . $user['vmess_id'] . '@' . ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['v2_port'];
-                        $v2_str = base64url_encode($v2_str);
+                        $v2_str = base64_encode($v2_str);
                         $v2_str .= '?network=' . $node['v2_net'] .'&tls=' . ($node['v2_tls'] == 1 ? "tls" : "0") . '&allowInsecure=1&mux=0&muxConcurrency=8&remark=' . $node['name'] . "\n";
                         $scheme .= 'vmess://' . $v2_str . "\n";
                     }else{
                         // 生成v2ray scheme
                         $v2_str = 'none' . ':' . $addn['1'] . '@' . ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['v2_port'];
-                        $v2_str = base64url_encode($v2_str);
+                        $v2_str = base64_encode($v2_str);
                         $v2_str .= '?network=' . $node['v2_net'] .'&tls=' . ($node['v2_tls'] == 1 ? "tls" : "0") . '&allowInsecure=1&mux=0&muxConcurrency=8&remark=' . $node['name'] . "\n";
                         $scheme .= 'vmess://' . $v2_str . "\n";
                     }
@@ -253,14 +253,14 @@ class SubscribeController extends Controller
                         if ( $node['compatible'] && ($user['method'] != 'none')) {
                         $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
-                        $ss_str = base64url_encode($ss_str) . '#' . $node['name'];
+                        $ss_str = base64_encode($ss_str) . '#' . $node['name'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                         }
                     }else{
                         //add addnode
                         $ss_str = $addn['3'] . ':' . $addn['2'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addn['1'];
-                        $ss_str = base64url_encode($ss_str) . '#' . $node['name'];
+                        $ss_str = base64_encode($ss_str) . '#' . $node['name'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                     }
                     
@@ -270,7 +270,7 @@ class SubscribeController extends Controller
             
         }
 
-        exit(base64url_encode($scheme));
+        exit(base64_encode($scheme));
     }
 
     // 写入订阅访问日志

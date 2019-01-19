@@ -136,8 +136,8 @@ class AutoJob extends Command
             foreach ($userList as $user) {
                 if (self::$systemConfig['is_ban_status']) {
                     User::query()->where('id', $user->id)->update([
-                        'u'                 => 0,
-                        'd'                 => 0,
+                        //'u'                 => 0,
+                        //'d'                 => 0,
                         //song 
                         //'transfer_enable'   => 0,
                         'enable'            => 0,
@@ -157,9 +157,9 @@ class AutoJob extends Command
                     Helpers::addUserTrafficModifyLog($user->id, 0, $user->transfer_enable, 0, '[定时任务]账号已过期(禁止登录，清空账户)');
                 } else {
                     User::query()->where('id', $user->id)->update([
-                        'u'                 => 0,
-                        'd'                 => 0,
-                        'transfer_enable'   => 0,
+                        //'u'                 => 0,
+                        //'d'                 => 0,
+                        //'transfer_enable'   => 0,
                         'enable'            => 0,
                         'traffic_reset_day' => 0,
                         'ban_time'          => 0
