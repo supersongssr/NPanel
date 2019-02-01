@@ -22,7 +22,16 @@
                                         <i class="icon-directions font-green hide"></i>
                                         <span class="caption-subject font-blue bold"> {{trans('home.announcement')}} </span>
                                     </div>
+                        <div class="actions">
+                            <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">获取充值码</a> <!-- song -->
+                            <div class="btn-group btn-group-devided" data-toggle="buttons">
+                                <label class="btn red btn-sm">
+                                    <a href="javascript:;" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
+                                </label>
+                            </div>
+                        </div>
                                 </div>
+
                                 <div class="portlet-body">
                                     <div class="tab-content">
                                         <div>
@@ -313,6 +322,7 @@
                             <span class="caption-subject font-blue bold">{{trans('home.account_info')}}</span>
                         </div>
                         <div class="actions">
+                            <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">获取充值码</a> <!-- song -->
                             <div class="btn-group btn-group-devided" data-toggle="buttons">
                                 <label class="btn red btn-sm">
                                     <a href="javascript:;" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>

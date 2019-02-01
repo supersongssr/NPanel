@@ -533,7 +533,7 @@ class AdminController extends Controller
             $query->where('status', intval($status));
         }
 
-        $nodeList = $query->orderBy('status', 'desc')->orderBy('id', 'asc')->paginate(15)->appends($request->except('page'));
+        $nodeList = $query->orderBy('status', 'desc')->orderBy('id', 'asc')->paginate(100)->appends($request->except('page')); //15 -100song node
         foreach ($nodeList as &$node) {
             // 在线人数
             $last_log_time = time() - 600; // 10分钟内
@@ -2112,13 +2112,13 @@ EOF;
     // 生成邀请码
     public function makeInvite(Request $request)
     {
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 32; $i++) {   //32个邀请码 song
             $obj = new Invite();
             $obj->uid = 0;
             $obj->fuid = 0;
             $obj->code = strtoupper(substr(md5(microtime() . makeRandStr()), 8, 12));
             $obj->status = 0;
-            $obj->dateline = date('Y-m-d H:i:s', strtotime("+ 7days"));
+            $obj->dateline = date('Y-m-d H:i:s', strtotime("+ 21days"));  //song 21 day 
             $obj->save();
         }
 

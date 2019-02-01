@@ -520,7 +520,7 @@ class UserController extends Controller
                 //song
                 $title = $id . "--回复";
                 //
-                $content = "标题：【" . $ticket->title . "】<br>用户回复：" . $content;
+                $content = "标题：【" . $ticket->title . "】<br> https://web.ssvss.xyz/ticket/replyTicket?id=" .$id. "<br>用户回复：" . $content;
 
                 // 发邮件通知管理员
                 if (self::$systemConfig['crash_warning_email']) {
@@ -808,7 +808,7 @@ class UserController extends Controller
                     $goodsLabels = GoodsLabel::query()->where('goods_id', $goods_id)->pluck('label_id')->toArray();
 
                     // 标签去重
-                    $newUserLabels = arra_vaylues(array_unique(array_merge($userLabels, $goodsLabels, $defaultLabels)));
+                    $newUserLabels = array_values(array_unique(array_merge($userLabels, $goodsLabels, $defaultLabels)));
 
                     // 删除用户所有标签
                     UserLabel::query()->where('user_id', $user->id)->delete();

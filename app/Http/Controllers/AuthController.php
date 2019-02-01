@@ -193,6 +193,8 @@ class AuthController extends Controller
                 return Redirect::back()->withInput();
             }
 
+
+
             // 如果需要邀请注册
             if (self::$systemConfig['is_invite_register']) {
                 // 必须使用邀请码
@@ -287,6 +289,11 @@ class AuthController extends Controller
             $user->expire_time = date('Y-m-d H:i:s', strtotime("+" . self::$systemConfig['default_days'] . " days"));
             $user->reg_ip = getClientIp();
             $user->referral_uid = $referral_uid;
+            //song 教育计划支持
+            $eduSupport = array(smail.xtu.edu.cn,mails.tsinghua.edu.cn,cqu.edu.cn,2016.cqut.edu.cn,2015.cqut.edu.cn,stu.xzhmu.edu.cn,mail.sustc.edu.cn,smail.cczu.edu.cn,sicnu.edu.cn);
+            if (in_array($usernameSuffix[1], $eduSupport)) {
+                $user->balance = 5000;
+            }
             $user->save();
 
             // 注册失败，抛出异常

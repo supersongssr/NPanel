@@ -46,7 +46,7 @@
                                     <td class="text-center"> x 1 </td>
                                 </tr>
                             </tbody>
-                      	@endif
+                        @endif
                     </table>
                 </div>
             </div>
@@ -75,15 +75,18 @@
             @endif
             <div class="row">
                 <div class="col-xs-12" style="text-align: right;">
+                    <a href="https://www.510ka.com/liebiao/3163CA017733309A"  class="btn btn-lg red hidden-print uppercase" target="_blank"> 获取充值码 </a><!-- song -->
                     @if($is_youzan)
                         <a class="btn btn-lg red hidden-print" onclick="onlinePay(0)"> {{trans('home.online_pay')}} </a>
                     @elseif($is_alipay)
                         <a class="btn btn-lg green hidden-print" onclick="onlinePay(4)"> 支付宝扫码 </a>
                     @endif
-                  	@if($goods->type <= 2)
+                    @if($goods->type <= 2)
                         <a class="btn btn-lg blue hidden-print uppercase" onclick="pay()"> {{trans('home.service_pay_button')}} </a>
-                  	@endif
+                    @endif
+                    <p>余额不足？请到发卡平台购买充值码。有问题？提交服务单。</p>
                 </div>
+
             </div>
         </div>
         <!-- END PAGE BASE CONTENT -->
