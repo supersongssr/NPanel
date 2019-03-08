@@ -290,9 +290,13 @@ class AuthController extends Controller
             $user->reg_ip = getClientIp();
             $user->referral_uid = $referral_uid;
             //song 教育计划支持
-            $eduSupport = array(smail.xtu.edu.cn,mails.tsinghua.edu.cn,cqu.edu.cn,2016.cqut.edu.cn,2015.cqut.edu.cn,stu.xzhmu.edu.cn,mail.sustc.edu.cn,smail.cczu.edu.cn,sicnu.edu.cn);
-            if (in_array($usernameSuffix[1], $eduSupport)) {
+            //$eduSupport = array(smail.xtu.edu.cn,mails.tsinghua.edu.cn,cqu.edu.cn,2016.cqut.edu.cn,2015.cqut.edu.cn,stu.xzhmu.edu.cn,mail.sustc.edu.cn,smail.cczu.edu.cn,sicnu.edu.cn);
+            // Song 教育计划支持 edu.cn自动获取到 50余额支持
+            $eduSupport = 'edu.cn';
+            //if (in_array($usernameSuffix[1], $eduSupport)) {
+            if (strpos($usernameSuffix[1], $eduSupport)) {
                 $user->balance = 5000;
+                $user->remark = 'regEDU';
             }
             $user->save();
 
