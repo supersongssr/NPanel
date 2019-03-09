@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Components\Helpers;
+use App\Components\IPIP;
 use App\Components\QQWry;
 use App\Http\Models\Invite;
 use App\Http\Models\User;
 use App\Http\Models\UserLoginLog;
 use App\Http\Models\UserLabel;
+use App\Http\Models\UserSubscribe;
 use App\Http\Models\Verify;
 use App\Http\Models\VerifyCode;
 use App\Mail\activeUser;
@@ -25,7 +27,7 @@ use Hash;
 use Log;
 
 /**
- * 验证控制器
+ * 认证控制器
  *
  * Class AuthController
  *
@@ -64,34 +66,29 @@ class AuthController extends Controller
                 }
             }
 
+            // 验证账号并创建会话
             if (!Auth::attempt(['username' => $username, 'password' => $password], $remember)) {
                 Session::flash('errorMsg', '用户名或密码错误');
 
                 return Redirect::back()->withInput();
-            } elseif (!Auth::user()->is_admin && Auth::user()->status < 0) {
-                Session::flash('errorMsg', '账号已禁用');
-
-                return Redirect::back();
-            } elseif (Auth::user()->status == 0 && self::$systemConfig['is_active_register'] && Auth::user()->is_admin == 0) {
-                Session::flash('errorMsg', '账号未激活，请点击<a href="/activeUser?username=' . Auth::user()->username . '" target="_blank"><span style="color:#000">【激活账号】</span></a>');
-
-                return Redirect::back()->withInput();
             }
 
-            // 登录送积分
-            if (self::$systemConfig['login_add_score']) {
-                if (!Cache::has('loginAddScore_' . md5($username))) {
-                    $score = mt_rand(self::$systemConfig['min_rand_score'], self::$systemConfig['max_rand_score']);
-                    $ret = User::query()->where('id', Auth::user()->id)->increment('score', $score);
-                    if ($ret) {
-                        $this->addUserScoreLog(Auth::user()->id, Auth::user()->score, Auth::user()->score + $score, $score, '登录送积分');
+            // 校验普通用户账号状态
+            if (!Auth::user()->is_admin) {
+                if (Auth::user()->status < 0) {
+                    Session::flash('errorMsg', '账号已禁用');
 
-                        // 登录多久后再登录可以获取积分
-                        $ttl = self::$systemConfig['login_add_score_range'] ? self::$systemConfig['login_add_score_range'] : 1440;
-                        Cache::put('loginAddScore_' . md5($username), '1', $ttl);
+                    Auth::logout(); // 强制销毁会话，因为Auth::attempt的时候会产生会话
 
-                        Session::flash('successMsg', '欢迎回来，系统自动赠送您 ' . $score . ' 积分，您可以用它兑换流量');
-                    }
+                    return Redirect::back()->withInput();
+                }
+
+                if (Auth::user()->status == 0 && self::$systemConfig['is_active_register']) {
+                    Session::flash('errorMsg', '账号未激活，请点击<a href="/activeUser?username=' . Auth::user()->username . '" target="_blank"><span style="color:#000">【激活账号】</span></a>');
+
+                    Auth::logout(); // 强制销毁会话，因为Auth::attempt的时候会产生会话
+
+                    return Redirect::back()->withInput();
                 }
             }
 
@@ -108,14 +105,12 @@ class AuthController extends Controller
 
             return Redirect::to('/');
         } else {
-            if (Auth::viaRemember()) {
-                if (Auth::check()) {
-                    if (Auth::user()->is_admin) {
-                        return Redirect::to('admin');
-                    }
-
-                    return Redirect::to('/');
+            if (Auth::check()) {
+                if (Auth::user()->is_admin) {
+                    return Redirect::to('admin');
                 }
+
+                return Redirect::to('/');
             }
 
             return Response::view('auth.login');
@@ -307,6 +302,13 @@ class AuthController extends Controller
                 return Redirect::back()->withInput();
             }
 
+            // 生成订阅码
+            $subscribe = new UserSubscribe();
+            $subscribe->user_id = $user->id;
+            $subscribe->code = Helpers::makeSubscribeCode();
+            $subscribe->times = 0;
+            $subscribe->save();
+
             // 注册次数+1
             if (Cache::has($cacheKey)) {
                 Cache::increment($cacheKey);
@@ -355,12 +357,8 @@ class AuthController extends Controller
                     $activeUserUrl = self::$systemConfig['website_url'] . '/active/' . $token;
                     $this->addVerify($user->id, $token);
 
-                    try {
-                        Mail::to($username)->send(new activeUser($activeUserUrl));
-                        Helpers::addEmailLog($username, '注册激活', '请求地址：' . $activeUserUrl);
-                    } catch (\Exception $e) {
-                        Helpers::addEmailLog($username, '注册激活', '请求地址：' . $activeUserUrl, 0, $e->getMessage());
-                    }
+                    $logId = Helpers::addEmailLog($username, '注册激活', '请求地址：' . $activeUserUrl);
+                    Mail::to($username)->send(new activeUser($logId, $activeUserUrl));
 
                     Session::flash('regSuccessMsg', '注册成功：激活邮件已发送，如未收到，请查看垃圾邮箱');
                 } else {
@@ -380,7 +378,7 @@ class AuthController extends Controller
                 }
             }
 
-            return Redirect::to('login');
+            return Redirect::to('login')->withInput();
         } else {
             Session::put('register_token', makeRandStr(16));
 
@@ -441,12 +439,8 @@ class AuthController extends Controller
             $title = '重置密码';
             $content = '请求地址：' . $resetPasswordUrl;
 
-            try {
-                Mail::to($username)->send(new resetPassword($resetPasswordUrl));
-                Helpers::addEmailLog($username, $title, $content);
-            } catch (\Exception $e) {
-                Helpers::addEmailLog($username, $title, $content, 0, $e->getMessage());
-            }
+            $logId = Helpers::addEmailLog($username, $title, $content);
+            Mail::to($username)->send(new resetPassword($logId, $resetPasswordUrl));
 
             Cache::put('resetPassword_' . md5($username), $resetTimes + 1, 1440);
             Session::flash('successMsg', '重置成功，请查看邮箱');
@@ -590,12 +584,8 @@ class AuthController extends Controller
             $title = '重新激活账号';
             $content = '请求地址：' . $activeUserUrl;
 
-            try {
-                Mail::to($username)->send(new activeUser($activeUserUrl));
-                Helpers::addEmailLog($username, $title, $content);
-            } catch (\Exception $e) {
-                Helpers::addEmailLog($username, $title, $content, 0, $e->getMessage());
-            }
+            $logId = Helpers::addEmailLog($username, $title, $content);
+            Mail::to($username)->send(new activeUser($logId, $activeUserUrl));
 
             Cache::put('activeUser_' . md5($username), $activeTimes + 1, 1440);
             Session::flash('successMsg', '激活邮件已发送，如未收到，请查看垃圾箱');
@@ -704,12 +694,8 @@ class AuthController extends Controller
         $title = '发送注册验证码';
         $content = '验证码：' . $code;
 
-        try {
-            Mail::to($username)->send(new sendVerifyCode($code));
-            Helpers::addEmailLog($username, $title, $content);
-        } catch (\Exception $e) {
-            Helpers::addEmailLog($username, $title, $content, 0, $e->getMessage());
-        }
+        $logId = Helpers::addEmailLog($username, $title, $content);
+        Mail::to($username)->send(new sendVerifyCode($logId, $code));
 
         $this->addVerifyCode($username, $code);
 
@@ -742,16 +728,32 @@ class AuthController extends Controller
      */
     private function addUserLoginLog($userId, $ip)
     {
-        // 解析IP信息
-        $qqwry = new QQWry();
-        $ipInfo = $qqwry->ip($ip);
-        if (isset($ipInfo['error'])) {
-            Log::info('无法识别IP，可能是IPv6，尝试解析：' . $ip);
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            Log::info('识别到IPv6，尝试解析：' . $ip);
             $ipInfo = getIPv6($ip);
+        } else {
+            $ipInfo = QQWry::ip($ip); // 通过纯真IP库解析IPv4信息
+            if (isset($ipInfo['error'])) {
+                Log::info('无法识别IPv4，尝试使用IPIP的IP库解析：' . $ip);
+                $ipip = IPIP::ip($ip);
+                $ipInfo = [
+                    'country'  => $ipip['country_name'],
+                    'province' => $ipip['region_name'],
+                    'city'     => $ipip['city_name']
+                ];
+            } else {
+                // 判断纯真IP库获取的国家信息是否与IPIP的IP库获取的信息一致，不一致则用IPIP的（因为纯真IP库的非大陆IP准确率较低）
+                $ipip = IPIP::ip($ip);
+                if ($ipInfo['country'] != $ipip['country_name']) {
+                    $ipInfo['country'] = $ipip['country_name'];
+                    $ipInfo['province'] = $ipip['region_name'];
+                    $ipInfo['city'] = $ipip['city_name'];
+                }
+            }
         }
 
         if (empty($ipInfo) || empty($ipInfo['country'])) {
-            Log::warning("获取IP地址信息异常：" . $ip);
+            Log::warning("获取IP信息异常：" . $ip);
         }
 
         $log = new UserLoginLog();

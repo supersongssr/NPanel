@@ -42,6 +42,8 @@
                                     <option value="" @if(Request::get('pay_way') == '') selected @endif>支付方式</option>
                                     <option value="1" @if(Request::get('pay_way') == '1') selected @endif>余额支付</option>
                                     <option value="2" @if(Request::get('pay_way') == '2') selected @endif>有赞云支付</option>
+                                    <option value="4" @if(Request::get('pay_way') == '4') selected @endif>支付宝国际</option>
+                                    <option value="5" @if(Request::get('pay_way') == '5') selected @endif>支付宝当面付</option>
                                 </select>
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
@@ -52,6 +54,21 @@
                                     <option value="1" @if(Request::get('status') == '1') selected @endif>已支付待确认</option>
                                     <option value="2" @if(Request::get('status') == '2') selected @endif>已完成</option>
                                 </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="form-control" name="time" id="range_time" placeholder="创建时间" autocomplete="off" />
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <div class="mt-radio-inline">
+                                    <label class="mt-radio">
+                                        <input type="radio" name="sort" value="1" checked onchange="doSearch()"> 升序
+                                        <span></span>
+                                    </label>
+                                    <label class="mt-radio">
+                                        <input type="radio" name="sort" value="0" @if(Request::get('sort') == '0') checked @endif onchange="doSearch()"> 降序
+                                        <span></span>
+                                    </label>
+                                </div>
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
                                 <button type="button" class="btn blue" onclick="doSearch();">查询</button>
@@ -88,7 +105,7 @@
                                                     @if(empty($order->user) )
                                                         【账号不存在】
                                                     @else
-                                                        <a href="{{url('admin/userList?username=') . $order->user->username}}" target="_blank"> <span class="label label-info">{{$order->user->username}}</span> </a>
+                                                        <a href="{{url('admin/userList?id=') . $order->user->id}}" target="_blank"> <span class="label label-info">{{$order->user->username}}</span> </a>
                                                     @endif
                                                 </td>
                                                 <td> {{$order->order_sn}} </td>
@@ -102,6 +119,10 @@
                                                         <span class="label label-info"> 余额支付 </span>
                                                     @elseif($order->pay_way == '2')
                                                         <span class="label label-info"> 有赞云支付 </span>
+                                                    @elseif($order->pay_way == '4')
+                                                        <span class="label label-info"> 支付宝国际 </span>
+                                                    @elseif($order->pay_way == '5')
+                                                        <span class="label label-info"> 支付宝当面付 </span>
                                                     @else
                                                         <span class="label label-info"> 未知 </span>
                                                     @endif
@@ -143,7 +164,16 @@
     <!-- END CONTENT BODY -->
 @endsection
 @section('script')
+    <script src="/assets/global/plugins/laydate/laydate.js" type="text/javascript"></script>
     <script type="text/javascript">
+        // 有效期
+        laydate.render({
+            elem: '#range_time',
+            type: 'datetime',
+            range: '至',
+            value: '{{urldecode(Request::get('range_time'))}}'
+        });
+
         // 搜索
         function doSearch() {
             var username = $("#username").val();
@@ -151,8 +181,10 @@
             var is_coupon = $("#is_coupon").val();
             var pay_way = $("#pay_way").val();
             var status = $("#status").val();
+            var sort = $("input:radio[name='sort']:checked").val();
+            var range_time = $("#range_time").val();
 
-            window.location.href = '{{url('admin/orderList')}}' + '?username=' + username + '&is_expire=' + is_expire + '&is_coupon=' + is_coupon + '&pay_way=' + pay_way + '&status=' + status;
+            window.location.href = '{{url('admin/orderList')}}' + '?username=' + username + '&is_expire=' + is_expire + '&is_coupon=' + is_coupon + '&pay_way=' + pay_way + '&status=' + status + '&sort=' + sort + '&range_time=' + range_time;
         }
 
         // 重置

@@ -1,10 +1,10 @@
 <?php
 
-Route::get('s/{code}', 'SubscribeController@index'); // 节点订阅地址
+Route::get('s/{code}', 'SubscribeController@getSubscribeByCode'); // 节点订阅地址
 
 Route::group(['middleware' => ['isForbidden', 'affiliate']], function () {
     Route::get('lang/{locale}', 'AuthController@switchLang'); // 语言切换
-    Route::any('login', 'AuthController@login'); // 登录
+    Route::any('login', 'AuthController@login')->middleware('isSecurity'); // 登录
     Route::get('logout', 'AuthController@logout'); // 退出
     Route::any('register', 'AuthController@register'); // 注册
     Route::any('resetPassword', 'AuthController@resetPassword'); // 重设密码
@@ -15,6 +15,7 @@ Route::group(['middleware' => ['isForbidden', 'affiliate']], function () {
     Route::get('free', 'AuthController@free'); // 免费邀请码
     Route::get('makePasswd', 'Controller@makePasswd'); // 生成密码
     Route::get('makeVmessId', 'Controller@makeVmessId'); // 生成VmessId
+    Route::get('makeSecurityCode', 'Controller@makeSecurityCode'); // 生成网站安全码
 });
 
 Route::group(['middleware' => ['isForbidden', 'isLogin', 'isAdmin']], function () {
@@ -73,20 +74,24 @@ Route::group(['middleware' => ['isForbidden', 'isLogin', 'isAdmin']], function (
     Route::get('admin/system', 'AdminController@system'); // 系统设置
     Route::post('admin/setExtend', 'AdminController@setExtend'); // 设置客服、统计代码
     Route::post('admin/setConfig', 'AdminController@setConfig'); // 设置某个配置项
-    Route::get('admin/subscribeLog', 'AdminController@subscribeLog'); // 订阅管理
-    Route::post('admin/setSubscribeStatus', 'AdminController@setSubscribeStatus'); // 启用禁用用户的订阅
     Route::get('admin/userBalanceLogList', 'AdminController@userBalanceLogList'); // 余额变动记录
     Route::get('admin/userTrafficLogList', 'AdminController@userTrafficLogList'); // 流量变动记录
     Route::get('admin/userRebateList', 'AdminController@userRebateList'); // 返利流水记录
     Route::get('admin/userBanLogList', 'AdminController@userBanLogList'); // 用户封禁记录
+    Route::get('admin/userOnlineIPList', 'AdminController@userOnlineIPList'); // 用户在线IP记录
     Route::any('admin/export', 'AdminController@export'); // 导出(查看)配置信息
     Route::get('admin/userMonitor', 'AdminController@userMonitor'); // 用户流量监控
     Route::post('admin/resetUserTraffic', 'AdminController@resetUserTraffic'); // 重置用户流量
     Route::post('admin/handleUserBalance', 'AdminController@handleUserBalance'); // 用户余额充值
     Route::post("admin/switchToUser", "AdminController@switchToUser"); // 转换成某个用户的身份
+    Route::get('subscribe/subscribeList', 'SubscribeController@subscribeList'); // 订阅码列表
+    Route::get('subscribe/deviceList', 'SubscribeController@deviceList'); // 订阅设备列表
+    Route::post('subscribe/setSubscribeStatus', 'SubscribeController@setSubscribeStatus'); // 启用禁用用户的订阅
+    Route::post('subscribe/setDeviceStatus', 'SubscribeController@setDeviceStatus'); // 是否允许设备订阅
     Route::get("marketing/emailList", "MarketingController@emailList"); // 邮件消息列表
     Route::get("marketing/pushList", "MarketingController@pushList"); // 推送消息列表
     Route::post("marketing/addPushMarketing", "MarketingController@addPushMarketing"); // 推送消息
+    Route::get("admin/onlineIPMonitor", "AdminController@onlineIPMonitor"); // 在线IP监控
     Route::any("admin/decompile", "AdminController@decompile"); // SS(R)链接反解析
     Route::get('admin/download', 'AdminController@download'); // 下载转换过的JSON配置
     Route::any('admin/convert', 'AdminController@convert'); // 格式转换
@@ -107,8 +112,9 @@ Route::group(['middleware' => ['isForbidden', 'isLogin']], function () {
     Route::any('/', 'UserController@index'); // 用户首页
     Route::any('article', 'UserController@article'); // 文章详情
     Route::post('exchangeSubscribe', 'UserController@exchangeSubscribe'); // 更换节点订阅地址
+    Route::get('nodeList', 'UserController@nodeList'); // 节点列表
+    Route::post('checkIn', 'UserController@checkIn'); // 签到
     Route::get('services', 'UserController@services'); // 商品列表
-    Route::get('trafficLog', 'UserController@trafficLog'); // 流量日志
     Route::get('tickets', 'UserController@ticketList'); // 工单
     Route::post('addTicket', 'UserController@addTicket'); // 快速添加工单
     Route::any('replyTicket', 'UserController@replyTicket'); // 回复工单
@@ -120,7 +126,6 @@ Route::group(['middleware' => ['isForbidden', 'isLogin']], function () {
     Route::get('invite', 'UserController@invite'); // 邀请码
     Route::post('makeInvite', 'UserController@makeInvite'); // 生成邀请码
     Route::any('profile', 'UserController@profile'); // 修改个人信息
-    Route::post('exchange', 'UserController@exchange'); // 积分兑换流量
     Route::get('referral', 'UserController@referral'); // 推广返利
     Route::post('extractMoney', 'UserController@extractMoney'); // 申请提现
     Route::post("switchToAdmin", "UserController@switchToAdmin"); // 转换成管理员的身份

@@ -17,7 +17,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\AutoClearLog::class,
         \App\Console\Commands\AutoDecGoodsTraffic::class,
         \App\Console\Commands\AutoResetUserTraffic::class,
-        \App\Console\Commands\AutoCheckNodeStatus::class,
+        \App\Console\Commands\AutoCheckNodeTCP::class,
         \App\Console\Commands\AutoStatisticsNodeDailyTraffic::class,
         \App\Console\Commands\AutoStatisticsNodeHourlyTraffic::class,
         \App\Console\Commands\AutoStatisticsUserDailyTraffic::class,
@@ -25,7 +25,10 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\UserTrafficAbnormalAutoWarning::class,
         \App\Console\Commands\UserExpireAutoWarning::class,
         \App\Console\Commands\UserTrafficAutoWarning::class,
+        \App\Console\Commands\upgradeUserLabels::class,
         \App\Console\Commands\upgradeUserPassword::class,
+        \App\Console\Commands\upgradeUserSpeedLimit::class,
+        \App\Console\Commands\upgradeUserSubscribe::class,
         \App\Console\Commands\upgradeUserVmessId::class,
         \App\Console\Commands\AutoReportNode::class,
     ];
@@ -46,10 +49,12 @@ class Kernel extends ConsoleKernel
         $schedule->command('autoClearLog')->everyThirtyMinutes();
         $schedule->command('autoDecGoodsTraffic')->everyTenMinutes();
         $schedule->command('autoResetUserTraffic')->daily();
+
         //$schedule->command('autoCheckNodeStatus')->everyMinute();
         //Song
         $schedule->command('autoCheckNodeStatus')->hourly();
         //
+
         $schedule->command('autoStatisticsNodeDailyTraffic')->dailyAt('23:55');
         $schedule->command('autoStatisticsNodeHourlyTraffic')->hourly();
         $schedule->command('autoStatisticsUserDailyTraffic')->dailyAt('23:50');
@@ -61,12 +66,14 @@ class Kernel extends ConsoleKernel
     }
 
     /**
-     * Register the Closure based commands for the application.
+     * Register the commands for the application.
      *
      * @return void
      */
     protected function commands()
     {
+        $this->load(__DIR__.'/Commands');
+
         require base_path('routes/console.php');
     }
 }

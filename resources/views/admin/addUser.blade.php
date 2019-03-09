@@ -223,7 +223,7 @@
                                                 <div class="col-md-8">
                                                     <div class="input-group">
                                                         <input type="text" class="form-control" name="transfer_enable" value="1024" id="transfer_enable" autocomplete="off" required>
-                                                        <span class="input-group-addon">GiB</span>
+                                                        <span class="input-group-addon">GB</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -276,27 +276,27 @@
                                                 </div>
                                             </div>
                                             <hr>
-                                            <!--
                                             <div class="form-group">
                                                 <label for="speed_limit_per_con" class="col-md-3 control-label">单连接限速</label>
                                                 <div class="col-md-8">
                                                     <div class="input-group">
-                                                        <input type="text" class="form-control" name="speed_limit_per_con" value="204800" id="speed_limit_per_con" autocomplete="off" disabled />
-                                                        <span class="input-group-addon">KB</span>
+                                                        <input type="text" class="form-control" name="speed_limit_per_con" value="10737418240" id="speed_limit_per_con" autocomplete="off" />
+                                                        <span class="input-group-addon">Byte</span>
                                                     </div>
+                                                    <span class="help-block"> 为 0 时不限速 </span>
                                                 </div>
                                             </div>
                                             <div class="form-group">
                                                 <label for="speed_limit_per_user" class="col-md-3 control-label">单用户限速</label>
                                                 <div class="col-md-8">
                                                     <div class="input-group">
-                                                        <input type="text" class="form-control" name="speed_limit_per_user" value="204800" id="speed_limit_per_user" autocomplete="off" disabled />
-                                                        <span class="input-group-addon">KB</span>
+                                                        <input type="text" class="form-control" name="speed_limit_per_user" value="10737418240" id="speed_limit_per_user" autocomplete="off" />
+                                                        <span class="input-group-addon">Byte</span>
                                                     </div>
+                                                    <span class="help-block"> 为 0 时不限速 </span>
                                                 </div>
                                             </div>
                                             <hr>
-                                            -->
                                             <div class="form-group">
                                                 <label for="vmess_id" class="col-md-3 control-label">VMess UUID</label>
                                                 <div class="col-md-8">

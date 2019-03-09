@@ -28,15 +28,10 @@ class Controller extends BaseController
         exit(createGuid());
     }
 
-    // 生成订阅地址的唯一码
-    public function makeSubscribeCode()
+    // 生成网站安全码
+    public function makeSecurityCode()
     {
-        $code = makeRandStr(5);
-        if (UserSubscribe::query()->where('code', $code)->exists()) {
-            $code = $this->makeSubscribeCode();
-        }
-
-        return $code;
+        exit(strtolower(makeRandStr(8)));
     }
 
     // 类似Linux中的tail命令

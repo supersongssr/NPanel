@@ -213,15 +213,15 @@ class YzyController extends Controller
                 $user = User::query()->where('id', $order->user_id)->first(); // 重新取出user信息
                 Helpers::addUserTrafficModifyLog($order->user_id, $order->oid, $user->transfer_enable, ($user->transfer_enable + $goods->traffic * 1048576), '[在线支付]用户购买商品，加上流量');
 
-                // 把商品的流量加到账号上
-                User::query()->where('id', $order->user_id)->increment('transfer_enable', $goods->traffic * 1048576);
-
                 // 计算账号过期时间
                 if ($order->user->expire_time < date('Y-m-d', strtotime("+" . $goods->days . " days"))) {
                     $expireTime = date('Y-m-d', strtotime("+" . $goods->days . " days"));
                 } else {
                     $expireTime = $order->user->expire_time;
                 }
+
+                // 把商品的流量加到账号上
+                User::query()->where('id', $order->user_id)->increment('transfer_enable', $goods->traffic * 1048576);
 
                 // 套餐就改流量重置日，流量包不改
                 if ($goods->type == 2) {
@@ -300,12 +300,8 @@ class YzyController extends Controller
                 $nodeList = SsNode::query()->whereIn('id', $nodeIds)->orderBy('sort', 'desc')->orderBy('id', 'desc')->get()->toArray();
                 $content['serverList'] = $nodeList;
 
-                try {
-                    Mail::to($order->email)->send(new sendUserInfo($content));
-                    Helpers::addEmailLog($order->email, $title, json_encode($content));
-                } catch (\Exception $e) {
-                    Helpers::addEmailLog($order->email, $title, json_encode($content), 0, $e->getMessage());
-                }
+                $logId = Helpers::addEmailLog($order->email, $title, json_encode($content));
+                Mail::to($order->email)->send(new sendUserInfo($logId, $content));
             }
 
             DB::commit();

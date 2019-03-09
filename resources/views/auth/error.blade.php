@@ -8,7 +8,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>401</title>
+    <title>ACCESS DENIED</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <meta content="" name="description" />
@@ -37,11 +37,7 @@
     </div>
     <div class="container error-404">
         <h2>ACCESS DENIED</h2>
-        <p>Unauthorized</p>
-        <p>
-            <a href="{{Request::server('HTTP_REFERER') ?? url('/')}}" class="btn red btn-outline"> 返回 </a>
-            <br>
-        </p>
+        <p>{!! $message !!}</p>
     </div>
     <!--[if lt IE 9]>
     <script src="/assets/global/plugins/respond.min.js"></script>

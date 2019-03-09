@@ -2,38 +2,48 @@
 
 namespace App\Exceptions;
 
+use ErrorException;
 use Exception;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Session\TokenMismatchException;
 use ReflectionException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class Handler extends ExceptionHandler
 {
     /**
-     * A list of the exception types that should not be reported.
+     * A list of the exception types that are not reported.
      *
      * @var array
      */
     protected $dontReport = [
-        \Illuminate\Auth\AuthenticationException::class,
-        \Illuminate\Auth\Access\AuthorizationException::class,
-        \Symfony\Component\HttpKernel\Exception\HttpException::class,
-        \Illuminate\Database\Eloquent\ModelNotFoundException::class,
-        \Illuminate\Session\TokenMismatchException::class,
-        \Illuminate\Validation\ValidationException::class,
+        //
+    ];
+
+    /**
+     * A list of the inputs that are never flashed for validation exceptions.
+     *
+     * @var array
+     */
+    protected $dontFlash = [
+        'password',
+        'password_confirmation',
     ];
 
     /**
      * Report or log an exception.
-     * This is a great spot to send exceptions to Sentry, Bugsnag, etc.
      *
-     * @param  Exception $exception
+     * @param Exception $exception
      *
+     * @return mixed|void
      * @throws Exception
      */
     public function report(Exception $exception)
     {
+        // 记录异常来源
+        \Log::info('异常来源：' . get_class($exception));
+
         parent::report($exception);
     }
 
@@ -47,11 +57,20 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
-        \Log::info("异常请求：" . $request->fullUrl() . "，IP：" . getClientIp());
-
         // 调试模式下直接返回错误信息
         if (config('app.debug')) {
             return parent::render($request, $exception);
+        }
+
+        // 捕获访问异常
+        if ($exception instanceof NotFoundHttpException) {
+            \Log::info("异常请求：" . $request->fullUrl() . "，IP：" . getClientIp());
+
+            if ($request->ajax()) {
+                return response()->json(['status' => 'fail', 'data' => '', 'message' => 'Page Not Found']);
+            } else {
+                return response()->view('auth.error', ['message' => 'Page Not Found']);
+            }
         }
 
         // 捕获身份校验异常
@@ -59,16 +78,16 @@ class Handler extends ExceptionHandler
             if ($request->ajax()) {
                 return response()->json(['status' => 'fail', 'data' => '', 'message' => 'Unauthorized']);
             } else {
-                return response()->view('error.404');
+                return response()->view('auth.error', ['message' => 'Unauthorized']);
             }
         }
 
         // 捕获CSRF异常
         if ($exception instanceof TokenMismatchException) {
             if ($request->ajax()) {
-                return response()->json(['status' => 'fail', 'data' => '', 'message' => trans('404.csrf_title')]);
+                return response()->json(['status' => 'fail', 'data' => '', 'message' => 'Refresh Page, Try One More Time']);
             } else {
-                return response()->view('error.csrf');
+                return response()->view('auth.error', ['message' => 'Refresh Page, Try One More Time']);
             }
         }
 
@@ -77,27 +96,19 @@ class Handler extends ExceptionHandler
             if ($request->ajax()) {
                 return response()->json(['status' => 'fail', 'data' => '', 'message' => 'System Error']);
             } else {
-                return response()->view('error.404');
+                return response()->view('auth.error', ['message' => 'System Error']);
             }
         }
 
-        return response()->view('error.404');
-    }
-
-    /**
-     * Convert an authentication exception into an unauthenticated response.
-     *
-     * @param  \Illuminate\Http\Request                 $request
-     * @param  \Illuminate\Auth\AuthenticationException $exception
-     *
-     * @return \Illuminate\Http\Response
-     */
-    protected function unauthenticated($request, AuthenticationException $exception)
-    {
-        if ($request->expectsJson()) {
-            return response()->json(['error' => 'Unauthenticated.'], 401);
+        // 捕获系统错误异常
+        if ($exception instanceof ErrorException) {
+            if ($request->ajax()) {
+                return response()->json(['status' => 'fail', 'data' => '', 'message' => 'System Error']);
+            } else {
+                return response()->view('auth.error', ['message' => 'System Error, See <a href="/logs" target="_blank">Logs</a>']);
+            }
         }
 
-        return redirect()->guest(route('login'));
+        return parent::render($request, $exception);
     }
 }

@@ -9,7 +9,6 @@ use App\Http\Models\Coupon;
 use App\Http\Models\Goods;
 use App\Http\Models\GoodsLabel;
 use App\Http\Models\Invite;
-use App\Http\Models\Level;
 use App\Http\Models\Order;
 use App\Http\Models\ReferralApply;
 use App\Http\Models\ReferralLog;
@@ -20,12 +19,12 @@ use App\Http\Models\Ticket;
 use App\Http\Models\TicketReply;
 use App\Http\Models\User;
 use App\Http\Models\UserLabel;
-use App\Http\Models\UserLoginLog;
 use App\Http\Models\UserSubscribe;
 use App\Http\Models\UserTrafficDaily;
 use App\Http\Models\UserTrafficHourly;
 use App\Mail\newTicket;
 use App\Mail\replyTicket;
+use Cache;
 use Illuminate\Http\Request;
 use Redirect;
 use Response;
@@ -54,52 +53,98 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $user = User::query()->where('id', Auth::user()->id)->first();
-        $user->totalTransfer = flowAutoShow($user->transfer_enable);
-        $user->usedTransfer = flowAutoShow($user->u + $user->d);
-        $user->usedPercent = $user->transfer_enable > 0 ? round(($user->u + $user->d) / $user->transfer_enable, 2) : 1;
-        $user->levelName = Level::query()->where('level', $user['level'])->first()['level_name'];
 
-        $view['info'] = $user->toArray();
-        $view['notice'] = Article::query()->where('type', 2)->where('is_del', 0)->orderBy('id', 'desc')->first();
 
         //Song公告列表获取
         $view['noticeList'] = Article::query()->where('type', 2)->where('is_del', 0)->orderBy('sort', 'desc')->orderBy('id', 'desc')->limit(10)->get();
         //
 
+        $dailyData = [];
+        $hourlyData = [];
 
+        // 节点一个月内的流量
+        $userTrafficDaily = UserTrafficDaily::query()->where('user_id', Auth::user()->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m', time()))->orderBy('created_at', 'asc')->pluck('total')->toArray();
+
+        $dailyTotal = date('d', time()) - 1; // 今天不算，减一
+        $dailyCount = count($userTrafficDaily);
+        for ($x = 0; $x < ($dailyTotal - $dailyCount); $x++) {
+            $dailyData[$x] = 0;
+        }
+        for ($x = ($dailyTotal - $dailyCount); $x < $dailyTotal; $x++) {
+            $dailyData[$x] = round($userTrafficDaily[$x - ($dailyTotal - $dailyCount)] / (1024 * 1024 * 1024), 3);
+        }
+
+        // 节点一天内的流量
+        $userTrafficHourly = UserTrafficHourly::query()->where('user_id', Auth::user()->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m-d', time()))->orderBy('created_at', 'asc')->pluck('total')->toArray();
+        $hourlyTotal = date('H', time());
+        $hourlyCount = count($userTrafficHourly);
+        for ($x = 0; $x < ($hourlyTotal - $hourlyCount); $x++) {
+            $hourlyData[$x] = 0;
+        }
+        for ($x = ($hourlyTotal - $hourlyCount); $x < $hourlyTotal; $x++) {
+            $hourlyData[$x] = round($userTrafficHourly[$x - ($hourlyTotal - $hourlyCount)] / (1024 * 1024 * 1024), 3);
+        }
+
+        // 本月天数数据
+        $monthDays = [];
+        $monthHasDays = date("t");
+        for ($i = 1; $i <= $monthHasDays; $i++) {
+            $monthDays[] = $i;
+        }
+
+        $view['trafficDaily'] = "'" . implode("','", $dailyData) . "'";
+        $view['trafficHourly'] = "'" . implode("','", $hourlyData) . "'";
+        $view['monthDays'] = "'" . implode("','", $monthDays) . "'";
+        $view['notice'] = Article::query()->where('type', 2)->where('is_del', 0)->orderBy('id', 'desc')->first(); // 公告
+
+        return Response::view('user.index', $view);
+    }
+
+    // 签到
+    public function checkIn(Request $request)
+    {
+        // 系统开启登录加积分功能才可以签到
+        if (!self::$systemConfig['is_checkin']) {
+            return Response::json(['status' => 'fail', 'message' => '系统未开启签到功能']);
+        }
+
+        // 已签到过，验证是否有效
+        if (Cache::has('userCheckIn_' . Auth::user()->id)) {
+            return Response::json(['status' => 'fail', 'message' => '已经签到过了，明天再来吧']);
+        }
+
+        $score = mt_rand(self::$systemConfig['min_rand_traffic'], self::$systemConfig['max_rand_traffic']);
+        $ret = User::query()->where('id', Auth::user()->id)->increment('transfer_enable', $score * 1048576);
+        if (!$ret) {
+            return Response::json(['status' => 'fail', 'message' => '签到失败，系统异常']);
+        }
+
+        // 写入用户流量变动记录
+        Helpers::addUserTrafficModifyLog(Auth::user()->id, 0, Auth::user()->transfer_enable, Auth::user()->transfer_enable + $score * 1048576, '[签到]');
+
+        // 多久后可以再签到
+        $ttl = self::$systemConfig['traffic_limit_time'] ? self::$systemConfig['traffic_limit_time'] : 1440;
+        Cache::put('userCheckIn_' . Auth::user()->id, '1', $ttl);
+
+        return Response::json(['status' => 'success', 'message' => '签到成功，系统送您 ' . $score . 'M 流量']);
+    }
+
+    // 节点列表
+    public function nodeList(Request $request)
+    {
+        // 在线安装APP
         $view['ipa_list'] = 'itms-services://?action=download-manifest&url=' . self::$systemConfig['website_url'] . '/clients/ipa.plist';
-        $view['goodsList'] = Goods::query()->where('type', 3)->where('status', 1)->where('is_del', 0)->orderBy('sort', 'desc')->orderBy('price', 'asc')->limit(10)->get(); // 余额充值商品，只取10个
-        $view['userLoginLog'] = UserLoginLog::query()->where('user_id', Auth::user()->id)->orderBy('id', 'desc')->limit(5)->get(); // 近期登录日志
 
-        // 推广返利是否可见
-        if (!Session::has('referral_status')) {
-            Session::put('referral_status', self::$systemConfig['referral_status']);
-        }
-
-        // 如果没有唯一码则生成一个
-        $subscribe = UserSubscribe::query()->where('user_id', Auth::user()->id)->first();
-        if (!$subscribe) {
-            $code = $this->makeSubscribeCode();
-
-            $obj = new UserSubscribe();
-            $obj->user_id = Auth::user()->id;
-            $obj->code = $code;
-            $obj->times = 0;
-            $obj->save();
-        } else {
-            $code = $subscribe->code;
-        }
-
-        $view['subscribe_status'] = !$subscribe ? 1 : $subscribe->status;
-        $view['link'] = self::$systemConfig['subscribe_domain'] ? self::$systemConfig['subscribe_domain'] . '/s/' . $code : self::$systemConfig['website_url'] . '/s/' . $code;
+        // 订阅码
+        $view['link'] = (self::$systemConfig['subscribe_domain'] ? self::$systemConfig['subscribe_domain'] : self::$systemConfig['website_url']) . '/s/' . Auth::user()->subscribe->code;
 
         // 节点列表
         $userLabelIds = UserLabel::query()->where('user_id', Auth::user()->id)->pluck('label_id');
         if (empty($userLabelIds)) {
             $view['nodeList'] = [];
+            $view['allNodes'] = '';
 
-            return Response::view('user.index', $view);
+            return Response::view('user.nodeList', $view);
         }
 
         $nodeList = DB::table('ss_node')
@@ -110,6 +155,7 @@ class UserController extends Controller
             ->groupBy('ss_node.id')
             ->orderBy('ss_node.sort', 'desc')
             ->orderBy('ss_node.id', 'asc')
+            ->limit(7) //Song 
             ->get();
 
         $allNodes = ''; // 全部节点SSR链接，用于一键复制所有节点
@@ -226,7 +272,7 @@ class UserController extends Controller
                     "ps"   => $node->name,
                     "add"  => $node->server ? $node->server : $node->ip,
                     "port" => $node->v2_port,
-                    "id"   => $user->vmess_id,
+                    "id"   => Auth::user()->vmess_id,
                     "aid"  => $node->v2_alter_id,
                     "net"  => $node->v2_net,
                     "type" => $node->v2_type,
@@ -242,13 +288,14 @@ class UserController extends Controller
                     $txt .= "IPv6：" . $node->ipv6 . "\r\n";
                 }
                 $txt .= "端口：" . $node->v2_port . "\r\n";
-                $txt .= "用户ID：" . $user->vmess_id . "\r\n";
+                $txt .= "加密方式：" . $node->v2_method . "\r\n";
+                $txt .= "用户ID：" . Auth::user()->vmess_id . "\r\n";
                 $txt .= "额外ID：" . $node->v2_alter_id . "\r\n";
                 $txt .= "传输协议：" . $node->v2_net . "\r\n";
                 $txt .= "伪装类型：" . $node->v2_type . "\r\n";
                 $txt .= $node->v2_host ? "伪装域名：" . $node->v2_host . "\r\n" : "";
                 $txt .= $node->v2_path ? "路径：" . $node->v2_path . "\r\n" : "";
-                $txt .= $node->v2_tls == 1 ? "TLS：tls\r\n" : "";
+                $txt .= $node->v2_tls ? "TLS：tls\r\n" : "";
 
                 $node->txt = $txt;
                 $node->v2_scheme = $v2_scheme;
@@ -272,7 +319,7 @@ class UserController extends Controller
         $view['allNodes'] = rtrim($allNodes, "|");
         $view['nodeList'] = $nodeList;
 
-        return Response::view('user.index', $view);
+        return Response::view('user.nodeList', $view);
     }
 
     // 公告详情
@@ -373,53 +420,17 @@ class UserController extends Controller
         }
     }
 
-    // 流量日志
-    public function trafficLog(Request $request)
-    {
-        $dailyData = [];
-        $hourlyData = [];
-
-        // 节点一个月内的流量
-        $userTrafficDaily = UserTrafficDaily::query()->where('user_id', Auth::user()->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m', time()))->orderBy('created_at', 'asc')->pluck('total')->toArray();
-
-        $dailyTotal = date('d', time()) - 1; // 今天不算，减一
-        $dailyCount = count($userTrafficDaily);
-        for ($x = 0; $x < ($dailyTotal - $dailyCount); $x++) {
-            $dailyData[$x] = 0;
-        }
-        for ($x = ($dailyTotal - $dailyCount); $x < $dailyTotal; $x++) {
-            $dailyData[$x] = round($userTrafficDaily[$x - ($dailyTotal - $dailyCount)] / (1024 * 1024 * 1024), 3);
-        }
-
-        // 节点一天内的流量
-        $userTrafficHourly = UserTrafficHourly::query()->where('user_id', Auth::user()->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m-d', time()))->orderBy('created_at', 'asc')->pluck('total')->toArray();
-        $hourlyTotal = date('H', time());
-        $hourlyCount = count($userTrafficHourly);
-        for ($x = 0; $x < ($hourlyTotal - $hourlyCount); $x++) {
-            $hourlyData[$x] = 0;
-        }
-        for ($x = ($hourlyTotal - $hourlyCount); $x < $hourlyTotal; $x++) {
-            $hourlyData[$x] = round($userTrafficHourly[$x - ($hourlyTotal - $hourlyCount)] / (1024 * 1024 * 1024), 3);
-        }
-
-        // 本月天数数据
-        $monthDays = [];
-        $monthHasDays = date("t");
-        for ($i = 1; $i <= $monthHasDays; $i++) {
-            $monthDays[] = $i;
-        }
-
-        $view['trafficDaily'] = "'" . implode("','", $dailyData) . "'";
-        $view['trafficHourly'] = "'" . implode("','", $hourlyData) . "'";
-        $view['monthDays'] = "'" . implode("','", $monthDays) . "'";
-
-        return Response::view('user.trafficLog', $view);
-    }
-
     // 商品列表
     public function services(Request $request)
     {
-        $view['goodsList'] = Goods::query()->where('status', 1)->where('is_del', 0)->where('type', '<=', '2')->orderBy('type', 'desc')->orderBy('sort', 'desc')->paginate(10)->appends($request->except('page'));
+        // 余额充值商品，只取10个
+        $view['chargeGoodsList'] = Goods::query()->where('status', 1)->where('is_del', 0)->where('type', 3)->orderBy('sort', 'desc')->orderBy('price', 'asc')->limit(10)->get();
+
+        // 套餐列表
+        $view['packageList'] = Goods::query()->where('status', 1)->where('is_del', 0)->where('type', 2)->orderBy('sort', 'desc')->limit(12)->get();
+
+        // 流量包列表
+        $view['trafficList'] = Goods::query()->where('status', 1)->where('is_del', 0)->where('type', 1)->orderBy('sort', 'desc')->limit(12)->get();
 
         return Response::view('user.services', $view);
     }
@@ -443,7 +454,7 @@ class UserController extends Controller
     // 订单明细
     public function invoiceDetail(Request $request, $sn)
     {
-        $view['order'] = Order::query()->with(['goods', 'coupon', 'payment'])->where('order_sn', $sn)->firstOrFail();
+        $view['order'] = Order::query()->with(['goods', 'coupon', 'payment'])->where('order_sn', $sn)->where('user_id', Auth::user()->id)->firstOrFail();
 
         return Response::view('user.invoiceDetail', $view);
     }
@@ -464,7 +475,6 @@ class UserController extends Controller
         $obj->title = $title;
         $obj->content = $content;
         $obj->status = 0;
-        $obj->created_at = date('Y-m-d H:i:s');
         $obj->save();
 
         if ($obj->id) {
@@ -474,12 +484,8 @@ class UserController extends Controller
 /** Song
             // 发邮件通知管理员
             if (self::$systemConfig['crash_warning_email']) {
-                try {
-                    Mail::to(self::$systemConfig['crash_warning_email'])->send(new newTicket($emailTitle, $content));
-                    Helpers::addEmailLog(self::$systemConfig['crash_warning_email'], $emailTitle, $content);
-                } catch (\Exception $e) {
-                    Helpers::addEmailLog(self::$systemConfig['crash_warning_email'], $emailTitle, $content, 0, $e->getMessage());
-                }
+                $logId = Helpers::addEmailLog(self::$systemConfig['crash_warning_email'], $emailTitle, $content);
+                Mail::to(self::$systemConfig['crash_warning_email'])->send(new newTicket($logId, $emailTitle, $content));
             }
 **/
             // 通过ServerChan发微信消息提醒管理员
@@ -498,6 +504,11 @@ class UserController extends Controller
     {
         $id = intval($request->get('id'));
 
+        $ticket = Ticket::query()->with('user')->where('id', $id)->first();
+        if (empty($ticket) || $ticket->user_id != Auth::user()->id) {
+            return Redirect::to('tickets');
+        }
+
         if ($request->method() == 'POST') {
             $content = clean($request->get('content'));
             $content = str_replace("eval", "", str_replace("atob", "", $content));
@@ -511,11 +522,12 @@ class UserController extends Controller
             $obj->ticket_id = $id;
             $obj->user_id = Auth::user()->id;
             $obj->content = $content;
-            $obj->created_at = date('Y-m-d H:i:s');
             $obj->save();
 
             if ($obj->id) {
-                $ticket = Ticket::query()->where('id', $id)->first();
+                // 重新打开工单
+                $ticket->status = 0;
+                $ticket->save();
 
                 //song
                 $title = $id . "--回复";
@@ -524,12 +536,8 @@ class UserController extends Controller
 
                 // 发邮件通知管理员
                 if (self::$systemConfig['crash_warning_email']) {
-                    try {
-                        Mail::to(self::$systemConfig['crash_warning_email'])->send(new replyTicket($title, $content));
-                        Helpers::addEmailLog(self::$systemConfig['crash_warning_email'], $title, $content);
-                    } catch (\Exception $e) {
-                        Helpers::addEmailLog(self::$systemConfig['crash_warning_email'], $title, $content, 0, $e->getMessage());
-                    }
+                    $logId = Helpers::addEmailLog(self::$systemConfig['crash_warning_email'], $title, $content);
+                    Mail::to(self::$systemConfig['crash_warning_email'])->send(new replyTicket($logId, $title, $content));
                 }
 
                 ServerChan::send($title, $content);
@@ -539,11 +547,6 @@ class UserController extends Controller
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '回复失败']);
             }
         } else {
-            $ticket = Ticket::query()->where('id', $id)->with('user')->first();
-            if (empty($ticket) || $ticket->user_id != Auth::user()->id) {
-                return Redirect::to('tickets');
-            }
-
             $view['ticket'] = $ticket;
             $view['replyList'] = TicketReply::query()->where('ticket_id', $id)->with('user')->orderBy('id', 'asc')->get();
 
@@ -558,6 +561,8 @@ class UserController extends Controller
 
         $ret = Ticket::query()->where('id', $id)->where('user_id', Auth::user()->id)->update(['status' => 2]);
         if ($ret) {
+            ServerChan::send('工单关闭提醒', '工单：ID' . $id . '用户已手动关闭');
+
             return Response::json(['status' => 'success', 'data' => '', 'message' => '关闭成功']);
         } else {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '关闭失败']);
@@ -614,11 +619,13 @@ class UserController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '该优惠券已使用，请换一个试试']);
         } elseif ($coupon->status == 2) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '该优惠券已失效，请换一个试试']);
-        } elseif ($coupon->available_start > time() || $coupon->available_end < time()) {
+        } elseif ($coupon->available_end < time()) {
             $coupon->status = 2;
             $coupon->save();
 
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '该优惠券已失效，请换一个试试']);
+        } elseif ($coupon->available_start > time()) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '该优惠券尚不可用，请换一个试试']);
         }
 
         $data = [
@@ -847,49 +854,8 @@ class UserController extends Controller
             }
 
             $view['goods'] = $goods;
-            $view['is_youzan'] = self::$systemConfig['is_youzan'];
-            $view['is_alipay'] = self::$systemConfig['is_alipay'];
 
             return Response::view('user.buy', $view);
-        }
-    }
-
-    // 积分兑换流量
-    public function exchange(Request $request)
-    {
-        // 积分满100才可以兑换
-        if (Auth::user()->score < 100) {
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '兑换失败：满100才可以兑换，请继续累计吧']);
-        }
-
-        // 账号过期不允许兑换
-        if (Auth::user()->expire_time < date('Y-m-d')) {
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '兑换失败：账号已过期，请先购买服务吧']);
-        }
-
-        DB::beginTransaction();
-        try {
-            // 写入积分操作日志
-            $ret = $this->addUserScoreLog(Auth::user()->id, Auth::user()->score, 0, -1 * Auth::user()->score, '积分兑换流量');
-
-            // 扣积分加流量
-            if ($ret) {
-                User::query()->where('id', Auth::user()->id)->update(['score' => 0]);
-                User::query()->where('id', Auth::user()->id)->increment('transfer_enable', Auth::user()->score * 1048576);
-            }
-
-            DB::commit();
-
-            // 更新session
-            $user = User::query()->where('id', Auth::user()->id)->first()->toArray();
-            Session::remove('user');
-            Session::put('user', $user);
-
-            return Response::json(['status' => 'success', 'data' => '', 'message' => '兑换成功']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '兑换失败：' . $e->getMessage()]);
         }
     }
 
@@ -963,9 +929,8 @@ class UserController extends Controller
     {
         DB::beginTransaction();
         try {
-            // 更换订阅地址
-            $code = $this->makeSubscribeCode();
-            UserSubscribe::query()->where('user_id', Auth::user()->id)->update(['code' => $code]);
+            // 更换订阅码
+            UserSubscribe::query()->where('user_id', Auth::user()->id)->update(['code' => Helpers::makeSubscribeCode()]);
 
             // 更换连接密码
             User::query()->where('id', Auth::user()->id)->update(['passwd' => makeRandStr()]);

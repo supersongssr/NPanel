@@ -5,12 +5,16 @@
 @section('content')
     <!-- BEGIN CONTENT BODY -->
     <div class="page-content" style="padding-top: 0;">
-        <!-- BEGIN PAGE BASE CONTENT -->
-        <div class="row">
-            <div class="col-md-12">
-                <div class="search-page search-content-1">
-                    <div class="row">
-                        <div class="col-md-12">
+        <div class="search-page search-content-1">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="portlet light">
+                        <div class="portlet-title">
+                            <div class="caption">
+                                <span class="caption-subject font-dark bold">{{trans('home.help')}}</span>
+                            </div>
+                        </div>
+                        <div class="portlet-body">
                             <div class="search-container bordered">
                                 @if($articleList->isEmpty())
                                     <p style="text-align:center;">{{trans('home.invoice_table_none')}} </p>
@@ -42,7 +46,6 @@
                 </div>
             </div>
         </div>
-        <!-- END PAGE BASE CONTENT -->
     </div>
     <!-- END CONTENT BODY -->
 @endsection
