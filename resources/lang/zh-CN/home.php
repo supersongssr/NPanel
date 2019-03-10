@@ -19,7 +19,7 @@ return [
     'help'                            => '帮助中心',
     'invite_code'                     => '邀请码',
     'invoices'                        => '我的账单',
-    'tickets'                         => '服务单',
+    'tickets'                         => '客服工单',
     'referrals'                       => '推广返利',
     'free_invite_codes_title'         => '免费邀请码',
     'no_need_invite_codes'            => '现在无需邀请码',

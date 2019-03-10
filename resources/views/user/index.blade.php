@@ -16,24 +16,38 @@
                             <span class="caption-subject font-blue bold"> {{trans('home.announcement')}} </span>
                         </div>
                         <div class="actions">
-
-                            <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">获取充值码</a> <!-- song -->
-                            <div class="btn-group btn-group-devided" data-toggle="buttons">
-                                <label class="btn red btn-sm">
-                                    <a href="javascript:;" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
-                                </label>
-                            </div>
-
                             <span class="caption-subject">
                                 <a class="btn btn-sm blue" href="javascript:checkIn();"> 签到 </a>
                             </span>
-
                         </div>
                     </div>
                     <div class="portlet-body">
                         <div class="tab-content">
+                            <div class="alert alert-danger">
+                                <p> 家:www.ssvss.xyz 保存书签呦&nbsp QQ:2107254004 &nbsp QQ群:913585520 &nbsp TG群:ssvssxyz</p>
+                            </div>
                             @if($notice)
                                 {!!$notice->content!!}
+                                <!-- song add the notice list-->
+                                <div class="actions">
+                                    <div class="btn-group btn-group-devided" data-toggle="buttons">
+                                        <button type="button" class="btn btn-default btn-circle" data-toggle="collapse" data-target="#open">查看全部公告</button>
+                                    </div>
+                                </div>
+                                <!-- -->
+                                <!--Song notice list -->
+                            <div class="portlet-body">
+                                <div class="tab-content">
+                                    <div id="open" class="collapse">
+                                      <div class="alert alert-danger">
+                                        @foreach($noticeList as $notice)
+                                        <a href="{{url('article?id=') . $notice->id}}" class="list-group-item"> [公告]&nbsp[{{date('m/d', strtotime($notice->created_at))}}]&nbsp{{$notice->title}}</a>
+                                        @endforeach
+                                      </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- -->
                             @else
                                 <div style="text-align: center;">
                                     <h3>暂无公告</h3>

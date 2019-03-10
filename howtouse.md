@@ -42,9 +42,9 @@ howtouse
 ## 安装
 #### 环境要求
 ````
-PHP 7.1 （必须）
-MYSQL 5.5 （推荐5.6+）
-内存 1G+ 
+PHP 7.1.3+ （必须）
+MYSQL 5.5+ （推荐5.6）
+内存 1G+ (推荐2G)
 磁盘空间 10G+
 PHP必须开启zip、xml、curl、gd2、fileinfo、openssl、mbstring组件
 安装完成后记得编辑.env中 APP_DEBUG 改为 false
@@ -68,10 +68,8 @@ cp .env.example .env
 （然后 vi .env 修改数据库的连接信息）
 php composer.phar install
 php artisan key:generate
-chown -R www:www storage/
-#这个images也需要权限
-chown -R www:www public/assets/images
-chmod -R 755 storage/
+chown -R www:www ssrpanel
+chmod -R a+x ssrpanel
 ````
 #### 加入NGINX的URL重写规则
 ````
@@ -261,3 +259,8 @@ ntpdate cn.pool.ntp.org
 3.本项目中ajax返回格式都是 {"status":"fail 或者 success", "data":[数据], "message":"文本消息提示语"}
 ````
 
+## 错误Class translator does not exist
+````
+执行一遍这个即可
+php composer.phar install
+````

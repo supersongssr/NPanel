@@ -306,7 +306,8 @@ class SubscribeController extends Controller
             }
             //增加  剩余时间和流量
 
-        }elseif ($ver == "3") {
+        }
+        /** elseif ($ver == "3") {
             # code...
             foreach ($nodeList as $key => $node) {
                 // 控制显示的节点数
@@ -354,7 +355,7 @@ class SubscribeController extends Controller
             }
             //增加用户剩余时间和流量
             
-        }
+        } **/
 
 
         exit(base64_encode($scheme));

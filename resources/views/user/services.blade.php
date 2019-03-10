@@ -19,18 +19,21 @@
                         <ul class="list-inline">
                             <li>
                                 <h4>
-                                    <span class="font-blue">账户等级：</span>
-                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span>
+                                    <!-- song<span class="font-blue">账户等级：</span>
+                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span> -->
                                 </h4>
                             </li>
                             <li>
                                 <h4>
                                     <span class="font-blue">账户余额：</span>
-                                    <span class="font-red">{{Auth::user()->balance}}元</span>
+                                    <span class="font-red">{{Auth::user()->balance}}</span>
                                 </h4>
                             </li>
                             <li>
                                 <a class="btn btn-sm red" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
+                            </li>
+                            <li>
+                                <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">获取充值码</a> <!-- song -->
                             </li>
                         </ul>
                     </div>
@@ -58,8 +61,8 @@
                                 <div class="tab-pane active" id="services1">
                                     <h4>购买流程：</h4>
                                     <ol>
-                                        <li>第一步：先购买基础套餐。</li>
-                                        <li>第二步：按需求，选择是否购买流量包。</li>
+                                        <li>第一步：先充值余额。</li>
+                                        <li>第二步：购买套餐或者流量包。</li>
                                     </ol>
                                     <h4>基础套餐：</h4>
                                     <ol>
@@ -71,6 +74,11 @@
                                     <ol>
                                         <li>当您在基础套餐重置日之前将流量耗尽，您可以选择购买流量包解燃眉之急。</li>
                                         <li>流量包只在固定时间内增加可用流量，不会更改账户的配置，并且即时生效可以多个叠加。 </li>
+                                    </ol>
+                                    <h4>教育计划：</h4>
+                                    <ol>
+                                        <li>为国内教育用户（包括但不限于学生、教师、教育工作者）无偿提供50￥余额。</li>
+                                        <li>为简化审核流程，采用edu邮箱注册账号，即可获得教育计划支持。如有问题？请提交服务单人工处理。 </li>
                                     </ol>
                                 </div>
                                 <div class="tab-pane" id="services2">

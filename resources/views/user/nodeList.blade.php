@@ -39,7 +39,7 @@
                 <div class="portlet light">
                     <div class="portlet-title">
                         <div class="caption">
-                            <span class="caption-subject font-blue bold">{{trans('home.subscribe_address')}}</span>
+                            <span class="caption-subject font-blue bold">V2 SR SS{{trans('home.subscribe_address')}}配置教程</span>
                         </div>
                         <div class="actions">
 
@@ -51,12 +51,21 @@
                         @else
                             <div class="portlet-body">
                                 <div class="mt-clipboard-container">
-                                    <input type="text" id="mt-target-1" class="form-control" value="{{$link}}" />
-                                    <a href="javascript:exchangeSubscribe();" class="btn green">
-                                        {{trans('home.exchange_subscribe')}}
-                                    </a>
+                                    <!-- Song -->
+                                    <div class="alert alert-danger">
+                                        <p> VIP用户专享：香港、台湾、日本、新加坡高速节点 + VIP独享节点 + 10Mbps起网速保障 + 1080P网速支持 + Netflix！支持 + 35ms + 服务单优先回复！<br> VIP用户保证网速，如网速不满意，提交工单增加节点。</p>
+                                    </div>
+                                    <!-- -->
+                                    <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ver=1" />
                                     <a href="javascript:;" class="btn blue mt-clipboard" data-clipboard-action="copy" data-clipboard-target="#mt-target-1">
-                                        {{trans('home.copy_subscribe_address')}}
+                                        {{trans('home.copy_subscribe_address')}}SR订阅地址
+                                    </a>
+                                    <input type="text" id="mt-target-2" class="form-control" value="{{$link}}?ver=2" />
+                                    <a href="javascript:;" class="btn blue mt-clipboard" data-clipboard-action="copy" data-clipboard-target="#mt-target-2">
+                                        {{trans('home.copy_subscribe_address')}}V2+SS订阅地址
+                                    </a>
+                                    <a href="javascript:exchangeSubscribe();" class="btn green">
+                                        {{trans('home.exchange_subscribe')}}SR和V2Ray订阅地址
                                     </a>
                                     <div class="tabbable-line">
                                         <ul class="nav nav-tabs ">
@@ -81,7 +90,8 @@
                                         </ul>
                                         <div class="tab-content" style="font-size:16px;">
                                             <div class="tab-pane active" id="tools1">
-                                                <ol>
+                                                <!-- Song-->
+                                                <ol>【SR 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksX-NG-R8-1.4.4.dmg')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 点击状态栏纸飞机 -> 服务器 -> 编辑订阅 </li>
                                                     <li> 点击窗口左下角 “+”号 新增订阅，完整复制本页上方“订阅服务”处地址，将其粘贴至“订阅地址”栏，点击右下角“OK” </li>
@@ -93,9 +103,18 @@
                                                     <li> 打开系统偏好设置 -> 网络，在窗口左侧选定显示为“已连接”的网络，点击右下角“高级...” </li>
                                                     <li> 切换至“代理”选项卡，勾选“自动代理配置”和“不包括简单主机名”，点击右下角“好”，再次点击右下角“应用” </li>
                                                 </ol>
+                                                <!-- song -->
+                                                <hr>
+                                                <ol>【V2 教程】
+                                                    <li> <a href="/downloads/V2RayX.app.zip" target="_blank">点击此处</a>下载客户端，解压 </li>
+                                                    <li> 将 V2RayX.app 复制到 程序 文件夹，然后点击网站内菜单---节点列表，点击您想要添加的节点名称 </li>
+                                                    <li> 订阅功能：在V2RayX里添加上述V2Ray订阅链接，然后更新 </li>
+                                                </ol>
+                                                <!-- -->
                                             </div>
                                             <div class="tab-pane" id="tools2">
-                                                <ol>
+                                                <!-- song -->
+                                                <ol>【SR 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksR-win.zip')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 运行 ShadowsocksR 文件夹内的 ShadowsocksR.exe </li>
                                                     <li> 右击桌面右下角状态栏（或系统托盘）纸飞机 -> 服务器订阅 -> SSR服务器订阅设置 </li>
@@ -107,44 +126,61 @@
                                                     <li> 右击纸飞机 -> 代理规则 -> 绕过局域网和大陆 </li>
                                                     <li> 右击纸飞机，取消勾选“服务器负载均衡” </li>
                                                 </ol>
+                                                <hr>
+                                                <ol>【V2 教程】
+                                                    <li> 根据系统<a href="/downloads/v2ray_x64.zip" target="_blank">下载64位版</a>或者<a href="/downloads/v2ray_x86.zip" target="_blank">下载32位版</a>，下载后解压 </li>
+                                                    <li> 运行程序v2rayN.exe，双击右下角图标 </li>
+                                                    <li> V2Ray软件界面，点击订阅，订阅设置，填写本站的V2Ray订阅地址 </li>
+                                                    <li> 点订阅，更新订阅，即可获取本站节点</li>
+                                                    <li>右键右下角图标，开启http代理，然后选择一个节点即可使用。</li>
+                                                </ol>
                                             </div>
                                             <div class="tab-pane" id="tools3">
-                                                <ol>
+                                                <ol>【SR 教程】
                                                     <li> <a href="{{asset('clients/Shadowsocks-qt5-3.0.1.zip')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 单击状态栏小飞机，找到服务器 -> 编辑订阅，复制黏贴订阅地址 </li>
                                                     <li> 更新订阅设置即可 </li>
                                                 </ol>
+                                                <hr>
+                                                <ol>【V2 教程】
+                                                    <li>能耍 Linux 的都是大佬了，受我一拜</li>
+                                                </ol>
                                             </div>
                                             <div class="tab-pane" id="tools4">
-                                                <ol>
-                                                    @if(Agent::is('iPhone') || Agent::is('iPad'))
-                                                        @if(Agent::is('Safari'))
-                                                            <li> <a href="{{$ipa_list}}" target="_blank">点击此处在线安装</a></li>
-                                                        @else
-                                                            <li> <a href="javascript:onlineInstallWarning();">点击此处在线安装</a></li>
-                                                        @endif
-                                                        <li> 请从站长处获取 App Store 账号密码 </li>
-                                                        <li> 打开 Shadowrocket，点击右上角 “+”号 添加节点，类型选择 Subscribe </li>
-                                                        <li> 完整复制本页上方 “订阅服务” 处地址，将其粘贴至 “URL”栏，点击右上角 “完成” </li>
-                                                        <li> 左划新增的服务器订阅，点击 “更新” </li>
-                                                        <li> 选定合适服务器节点，点击右上角连接开关，屏幕上方状态栏出现“VPN”图标 </li>
-                                                        <li> 当进行海外游戏时请将 Shadowrocket “首页” 页面中的 “全局路由” 切换至 “代理”，并确保“设置”页面中的“UDP”已开启转发 </li>
-                                                    @else
-                                                        <li> 请使用 Safari浏览器 访问本页面 </li>
-                                                    @endif
+                                                <ol>【SR 教程】
+                                                    <li> iOS端需要配合电脑，利用爱思助手来免费安装 </li>
+                                                    <li> <a href="https://www.i4.cn/news_detail_3339.html" target="_blank">点击此处</a>查看爱思助手安装ipa文件教程 </li>
+                                                    <li> <a href="/downloads/Shadowrocket_2.1.12.ipa" target="_blank">点击此处</a>下载iOS客户端的ipa文件 </li>
+                                                    <li> 请从站长处获取 App Store 账号密码 </li>
+                                                    <li> 打开 Shadowrocket，点击右上角 “+”号 添加节点，类型选择 Subscribe </li>
+                                                    <li> 完整复制本页上方 “订阅服务” 处地址，将其粘贴至 “URL”栏，点击右上角 “完成” </li>
+                                                    <li> 左划新增的服务器订阅，点击 “更新” </li>
+                                                    <li> 选定合适服务器节点，点击右上角连接开关，屏幕上方状态栏出现“VPN”图标 </li>
+                                                    <li> 当进行海外游戏时请将 Shadowrocket “首页” 页面中的 “全局路由” 切换至 “代理”，并确保“设置”页面中的“UDP”已开启转发 </li>
+                                                </ol>
+                                                <hr>
+                                                <ol>【V2 教程】
+                                                    <li> 推荐下载kitsunebi（支持kcp tcp协议，需要在美区下载，请注意不是lite 版）；请注意，kitsunebi需要采用本站的kitsunebi专用订阅地址才能获取节点； kitsunebi还在开发阶段，如订阅地址失效，请反馈服务单</li>
+                                                    <li> 或者 使用shadowrocket 也可以使用本站部分V2节点，安装教程参考上面【SR 教程】 </li>
                                                 </ol>
                                             </div>
                                             <div class="tab-pane" id="tools5">
-                                                <ol>
+                                                <ol>【SR 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksRR-3.5.1.1.apk')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 单击左上角的shadowsocksR进入配置文件页，点击右下角的“+”号，点击“添加/升级SSR订阅”，完整复制本页上方“订阅服务”处地址，填入订阅信息并保存 </li>
                                                     <li> 选中任意一个节点，返回软件首页 </li>
                                                     <li> 在软件首页处找到“路由”选项，并将其改为“绕过局域网及中国大陆地址” </li>
                                                     <li> 点击右上角的小飞机图标进行连接，提示是否添加（或创建）VPN连接，点同意（或允许） </li>
                                                 </ol>
+                                                <hr>
+                                                <ol>【V2 教程】
+                                                    <li> 推荐下载<a href="/downloads/v2rayng.apk">v2rayNG</a>；或者<a href="/downloads/BifrostV.apk">bifrostv</a>，然后安装。</li>
+                                                    <li> 点击右上角 订阅设置 subscription setting，输入本站V2Ray订阅地址 </li>
+                                                    <li> 选择一个节点，点击右下角小飞机，即可使用。 </li>
+                                                </ol>
                                             </div>
                                             <div class="tab-pane" id="tools6">
-                                                <ol>
+                                                <ol>【SR 教程】
                                                     <li> <a href="{{asset('clients/SSTap-beta-setup-1.0.9.7.zip')}}" target="_blank">点击此处</a>下载客户端并安装 </li>
                                                     <li> 打开 SSTap，选择 <i class="fa fa-cog"></i> -> SSR订阅 -> SSR订阅管理，添加订阅地址 </li>
                                                     <li> 添加完成后，再次选择 <i class="fa fa-cog"></i> - SSR订阅 - 手动更新SSR订阅，即可同步节点列表。</li>
@@ -181,6 +217,11 @@
                         <div class="portlet-body">
                             <div class="tab-content">
                                 <div class="tab-pane active">
+                                    <!-- -->
+                                    <div class="alert alert-danger">
+                                        <p> 【提示】：本站有30+节点,此处仅显示7个节点; 特权节点、VIP节点、公益节点、netflix节点等更多节点请通过订阅获取; </p>
+                                    </div>
+                                    <!-- -->
                                     <div class="mt-comments">
                                         @foreach($nodeList as $node)
                                             <div class="mt-comment">

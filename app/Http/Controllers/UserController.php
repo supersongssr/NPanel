@@ -54,7 +54,6 @@ class UserController extends Controller
     public function index(Request $request)
     {
 
-
         //Song公告列表获取
         $view['noticeList'] = Article::query()->where('type', 2)->where('is_del', 0)->orderBy('sort', 'desc')->orderBy('id', 'desc')->limit(10)->get();
         //
@@ -171,14 +170,14 @@ class UserController extends Controller
                 if (empty($addn['1'])) {
                     # code...
                     // 生成ssr scheme
-                    $obfs_param = $user->obfs_param ? $user->obfs_param : $node->obfs_param;
-                    $protocol_param = $node->single ? $user->port . ':' . $user->passwd : $user->protocol_param;
+                    $obfs_param = Auth::user()->obfs_param ? Auth::user()->obfs_param : $node->obfs_param;
+                    $protocol_param = $node->single ? Auth::user()->port . ':' . Auth::user()->passwd : Auth::user()->protocol_param;
 
-                    $ssr_str = ($node->server ? $node->server : $node->ip) . ':' . ($node->single ? $node->single_port : $user->port);
-                    $ssr_str .= ':' . ($node->single ? $node->single_protocol : $user->protocol) . ':' . ($node->single ? $node->single_method : $user->method);
-                    $ssr_str .= ':' . ($node->single ? $node->single_obfs : $user->obfs) . ':' . ($node->single ? base64url_encode($node->single_passwd) : base64url_encode($user->passwd));
+                    $ssr_str = ($node->server ? $node->server : $node->ip) . ':' . ($node->single ? $node->single_port : Auth::user()->port);
+                    $ssr_str .= ':' . ($node->single ? $node->single_protocol : Auth::user()->protocol) . ':' . ($node->single ? $node->single_method : Auth::user()->method);
+                    $ssr_str .= ':' . ($node->single ? $node->single_obfs : Auth::user()->obfs) . ':' . ($node->single ? base64url_encode($node->single_passwd) : base64url_encode(Auth::user()->passwd));
                     $ssr_str .= '/?obfsparam=' . base64url_encode($obfs_param);
-                    $ssr_str .= '&protoparam=' . ($node->single ? base64url_encode($user->port . ':' . $user->passwd) : base64url_encode($protocol_param));
+                    $ssr_str .= '&protoparam=' . ($node->single ? base64url_encode(Auth::user()->port . ':' . Auth::user()->passwd) : base64url_encode($protocol_param));
                     $ssr_str .= '&remarks=' . base64url_encode($node->name);
                     $ssr_str .= '&group=' . base64url_encode(empty($group) ? '' : $group->name);
                     $ssr_str .= '&udpport=0';
@@ -187,8 +186,8 @@ class UserController extends Controller
                     $ssr_scheme = 'ssr://' . $ssr_str;
 
                     // 生成ss scheme
-                    $ss_str = $user->method . ':' . $user->passwd . '@';
-                    $ss_str .= ($node->server ? $node->server : $node->ip) . ':' . $user->port;
+                    $ss_str = Auth::user()->method . ':' . Auth::user()->passwd . '@';
+                    $ss_str .= ($node->server ? $node->server : $node->ip) . ':' . Auth::user()->port;
                     $ss_str = base64url_encode($ss_str) . '#' . 'VPN';
                     $ss_scheme = 'ss://' . $ss_str;
 
@@ -197,14 +196,14 @@ class UserController extends Controller
                     if ($node->ipv6) {
                         $txt .= "IPv6：" . $node->ipv6 . "\r\n";
                     }
-                    $txt .= "远程端口：" . ($node->single ? $node->single_port : $user->port) . "\r\n";
-                    $txt .= "密码：" . ($node->single ? $node->single_passwd : $user->passwd) . "\r\n";
-                    $txt .= "加密方法：" . ($node->single ? $node->single_method : $user->method) . "\r\n";
+                    $txt .= "远程端口：" . ($node->single ? $node->single_port : Auth::user()->port) . "\r\n";
+                    $txt .= "密码：" . ($node->single ? $node->single_passwd : Auth::user()->passwd) . "\r\n";
+                    $txt .= "加密方法：" . ($node->single ? $node->single_method : Auth::user()->method) . "\r\n";
                     $txt .= "路由：绕过局域网及中国大陆地址" . "\r\n\r\n";
-                    $txt .= "协议：" . ($node->single ? $node->single_protocol : $user->protocol) . "\r\n";
-                    $txt .= "协议参数：" . ($node->single ? $user->port . ':' . $user->passwd : $user->protocol_param) . "\r\n";
-                    $txt .= "混淆方式：" . ($node->single ? $node->single_obfs : $user->obfs) . "\r\n";
-                    $txt .= "混淆参数：" . ($user->obfs_param ? $user->obfs_param : $node->obfs_param) . "\r\n";
+                    $txt .= "协议：" . ($node->single ? $node->single_protocol : Auth::user()->protocol) . "\r\n";
+                    $txt .= "协议参数：" . ($node->single ? Auth::user()->port . ':' . Auth::user()->passwd : Auth::user()->protocol_param) . "\r\n";
+                    $txt .= "混淆方式：" . ($node->single ? $node->single_obfs : Auth::user()->obfs) . "\r\n";
+                    $txt .= "混淆参数：" . (Auth::user()->obfs_param ? Auth::user()->obfs_param : $node->obfs_param) . "\r\n";
                     $txt .= "本地端口：1080" . "\r\n";
 
                     $node->txt = $txt;
