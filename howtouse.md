@@ -234,6 +234,7 @@ vim user-config.json
 2.强制更新： sh ./update.sh 
 如果你更改了本地文件，手动更新会提示错误需要合并代码（自己搞定），强制更新会直接覆盖你本地所有更改过的文件
 如果更新完代码各种错误，请先执行一遍 php composer.phar install
+这个不用考虑 ：如果 php composer.phar update 或者强制 sh ./update.sh ，然后 php composer.phar dumpautoload
 ````
 
 ## 校时

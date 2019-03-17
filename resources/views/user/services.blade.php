@@ -17,12 +17,12 @@
                 <div class="portlet light">
                     <div class="portlet-body">
                         <ul class="list-inline">
-                            <li>
+                            <!--<li>
                                 <h4>
-                                    <!-- song<span class="font-blue">账户等级：</span>
-                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span> -->
+                                     song<span class="font-blue">账户等级：</span>
+                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span> 
                                 </h4>
-                            </li>
+                            </li>-->
                             <li>
                                 <h4>
                                     <span class="font-blue">账户余额：</span>
