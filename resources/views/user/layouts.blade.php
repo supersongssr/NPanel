@@ -116,7 +116,7 @@
                 <li class="nav-item {{in_array(Request::path(), ['nodeList']) || in_array(Request::segment(1), ['nodeList']) ? 'active open' : ''}}">
                     <a href="{{url('nodeList')}}" class="nav-link nav-toggle">
                         <i class="icon-list"></i>
-                        <span class="title">节点列表</span>
+                        <span class="title">使用教程/节点</span>
                     </a>
                 </li>
                 <li class="nav-item {{in_array(Request::path(), ['services']) || in_array(Request::segment(1), ['buy', 'payment']) ? 'active open' : ''}}">
@@ -137,12 +137,15 @@
                         <span class="title">{{trans('home.tickets')}}</span>
                     </a>
                 </li>
+                <!-- Song -->
+                @if(\App\Components\Helpers::systemConfig()['is_invite_register'])
                 <li class="nav-item {{in_array(Request::path(), ['invite']) ? 'active open' : ''}}">
                     <a href="{{url('invite')}}" class="nav-link nav-toggle">
                         <i class="icon-user-follow"></i>
                         <span class="title">{{trans('home.invite_code')}}</span>
                     </a>
                 </li>
+                @endif
                 @if(\App\Components\Helpers::systemConfig()['referral_status'])
                 <li class="nav-item {{in_array(Request::path(), ['referral']) ? 'active open' : ''}}">
                     <a href="{{url('referral')}}" class="nav-link nav-toggle">

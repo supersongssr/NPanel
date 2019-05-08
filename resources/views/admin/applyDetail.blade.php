@@ -25,15 +25,18 @@
                                     <ul class="dropdown-menu pull-right">
                                         @if($info->status == 0)
                                         <li>
+                                            <a href="javascript:setStatus('-1');"> <i class="fa fa-remove"></i> 驳回 </a>
+                                        </li>
+                                        <li>
                                             <a href="javascript:setStatus('1');"> <i class="fa fa-check"></i> 审核通过 </a>
                                         </li>
                                         <li>
-                                            <a href="javascript:setStatus('-1');"> <i class="fa fa-remove"></i> 驳回 </a>
+                                            <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> 审核通过+打款余额 </a>
                                         </li>
                                         @endif
                                         @if($info->status == 1)
                                         <li>
-                                            <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> 已打款 </a>
+                                            <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> 打款到余额 </a>
                                         </li>
                                         @endif
                                     </ul>

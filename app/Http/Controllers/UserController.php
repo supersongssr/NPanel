@@ -55,7 +55,7 @@ class UserController extends Controller
     {
 
         //Song公告列表获取
-        $view['noticeList'] = Article::query()->where('type', 2)->where('is_del', 0)->orderBy('sort', 'desc')->orderBy('id', 'desc')->limit(10)->get();
+        //$view['noticeList'] = Article::query()->where('type', 2)->where('is_del', 0)->orderBy('sort', 'desc')->orderBy('id', 'desc')->limit(10)->get();
         //
 
         $dailyData = [];
@@ -153,8 +153,9 @@ class UserController extends Controller
             ->where('ss_node.status', 1)
             ->groupBy('ss_node.id')
             ->orderBy('ss_node.sort', 'desc')
-            ->orderBy('ss_node.id', 'asc')
-            ->limit(7) //Song 
+            ->orderBy('ss_node.name', 'asc')
+            //->orderBy('ss_node.id', 'asc')
+            //->limit(21) //Song 
             ->get();
 
         $allNodes = ''; // 全部节点SSR链接，用于一键复制所有节点
@@ -261,7 +262,7 @@ class UserController extends Controller
                 // Song
                 if (!empty($addn['1'])){
                     # code...
-                    $user->vmess_id = $addn['1'];
+                    Auth::user()->vmess_id = $addn['1'];
                     $node->v2_alter_id = '233';
                     $node->desc = $addn['0'];
                 }
@@ -827,14 +828,19 @@ class UserController extends Controller
                         $obj->save();
                     }
                 }
-
+                //song 注册返利
+                //64天内，邀请用户购买套餐 给6.99元的返利
+                if ($user->referral_uid && $goods->type == 2 && $user->created_at > date('Y-m-d',strtotime("-64 day"))) {
+                    # code...
+                    $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $amount, 6.99);
+                }
                 // 写入返利日志
                 if ($user->referral_uid) {
                     $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $amount, $amount * self::$systemConfig['referral_percent']);
                 }
 
-                // 取消重复返利
-                User::query()->where('id', $order->user_id)->update(['referral_uid' => 0]);
+                // 取消重复返利  Song 允许重复返利
+                //User::query()->where('id', $order->user_id)->update(['referral_uid' => 0]);
 
                 DB::commit();
 

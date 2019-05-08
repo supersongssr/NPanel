@@ -7,7 +7,7 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="note note-info">
-                    <p>{{trans('home.promote_invite_code', ['traffic' => $referral_traffic, 'referral_percent' => $referral_percent * 100])}};每邀请1人赠送1￥;</p>
+                    <p>通过您的推广链接注册使用，返利7.99-24.99￥/用户,你们双方都将获得 32GB 流量奖励；当他们消费时，您将获得他们消费金额的 20% 作为奖励。</p>
                 </div>
             </div>
         </div>

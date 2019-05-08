@@ -42,7 +42,8 @@
     <!-- BEGIN LOGIN -->
     <div class="content">
         <nav style="padding-bottom: 20px;text-align: center;">
-            @if(app()->getLocale() == 'zh-CN')
+            <a>★邀请返利8-25￥/人、32G流量、20%消费提成; <br>★SR SS V2技术全平台支持; VIP最低仅需 4.2￥/月; <br>★NetFlix! Hulu!; BGP HKBN NTT CN2 PCCW多线混合组网; <br>★香港、台湾、日本、韩国、新加坡、俄罗斯等全球60+节点; 7Gbps+ 国际带宽。  </a>
+            <!-- @if(app()->getLocale() == 'zh-CN')
                 <a href="{{url('lang', ['locale' => 'zh-tw'])}}">繁體中文</a>
                 <a href="{{url('lang', ['locale' => 'en'])}}">English</a>
                 <a href="{{url('lang', ['locale' => 'ja'])}}">日本語</a>
@@ -68,7 +69,7 @@
                 <a href="{{url('lang', ['locale' => 'en'])}}">English</a>
                 <a href="{{url('lang', ['locale' => 'ko'])}}">한국어</a>
             @else
-            @endif
+            @endif-->
         </nav>
         @yield('content')
     </div>

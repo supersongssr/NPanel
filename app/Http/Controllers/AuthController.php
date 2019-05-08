@@ -180,10 +180,11 @@ class AuthController extends Controller
             }
 
             // 校验域名邮箱是否在敏感词中
+            //Song 检查是否白名单邮箱，这个可以有
             $sensitiveWords = $this->sensitiveWords();
             $usernameSuffix = explode('@', $username); // 提取邮箱后缀
-            if (in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
-                Session::flash('errorMsg', '邮箱含有敏感词，请重新输入');
+            if (!in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
+                Session::flash('errorMsg', '呃，陌生的邮箱，请联系管理员将邮箱添加到白名单！');
 
                 return Redirect::back()->withInput();
             }
@@ -284,13 +285,14 @@ class AuthController extends Controller
             $user->expire_time = date('Y-m-d H:i:s', strtotime("+" . self::$systemConfig['default_days'] . " days"));
             $user->reg_ip = getClientIp();
             $user->referral_uid = $referral_uid;
-            //song 教育计划支持
-            //$eduSupport = array(smail.xtu.edu.cn,mails.tsinghua.edu.cn,cqu.edu.cn,2016.cqut.edu.cn,2015.cqut.edu.cn,stu.xzhmu.edu.cn,mail.sustc.edu.cn,smail.cczu.edu.cn,sicnu.edu.cn);
+            //song 混淆参数
+            $user->obfs_param = $usernameSuffix[0].'.edu.cn';
             // Song 教育计划支持 edu.cn自动获取到 50余额支持
             $eduSupport = 'edu.cn';
+            $user->balance = 1; //注册赠送的余额
             //if (in_array($usernameSuffix[1], $eduSupport)) {
             if (strpos($usernameSuffix[1], $eduSupport)) {
-                $user->balance = 5000;
+                $user->balance = 96;
                 $user->remark = 'regEDU';
             }
             $user->save();
@@ -334,16 +336,15 @@ class AuthController extends Controller
 
             // 清除邀请人Cookie
             \Cookie::unqueue('register_aff');
-
+            //song 只有特定邮箱才会获得邀请奖励
             if (self::$systemConfig['is_verify_register']) {
                 if ($referral_uid) {
                     $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
 
                     User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
                     //song add money
-                    User::query()->where('id', $referral_uid)->increment('balance', '300');
-                    //
-                    User::query()->where('id', $referral_uid)->update(['status' => 1, 'enable' => 1]);
+                    //User::query()->where('id', $referral_uid)->increment('balance', '99');                  //
+                    //User::query()->where('id', $referral_uid)->update(['status' => 1, 'enable' => 1]);
                 }
 
                 User::query()->where('id', $user->id)->update(['status' => 1, 'enable' => 1]);
@@ -368,8 +369,8 @@ class AuthController extends Controller
 
                         User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
                         // song add money
-                        User::query()->where('id', $referral_uid)->increment('balance', '300');
-                        User::query()->where('id', $referral_uid)->update(['status' => 1, 'enable' => 1]);
+                        //User::query()->where('id', $referral_uid)->increment('balance', '99');
+                        //User::query()->where('id', $referral_uid)->update(['status' => 1, 'enable' => 1]);
                     }
 
                     User::query()->where('id', $user->id)->update(['status' => 1, 'enable' => 1]);
@@ -670,8 +671,8 @@ class AuthController extends Controller
         // 校验域名邮箱是否在敏感词中
         $sensitiveWords = $this->sensitiveWords();
         $usernameSuffix = explode('@', $username); // 提取邮箱后缀
-        if (in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '邮箱含有敏感词，请重新输入']);
+        if (!in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '呃，一个陌生的邮箱呢，联系客服！']);
         }
 
         $user = User::query()->where('username', $username)->first();

@@ -31,6 +31,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\upgradeUserSubscribe::class,
         \App\Console\Commands\upgradeUserVmessId::class,
         \App\Console\Commands\AutoReportNode::class,
+        \App\Console\Commands\upgradeUserBannoPay::class,
     ];
 
     /**
@@ -52,7 +53,7 @@ class Kernel extends ConsoleKernel
 
         //$schedule->command('autoCheckNodeStatus')->everyMinute();
         //Song
-        $schedule->command('autoCheckNodeStatus')->hourly();
+        $schedule->command('autoCheckNodeTCP')->hourly();
         //
 
         $schedule->command('autoStatisticsNodeDailyTraffic')->dailyAt('23:55');

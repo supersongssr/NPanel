@@ -11,7 +11,7 @@
                 <div class="portlet light bordered">
                     <div class="portlet-title">
                         <div class="caption font-dark">
-                            <span class="caption-subject bold uppercase"> 敏感词列表 </span><small>（用于屏蔽注册邮箱后缀）</small>
+                            <span class="caption-subject bold uppercase"> 白名单邮箱 </span><small>（白名单邮箱列表）</small>
                         </div>
                         <div class="actions">
                             <div class="btn-group">

@@ -26,6 +26,10 @@ use App\Http\Models\UserBanLog;
 use App\Http\Models\UserSubscribe;
 use App\Http\Models\UserSubscribeLog;
 use App\Http\Models\UserTrafficHourly;
+//Song
+use App\Http\Models\UserScoreLog;
+use App\Http\Models\UserTrafficModifyLog;
+use App\Http\Models\UserLoginLog;
 use Log;
 use DB;
 use Mail;
@@ -138,7 +142,30 @@ class AutoJob extends Command
 
     // 封禁账号
     private function blockUsers()
-    {
+    {       
+        //删除过期x月，且余额低于x元的用户。
+        $userDelList = User::query()->where('id', '>', 1)->where('status', '>=', 0)->where('enable', 0)->where('balance', '<', 101)->where('expire_time', '<', date('Y-m-d',strtotime("-32 day")))->get();
+        if (!$userDelList->isEmpty()) {
+            # code...
+            foreach ($userDelList as $user) {
+                # code...
+                $id = $user->id;
+                DB::beginTransaction();
+                try {
+                    User::query()->where('id', $id)->delete();
+                    UserSubscribe::query()->where('user_id', $id)->delete();
+                    UserBanLog::query()->where('user_id', $id)->delete();
+                    UserLabel::query()->where('user_id', $id)->delete();
+                    UserScoreLog::query()->where('user_id', $id)->delete();
+                    UserBalanceLog::query()->where('user_id', $id)->delete();
+                    UserTrafficModifyLog::query()->where('user_id', $id)->delete();
+                    UserLoginLog::query()->where('user_id', $id)->delete();
+                    DB::commit();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                }
+            }
+        }
         // 过期用户处理
         $userList = User::query()->where('status', '>=', 0)->where('enable', 1)->where('expire_time', '<', date('Y-m-d'))->get();
         if (!$userList->isEmpty()) {
@@ -194,10 +221,19 @@ class AutoJob extends Command
                     if ($user->is_admin) {
                         continue;
                     }
+                    //晚上6-9点限制，其他时间放宽一倍
+                    $Now_hour = date("H");
+                    if ($Now_hour > 19 && $Now_hour < 22) {
+                        # code...
+                        $traffic_ban_limit = self::$systemConfig['traffic_ban_value'] * 1024 * 1024 * 1024;
+                    }else{
+                        //其他时间放宽到2倍
+                        $traffic_ban_limit = self::$systemConfig['traffic_ban_value'] * 1024 * 1024 * 1024 * 2;
+                    }
 
                     // 多往前取5分钟，防止数据统计任务执行时间过长导致没有数据
                     $totalTraffic = UserTrafficHourly::query()->where('user_id', $user->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m-d H:i:s', time() - 3900))->sum('total');
-                    if ($totalTraffic >= (self::$systemConfig['traffic_ban_value'] * 1024 * 1024 * 1024)) {
+                    if ($totalTraffic >= $traffic_ban_limit) {
                         User::query()->where('id', $user->id)->update(['enable' => 0, 'ban_time' => strtotime(date('Y-m-d H:i:s', strtotime("+" . self::$systemConfig['traffic_ban_time'] . " minutes")))]);
 
                         // 写入日志

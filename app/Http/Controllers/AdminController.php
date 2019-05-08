@@ -2289,6 +2289,25 @@ EOF;
                 ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 1]);
             } elseif ($referralApply && $status == 2) {
                 ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 2]);
+                //Song 审核并自动打款到余额
+                //这里通过申请ID，获取到用户id，和提现的金额。
+                $apply = ReferralApply::query()->where('id', $id)->first();
+                $user = User::query()->where('id', $apply->user_id)->first();
+                if (empty($user)) {
+                    return Response::json(['status' => 'fail', 'data' => '', 'message' => '用户不存在']);
+                }
+                DB::beginTransaction();
+                try {
+                    // 写入余额变动日志
+                    $this->addUserBalanceLog($user->id, 0, $user->balance, $user->balance + $apply->amount, $apply->amount, '邀请返利打款');
+                    //增加余额
+                    $user->increment('balance', $apply->amount * 100);
+                    DB::commit();
+
+                    return Response::json(['status' => 'success', 'data' => '', 'message' => '操作成功并打款']);
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                }
             }
         }
 

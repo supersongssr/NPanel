@@ -11,7 +11,7 @@
                 <div class="portlet light bordered">
                     <div class="portlet-title">
                         <div class="caption">
-                            <span class="caption-subject font-dark sbold uppercase">添加敏感词</span>
+                            <span class="caption-subject font-dark sbold uppercase">添加白名单词汇</span>
                         </div>
                         <div class="actions"></div>
                     </div>
@@ -26,7 +26,7 @@
                         <form action="#" method="post" enctype="multipart/form-data" class="form-horizontal" role="form" onsubmit="return do_submit();">
                             <div class="form-body">
                                 <div class="form-group">
-                                    <label class="control-label col-md-3">敏感词</label>
+                                    <label class="control-label col-md-3">白名单邮箱</label>
                                     <div class="col-md-4">
                                         <input type="text" class="form-control" name="words" value="" id="words" placeholder="" required>
                                         <input type="hidden" name="_token" value="{{csrf_token()}}" />

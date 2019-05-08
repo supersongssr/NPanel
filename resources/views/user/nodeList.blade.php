@@ -39,7 +39,7 @@
                 <div class="portlet light">
                     <div class="portlet-title">
                         <div class="caption">
-                            <span class="caption-subject font-blue bold">V2 SR SS{{trans('home.subscribe_address')}}配置教程</span>
+                            <span class="caption-subject font-blue bold">如何使用？{{trans('home.subscribe_address')}}使用教程！</span>
                         </div>
                         <div class="actions">
 
@@ -94,7 +94,8 @@
                                                 <ol>【SR 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksX-NG-R8-1.4.4.dmg')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 点击状态栏纸飞机 -> 服务器 -> 编辑订阅 </li>
-                                                    <li> 点击窗口左下角 “+”号 新增订阅，完整复制本页上方“订阅服务”处地址，将其粘贴至“订阅地址”栏，点击右下角“OK” </li>
+                                                    <li> 点击窗口左下角 “+”号 新增订阅，完整复制本页上方“订阅服务”处地址，然后将其粘贴至“订阅地址”栏 </li>
+                                                    <li>请注意，请将订阅地址的 http://xx.xx.xyz 部分替换为 https://rss.ssvss.xyz 其他不变，点右下角OK即可。（原因是：MAC仅支持https订阅）</li>
                                                     <li> 点击纸飞机 -> 服务器 -> 手动更新订阅 </li>
                                                     <li> 点击纸飞机 -> 服务器，选定合适服务器 </li>
                                                     <li> 点击纸飞机 -> 打开Shadowsocks </li>
@@ -108,7 +109,7 @@
                                                 <ol>【V2 教程】
                                                     <li> <a href="/downloads/V2RayX.app.zip" target="_blank">点击此处</a>下载客户端，解压 </li>
                                                     <li> 将 V2RayX.app 复制到 程序 文件夹，然后点击网站内菜单---节点列表，点击您想要添加的节点名称 </li>
-                                                    <li> 订阅功能：在V2RayX里添加上述V2Ray订阅链接，然后更新 </li>
+                                                    <li> 目前MAC端节点需要手动添加节点；您可以在节点列表查看到部分V2节点的配置信息；MAC端推荐使用SR呢 </li>
                                                 </ol>
                                                 <!-- -->
                                             </div>
@@ -151,7 +152,7 @@
                                                     <li> iOS端需要配合电脑，利用爱思助手来免费安装 </li>
                                                     <li> <a href="https://www.i4.cn/news_detail_3339.html" target="_blank">点击此处</a>查看爱思助手安装ipa文件教程 </li>
                                                     <li> <a href="/downloads/Shadowrocket_2.1.12.ipa" target="_blank">点击此处</a>下载iOS客户端的ipa文件 </li>
-                                                    <li> 请从站长处获取 App Store 账号密码 </li>
+                                                    <li> 然后请使用爱思助手安装客户端的ipa文件包（软件原价20元，这个方法可以免费获得） </li>
                                                     <li> 打开 Shadowrocket，点击右上角 “+”号 添加节点，类型选择 Subscribe </li>
                                                     <li> 完整复制本页上方 “订阅服务” 处地址，将其粘贴至 “URL”栏，点击右上角 “完成” </li>
                                                     <li> 左划新增的服务器订阅，点击 “更新” </li>
@@ -208,18 +209,18 @@
                             <div class="caption">
                                 <span class="caption-subject font-blue bold">{{trans('home.my_node_list')}}</span>
                             </div>
-                            <div class="actions">
+                            <!--<div class="actions">
                                 <div class="btn-group btn-group-devided" data-toggle="buttons">
                                     <button class="btn btn-info" id="copy_all_nodes" data-clipboard-text="{{$allNodes}}"> 复制所有节点 </button>
                                 </div>
-                            </div>
+                            </div> -->
                         </div>
                         <div class="portlet-body">
                             <div class="tab-content">
                                 <div class="tab-pane active">
                                     <!-- -->
                                     <div class="alert alert-danger">
-                                        <p> 【提示】：本站有30+节点,此处仅显示7个节点; 特权节点、VIP节点、公益节点、netflix节点等更多节点请通过订阅获取; </p>
+                                        <p> 【提示】：请通过订阅获取节点;免费用户不提供技术支持;如需更快网速,欢迎使用VIP节点; </p>
                                     </div>
                                     <!-- -->
                                     <div class="mt-comments">
@@ -236,9 +237,8 @@
                                                     <div class="mt-comment-info">
                                                         <span class="mt-comment-author">{{$node->name}}</span>
                                                         <span class="mt-comment-date">
-                                                                @if(!$node->online_status)
-                                                                <span class="badge badge-danger">维护中</span>
-                                                            @endif
+                                                                <span class="badge badge-success">{{$node->traffic_rate}}  倍率</span>
+                                                                <span class="badge badge-inverse">{{$node->updated_at}}</span>
                                                             </span>
                                                     </div>
                                                     <div class="mt-comment-text"> {{$node->desc}} </div>
@@ -250,7 +250,7 @@
                                                                     @endforeach
                                                                 @endif
                                                             </span>
-                                                        <ul class="mt-comment-actions" style="display: block;">
+                                                        <!-- <ul class="mt-comment-actions" style="display: block;">
                                                             <li>
                                                                 <a class="btn btn-sm green btn-outline" data-toggle="modal" href="#txt_{{$node->id}}" > <i class="fa fa-reorder"></i> </a>
                                                             </li>
@@ -260,7 +260,7 @@
                                                             <li>
                                                                 <a class="btn btn-sm green btn-outline" data-toggle="modal" href="#qrcode_{{$node->id}}"> <i class="fa fa-qrcode"></i> </a>
                                                             </li>
-                                                        </ul>
+                                                        </ul> -->
                                                     </div>
                                                 </div>
                                             </div>
@@ -274,87 +274,6 @@
             </div>
         </div>
 
-        @foreach($nodeList as $node)
-        <!-- 配置文本 -->
-            <div class="modal fade draggable-modal" id="txt_{{$node->id}}" tabindex="-1" role="basic" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                            <h4 class="modal-title">{{trans('home.setting_info')}}</h4>
-                        </div>
-                        <div class="modal-body">
-                            <textarea class="form-control" rows="10" readonly="readonly">{{$node->txt}}</textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- 配置链接 -->
-            <div class="modal fade draggable-modal" id="link_{{$node->id}}" tabindex="-1" role="basic" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                            <h4 class="modal-title">{{$node->name}}</h4>
-                        </div>
-                        <div class="modal-body">
-                            @if($node->type == 1)
-                                <textarea class="form-control" rows="5" readonly="readonly">{{$node->ssr_scheme}}</textarea>
-                                <a href="{{$node->ssr_scheme}}" class="btn purple uppercase" style="display: block; width: 100%;margin-top: 10px;">打开SSR</a>
-                                @if($node->ss_scheme)
-                                    <p></p>
-                                    <textarea class="form-control" rows="3" readonly="readonly">{{$node->ss_scheme}}</textarea>
-                                    <a href="{{$node->ss_scheme}}" class="btn blue uppercase" style="display: block; width: 100%;margin-top: 10px;">打开SS</a>
-                                @endif
-                            @else
-                                @if($node->v2_scheme)
-                                    <p></p>
-                                    <textarea class="form-control" rows="3" readonly="readonly">{{$node->v2_scheme}}</textarea>
-                                    <a href="{{$node->v2_scheme}}" class="btn blue uppercase" style="display: block; width: 100%;margin-top: 10px;">打开V2ray</a>
-                                @endif
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- 配置二维码 -->
-            <div class="modal fade" id="qrcode_{{$node->id}}" tabindex="-1" role="dialog" aria-hidden="true">
-                <div class="modal-dialog @if($node->type == 2 || !$node->compatible) modal-sm @endif">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                            <h4 class="modal-title">{{trans('home.scan_qrcode')}}</h4>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row">
-                                @if($node->type == 1)
-                                    @if($node->compatible)
-                                        <div class="col-md-6">
-                                            <div id="qrcode_ssr_img_{{$node->id}}" style="text-align: center;"></div>
-                                            <div style="text-align: center;"><a id="download_qrcode_ssr_img_{{$node->id}}">{{trans('home.download')}}</a></div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div id="qrcode_ss_img_{{$node->id}}" style="text-align: center;"></div>
-                                            <div style="text-align: center;"><a id="download_qrcode_ss_img_{{$node->id}}">{{trans('home.download')}}</a></div>
-                                        </div>
-                                    @else
-                                        <div class="col-md-12">
-                                            <div id="qrcode_ssr_img_{{$node->id}}" style="text-align: center;"></div>
-                                            <div style="text-align: center;"><a id="download_qrcode_ssr_img_{{$node->id}}">{{trans('home.download')}}</a></div>
-                                        </div>
-                                    @endif
-                                @else
-                                    <div class="col-md-12">
-                                        <div id="qrcode_v2_img_{{$node->id}}" style="text-align: center;"></div>
-                                        <div style="text-align: center;"><a id="download_qrcode_v2_img_{{$node->id}}">{{trans('home.download')}}</a></div>
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @endforeach
         <!-- END PAGE BASE CONTENT -->
     </div>
     <!-- END CONTENT BODY -->
@@ -373,40 +292,7 @@
     </script>
 
     <script type="text/javascript">
-        var UIModals = function () {
-            var n = function () {
-                @foreach($nodeList as $node)
-                $("#txt_{{$node->id}}").draggable({handle: ".modal-header"});
-                $("#qrcode_{{$node->id}}").draggable({handle: ".modal-header"});
-                @endforeach
-            };
-
-            return {
-                init: function () {
-                    n()
-                }
-            }
-        }();
-
-        jQuery(document).ready(function () {
-            UIModals.init()
-        });
-
-        // 循环输出节点scheme用于生成二维码
-        @foreach ($nodeList as $node)
-            @if($node->type == 1)
-                $('#qrcode_ssr_img_{{$node->id}}').qrcode("{{$node->ssr_scheme}}");
-                $('#download_qrcode_ssr_img_{{$node->id}}').attr({'download':'code','href':$('#qrcode_ssr_img_{{$node->id}} canvas')[0].toDataURL("image/png")})
-            @if($node->ss_scheme)
-                $('#qrcode_ss_img_{{$node->id}}').qrcode("{{$node->ss_scheme}}");
-                $('#download_qrcode_ss_img_{{$node->id}}').attr({'download':'code','href':$('#qrcode_ss_img_{{$node->id}} canvas')[0].toDataURL("image/png")})
-            @endif
-            @else
-                $('#qrcode_v2_img_{{$node->id}}').qrcode("{{$node->v2_scheme}}");
-                $('#download_qrcode_v2_img_{{$node->id}}').attr({'download':'code','href':$('#qrcode_v2_img_{{$node->id}} canvas')[0].toDataURL("image/png")})
-            @endif
-        @endforeach
-
+  
         // 更换订阅地址
         function exchangeSubscribe() {
             layer.confirm('更换订阅地址将导致：<br>1.旧地址立即失效；<br>2.连接密码被更改；', {icon: 7, title:'警告'}, function(index) {

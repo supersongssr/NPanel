@@ -33,7 +33,7 @@
                                 <a class="btn btn-sm red" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
                             </li>
                             <li>
-                                <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">获取充值码</a> <!-- song -->
+                                <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">购买充值码/卡密</a> <!-- song -->
                             </li>
                         </ul>
                     </div>
@@ -47,41 +47,37 @@
                     <div class="portlet light">
                         <div class="tabbable-line">
                             <ul class="nav nav-tabs">
-                                <li class="active">
+                                <li >
                                     <a href="#services1" data-toggle="tab"> <i class="fa fa-book"></i> 说明 </a>
                                 </li>
-                                <li>
-                                    <a href="#services2" data-toggle="tab"> <i class="fa fa-cloud"></i> 基础套餐 </a>
+                                <li class="active">
+                                    <a href="#services2" data-toggle="tab"> <i class="fa fa-cloud"></i> 帝王VIP套餐区 </a>
                                 </li>
                                 <li>
-                                    <a href="#services3" data-toggle="tab"> <i class="fa fa-jsfiddle"></i> 流量包 </a>
+                                    <a href="#services3" data-toggle="tab"> <i class="fa fa-jsfiddle"></i> 低价公益亲民区 </a>
                                 </li>
                             </ul>
                             <div class="tab-content" style="font-size:16px;">
-                                <div class="tab-pane active" id="services1">
-                                    <h4>购买流程：</h4>
+                                <div class="tab-pane" id="services1">
+                                    <h4>购买帮助：</h4>
                                     <ol>
-                                        <li>第一步：先充值余额。</li>
-                                        <li>第二步：购买套餐或者流量包。</li>
+                                        <li>第一步：充值余额（购买卡密充值）。</li>
+                                        <li>第二步：购买VIP套餐或者体验包。</li>
                                     </ol>
-                                    <h4>基础套餐：</h4>
+                                    <h4>帝王VIP套餐：</h4>
                                     <ol>
-                                        <li>在套餐生效的时间内，您将获得「套餐对应的网络速度」、「套餐内相应的流量」及其它特权。</li>
+                                        <li>在套餐生效的时间内，您将获得「VIP节点」、「套餐对应的网络速度」、「套餐内相应的流量」。</li>
                                         <li>基础套餐每月将会重置一次流量，重置日为购买日。</li>
                                         <li>如在套餐未到期的情况下购买新套餐，则会导致旧套餐的所有配置立即失效，新套餐的配置立即生效。</li>
                                     </ol>
-                                    <h4>流量包：</h4>
+                                    <h4>低价亲民区：</h4>
                                     <ol>
-                                        <li>当您在基础套餐重置日之前将流量耗尽，您可以选择购买流量包解燃眉之急。</li>
-                                        <li>流量包只在固定时间内增加可用流量，不会更改账户的配置，并且即时生效可以多个叠加。 </li>
-                                    </ol>
-                                    <h4>教育计划：</h4>
-                                    <ol>
-                                        <li>为国内教育用户（包括但不限于学生、教师、教育工作者）无偿提供50￥余额。</li>
-                                        <li>为简化审核流程，采用edu邮箱注册账号，即可获得教育计划支持。如有问题？请提交服务单人工处理。 </li>
+                                        <li>流量包用于补充流量，可叠加购买。</li>
+                                        <li>亲民VIP全网价格最低，适合小流量用户使用，提供VIP节点。</li>
+                                        <li>本区流量可叠加，可重复购买，流量用完即止，到期即止。</li>
                                     </ol>
                                 </div>
-                                <div class="tab-pane" id="services2">
+                                <div class="tab-pane  active" id="services2">
                                     <div class="pricing-content-1" style="padding-top: 10px;">
                                         <div class="row">
                                             @if($packageList->isEmpty())
@@ -107,7 +103,7 @@
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-bar-chart"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">内含流量：{{$goods->traffic_label}}</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">每月流量：{{$goods->traffic_label}}</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
@@ -119,7 +115,7 @@
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-refresh"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">每月重置流量</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">VIP节点、NetFlix</div>
                                                                 </div>
                                                             </div>
                                                             <div class="arrow-down arrow-grey"></div>
