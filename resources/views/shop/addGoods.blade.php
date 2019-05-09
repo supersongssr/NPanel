@@ -16,10 +16,9 @@
                         {{Session::get('successMsg')}}
                     </div>
                 @endif
-                @if (Session::has('errorMsg'))
+                @if($errors->any())
                     <div class="alert alert-danger">
-                        <button class="close" data-close="alert"></button>
-                        <strong>错误：</strong> {{Session::get('errorMsg')}}
+                        <span> {{$errors->first()}} </span>
                     </div>
                 @endif
                 <div class="note note-danger">
@@ -122,15 +121,6 @@
                                         <span class="help-block"> 自动给购买此商品的用户打上相应的标签 </span>
                                     </div>
                                 </div>
-                                <!--
-                                <div class="form-group package-money">
-                                    <label class="control-label col-md-3">所需积分</label>
-                                    <div class="col-md-6">
-                                        <input type="text" class="form-control" name="score" value="0" id="score" placeholder="" required>
-                                        <span class="help-block">换购该商品需要的积分值</span>
-                                    </div>
-                                </div>
-                                -->
                                 <div class="form-group package-money">
                                     <label class="control-label col-md-3">有效期</label>
                                     <div class="col-md-6">
@@ -152,12 +142,12 @@
                                     <label for="color" class="col-md-3 control-label">颜色</label>
                                     <div class="col-md-6">
                                         <select class="form-control" name="color" id="color">
-                                            <option value="green">green</option>
-                                            <option value="blue">blue</option>
-                                            <option value="red">red</option>
-                                            <option value="purple">purple</option>
-                                            <option value="white">white</option>
-                                            <option value="grey">grey</option>
+                                            <option value="green">绿</option>
+                                            <option value="blue">蓝</option>
+                                            <option value="red">红</option>
+                                            <option value="purple">紫</option>
+                                            <option value="white">白</option>
+                                            <option value="grey">灰</option>
                                         </select>
                                     </div>
                                 </div>

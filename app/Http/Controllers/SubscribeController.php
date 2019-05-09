@@ -357,7 +357,6 @@ class SubscribeController extends Controller
             
         } **/
 
-
         exit(base64_encode($scheme));
 
     }

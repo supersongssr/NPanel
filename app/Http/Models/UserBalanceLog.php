@@ -9,10 +9,6 @@ use Illuminate\Database\Eloquent\Model;
  * Class UserBalanceLog
  *
  * @package App\Http\Models
- * @property-read \App\Http\Models\User $User
- * @property mixed $after
- * @property mixed $amount
- * @property mixed $before
  * @mixin \Eloquent
  */
 class UserBalanceLog extends Model
@@ -21,7 +17,7 @@ class UserBalanceLog extends Model
     protected $primaryKey = 'id';
     public $timestamps = false;
 
-    public function User()
+    function user()
     {
         return $this->hasOne(User::class, 'id', 'user_id');
     }

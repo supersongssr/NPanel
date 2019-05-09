@@ -2,6 +2,7 @@
 
 namespace App\Http\Models;
 
+use Auth;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -9,10 +10,6 @@ use Illuminate\Database\Eloquent\Model;
  * Class ReferralApply
  *
  * @package App\Http\Models
- * @property-read \App\Http\Models\User $User
- * @property mixed $after
- * @property mixed $amount
- * @property mixed $before
  * @mixin \Eloquent
  */
 class ReferralApply extends Model
@@ -20,7 +17,12 @@ class ReferralApply extends Model
     protected $table = 'referral_apply';
     protected $primaryKey = 'id';
 
-    public function User()
+    function scopeUid($query)
+    {
+        return $query->where('user_id', Auth::user()->id);
+    }
+
+    function User()
     {
         return $this->hasOne(User::class, 'id', 'user_id');
     }

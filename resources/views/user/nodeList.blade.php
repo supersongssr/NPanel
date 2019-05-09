@@ -47,7 +47,7 @@
                     </div>
                     @if(Auth::user()->subscribe->status)
                         @if($nodeList->isEmpty())
-                            <h2>请先<a href="{{url('services')}}">购买服务</a></h2>
+                            <div style="text-align: center;"><h2>请先<a href="{{url('services')}}">购买服务</a></h2></div>
                         @else
                             <div class="portlet-body">
                                 <div class="mt-clipboard-container">
@@ -195,7 +195,7 @@
                             </div>
                         @endif
                     @else
-                        <h3>{{trans('home.subscribe_baned')}}</h3>
+                        <div style="text-align: center;"><h3>{{trans('home.subscribe_baned')}}</h3></div>
                     @endif
                 </div>
             </div>
@@ -273,7 +273,6 @@
                 @endif
             </div>
         </div>
-
         <!-- END PAGE BASE CONTENT -->
     </div>
     <!-- END CONTENT BODY -->
@@ -292,7 +291,6 @@
     </script>
 
     <script type="text/javascript">
-  
         // 更换订阅地址
         function exchangeSubscribe() {
             layer.confirm('更换订阅地址将导致：<br>1.旧地址立即失效；<br>2.连接密码被更改；', {icon: 7, title:'警告'}, function(index) {

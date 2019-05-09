@@ -14,10 +14,9 @@
                         {{Session::get('successMsg')}}
                     </div>
                 @endif
-                @if (Session::has('errorMsg'))
-                    <div class="alert alert-danger alert-dismissable">
-                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true"></button>
-                        <strong>{{trans('home.error')}}：</strong> {{Session::get('errorMsg')}}
+                @if($errors->any())
+                    <div class="alert alert-danger">
+                        <span> {{$errors->first()}} </span>
                     </div>
                 @endif
                 <!-- BEGIN PROFILE CONTENT -->
@@ -88,7 +87,7 @@
                                             <form action="{{url('profile')}}" method="post" enctype="multipart/form-data" class="form-bordered">
                                                 <div class="form-group">
                                                     <label class="control-label"> {{trans('home.connection_password')}} </label>
-                                                    <input type="text" class="form-control" name="passwd" value="{{$info->passwd}}" id="passwd" required />
+                                                    <input type="text" class="form-control" name="passwd" value="{{Auth::user()->passwd}}" id="passwd" required />
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
                                                 <div class="form-actions">

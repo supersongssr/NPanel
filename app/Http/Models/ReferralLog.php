@@ -2,6 +2,7 @@
 
 namespace App\Http\Models;
 
+use Auth;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -9,17 +10,17 @@ use Illuminate\Database\Eloquent\Model;
  * Class ReferralLog
  *
  * @package App\Http\Models
- * @property mixed $amount
- * @property mixed $ref_amount
- * @property-read \App\Http\Models\Order $order
- * @property-read \App\Http\Models\User $ref_user
- * @property-read \App\Http\Models\User $user
  * @mixin \Eloquent
  */
 class ReferralLog extends Model
 {
     protected $table = 'referral_log';
     protected $primaryKey = 'id';
+
+    function scopeUid($query)
+    {
+        return $query->where('ref_user_id', Auth::user()->id);
+    }
 
     function user()
     {

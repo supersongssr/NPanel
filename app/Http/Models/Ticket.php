@@ -2,6 +2,7 @@
 
 namespace App\Http\Models;
 
+use Auth;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -9,7 +10,6 @@ use Illuminate\Database\Eloquent\Model;
  * Class Ticket
  *
  * @package App\Http\Models
- * @property-read \App\Http\Models\User $User
  * @mixin \Eloquent
  */
 class Ticket extends Model
@@ -17,7 +17,12 @@ class Ticket extends Model
     protected $table = 'ticket';
     protected $primaryKey = 'id';
 
-    public function User()
+    function scopeUid($query)
+    {
+        return $query->where('user_id', Auth::user()->id);
+    }
+
+    function user()
     {
         return $this->hasOne(User::class, 'id', 'user_id');
     }

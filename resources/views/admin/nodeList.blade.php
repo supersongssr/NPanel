@@ -59,7 +59,11 @@
                                             <tr class="odd gradeX">
                                                 <td> {{$node->id}} </td>
                                                 <td>
-                                                    <span class="label {{$node->status ? 'label-info' : 'label-default'}}">{{$node->type == 2 ? 'V2Ray' : 'Shadowsocks(R)'}}</span>
+                                                    @if($node->is_transit)
+                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">{{$node->is_transit ? '中转' : ''}}</span>
+                                                    @else
+                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">{{$node->type == 2 ? 'V2Ray' : 'Shadowsocks(R)'}}</span>
+                                                    @endif
                                                 </td>
                                                 <td> {{$node->name}} </td>
                                                 <td>
@@ -70,10 +74,10 @@
                                                     @endif
                                                 </td>
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->server}}</span> </td>
-                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->uptime}}</span> </td>
-                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->load}}</span> </td>
-                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->online_users}}</span> </td>
-                                                <td> {{$node->transfer}} </td>
+                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->uptime}}</span> </td>
+                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->load}}</span> </td>
+                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->online_users}}</span> </td>
+                                                <td> {{$node->is_transit ? '' : $node->transfer}} </td>
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->traffic_rate}}</span> </td>
                                                 <td>
                                                     @if($node->compatible) <span class="label label-info">兼</span> @endif

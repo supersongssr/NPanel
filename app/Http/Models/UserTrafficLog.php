@@ -9,8 +9,6 @@ use Illuminate\Database\Eloquent\Model;
  * Class UserTrafficLog
  *
  * @package App\Http\Models
- * @property-read \App\Http\Models\SsNode $SsNode
- * @property-read \App\Http\Models\User $User
  * @mixin \Eloquent
  */
 class UserTrafficLog extends Model
@@ -20,13 +18,13 @@ class UserTrafficLog extends Model
     public $timestamps = false;
 
     // 关联账号
-    public function user()
+    function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     // 关联节点
-    public function node()
+    function node()
     {
         return $this->belongsTo(SsNode::class, 'node_id', 'id');
     }
