@@ -149,174 +149,27 @@ class UserController extends Controller
         $nodeList = DB::table('ss_node')
             ->selectRaw('ss_node.*')
             ->leftJoin('ss_node_label', 'ss_node.id', '=', 'ss_node_label.node_id')
-            ->whereIn('ss_node_label.label_id', $userLabelIds)
+            //->whereIn('ss_node_label.label_id', $userLabelIds)
             ->where('ss_node.status', 1)
             ->groupBy('ss_node.id')
             ->orderBy('ss_node.sort', 'desc')
-            ->orderBy('ss_node.name', 'asc')
+            ->orderBy('ss_node.id', 'asc')
             //->orderBy('ss_node.id', 'asc')
             //->limit(21) //Song 
             ->get();
 
-        $allNodes = ''; // 全部节点SSR链接，用于一键复制所有节点
+        //$allNodes = ''; // 全部节点SSR链接，用于一键复制所有节点
         foreach ($nodeList as &$node) {
-            // 获取分组名称
-            $group = SsGroup::query()->where('id', $node->group_id)->first();
             //Song
             $addn = explode('#', $node->desc);
 
-            if ($node->type == 1) {
-                //Song add node
-                //
-                if (empty($addn['1'])) {
-                    # code...
-                    // 生成ssr scheme
-                    $obfs_param = Auth::user()->obfs_param ? Auth::user()->obfs_param : $node->obfs_param;
-                    $protocol_param = $node->single ? Auth::user()->port . ':' . Auth::user()->passwd : Auth::user()->protocol_param;
-
-                    $ssr_str = ($node->server ? $node->server : $node->ip) . ':' . ($node->single ? $node->single_port : Auth::user()->port);
-                    $ssr_str .= ':' . ($node->single ? $node->single_protocol : Auth::user()->protocol) . ':' . ($node->single ? $node->single_method : Auth::user()->method);
-                    $ssr_str .= ':' . ($node->single ? $node->single_obfs : Auth::user()->obfs) . ':' . ($node->single ? base64url_encode($node->single_passwd) : base64url_encode(Auth::user()->passwd));
-                    $ssr_str .= '/?obfsparam=' . base64url_encode($obfs_param);
-                    $ssr_str .= '&protoparam=' . ($node->single ? base64url_encode(Auth::user()->port . ':' . Auth::user()->passwd) : base64url_encode($protocol_param));
-                    $ssr_str .= '&remarks=' . base64url_encode($node->name);
-                    $ssr_str .= '&group=' . base64url_encode(empty($group) ? '' : $group->name);
-                    $ssr_str .= '&udpport=0';
-                    $ssr_str .= '&uot=0';
-                    $ssr_str = base64url_encode($ssr_str);
-                    $ssr_scheme = 'ssr://' . $ssr_str;
-
-                    // 生成ss scheme
-                    $ss_str = Auth::user()->method . ':' . Auth::user()->passwd . '@';
-                    $ss_str .= ($node->server ? $node->server : $node->ip) . ':' . Auth::user()->port;
-                    $ss_str = base64url_encode($ss_str) . '#' . 'VPN';
-                    $ss_scheme = 'ss://' . $ss_str;
-
-                    // 生成文本配置信息
-                    $txt = "服务器：" . ($node->server ? $node->server : $node->ip) . "\r\n";
-                    if ($node->ipv6) {
-                        $txt .= "IPv6：" . $node->ipv6 . "\r\n";
-                    }
-                    $txt .= "远程端口：" . ($node->single ? $node->single_port : Auth::user()->port) . "\r\n";
-                    $txt .= "密码：" . ($node->single ? $node->single_passwd : Auth::user()->passwd) . "\r\n";
-                    $txt .= "加密方法：" . ($node->single ? $node->single_method : Auth::user()->method) . "\r\n";
-                    $txt .= "路由：绕过局域网及中国大陆地址" . "\r\n\r\n";
-                    $txt .= "协议：" . ($node->single ? $node->single_protocol : Auth::user()->protocol) . "\r\n";
-                    $txt .= "协议参数：" . ($node->single ? Auth::user()->port . ':' . Auth::user()->passwd : Auth::user()->protocol_param) . "\r\n";
-                    $txt .= "混淆方式：" . ($node->single ? $node->single_obfs : Auth::user()->obfs) . "\r\n";
-                    $txt .= "混淆参数：" . (Auth::user()->obfs_param ? Auth::user()->obfs_param : $node->obfs_param) . "\r\n";
-                    $txt .= "本地端口：1080" . "\r\n";
-
-                    $node->txt = $txt;
-                    $node->ssr_scheme = $ssr_scheme;
-                    $node->ss_scheme = $node->compatible ? $ss_scheme : ''; // 节点兼容原版才显示
-                    //
-                    $allNodes .= $ssr_scheme . '|';
-                }else{
-                    //addnode的节点的展示
-                    $node->desc = $addn['0'];
-                    //
-                    $ssr_str = ($node->server ? $node->server : $node->ip) . ':' . $addn['1'];
-                    $ssr_str .= ':origin:' . $addn['3'];
-                    $ssr_str .= ':plain:' . base64url_encode($addn['2']);
-                    $ssr_str .= '/?obfsparam=' ;
-                    $ssr_str .= '&protoparam=' ;
-                    $ssr_str .= '&remarks=' . base64url_encode($node->name);
-                    $ssr_str .= '&group=' . base64url_encode(empty($group) ? '' : $group->name);
-                    $ssr_str .= '&udpport=0';
-                    $ssr_str .= '&uot=0';
-                    $ssr_str = base64url_encode($ssr_str);
-                    $ssr_scheme = 'ssr://' . $ssr_str;
-
-                    // 生成ss scheme
-                    $ss_str = $addn['3'] . ':' . $addn['2'] . '@';
-                    $ss_str .= ($node->server ? $node->server : $node->ip) . ':' . $addn['1'];
-                    $ss_str = base64url_encode($ss_str) . '#' . 'VPN';
-                    $ss_scheme = 'ss://' . $ss_str;
-
-                    // 生成文本配置信息
-                    $txt = "服务器：" . ($node->server ? $node->server : $node->ip) . "\r\n";
-                    if ($node->ipv6) {
-                        $txt .= "IPv6：" . $node->ipv6 . "\r\n";
-                    }
-                    $txt .= "远程端口：" . $addn['1'] . "\r\n";
-                    $txt .= "密码：" . $addn['2'] . "\r\n";
-                    $txt .= "加密方法：" . $addn['3'] . "\r\n";
-                    $txt .= "路由：绕过局域网及中国大陆地址" . "\r\n\r\n";
-                    $txt .= "协议：origin" . "\r\n";
-                    $txt .= "协议参数："  . "\r\n";
-                    $txt .= "混淆方式：plain"  . "\r\n";
-                    $txt .= "混淆参数：" . "\r\n";
-                    $txt .= "本地端口：1080" . "\r\n";
-
-                    $node->txt = $txt;
-                    $node->ssr_scheme = $ssr_scheme;
-                    $node->ss_scheme = $node->compatible ? $ss_scheme : ''; // 节点兼容原版才显示
-
-                    $allNodes .= $ssr_scheme . '|';
-                }
-                
-            } else {
-                // 生成v2ray scheme
-
-                // Song
-                if (!empty($addn['1'])){
-                    # code...
-                    Auth::user()->vmess_id = $addn['1'];
-                    $node->v2_alter_id = '233';
-                    $node->desc = $addn['0'];
-                }
-                //
-                $v2_json = [
-                    "v"    => "2",
-                    "ps"   => $node->name,
-                    "add"  => $node->server ? $node->server : $node->ip,
-                    "port" => $node->v2_port,
-                    "id"   => Auth::user()->vmess_id,
-                    "aid"  => $node->v2_alter_id,
-                    "net"  => $node->v2_net,
-                    "type" => $node->v2_type,
-                    "host" => $node->v2_host,
-                    "path" => $node->v2_path,
-                    "tls"  => $node->v2_tls == 1 ? "tls" : ""
-                ];
-                $v2_scheme = 'vmess://' . base64url_encode(json_encode($v2_json));
-
-                // 生成文本配置信息
-                $txt = "服务器：" . ($node->server ? $node->server : $node->ip) . "\r\n";
-                if ($node->ipv6) {
-                    $txt .= "IPv6：" . $node->ipv6 . "\r\n";
-                }
-                $txt .= "端口：" . $node->v2_port . "\r\n";
-                $txt .= "加密方式：" . $node->v2_method . "\r\n";
-                $txt .= "用户ID：" . Auth::user()->vmess_id . "\r\n";
-                $txt .= "额外ID：" . $node->v2_alter_id . "\r\n";
-                $txt .= "传输协议：" . $node->v2_net . "\r\n";
-                $txt .= "伪装类型：" . $node->v2_type . "\r\n";
-                $txt .= $node->v2_host ? "伪装域名：" . $node->v2_host . "\r\n" : "";
-                $txt .= $node->v2_path ? "路径：" . $node->v2_path . "\r\n" : "";
-                $txt .= $node->v2_tls ? "TLS：tls\r\n" : "";
-
-                $node->txt = $txt;
-                $node->v2_scheme = $v2_scheme;
-            }
-
-            // 节点在线状态
-            $nodeInfo = SsNodeInfo::query()->where('node_id', $node->id)->where('log_time', '>=', strtotime("-10 minutes"))->orderBy('id', 'desc')->first();
-            $node->online_status = empty($nodeInfo) || empty($nodeInfo->load) ? 0 : 1;
-
-            //song
-            if (!empty($addn['1'])) {
-                # code...
-                $node->online_status = '1';
-            }
-            //
+            $node->desc = $addn[0];
 
             // 节点标签
             $node->labels = SsNodeLabel::query()->with('labelInfo')->where('node_id', $node->id)->get();
         }
 
-        $view['allNodes'] = rtrim($allNodes, "|");
+        $view['allNodes'] = '';
         $view['nodeList'] = $nodeList;
 
         return Response::view('user.nodeList', $view);

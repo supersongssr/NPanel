@@ -249,6 +249,7 @@
                                                                         <span class="badge badge-info">{{$vo->labelInfo->name}}</span>
                                                                     @endforeach
                                                                 @endif
+                                                                
                                                             </span>
                                                         <!-- <ul class="mt-comment-actions" style="display: block;">
                                                             <li>
