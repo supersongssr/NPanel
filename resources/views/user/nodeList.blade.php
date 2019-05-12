@@ -237,8 +237,7 @@
                                                     <div class="mt-comment-info">
                                                         <span class="mt-comment-author">{{$node->name}}</span>
                                                         <span class="mt-comment-date">
-                                                                <span class="badge badge-success">{{$node->traffic_rate}}  倍率</span>
-                                                                <span class="badge badge-inverse">{{$node->updated_at}}</span>
+                                                                <span class="badge badge-inverse">#{{$node->id}}</span>
                                                             </span>
                                                     </div>
                                                     <div class="mt-comment-text"> {{$node->desc}} </div>
@@ -247,6 +246,7 @@
                                                                 @if($node->labels)
                                                                     @foreach($node->labels as $vo)
                                                                         <span class="badge badge-info">{{$vo->labelInfo->name}}</span>
+                                                                        <span class="badge badge-success">{{$node->traffic_rate}}  倍率</span>
                                                                     @endforeach
                                                                 @endif
                                                             </span>
