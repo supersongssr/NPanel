@@ -47,7 +47,7 @@
                     </div>
                     @if(Auth::user()->subscribe->status)
                         @if($nodeList->isEmpty())
-                            <h2>请先<a href="{{url('services')}}">购买服务</a></h2>
+                            <div style="text-align: center;"><h2>请先<a href="{{url('services')}}">购买服务</a></h2></div>
                         @else
                             <div class="portlet-body">
                                 <div class="mt-clipboard-container">
@@ -195,7 +195,7 @@
                             </div>
                         @endif
                     @else
-                        <h3>{{trans('home.subscribe_baned')}}</h3>
+                        <div style="text-align: center;"><h3>{{trans('home.subscribe_baned')}}</h3></div>
                     @endif
                 </div>
             </div>
@@ -237,8 +237,7 @@
                                                     <div class="mt-comment-info">
                                                         <span class="mt-comment-author">{{$node->name}}</span>
                                                         <span class="mt-comment-date">
-                                                                <span class="badge badge-success">{{$node->traffic_rate}}  倍率</span>
-                                                                <span class="badge badge-inverse">{{$node->updated_at}}</span>
+                                                                <span class="badge badge-inverse">#{{$node->id}}</span>
                                                             </span>
                                                     </div>
                                                     <div class="mt-comment-text"> {{$node->desc}} </div>
@@ -247,9 +246,9 @@
                                                                 @if($node->labels)
                                                                     @foreach($node->labels as $vo)
                                                                         <span class="badge badge-info">{{$vo->labelInfo->name}}</span>
+                                                                        <span class="badge badge-success">{{$node->traffic_rate}}  倍率</span>
                                                                     @endforeach
                                                                 @endif
-                                                                
                                                             </span>
                                                         <!-- <ul class="mt-comment-actions" style="display: block;">
                                                             <li>
@@ -274,7 +273,6 @@
                 @endif
             </div>
         </div>
-
         <!-- END PAGE BASE CONTENT -->
     </div>
     <!-- END CONTENT BODY -->
@@ -293,7 +291,6 @@
     </script>
 
     <script type="text/javascript">
-  
         // 更换订阅地址
         function exchangeSubscribe() {
             layer.confirm('更换订阅地址将导致：<br>1.旧地址立即失效；<br>2.连接密码被更改；', {icon: 7, title:'警告'}, function(index) {

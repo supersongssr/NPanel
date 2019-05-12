@@ -32,6 +32,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\upgradeUserVmessId::class,
         \App\Console\Commands\AutoReportNode::class,
         \App\Console\Commands\upgradeUserBannoPay::class,
+        \App\Console\Commands\AutoCheckNodeStatus::class,
     ];
 
     /**
