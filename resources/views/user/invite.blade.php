@@ -24,7 +24,7 @@
                         <div class="portlet-body">
                             <div class="alert alert-info">
                                 <i class="fa fa-warning"></i>
-                                {{trans('home.invite_code_tips1')}} <strong> {{$num}} </strong> {{trans('home.invite_code_tips2')}}
+                                {{trans('home.invite_code_tips1')}} <strong> {{$num}} </strong> {{trans('home.invite_code_tips2', ['days' => \App\Components\Helpers::systemConfig()['user_invite_days']])}}
                             </div>
                             <button type="button" class="btn blue" onclick="makeInvite()" @if(!$num) disabled @endif> {{trans('home.invite_code_button')}} </button>
                         </div>
@@ -60,7 +60,7 @@
                                             @foreach($inviteList as $key => $invite)
                                                 <tr>
                                                     <td> {{$key + 1}} </td>
-                                                    <td> <a href="{{url('register?aff='.Auth::user()->id.'&code='.$invite->code)}}" target="_blank">{{$invite->code}}</a> </td>
+                                                    <td> <a class="copy" data-clipboard-text="{{url('register?aff=' . Auth::user()->id . '&code=' . $invite->code)}}">{{$invite->code}}</a> </td>
                                                     <td> {{$invite->dateline}} </td>
                                                     <td>
                                                         @if($invite->status == '0')
@@ -98,6 +98,9 @@
     <!-- END CONTENT BODY -->
 @endsection
 @section('script')
+    <script src="/assets/global/plugins/clipboardjs/clipboard.min.js" type="text/javascript"></script>
+    <script src="/assets/pages/scripts/components-clipboard.min.js" type="text/javascript"></script>
+
     <script type="text/javascript">
         // 生成邀请码
         function makeInvite() {
@@ -121,4 +124,19 @@
             return false;
         }
     </script>
+
+    @if(!$inviteList->isEmpty())
+        <script type="text/javascript">
+            var url = document.getElementsByClassName('copy');
+            var clipboard = new Clipboard(url);
+
+            clipboard.on('success', function(e) {
+                layer.alert("复制成功，您可以直接黏贴发送邀请链接", {icon:1, title:'提示'});
+            });
+
+            clipboard.on('error', function(e) {
+                console.log(e);
+            });
+        </script>
+    @endif
 @endsection

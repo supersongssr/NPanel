@@ -9,8 +9,6 @@ use Illuminate\Database\Eloquent\Model;
  * Class UserTrafficModifyLog
  *
  * @package App\Http\Models
- * @property-read \App\Http\Models\Order $Order
- * @property-read \App\Http\Models\User $User
  * @mixin \Eloquent
  */
 class UserTrafficModifyLog extends Model
@@ -19,13 +17,13 @@ class UserTrafficModifyLog extends Model
     protected $primaryKey = 'id';
 
     // 关联账号
-    public function User()
+    function user()
     {
         return $this->hasOne(User::class, 'id', 'user_id');
     }
 
     // 关联订单
-    public function Order()
+    function order()
     {
         return $this->hasOne(Order::class, 'oid', 'order_id');
     }

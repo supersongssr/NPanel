@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Model;
  * Class Article
  *
  * @package App\Http\Models
- * @property-read \App\Http\Models\SsNode $node
  * @mixin \Eloquent
  */
 class UserTrafficHourly extends Model
@@ -17,7 +16,7 @@ class UserTrafficHourly extends Model
     protected $table = 'user_traffic_hourly';
     protected $primaryKey = 'id';
 
-    public function node()
+    function node()
     {
         return $this->hasOne(SsNode::class, 'id', 'node_id');
     }

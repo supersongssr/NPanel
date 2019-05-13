@@ -9,15 +9,15 @@ use Illuminate\Database\Eloquent\Model;
  * Class PaymentCallback
  *
  * @package App\Http\Models
- * @property-read mixed $status_label
  * @mixin \Eloquent
  */
 class PaymentCallback extends Model
 {
     protected $table = 'payment_callback';
     protected $primaryKey = 'id';
+    protected $appends = ['status_label'];
 
-    public function getStatusLabelAttribute()
+    function getStatusLabelAttribute()
     {
         $status_label = '';
         switch ($this->attributes['status']) {

@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Model;
  * Class Marketing
  *
  * @package App\Http\Models
- * @property-read mixed $status_label
  * @mixin \Eloquent
  */
 class Marketing extends Model
@@ -18,7 +17,7 @@ class Marketing extends Model
     protected $primaryKey = 'id';
     protected $appends = ['status_label'];
 
-    public function getStatusLabelAttribute()
+    function getStatusLabelAttribute()
     {
         $status_label = '';
         switch ($this->attributes['status']) {

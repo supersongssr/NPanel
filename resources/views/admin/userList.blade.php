@@ -79,6 +79,7 @@
                             <table class="table table-hover table-light">
                                 <thead>
                                 <tr>
+                                    <th> 操作 </th>
                                     <th> # </th>
                                     <th> 用户名 </th>
                                     <th> 订阅码 </th>
@@ -92,7 +93,6 @@
                                     <th> 有效期 </th>
                                     <th> 状态 </th>
                                     <th> 代理 </th>
-                                    <th> 操作 </th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -103,6 +103,36 @@
                                     @else
                                         @foreach ($userList as $user)
                                             <tr class="odd gradeX {{$user->trafficWarning ? 'danger' : ''}}">
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <a class="btn btn-default dropdown-toggle" data-toggle="dropdown" href="javascript:;" aria-expanded="false"> 操作
+                                                            <i class="fa fa-angle-down"></i>
+                                                        </a>
+                                                        <ul class="dropdown-menu">
+                                                            <li>
+                                                                <a href="javascript:editUser('{{$user->id}}');"> 编辑 </a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="javascript:delUser('{{$user->id}}');"> 删除 </a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="javascript:doExport('{{$user->id}}');"> 配置信息 </a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="javascript:doMonitor('{{$user->id}}');"> 流量概况 </a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="javascript:ipMonitor('{{$user->id}}');"> 在线巡查 </a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="javascript:resetTraffic('{{$user->id}}');"> 流量清零 </a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="javascript:switchToUser('{{$user->id}}');"> 切换身份 </a>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </td>
                                                 <td> {{$user->id}} </td>
                                                 <td> {{$user->username}} </td>
                                                 <td> <a href="javascript:;" class="copySubscribeLink" data-clipboard-text="{{$user->link}}" title="点击复制订阅链接">{{$user->subscribe->code}}</a> </td>
@@ -140,36 +170,7 @@
                                                         <span class="label label-danger">禁用</span>
                                                     @endif
                                                 </td>
-                                                <td>
-                                                    <div class="btn-group">
-                                                        <a class="btn btn-default dropdown-toggle" data-toggle="dropdown" href="javascript:;" aria-expanded="false"> 操作
-                                                            <i class="fa fa-angle-down"></i>
-                                                        </a>
-                                                        <ul class="dropdown-menu">
-                                                            <li>
-                                                                <a href="javascript:editUser('{{$user->id}}');"> 编辑 </a>
-                                                            </li>
-                                                            <li>
-                                                                <a href="javascript:delUser('{{$user->id}}');"> 删除 </a>
-                                                            </li>
-                                                            <li>
-                                                                <a href="javascript:doExport('{{$user->id}}');"> 配置信息 </a>
-                                                            </li>
-                                                            <li>
-                                                                <a href="javascript:doMonitor('{{$user->id}}');"> 流量概况 </a>
-                                                            </li>
-                                                            <li>
-                                                                <a href="javascript:ipMonitor('{{$user->id}}');"> 在线巡查 </a>
-                                                            </li>
-                                                            <li>
-                                                                <a href="javascript:resetTraffic('{{$user->id}}');"> 流量清零 </a>
-                                                            </li>
-                                                            <li>
-                                                                <a href="javascript:switchToUser('{{$user->id}}');"> 切换身份 </a>
-                                                            </li>
-                                                        </ul>
-                                                    </div>
-                                                </td>
+                                                
                                             </tr>
                                         @endforeach
                                     @endif

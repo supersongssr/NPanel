@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Model;
  * Class Verify
  *
  * @package App\Http\Models
- * @property-read \App\Http\Models\User $User
  * @mixin \Eloquent
  */
 class Verify extends Model
@@ -17,7 +16,13 @@ class Verify extends Model
     protected $table = 'verify';
     protected $primaryKey = 'id';
 
-    public function User()
+    // 筛选类型
+    function scopeType($query, $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    function user()
     {
         return $this->hasOne(User::class, 'id', 'user_id');
     }

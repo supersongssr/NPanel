@@ -76,6 +76,7 @@
                                         <li>亲民VIP全网价格最低，适合小流量用户使用，提供VIP节点。</li>
                                         <li>本区流量可叠加，可重复购买，流量用完即止，到期即止。</li>
                                     </ol>
+
                                 </div>
                                 <div class="tab-pane  active" id="services2">
                                     <div class="pricing-content-1" style="padding-top: 10px;">

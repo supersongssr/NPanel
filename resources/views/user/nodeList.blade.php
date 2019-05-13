@@ -57,6 +57,7 @@
                                     </div>
                                     <!-- -->
                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ver=1" />
+
                                     <a href="javascript:;" class="btn blue mt-clipboard" data-clipboard-action="copy" data-clipboard-target="#mt-target-1">
                                         {{trans('home.copy_subscribe_address')}}SR订阅地址
                                     </a>

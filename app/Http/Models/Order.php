@@ -2,6 +2,7 @@
 
 namespace App\Http\Models;
 
+use Auth;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -9,19 +10,18 @@ use Illuminate\Database\Eloquent\Model;
  * Class Order
  *
  * @package App\Http\Models
- * @property-read \App\Http\Models\Coupon $coupon
- * @property mixed $amount
- * @property mixed $origin_amount
- * @property-read mixed $status_label
- * @property-read \App\Http\Models\Goods $goods
- * @property-read \App\Http\Models\Payment $payment
- * @property-read \App\Http\Models\User $user
  * @mixin \Eloquent
  */
 class Order extends Model
 {
     protected $table = 'order';
     protected $primaryKey = 'oid';
+    protected $appends = ['status_label'];
+
+    function scopeUid($query)
+    {
+        return $query->where('user_id', Auth::user()->id);
+    }
 
     function user()
     {
@@ -30,12 +30,12 @@ class Order extends Model
 
     function goods()
     {
-        return $this->hasOne(Goods::class, 'id', 'goods_id');
+        return $this->hasOne(Goods::class, 'id', 'goods_id')->withTrashed();
     }
 
     function coupon()
     {
-        return $this->hasOne(Coupon::class, 'id', 'coupon_id');
+        return $this->hasOne(Coupon::class, 'id', 'coupon_id')->withTrashed();
     }
 
     function payment()
@@ -63,7 +63,7 @@ class Order extends Model
         return $this->attributes['amount'] = $value * 100;
     }
 
-    public function getStatusLabelAttribute()
+    function getStatusLabelAttribute()
     {
         switch ($this->attributes['status']) {
             case -1:
