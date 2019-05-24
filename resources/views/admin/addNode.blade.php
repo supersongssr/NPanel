@@ -90,9 +90,9 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="ssh_port" class="col-md-3 control-label"> SSH端口 </label>
+                                                    <label for="ssh_port" class="col-md-3 control-label"> curl端口 </label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="ssh_port" value="22" id="ssh_port" placeholder="服务器SSH端口" required>
+                                                        <input type="text" class="form-control" name="ssh_port" value="80" id="ssh_port" placeholder="服务器SSH端口" required>
                                                         <span class="help-block">请务必正确填写此值，否则TCP阻断检测可能误报</span>
                                                     </div>
                                                 </div>
@@ -146,13 +146,6 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="sort" class="col-md-3 control-label">排序</label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="sort" value="1" id="sort" placeholder="">
-                                                        <span class="help-block"> 值越大排越前 </span>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
                                                     <label for="status" class="col-md-3 control-label">状态</label>
                                                     <div class="col-md-8">
                                                         <div class="mt-radio-inline">
@@ -167,13 +160,20 @@
                                                         </div>
                                                     </div>
                                                 </div>
+                                                <div class="form-group">
+                                                    <label for="sort" class="col-md-3 control-label">SRS 端口</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="sort" value="1" id="sort" placeholder="">
+                                                        <span class="help-block"> 这里变成了端口 </span>
+                                                    </div>
+                                                </div>
                                                 <!--
                                                 <div class="form-group">
-                                                    <label for="bandwidth" class="col-md-3 control-label">出口带宽</label>
+                                                    <label for="bandwidth" class="col-md-3 control-label">带宽</label>
                                                     <div class="col-md-8">
                                                         <div class="input-group">
                                                             <input type="text" class="form-control" name="bandwidth" value="1000" id="bandwidth" placeholder="" required>
-                                                            <span class="input-group-addon">M</span>
+                                                            <span class="input-group-addon">出口带宽</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -186,14 +186,15 @@
                                                         </div>
                                                     </div>
                                                 </div>
+                                                -->
                                                 <div class="form-group">
-                                                    <label for="monitor_url" class="col-md-3 control-label">监控地址</label>
+                                                    <label for="monitor_url" class="col-md-3 control-label">SRS密码 V2UUID</label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control right" name="monitor_url" value="" id="monitor_url" placeholder="节点实时监控地址">
-                                                        <span class="help-block"> 例如：http://us1.ssrpanel.com/api/monitor </span>
+                                                        <input type="text" class="form-control right" name="monitor_url" value="" id="monitor_url" placeholder="UUID SS密码">
+                                                        <span class="help-block"> SRS写密码 V2写 UUID 非？请留空 </span>
                                                     </div>
                                                 </div>
-                                                -->
+                                                
                                             </div>
                                         </div>
                                     </div>
@@ -210,11 +211,11 @@
                                                     <div class="col-md-8">
                                                         <div class="mt-radio-inline">
                                                             <label class="mt-radio">
-                                                                <input type="radio" name="service" value="1" checked> Shadowsocks(R)
+                                                                <input type="radio" name="service" value="1" checked> SR
                                                                 <span></span>
                                                             </label>
                                                             <label class="mt-radio">
-                                                                <input type="radio" name="service" value="2"> V2Ray
+                                                                <input type="radio" name="service" value="2"> V2
                                                                 <span></span>
                                                             </label>
                                                         </div>
@@ -266,7 +267,7 @@
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="compatible" class="col-md-3 control-label">兼容SS</label>
+                                                        <label for="compatible" class="col-md-3 control-label">SS+SR</label>
                                                         <div class="col-md-8">
                                                             <div class="mt-radio-inline">
                                                                 <label class="mt-radio">
