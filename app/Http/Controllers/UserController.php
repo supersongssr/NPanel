@@ -157,7 +157,7 @@ class UserController extends Controller
             //->whereIn('ss_node_label.label_id', $userLabelIds)
             ->where('ss_node.status', 1)
             ->groupBy('ss_node.id')
-            ->orderBy('ss_node.sort', 'desc')
+            //->orderBy('ss_node.sort', 'desc')
             ->orderBy('ss_node.id', 'asc')
             //->orderBy('ss_node.id', 'asc')
             //->limit(21) //Song 
@@ -166,8 +166,6 @@ class UserController extends Controller
         //$allNodes = ''; // 全部节点SSR链接，用于一键复制所有节点
         foreach ($nodeList as &$node) {
             //Song
-            $addn = explode('#', $node->desc);
-            $node->desc = $addn[0];
             // 节点标签
             $node->labels = SsNodeLabel::query()->with('labelInfo')->where('node_id', $node->id)->get();
         }
@@ -823,15 +821,15 @@ class UserController extends Controller
             // 写入日志
             $this->addUserBalanceLog(Auth::user()->id, 0, Auth::user()->balance, Auth::user()->balance + $coupon->amount, $coupon->amount, '用户手动充值 - [充值券：' . $request->coupon_sn . ']');
 
-            // 余额充值
-            User::uid()->increment('balance', $coupon->amount);
-
             // 更改卡券状态
             $coupon->status = 1;
             $coupon->save();
 
             // 写入卡券日志
             Helpers::addCouponLog($coupon->id, 0, 0, '账户余额充值使用');
+
+            // 余额充值
+            User::uid()->increment('balance', $coupon->amount);
 
             DB::commit();
 

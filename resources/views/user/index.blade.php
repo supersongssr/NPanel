@@ -25,7 +25,7 @@
                     <div class="portlet-body">
                         <div class="tab-content">
                             <div class="alert alert-danger">
-                                <p> 家:www.ssvss.xyz 保存书签呦&nbsp QQ:2107254004 &nbsp QQ群:1016820452 &nbsp TG群:ssvssxyz</p>
+                                <p> 家:www.ssoss.xyz 保存书签呦&nbsp QQ:2107254004 &nbsp QQ群:1016820452 &nbsp TG群:ssvssxyz</p>
                             </div>
                             @if($notice)
                                 {!!$notice->content!!}

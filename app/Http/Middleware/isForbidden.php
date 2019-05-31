@@ -68,7 +68,7 @@ class isForbidden
                 if (($ipInfo['country'] == '中国' && !in_array($ipInfo['province'], ['香港', '澳门', '台湾'])) || ($isIPv6 && $ipInfo['country'] == 'China')) {
                     Log::info('识别到大陆IP，拒绝访问：' . $ip);
 
-                    return response()->view('auth.error', ['message' => 'IP or Proxy Access Forbidden'], 403);
+                    return response()->view('auth.error', ['message' => '检测到中国China IP 访问本站，请遵守相关国家法律；目前本站不支持中国IP访问；本站不提供中国大陆节点；<br><hr><br>您不是中国用户？请使用您所在国家或地区的IP访问本站；<br>China IP or Proxy Access Forbidden'], 403);
                 }
             }
 
@@ -77,7 +77,7 @@ class isForbidden
                 if ($ipInfo['country'] != '中国' || in_array($ipInfo['province'], ['香港', '澳门', '台湾']) || ($isIPv6 && $ipInfo['country'] != 'China')) {
                     Log::info('识别到海外IP，拒绝访问：' . $ip . ' - ' . $ipInfo['country']);
 
-                    return response()->view('auth.error', ['message' => 'IP or Proxy Access Forbidden'], 403);
+                    return response()->view('auth.error', ['message' => '系统检测到您在使用代理访问本站！IP or Proxy Access Forbidden'], 403);
                 }
             }
         }

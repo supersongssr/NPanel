@@ -96,7 +96,6 @@
                                                     <li> <a href="{{asset('clients/ShadowsocksX-NG-R8-1.4.4.dmg')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 点击状态栏纸飞机 -> 服务器 -> 编辑订阅 </li>
                                                     <li> 点击窗口左下角 “+”号 新增订阅，完整复制本页上方“订阅服务”处地址，然后将其粘贴至“订阅地址”栏 </li>
-                                                    <li>请注意，请将订阅地址的 http://xx.xx.xyz 部分替换为 https://rss.ssvss.xyz 其他不变，点右下角OK即可。（原因是：MAC仅支持https订阅）</li>
                                                     <li> 点击纸飞机 -> 服务器 -> 手动更新订阅 </li>
                                                     <li> 点击纸飞机 -> 服务器，选定合适服务器 </li>
                                                     <li> 点击纸飞机 -> 打开Shadowsocks </li>

@@ -42,7 +42,7 @@
     <!-- BEGIN LOGIN -->
     <div class="content">
         <nav style="padding-bottom: 20px;text-align: center;">
-            <a>★邀请返利8-25￥/人、32G流量、20%消费提成; <br>★SR SS V2技术全平台支持; VIP最低仅需 4.2￥/月; <br>★NetFlix! Hulu!; BGP HKBN NTT CN2 PCCW多线混合组网; <br>★香港、台湾、日本、韩国、新加坡、俄罗斯等全球60+节点; 7Gbps+ 国际带宽。  </a>
+            <a>★邀请返利20%; <br>★SR SS V2技术全平台支持; <br>★NetFlix! Hulu!; BGP HKBN NTT CN2 PCCW多线混合组网; <br>★香港、台湾、日本、韩国、新加坡、俄罗斯等全球100+节点; 15Gbps+ 国际带宽。  </a>
             <!-- @if(app()->getLocale() == 'zh-CN')
                 <a href="{{url('lang', ['locale' => 'zh-tw'])}}">繁體中文</a>
                 <a href="{{url('lang', ['locale' => 'en'])}}">English</a>
@@ -84,7 +84,7 @@
     <script src="/assets/global/plugins/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
     @yield('script')
 
-    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <!-- Global site tag (gtag.js) - Google Analytics 
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-122312249-1"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -93,7 +93,7 @@
 
         gtag('config', 'UA-122312249-1');
     </script>
-
+-->
     <!-- 统计 -->
     {!! \App\Components\Helpers::systemConfig()['website_analytics'] !!}
     <!-- 客服 -->

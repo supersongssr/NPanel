@@ -8,7 +8,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>ACCESS DENIED</title>
+    <title>访问禁止</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <meta content="" name="description" />
@@ -33,10 +33,11 @@
 
 <body class="page-404-3">
     <div class="page-inner">
-        <img src="/assets/pages/media/pages/earth.jpg" class="img-responsive" alt="">
+        <img src="/assets/pages/media/bg/5.jpg" class="img-responsive" alt="">
     </div>
     <div class="container error-404">
-        <h2>ACCESS DENIED</h2>
+        <h2>访客您好</h2>
+        <p>我们主动拒绝了您访问本站的请求</p>
         <p>{!! $message !!}</p>
     </div>
     <!--[if lt IE 9]>
@@ -54,16 +55,6 @@
     <!-- END CORE PLUGINS -->
     <!-- BEGIN THEME GLOBAL SCRIPTS -->
     <script src="/assets/global/scripts/app.min.js" type="text/javascript"></script>
-
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-122312249-1"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'UA-122312249-1');
-    </script>
 
     <!-- END THEME GLOBAL SCRIPTS -->
     <!-- BEGIN THEME LAYOUT SCRIPTS -->

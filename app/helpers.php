@@ -131,11 +131,13 @@ if (!function_exists('getClientIP')) {
          * 使用IPv4地址访问或者关闭IPv6支持都可以不显示这个
          */
         if (isset($_SERVER)) {
-            if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+            if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+                $list = explode("," , $_SERVER["HTTP_X_FORWARDED_FOR"]);
+                $_SERVER["REMOTE_ADDR"] = $list[0];
+                $ip = $list[0];
+            } elseif (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) {
                 $_SERVER['REMOTE_ADDR'] = $_SERVER['HTTP_CF_CONNECTING_IP'];
                 $ip = $_SERVER['REMOTE_ADDR'];
-            } elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-                $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
             } elseif (isset($_SERVER['HTTP_CLIENT_ip'])) {
                 $ip = $_SERVER['HTTP_CLIENT_ip'];
             } elseif (isset($_SERVER['REMOTE_ADDR'])) {

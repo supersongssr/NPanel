@@ -44,19 +44,19 @@ class AutoCheckNodeStatus extends Command
                 # code...
                 SsNode::query()->where('id',$node['id'])->update(['status'=>1]);
                 //将数据写入文件
-                $data = $node['name']."#".$server."#".$server_ip."#".$node['status']."\n".$node_line.$vnstat."\n\n\n";
+                $data = $node['name']."#".$server."#".$server_ip."#".$node['status']."\n".$node_line."\n".$node['desc'].$vnstat."\n\n\n";
                 $nodes_log = @file_put_contents($file, $data, FILE_APPEND);
             }elseif($status == 4 ) {
                 # code...  4 = stop
                 SsNode::query()->where('id',$node['id'])->update(['status'=>0]);
                 //将数据写入文件
-                $data = $node['name']."#".$server."#".$server_ip."#".$node['status']."\n".$node_line.$vnstat."\n\n\n";
+                $data = $node['name']."#".$server."#".$server_ip."#".$node['status']."\n".$node_line."\n".$node['desc'].$vnstat."\n\n\n";
                 $nodes_log = @file_put_contents($file, $data, FILE_APPEND);
             }else {
                 # code...  4 = stop
                 SsNode::query()->where('id',$node['id'])->update(['status'=>0]);
                 //同样写入数据，是获取不到运行状态
-                $data = $node['name']."#".$server."#".$server_ip."#".$node['status'].$node_error."\n".$node_line."\n\n\n";
+                $data = $node['name']."#".$server."#".$server_ip."#".$node['status'].$node_error."\n".$node_line."\n".$node['desc']."\n\n\n";
                 $nodes_log = @file_put_contents($file, $data, FILE_APPEND);
             }
             //这里开始 全自动更改 后端节点的配置信息，可以有 这个可以有
