@@ -565,7 +565,7 @@ class AdminController extends Controller
             $query->where('status', intval($status));
         }
 
-        $nodeList = $query->orderBy('status', 'desc')->orderBy('id', 'asc')->paginate(16)->appends($request->except('page')); //15 -100song node
+        $nodeList = $query->orderBy('id', 'asc')->paginate(32)->appends($request->except('page'));
         foreach ($nodeList as &$node) {
             // 在线人数
             $online_log = SsNodeOnlineLog::query()->where('node_id', $node->id)->where('log_time', '>=', strtotime("-5 minutes"))->orderBy('id', 'desc')->first();
