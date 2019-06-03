@@ -828,8 +828,8 @@ class UserController extends Controller
             // 写入卡券日志
             Helpers::addCouponLog($coupon->id, 0, 0, '账户余额充值使用');
 
-            // 余额充值
-            User::uid()->increment('balance', $coupon->amount);
+            // 余额充值 不知道为啥要*100
+            User::uid()->increment('balance', $coupon->amount * 100);
 
             DB::commit();
 

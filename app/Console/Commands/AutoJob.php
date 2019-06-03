@@ -156,7 +156,7 @@ class AutoJob extends Command
                     UserSubscribe::query()->where('user_id', $id)->delete();
                     UserBanLog::query()->where('user_id', $id)->delete();
                     UserLabel::query()->where('user_id', $id)->delete();
-                    UserScoreLog::query()->where('user_id', $id)->delete();
+                    //UserScoreLog::query()->where('user_id', $id)->delete();
                     UserBalanceLog::query()->where('user_id', $id)->delete();
                     UserTrafficModifyLog::query()->where('user_id', $id)->delete();
                     UserLoginLog::query()->where('user_id', $id)->delete();

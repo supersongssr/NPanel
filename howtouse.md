@@ -114,7 +114,7 @@ crontab加入如下命令（请自行修改php、ssrpanel路径）：
 例如用lnmp的话默认权限用户组是 www:www，则添加定时任务是这样的：
 crontab -e -u www
 注意，需要设置一下www用户，和相应的目录才可以
-mkdir /home/www && chown -R www:www /home/www/
+mkdir /home/www ; chown -R www:www /home/www/
 ````
 
 ## 邮件配置

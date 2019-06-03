@@ -113,6 +113,7 @@
                                                         </select>
                                                     </div>
                                                 </div>
+                                                
                                                 <div class="form-group">
                                                     <label for="group_id" class="col-md-3 control-label"> 所属分组 </label>
                                                     <div class="col-md-8">
@@ -169,14 +170,15 @@
                                                 </div>
                                                 <!--
                                                 <div class="form-group">
-                                                    <label for="bandwidth" class="col-md-3 control-label">带宽</label>
+                                                    <label for="bandwidth" class="col-md-3 control-label">SRS 端口</label>
                                                     <div class="col-md-8">
                                                         <div class="input-group">
                                                             <input type="text" class="form-control" name="bandwidth" value="1000" id="bandwidth" placeholder="" required>
-                                                            <span class="input-group-addon">出口带宽</span>
+                                                            <span class="input-group-addon"> 这里变成了端口 </span>
                                                         </div>
                                                     </div>
                                                 </div>
+                                                
                                                 <div class="form-group">
                                                     <label for="traffic" class="col-md-3 control-label">每月可用流量</label>
                                                     <div class="col-md-8">

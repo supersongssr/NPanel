@@ -175,7 +175,7 @@ class AuthController extends Controller
             // 校验域名邮箱是否在敏感词中
             //Song 检查是否白名单邮箱，这个可以有
             $sensitiveWords = $this->sensitiveWords();
-            $usernameSuffix = explode('@', $username); // 提取邮箱后缀
+            $usernameSuffix = explode('@', $request->username); // 提取邮箱后缀
             if (!in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
                 Session::flash('errorMsg', '呃，陌生的邮箱，请联系管理员将邮箱添加到白名单！');
 
@@ -633,7 +633,7 @@ class AuthController extends Controller
 
         // 校验域名邮箱是否在敏感词中
         $sensitiveWords = $this->sensitiveWords();
-        $usernameSuffix = explode('@', $username); // 提取邮箱后缀
+        $usernameSuffix = explode('@', $request->username); // 提取邮箱后缀
         if (!in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '呃，一个陌生的邮箱呢，联系客服！']);
 
