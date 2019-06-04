@@ -67,7 +67,7 @@ class AutoCheckNodeStatus extends Command
                     $addn = explode('#',$s1);
                     $data = [
                         'ip'=>$addn['0'] , 
-                        'sort'=>$addn['1'], 
+                        'bandwidth'=>$addn['1'], 
                         'monitor_url'=>$addn['2'], 
                         'method'=>$addn['3']
                     ];

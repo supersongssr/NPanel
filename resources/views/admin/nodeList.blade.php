@@ -46,7 +46,7 @@
                                     <th> 在线 </th>
                                     <th> <span class="node-flow"><a href="javascript:showFlowTips();">产生流量</a></span> </th>
                                     <th> 流量比例 </th>
-                                    <th> 扩展 </th>
+                                    <th> 等级 </th>
                                     <th> 操作 </th>
                                 </tr>
                                 </thead>
@@ -82,11 +82,7 @@
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->online_users}}</span> </td>
                                                 <td> {{$node->is_transit ? '' : $node->transfer}} </td>
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->traffic_rate}}</span> </td>
-                                                <td>
-                                                    @if($node->compatible) <span class="label label-info">兼</span> @endif
-                                                    @if($node->single) <span class="label label-info">单</span> @endif
-                                                    @if(!$node->is_subscribe) <span class="label label-info"><s>订</s></span> @endif
-                                                </td>
+                                                <td><span class="label label-info">{{$node->sort}}</span></td>
                                                 <td>
                                                     <div class="btn-group">
                                                         <a class="btn btn-default dropdown-toggle" data-toggle="dropdown" href="javascript:;" aria-expanded="false"> 操作

@@ -6,6 +6,7 @@ use App\Components\Helpers;
 use Illuminate\Console\Command;
 use App\Http\Models\Order;
 use App\Http\Models\User;
+use App\Http\Models\Goods;  // 引入这个Goods song
 use App\Http\Models\UserLabel;
 use App\Http\Models\GoodsLabel;
 use Log;
@@ -14,7 +15,7 @@ use DB;
 class AutoDecGoodsTraffic extends Command
 {
     protected $signature = 'autoDecGoodsTraffic';
-    protected $description = '自动扣减用户到期商品的流量';
+    protected $description = '自动扣减用户到期商品的流量 更新等级 标签';
     protected static $systemConfig;
 
     public function __construct()
@@ -104,7 +105,7 @@ class AutoDecGoodsTraffic extends Command
                     $goodsIds = Order::query()->where('user_id', $order->user->id)->where('oid', '<>', $order->oid)->where('status', 2)->where('is_expire', 0)->groupBy('goods_id')->pluck('goods_id')->toArray();
                     $goodsLabels = GoodsLabel::query()->whereIn('goods_id', $goodsIds)->groupBy('label_id')->pluck('label_id')->toArray();
 
-                    // 生成标签
+                    // 生成标签 写入用户最新标签
                     $labels = array_values(array_unique(array_merge($goodsLabels, $defaultLabels))); // 标签去重
                     foreach ($labels as $vo) {
                         $userLabel = new UserLabel();
@@ -112,6 +113,12 @@ class AutoDecGoodsTraffic extends Command
                         $userLabel->label_id = $vo;
                         $userLabel->save();
                     }
+
+                    // song 获取 用户商品最大 等级
+                    $maxLevel = Goods::query()->whereIn('id', $goodsIds)->orderBy('sort','desc')->pluck('sort')->first();  
+                    empty($maxLevel) && $maxLevel = 0;  // 如果为空 就算 0 
+                    // 将最新的等级写入到用户 中
+                    User::query()->where('id', $order->user->id)->update(['level' => $maxLevel]);
                 }
 
                 DB::commit();

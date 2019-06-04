@@ -116,7 +116,13 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                
+                                                <div class="form-group">
+                                                    <label for="sort" class="col-md-3 control-label">等级 Lv.</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="sort" value="{{$node->sort}}" id="sort" placeholder="">
+                                                        <span class="help-block"> sort节点等级 </span>
+                                                    </div>
+                                                </div>
                                                 <div class="form-group">
                                                     <label for="group_id" class="col-md-3 control-label"> 所属分组 </label>
                                                     <div class="col-md-8">
@@ -164,23 +170,17 @@
                                                         </div>
                                                     </div>
                                                 </div>
+                                                
                                                 <div class="form-group">
-                                                    <label for="sort" class="col-md-3 control-label">SRS端口号</label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="sort" value="{{$node->sort}}" id="sort" placeholder="">
-                                                        <span class="help-block"> 这个地方变成了端口 </span>
-                                                    </div>
-                                                </div>
-                                                <!--
-                                                <div class="form-group">
-                                                    <label for="bandwidth" class="col-md-3 control-label">SRS端口号</label>
+                                                    <label for="bandwidth" class="col-md-3 control-label">SRS端口</label>
                                                     <div class="col-md-8">
                                                         <div class="input-group">
                                                             <input type="text" class="form-control" name="bandwidth" value="{{$node->bandwidth}}" id="bandwidth" placeholder="" required>
                                                             <span class="input-group-addon">这个地方变成了端口</span>
                                                         </div>
                                                     </div>
-                                                </div>                                                
+                                                </div> 
+                                                <!--                                               
                                                 <div class="form-group">
                                                     <label for="traffic" class="col-md-3 control-label">每月可用流量</label>
                                                     <div class="col-md-8">

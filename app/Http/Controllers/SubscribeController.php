@@ -167,7 +167,7 @@ class SubscribeController extends Controller
         }
 
 **/
-        $nodeList = $query->where('ss_node.status', 1)->where('ss_node.is_subscribe', 1)->whereIn('ss_node_label.label_id', $userLabelIds)->groupBy('ss_node.id')->orderBy('ss_node.sort', 'desc')->orderBy('ss_node.name', 'asc')->get()->toArray();
+        $nodeList = $query->where('ss_node.status', 1)->where('sort', '<=' ,$user->level)->where('ss_node.is_subscribe', 1)->whereIn('ss_node_label.label_id', $userLabelIds)->groupBy('ss_node.id')->orderBy('ss_node.sort', 'desc')->orderBy('ss_node.name', 'asc')->get()->toArray();
         if (empty($nodeList)) {
             exit($this->noneNode());
         }
@@ -213,7 +213,7 @@ class SubscribeController extends Controller
                         $ssr_str .= ':' . ($node['single'] ? $node['single_obfs'] : $user->obfs) . ':' . ($node['single'] ? base64url_encode($node['single_passwd']) : base64url_encode($user->passwd));
                         $ssr_str .= '/?obfsparam=' . base64url_encode($obfs_param);
                         $ssr_str .= '&protoparam=' . ($node['single'] ? base64url_encode($user->port . ':' . $user->passwd) : base64url_encode($protocol_param));
-                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' x'.$node['traffic_rate'].' #'.$node['id']);
+                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' x'.$node['traffic_rate'].' Lv'.$node['sort'].' #'.$node['id']);
                         $ssr_str .= '&group=' . base64url_encode(empty($group) ? '' : $group->name);
                         $ssr_str .= '&udpport=0';
                         $ssr_str .= '&uot=0';
@@ -223,12 +223,12 @@ class SubscribeController extends Controller
                         # code...
                         $group = SsGroup::query()->where('id', $node['group_id'])->first();
                         // 生成ssr scheme
-                        $ssr_str = ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['sort'];
+                        $ssr_str = ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['bandwidth'];
                         $ssr_str .= ':origin' . ':' . $node['method'];
                         $ssr_str .= ':plain' . ':' . base64url_encode($node['monitor_url']);
                         $ssr_str .= '/?obfsparam=';
                         $ssr_str .= '&protoparam=';
-                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' x'.$node['traffic_rate'].' #'.$node['id']);
+                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' x'.$node['traffic_rate'].' Lv'.$node['sort'].' #'.$node['id']);
                         $ssr_str .= '&group=' . base64url_encode(empty($group) ? '' : $group->name);
                         $ssr_str .= '&udpport=0';
                         $ssr_str .= '&uot=0';
@@ -255,7 +255,7 @@ class SubscribeController extends Controller
                     // 生成v2ray scheme
                     $v2_json = [
                         "v"    => "2",
-                        "ps"   => $node['name'].' x'.$node['traffic_rate'].' #'.$node['id'],
+                        "ps"   => $node['name'].' x'.$node['traffic_rate'].' Lv'.$node['sort'].' #'.$node['id'],
                         "add"  => $node['server'] ? $node['server'] : $node['ip'],
                         "port" => $node['v2_port'],
                         "id"   => $node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id'],
@@ -273,13 +273,13 @@ class SubscribeController extends Controller
                         if ( $node['compatible'] ) {
                         $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
-                        $ss_str = base64_encode($ss_str) . '#' . $node['name'].' x'.$node['traffic_rate'].' #'.$node['id'];
+                        $ss_str = base64_encode($ss_str) . '#' . $node['name'].' x'.$node['traffic_rate'].' Lv'.$node['sort'].' #'.$node['id'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                         }
                     }else{
                         $ss_str = $node['method'] . ':' . $node['monitor_url'] . '@';
-                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['sort'];
-                        $ss_str = base64_encode($ss_str) . '#' . $node['name'].' x'.$node['traffic_rate'].' #'.$node['id'];
+                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['bandwidth'];
+                        $ss_str = base64_encode($ss_str) . '#' . $node['name'].' x'.$node['traffic_rate'].' Lv'.$node['sort'].' #'.$node['id'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                     }
                 }   

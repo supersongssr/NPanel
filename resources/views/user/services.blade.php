@@ -114,9 +114,15 @@
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
-                                                                        <i class="icon-refresh"></i>
+                                                                        <i class="icon-rocket"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">VIP节点、NetFlix</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">NetFlix、Lv.{{$goods->sort}}</div>
+                                                                </div>
+                                                                <div class="row mobile-padding">
+                                                                    <div class="col-xs-3 text-right mobile-padding">
+                                                                        <i class="icon-tag"></i>
+                                                                    </div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">{{$goods->desc}}</div>
                                                                 </div>
                                                             </div>
                                                             <div class="arrow-down arrow-grey"></div>
@@ -166,9 +172,15 @@
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
-                                                                        <i class="icon-refresh"></i>
+                                                                        <i class="icon-rocket"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">用完即止、到期即止</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">用完即止、Lv.{{$goods->sort}}</div>
+                                                                </div>
+                                                                <div class="row mobile-padding">
+                                                                    <div class="col-xs-3 text-right mobile-padding">
+                                                                        <i class="icon-tag"></i>
+                                                                    </div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">{{$goods->desc}}</div>
                                                                 </div>
                                                             </div>
                                                             <div class="arrow-down arrow-grey"></div>

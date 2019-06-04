@@ -282,6 +282,7 @@ class AuthController extends Controller
             $user->expire_time = date('Y-m-d H:i:s', strtotime("+" . self::$systemConfig['default_days'] . " days"));
             $user->reg_ip = getClientIp();
             $user->referral_uid = $referral_uid;
+            //$user->level = 1; //默认用户注册等级1 数据库也默认1
             //song 混淆参数
             $user->obfs_param = $usernameSuffix[0].'.edu.cn';
             // Song 教育计划支持 edu.cn自动获取到 50余额支持

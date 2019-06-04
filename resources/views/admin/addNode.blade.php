@@ -113,7 +113,13 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                
+                                                <div class="form-group">
+                                                    <label for="sort" class="col-md-3 control-label">等级 Lv.</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="sort" value="1" id="sort" placeholder="">
+                                                        <span class="help-block"> 节点等级 sort </span>
+                                                    </div>
+                                                </div>
                                                 <div class="form-group">
                                                     <label for="group_id" class="col-md-3 control-label"> 所属分组 </label>
                                                     <div class="col-md-8">
@@ -161,14 +167,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="form-group">
-                                                    <label for="sort" class="col-md-3 control-label">SRS 端口</label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="sort" value="1" id="sort" placeholder="">
-                                                        <span class="help-block"> 这里变成了端口 </span>
-                                                    </div>
-                                                </div>
-                                                <!--
+                                                
                                                 <div class="form-group">
                                                     <label for="bandwidth" class="col-md-3 control-label">SRS 端口</label>
                                                     <div class="col-md-8">
@@ -178,7 +177,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+                                                <!--
                                                 <div class="form-group">
                                                     <label for="traffic" class="col-md-3 control-label">每月可用流量</label>
                                                     <div class="col-md-8">

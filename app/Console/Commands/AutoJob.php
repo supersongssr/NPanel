@@ -474,6 +474,13 @@ class AutoJob extends Command
                                 }
                             }
 
+                            // 更新用户等级  商品等级 > 用户等级，则更新用户等级
+                            $user = User::query()->where('id', $order->user_id)->first(); // 重新取出user信息 
+                            if ($goods->sort > $user->level) {
+                                # code...
+                                User::query()->where('id', $order->user_id)->update(['level' => $goods->sort]);
+                            }
+
                             // 写入返利日志
                             if ($order->user->referral_uid) {
                                 $this->addReferralLog($order->user_id, $order->user->referral_uid, $order->oid, $order->amount, $order->amount * self::$systemConfig['referral_percent']);

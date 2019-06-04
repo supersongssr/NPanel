@@ -537,7 +537,7 @@ class UserController extends Controller
 
                 foreach ($existOrderList as $vo) {
                     if ($vo->goods->days > $goods->days) {
-                        return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：您已存在有效期更长的套餐，只能购买流量包']);
+                        return Response::json(['status' => 'fail', 'data' => '', 'message' => '已拒绝：您已存在有效期更长的帝王套餐，不能忤逆自己呦']);
                     }
                 }
             }
@@ -659,6 +659,12 @@ class UserController extends Controller
                         $obj->label_id = $vo;
                         $obj->save();
                     }
+                }
+
+                // 更新用户等级  商品等级 > 用户等级，则更新用户等级
+                if ($goods->sort > $user->level) {
+                    # code...
+                    User::query()->where('id', $order->user_id)->update(['level' => $goods->sort]);
                 }
                 //song 注册返利
                 //64天内，邀请用户购买套餐 给6.99元的返利
