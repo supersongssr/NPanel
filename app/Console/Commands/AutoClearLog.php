@@ -66,8 +66,8 @@ class AutoClearLog extends Command
         // 自动清除7天以前的节点每小时流量数据日志
         SsNodeTrafficHourly::query()->where('created_at', '<=', date('Y-m-d H:i:s', strtotime('-7 days')))->delete();
 
-        // 自动清除10天以前的节点每天流量数据日志
-        SsNodeTrafficDaily::query()->where('created_at', '<=', date('Y-m-d H:i:s', strtotime('-10 days')))->delete();
+        // 自动清除30天以前的节点每天流量数据日志
+        SsNodeTrafficDaily::query()->where('created_at', '<=', date('Y-m-d H:i:s', strtotime('-30 days')))->delete();
 
         // 自动清除30天以前用户封禁日志
         UserBanLog::query()->where('created_at', '<=', date('Y-m-d H:i:s', strtotime("-1 month")))->delete();

@@ -62,7 +62,7 @@ class UserController extends Controller
         $dailyData = [];
         $hourlyData = [];
 
-        // 节点一个月内的流量
+        // 用户一个月内的流量
         $userTrafficDaily = UserTrafficDaily::query()->where('user_id', Auth::user()->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m', time()))->orderBy('created_at', 'asc')->pluck('total')->toArray();
 
         $dailyTotal = date('d', time()) - 1; // 今天不算，减一
@@ -74,7 +74,7 @@ class UserController extends Controller
             $dailyData[$x] = round($userTrafficDaily[$x - ($dailyTotal - $dailyCount)] / (1024 * 1024 * 1024), 3);
         }
 
-        // 节点一天内的流量
+        // 用户一天内的流量
         $userTrafficHourly = UserTrafficHourly::query()->where('user_id', Auth::user()->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m-d', time()))->orderBy('created_at', 'asc')->pluck('total')->toArray();
         $hourlyTotal = date('H', time());
         $hourlyCount = count($userTrafficHourly);
@@ -83,7 +83,7 @@ class UserController extends Controller
         }
         for ($x = ($hourlyTotal - $hourlyCount); $x < $hourlyTotal; $x++) {
             $hourlyData[$x] = round($userTrafficHourly[$x - ($hourlyTotal - $hourlyCount)] / (1024 * 1024 * 1024), 3);
-        }
+        } 
 
         // 本月天数数据
         $monthDays = [];
