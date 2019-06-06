@@ -223,7 +223,7 @@ class SubscribeController extends Controller
                         # code...
                         $group = SsGroup::query()->where('id', $node['group_id'])->first();
                         // 生成ssr scheme
-                        $ssr_str = ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['bandwidth'];
+                        $ssr_str = ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['ssh_port'];
                         $ssr_str .= ':origin' . ':' . $node['method'];
                         $ssr_str .= ':plain' . ':' . base64url_encode($node['monitor_url']);
                         $ssr_str .= '/?obfsparam=';
@@ -278,7 +278,7 @@ class SubscribeController extends Controller
                         }
                     }else{
                         $ss_str = $node['method'] . ':' . $node['monitor_url'] . '@';
-                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['bandwidth'];
+                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['ssh_port'];
                         $ss_str = base64_encode($ss_str) . '#' . $node['name'].' x'.$node['traffic_rate'].' Lv'.$node['sort'].' #'.$node['id'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                     }

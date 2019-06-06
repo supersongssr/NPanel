@@ -5,6 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Log;
+//song
+use App\Http\Models\SsNodeTrafficHourly;
+use App\Http\Models\UserTrafficLog;
+use App\Http\Models\SsNode;
+use Illuminate\Console\Command;
+use App\Http\Models\SsNodeOnlineLog;
+
 
 /**
  * PING检测工具
@@ -76,6 +83,68 @@ class PingController extends Controller
             Log::info($e);
 
             return response()->json(['status' => 0, 'message' => 'port close']);
+        }
+    }
+
+    public function ssn_sub(Request $request, $id)
+    {
+        $status = $request->get('status');
+        $traffic = $request->get('traffic');
+        $online = $request->get('online');
+        //获取NODE数据
+        $node = SsNode::query()->where('id', $id)->first();
+        $traffic_mark = $node['traffic'];
+        //写入node数据 status
+        SsNode::query()->where('id',$node['id'])->update(['status'=>$status,'traffic'=>$traffic]);
+        //写入每小时节点流量
+        $obj = new SsNodeTrafficHourly();
+        $traffic_now = $traffic - $traffic_mark;
+        $traffic < 0 && $traffic_now= 1;    //如果流量差<0 那么可能是重置了 设为1 
+        $obj->node_id = $id;
+        $obj->u = 0;
+        $obj->d = $traffic;
+        $obj->total = $traffic;
+        $obj->traffic = $traffic;
+        $obj->save();
+        //写入节点在线人数
+        $online_log = new SsNodeOnlineLog();
+        $online_log->node_id = $id;
+        $online_log->online_user = $online;
+        $online_log->log_time = time();
+        $online_log->save();
+    }
+
+    public function ssn_v2(Request $request, $id)
+    {
+        $id < 32 && exit;   #id 小于32的没有需求 直接退出
+        $node = SsNode::query()->where('id', $id)->first();
+        empty($node['monitor_url']) && exit; #如果关键数据为空，直接退出
+        $s1 = $request->get('s1');
+        $v2 = $request->get('v2');
+        //写入节点数据
+        if ($node['type'] == 1 && !empty($s1)) {
+            # code...
+            $addn = explode('#',$s1);
+            $data = [
+                'ip'=>$addn['0'] , 
+                'ssh_port'=>$addn['1'], 
+                'monitor_url'=>$addn['2'], 
+                'method'=>$addn['3']
+            ];
+            SsNode::query()->where('id',$node['id'])->update($data);
+        }
+        if ($node['type'] == 2 && !empty($v2)) {
+            # code...
+            $addn = explode('#',$v2);
+            $data = [
+                'ip'=>$addn['0'], 
+                'v2_port'=>$addn['1'], 
+                'v2_alter_id'=>$addn['2'], 
+                'v2_net'=>$addn['3'], 
+                'v2_type'=>$addn['4'], 
+                'monitor_url'=>$addn['5']
+            ];
+            SsNode::query()->where('id',$node['id'])->update($data);
         }
     }
 }

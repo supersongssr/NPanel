@@ -568,7 +568,7 @@ class AdminController extends Controller
         $nodeList = $query->orderBy('id', 'asc')->paginate(32)->appends($request->except('page'));
         foreach ($nodeList as &$node) {
             // 在线人数
-            $online_log = SsNodeOnlineLog::query()->where('node_id', $node->id)->where('log_time', '>=', strtotime("-5 minutes"))->orderBy('id', 'desc')->first();
+            $online_log = SsNodeOnlineLog::query()->where('node_id', $node->id)->where('log_time', '>=', strtotime("-2 hours"))->orderBy('id', 'desc')->first();
             $node->online_users = empty($online_log) ? 0 : $online_log->online_user;
 
             // 已产生流量

@@ -90,13 +90,6 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="ssh_port" class="col-md-3 control-label"> curl端口 </label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="ssh_port" value="80" id="ssh_port" placeholder="服务器SSH端口" required>
-                                                        <span class="help-block">请务必正确填写此值，否则TCP阻断检测可能误报</span>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
                                                     <label for="traffic_rate" class="col-md-3 control-label"> 流量比例 </label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" name="traffic_rate" value="1.0" id="traffic_rate" placeholder="" required>
@@ -167,7 +160,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+                                                <!--
                                                 <div class="form-group">
                                                     <label for="bandwidth" class="col-md-3 control-label">SRS 端口</label>
                                                     <div class="col-md-8">
@@ -177,7 +170,6 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <!--
                                                 <div class="form-group">
                                                     <label for="traffic" class="col-md-3 control-label">每月可用流量</label>
                                                     <div class="col-md-8">
@@ -188,6 +180,13 @@
                                                     </div>
                                                 </div>
                                                 -->
+                                                <div class="form-group">
+                                                    <label for="ssh_port" class="col-md-3 control-label"> SRS端口 </label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="ssh_port" value="80" id="ssh_port" placeholder="SRS端口" required>
+                                                        <span class="help-block">这里变成了 SRS 的端口</span>
+                                                    </div>
+                                                </div>
                                                 <div class="form-group">
                                                     <label for="monitor_url" class="col-md-3 control-label">SRS密码 V2UUID</label>
                                                     <div class="col-md-8">

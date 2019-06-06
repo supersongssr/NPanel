@@ -22,7 +22,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
     {
         $jobStartTime = microtime(true);
 
-        $nodeList = SsNode::query()->where('status', 1)->orderBy('id', 'asc')->get();
+        $nodeList = SsNode::query()->where('status', 1)->orderBy('id', 'asc')->get();  //只获取在线的节点
         foreach ($nodeList as $node) {
             $this->statisticsByNode($node->id);
         }
@@ -31,7 +31,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
         $jobUsedTime = round(($jobEndTime - $jobStartTime), 4);
 
         Log::info('执行定时任务【' . $this->description . '】，耗时' . $jobUsedTime . '秒');
-
+/**
         //自动判断节点的状态
         $nodes_vnstat = SsNode::query()->get();
         $file = "public/".date("md");
@@ -78,7 +78,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
                     $addn = explode('#',$s1);
                     $data = [
                         'ip'=>$addn['0'] , 
-                        'bandwidth'=>$addn['1'], 
+                        'ssh_port'=>$addn['1'], 
                         'monitor_url'=>$addn['2'], 
                         'method'=>$addn['3']
                     ];
@@ -99,8 +99,9 @@ class AutoStatisticsNodeDailyTraffic extends Command
                     SsNode::query()->where('id',$node['id'])->update($data);
                 }
             }
-        }
+        }  
         Log::info('执行定时任务【检查节点status状态】完成，结果已写入文件'); 
+        **/
     }
 
     private function statisticsByNode($node_id)
@@ -123,6 +124,14 @@ class AutoStatisticsNodeDailyTraffic extends Command
             $obj->total = $total;
             $obj->traffic = $traffic;
             $obj->save();
+        }
+
+        // 在线节点少于 16G流量的隐藏 且 加点
+        if ($total < 16777216) {
+            # code...
+            $node = SsNode::query()->where('id', $node_id)->first();
+            $node->name .= '·';
+            SsNode::query()->where('id',$node_id)->update(['status'=>0, 'name'=>$node->name]);
         }
     }
 }
