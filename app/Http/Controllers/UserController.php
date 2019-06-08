@@ -14,6 +14,9 @@ use App\Http\Models\ReferralApply;
 use App\Http\Models\ReferralLog;
 use App\Http\Models\SsGroup;
 use App\Http\Models\SsNodeInfo;
+use App\Http\Models\SsNode;   //显示流量监控 song
+use App\Http\Models\SsNodeTrafficDaily; // 节点流量日志 song
+use App\Http\Models\SsNodeTrafficHourly;    //song
 use App\Http\Models\SsNodeLabel;
 use App\Http\Models\Ticket;
 use App\Http\Models\TicketReply;
@@ -58,14 +61,12 @@ class UserController extends Controller
         //Song公告列表获取
         //$view['noticeList'] = Article::query()->where('type', 2)->where('is_del', 0)->orderBy('sort', 'desc')->orderBy('id', 'desc')->limit(10)->get();
         //
-
         $dailyData = [];
         $hourlyData = [];
-
         // 用户一个月内的流量
-        $userTrafficDaily = UserTrafficDaily::query()->where('user_id', Auth::user()->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m', time()))->orderBy('created_at', 'asc')->pluck('total')->toArray();
+        $userTrafficDaily = UserTrafficDaily::query()->where('user_id', Auth::user()->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m-d H:i:s', strtotime('-30 days')))->orderBy('created_at', 'asc')->pluck('total')->toArray();
 
-        $dailyTotal = date('d', time()) - 1; // 今天不算，减一
+        $dailyTotal = 30;  // date('d', time()) - 1; // 今天不算，减一
         $dailyCount = count($userTrafficDaily);
         for ($x = 0; $x < ($dailyTotal - $dailyCount); $x++) {
             $dailyData[$x] = 0;
@@ -85,16 +86,16 @@ class UserController extends Controller
             $hourlyData[$x] = round($userTrafficHourly[$x - ($hourlyTotal - $hourlyCount)] / (1024 * 1024 * 1024), 3);
         } 
 
-        // 本月天数数据
+        /**  // 本月天数数据 
         $monthDays = [];
         $monthHasDays = date("t");
         for ($i = 1; $i <= $monthHasDays; $i++) {
             $monthDays[] = $i;
-        }
+        } **/
 
         $view['trafficDaily'] = "'" . implode("','", $dailyData) . "'";
         $view['trafficHourly'] = "'" . implode("','", $hourlyData) . "'";
-        $view['monthDays'] = "'" . implode("','", $monthDays) . "'";
+        //$view['monthDays'] = "'" . implode("','", $monthDays) . "'";
         $view['notice'] = Article::type(2)->orderBy('id', 'desc')->first(); // 公告
 
         return Response::view('user.index', $view);
@@ -846,5 +847,66 @@ class UserController extends Controller
 
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '充值失败']);
         }
+    }
+
+    public function nodeMonitor(Request $request)
+    {
+        $node_id = $request->get('id');
+
+        $node = SsNode::query()->where('id', $node_id)->orderBy('sort', 'desc')->first();
+        if (!$node) {
+            Session::flash('errorMsg', '节点不存在，请重试');
+
+            return Redirect::back();
+        }
+
+        // 查看流量
+        $dailyData = [];
+        $hourlyData = [];
+
+        // 节点一个月内的流量
+        $nodeTrafficDaily = SsNodeTrafficDaily::query()->with(['info'])->where('node_id', $node->id)->where('created_at', '>=', date('Y-m-d H:i:s', strtotime('-30 days')))->orderBy('created_at', 'asc')->pluck('total')->toArray();
+        $dailyTotal = 30; //  date('d', time()) - 1;//今天不算，减一
+        $dailyCount = count($nodeTrafficDaily);
+        for ($x = 0; $x < ($dailyTotal - $dailyCount); $x++) {
+            $dailyData[$x] = 0;
+        }
+        for ($x = ($dailyTotal - $dailyCount); $x < $dailyTotal; $x++) {
+            $dailyData[$x] = round($nodeTrafficDaily[$x - ($dailyTotal - $dailyCount)] / (1024 * 1024 * 1024), 3);
+        }
+
+        // 节点一天内的流量
+        $nodeTrafficHourly = SsNodeTrafficHourly::query()->with(['info'])->where('node_id', $node->id)->where('created_at', '>=', date('Y-m-d', time()))->orderBy('created_at', 'asc')->pluck('total')->toArray();
+        $hourlyTotal = date('H', time());
+        $hourlyCount = count($nodeTrafficHourly);
+        for ($x = 0; $x < ($hourlyTotal - $hourlyCount); $x++) {
+            $hourlyData[$x] = 0;
+        }
+        for ($x = ($hourlyTotal - $hourlyCount); $x < $hourlyTotal; $x++) {
+            $hourlyData[$x] = round($nodeTrafficHourly[$x - ($hourlyTotal - $hourlyCount)] / (1024 * 1024 * 1024), 3);
+        }
+
+        $view['trafficDaily'] = [
+            'nodeName'  => $node->name . '#' . $node->id,
+            'dailyData' => "'" . implode("','", $dailyData) . "'"
+        ];
+
+        $view['trafficHourly'] = [
+            'nodeName'   => $node->name . '#' . $node->id,
+            'hourlyData' => "'" . implode("','", $hourlyData) . "'"
+        ];
+
+        /**    // 本月天数数据
+        $monthDays = [];
+        $monthHasDays = date("t");
+        for ($i = 1; $i <= $monthHasDays; $i++) {
+            $monthDays[] = $i;
+        } **/
+
+        $view['nodeName'] = $node->name . ' #' . $node->id;
+        $view['nodeDesc'] = $node->desc;
+        //$view['monthDays'] = "'" . implode("','", $monthDays) . "'";
+
+        return Response::view('user.nodeMonitor', $view);
     }
 }

@@ -39,6 +39,7 @@
                                     <th> <span class="node-id"><a href="javascript:showIdTips();">ID</a></span> </th>
                                     <th> 类型 </th>
                                     <th> 名称 </th>
+                                    <th> 流量 </th>
                                     <th> IP </th>
                                     <th> 域名 </th>
                                     <th> 存活 </th>
@@ -69,6 +70,8 @@
                                                     @endif
                                                 </td>
                                                 <td> {{$node->name}} </td>
+                                                <td><a class="btn green" href="javascript:nodeMonitor('{{$node->id}}');"> 流量 </a>
+                                                </td>
                                                 <td>
                                                     @if($node->is_nat)
                                                         <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">NAT</span>
@@ -135,7 +138,7 @@
 
         // 编辑节点
         function editNode(id) {
-            window.location.href = '{{url('admin/editNode?id=')}}' + id + '&page=' + '{{Request::get('page', 1)}}';
+            window.location.href = '{{url('admin/editNode?id=')}}' + id ;
         }
 
         // 删除节点
@@ -155,7 +158,7 @@
 
         // 节点流量监控
         function nodeMonitor(id) {
-            window.location.href = '{{url('admin/nodeMonitor?id=')}}' + id + '&page=' + '{{Request::get('page', 1)}}';
+            window.location.href = '{{url('admin/nodeMonitor?id=')}}' + id  ;
         }
 
         // 显示提示

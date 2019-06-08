@@ -96,15 +96,16 @@ class PingController extends Controller
         $traffic_mark = $node['traffic'];
         //写入node数据 status
         SsNode::query()->where('id',$node['id'])->update(['status'=>$status,'traffic'=>$traffic]);
+        empty($node['monitor_url']) && exit;  //如果ssn关键数据为空，剩下的流量就不写了。 正常节点有正常写入流量的
         //写入每小时节点流量
         $obj = new SsNodeTrafficHourly();
         $traffic_now = $traffic - $traffic_mark;
-        $traffic < 0 && $traffic_now= 1;    //如果流量差<0 那么可能是重置了 设为1 
+        $traffic_now < 0 && $traffic_now= 1;    //如果流量差<0 那么可能是重置了 设为1 
         $obj->node_id = $id;
         $obj->u = 0;
-        $obj->d = $traffic;
-        $obj->total = $traffic;
-        $obj->traffic = $traffic;
+        $obj->d = $traffic_now;
+        $obj->total = $traffic_now;
+        $obj->traffic = $traffic_now;
         $obj->save();
         //写入节点在线人数
         $online_log = new SsNodeOnlineLog();
@@ -138,12 +139,22 @@ class PingController extends Controller
             $addn = explode('#',$v2);
             $data = [
                 'ip'=>$addn['0'], 
-                'v2_port'=>$addn['1'], 
-                'v2_alter_id'=>$addn['2'], 
-                'v2_net'=>$addn['3'], 
-                'v2_type'=>$addn['4'], 
-                'monitor_url'=>$addn['5']
+                'v2_port'=>$addn['1'],
+                'monitor_url'=>$addn['2'] 
+                'v2_alter_id'=>$addn['3'], 
+                'v2_net'=>$addn['4'], 
+                'v2_type'=>$addn['5'],
+                'v2_host'=>'',
+                'v2_path'=>'',
+                'v2_tls'=>'0'
             ];
+            if (count($addn) > 8) {
+                # code...
+                $data['v2_host'] = $addn['6'];
+                $data['v2_path'] = '/'.$addn['7'];
+                $data['v2_tls'] = empty($addn['8']) ? '0': '1';
+            }
+
             SsNode::query()->where('id',$node['id'])->update($data);
         }
     }

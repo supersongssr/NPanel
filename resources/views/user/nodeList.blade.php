@@ -234,9 +234,13 @@
                                             <div class="mt-comment">
                                                 <div class="mt-comment-img" style="width:auto;">
                                                     @if($node->country_code)
-                                                        <img src="{{asset('assets/images/country/' . $node->country_code . '.png')}}"/>
+                                                        <a class="btn green" href="javascript:nodeMonitor('{{$node->id}}');">
+                                                            <img src="{{asset('assets/images/country/' . $node->country_code . '.png')}}"/>
+                                                        </a>
                                                     @else
+                                                        <a class="btn green" href="javascript:nodeMonitor('{{$node->id}}');">
                                                         <img src="{{asset('/assets/images/country/un.png')}}"/>
+                                                        </a>
                                                     @endif
                                                 </div>
                                                 <div class="mt-comment-body">
@@ -294,6 +298,11 @@
         // 在线安装警告提示
         function onlineInstallWarning() {
             layer.msg('仅限在Safari浏览器下有效', {time:1000});
+        }
+        //
+        // 节点流量监控 song
+        function nodeMonitor(id) {
+            window.location.href = '{{url('nodeMonitor?id=')}}' + id ;
         }
     </script>
 

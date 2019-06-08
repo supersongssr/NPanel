@@ -106,6 +106,33 @@
                         <span class="selected"></span>
                     </a>
                 </li>
+                <li class="nav-item {{in_array(Request::path(), ['admin/nodeList', 'admin/addNode', 'admin/editNode', 'admin/groupList', 'admin/addGroup', 'admin/editGroup', 'admin/nodeMonitor']) ? 'active open' : ''}}">
+                    <a href="javascript:;" class="nav-link nav-toggle">
+                        <i class="fa fa-list-alt"></i>
+                        <span class="title">节点管理</span>
+                        <span class="arrow"></span>
+                    </a>
+                    <ul class="sub-menu">
+                        <li class="nav-item {{in_array(Request::path(), ['admin/nodeList', 'admin/addNode', 'admin/editNode', 'admin/nodeMonitor']) ? 'active open' : ''}}">
+                            <a href="{{url('admin/nodeList')}}" class="nav-link ">
+                                <i class="fa fa-list"></i>
+                                <span class="title">节点列表</span>
+                            </a>
+                        </li>
+                        <li class="nav-item {{in_array(Request::path(), ['admin/groupList', 'admin/addGroup', 'admin/editGroup']) ? 'active open' : ''}}">
+                            <a href="{{url('admin/groupList')}}" class="nav-link ">
+                                <i class="fa fa-list-ul"></i>
+                                <span class="title">节点分组</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item {{in_array(Request::path(), ['admin/articleList', 'admin/addArticle', 'admin/editArticle']) ? 'active open' : ''}}">
+                    <a href="{{url('admin/articleList')}}" class="nav-link">
+                        <i class="fa fa-file-word-o"></i>
+                        <span class="title">文章管理</span>
+                    </a>
+                </li>
                 <li class="nav-item {{in_array(Request::path(), ['admin/inviteList']) ? 'active open' : ''}}">
                     <a href="{{url('admin/inviteList')}}" class="nav-link nav-toggle">
                         <i class="fa fa-puzzle-piece"></i>
@@ -146,12 +173,6 @@
                     <a href="{{url('admin/orderList')}}" class="nav-link nav-toggle">
                         <i class="fa fa-reorder"></i>
                         <span class="title">订单管理</span>
-                    </a>
-                </li>
-                <li class="nav-item {{in_array(Request::path(), ['admin/articleList', 'admin/addArticle', 'admin/editArticle']) ? 'active open' : ''}}">
-                    <a href="{{url('admin/articleList')}}" class="nav-link">
-                        <i class="fa fa-file-word-o"></i>
-                        <span class="title">文章管理</span>
                     </a>
                 </li>
                 <li class="nav-item {{in_array(Request::path(), ['admin/userList', 'admin/addUser', 'admin/editUser', 'admin/userOrderList', 'admin/userBalanceLogList', 'admin/userTrafficLogList', 'admin/userRebateList', 'admin/userBanLogList', 'admin/export', 'admin/userMonitor', 'admin/subscribeLog', 'admin/userOnlineIPList', 'admin/onlineIPMonitor']) ? 'active open' : ''}}">
@@ -226,27 +247,7 @@
                         </li>
                     </ul>
                 </li>
-                <li class="nav-item {{in_array(Request::path(), ['admin/nodeList', 'admin/addNode', 'admin/editNode', 'admin/groupList', 'admin/addGroup', 'admin/editGroup', 'admin/nodeMonitor']) ? 'active open' : ''}}">
-                    <a href="javascript:;" class="nav-link nav-toggle">
-                        <i class="fa fa-list-alt"></i>
-                        <span class="title">节点管理</span>
-                        <span class="arrow"></span>
-                    </a>
-                    <ul class="sub-menu">
-                        <li class="nav-item {{in_array(Request::path(), ['admin/nodeList', 'admin/addNode', 'admin/editNode', 'admin/nodeMonitor']) ? 'active open' : ''}}">
-                            <a href="{{url('admin/nodeList')}}" class="nav-link ">
-                                <i class="fa fa-list"></i>
-                                <span class="title">节点列表</span>
-                            </a>
-                        </li>
-                        <li class="nav-item {{in_array(Request::path(), ['admin/groupList', 'admin/addGroup', 'admin/editGroup']) ? 'active open' : ''}}">
-                            <a href="{{url('admin/groupList')}}" class="nav-link ">
-                                <i class="fa fa-list-ul"></i>
-                                <span class="title">节点分组</span>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
+                
                 <li class="nav-item {{in_array(Request::path(), ['marketing/emailList', 'marketing/pushList']) ? 'active open' : ''}}">
                     <a href="javascript:;" class="nav-link nav-toggle">
                         <i class="fa fa-send-o"></i>

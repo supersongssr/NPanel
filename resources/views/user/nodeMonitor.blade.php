@@ -1,4 +1,4 @@
-@extends('admin.layouts')
+@extends('user.layouts')
 @section('css')
 @endsection
 @section('content')
@@ -9,16 +9,7 @@
             <div class="col-md-12">
                 <div class="note note-info">
                     <h3 class="block">{{$nodeName}}<small style="padding-left:10px;">{{$nodeDesc}}</small></h3>
-                    <p> 提示：月流量统计不会统计当天，日流量统计不会统计当前小时；如果无统计数据，请检查定时任务是否正常。 </p>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-12">
-                <div class="portlet light bordered">
-                    <div class="portlet-body">
-                        <div id="chart2" style="width: auto;height:450px;"></div>
-                    </div>
+                    <p> 提示：月流量统计不会统计当天，日流量统计不会统计当前小时。 </p>
                 </div>
             </div>
         </div>
@@ -27,6 +18,15 @@
                 <div class="portlet light bordered">
                     <div class="portlet-body">
                         <div id="chart1" style="width: auto;height:450px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="portlet light bordered">
+                    <div class="portlet-body">
+                        <div id="chart2" style="width: auto;height:450px;"></div>
                     </div>
                 </div>
             </div>
@@ -90,7 +90,7 @@
 
         option = {
             title: {
-                text: '30 Days 流量',
+                text: '30 Ddays 流量',
                 subtext: '单位 / G'
             },
             tooltip: {

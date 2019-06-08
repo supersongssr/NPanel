@@ -103,8 +103,8 @@ return [
 
     // 流量日志
     'traffic_log_tips'                => '提示：流量统计更新会有延迟。按天统计于次日更新，按小时统计于次小时更新。',
-    'traffic_log_30days'              => '本月流量使用情况',
-    'traffic_log_24hours'             => '今日流量使用情况',
+    'traffic_log_30days'              => '30 Days流量使用情况',
+    'traffic_log_24hours'             => '24 Hours流量使用情况',
     'traffic_log_keywords'            => '使用流量',
     'traffic_log_unit'                => '单位 / G',
     'traffic_log_max'                 => '使用高峰',

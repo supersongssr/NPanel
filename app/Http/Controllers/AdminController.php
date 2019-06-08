@@ -886,8 +886,8 @@ class AdminController extends Controller
         $hourlyData = [];
 
         // 节点一个月内的流量
-        $nodeTrafficDaily = SsNodeTrafficDaily::query()->with(['info'])->where('node_id', $node->id)->where('created_at', '>=', date('Y-m', time()))->orderBy('created_at', 'asc')->pluck('total')->toArray();
-        $dailyTotal = date('d', time()) - 1;//今天不算，减一
+        $nodeTrafficDaily = SsNodeTrafficDaily::query()->with(['info'])->where('node_id', $node->id)->where('created_at', '>=', date('Y-m-d H:i:s', strtotime('-30 days')))->orderBy('created_at', 'asc')->pluck('total')->toArray();
+        $dailyTotal = 30;  //date('d', time()) - 1;//今天不算，减一
         $dailyCount = count($nodeTrafficDaily);
         for ($x = 0; $x < ($dailyTotal - $dailyCount); $x++) {
             $dailyData[$x] = 0;
@@ -917,16 +917,16 @@ class AdminController extends Controller
             'hourlyData' => "'" . implode("','", $hourlyData) . "'"
         ];
 
-        // 本月天数数据
+        /**  // 本月天数数据
         $monthDays = [];
         $monthHasDays = date("t");
         for ($i = 1; $i <= $monthHasDays; $i++) {
             $monthDays[] = $i;
-        }
+        }**/
 
-        $view['nodeName'] = $node->name;
-        $view['nodeServer'] = $node->server;
-        $view['monthDays'] = "'" . implode("','", $monthDays) . "'";
+        $view['nodeName'] = $node->name . '#' . $node->id;
+        $view['nodeDesc'] = $node->desc; //song
+        //$view['monthDays'] = "'" . implode("','", $monthDays) . "'";
 
         return Response::view('admin.nodeMonitor', $view);
     }
