@@ -117,7 +117,7 @@ class PingController extends Controller
 
     public function ssn_v2(Request $request, $id)
     {
-        $id < 32 && exit;   #id 小于32的没有需求 直接退出
+        //$id < 32 && exit;   #id 小于32的没有需求 直接退出
         $node = SsNode::query()->where('id', $id)->first();
         empty($node['monitor_url']) && exit; #如果关键数据为空，直接退出
         $s1 = $request->get('s1');
@@ -140,7 +140,7 @@ class PingController extends Controller
             $data = [
                 'ip'=>$addn['0'], 
                 'v2_port'=>$addn['1'],
-                'monitor_url'=>$addn['2'] 
+                'monitor_url'=>$addn['2'],
                 'v2_alter_id'=>$addn['3'], 
                 'v2_net'=>$addn['4'], 
                 'v2_type'=>$addn['5'],
