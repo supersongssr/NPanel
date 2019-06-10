@@ -127,7 +127,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
         }
 
         // 在线节点少于 16G流量的隐藏 且 加点
-        if ($total < 16777216) {
+        if ($total < 17179869184) {
             # code...
             $node = SsNode::query()->where('id', $node_id)->first();
             $node->name .= '·';

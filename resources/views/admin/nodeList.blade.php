@@ -138,7 +138,7 @@
 
         // 编辑节点
         function editNode(id) {
-            window.location.href = '{{url('admin/editNode?id=')}}' + id ;
+            window.location.href = '{{url('admin/editNode?id=')}}' + id + '&page=' + '{{Request::get('page', 1)}}';
         }
 
         // 删除节点
@@ -158,7 +158,7 @@
 
         // 节点流量监控
         function nodeMonitor(id) {
-            window.location.href = '{{url('admin/nodeMonitor?id=')}}' + id  ;
+            window.location.href = '{{url('admin/nodeMonitor?id=')}}' + id  + '&page=' + '{{Request::get('page', 1)}}';
         }
 
         // 显示提示
