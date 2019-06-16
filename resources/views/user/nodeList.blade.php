@@ -256,10 +256,10 @@
                                                                 @if($node->labels)
                                                                     @foreach($node->labels as $vo)
                                                                         <span class="badge badge-info">{{$vo->labelInfo->name}}</span>
-                                                                        <span class="badge badge-danger">Lv.{{$node->sort}}</span>
-                                                                        <span class="badge badge-success">{{$node->traffic_rate}}  倍率</span>
                                                                     @endforeach
                                                                 @endif
+                                                                <span class="badge badge-danger">Lv.{{$node->sort}}</span>
+                                                                <span class="badge badge-success">{{$node->traffic_rate}}  倍率</span>
                                                             </span>
                                                         <!-- <ul class="mt-comment-actions" style="display: block;">
                                                             <li>

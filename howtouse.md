@@ -117,6 +117,10 @@ crontab加入如下命令（请自行修改php、ssrpanel路径）：
 crontab -e -u www
 注意，需要设置一下www用户，和相应的目录才可以
 mkdir /home/www ; chown -R www:www /home/www/
+
+还要执行一次：
+./queue.sh 
+这是队列发信的问题 ，需要执行这个才能队列发信。嘎嘎
 ````
 
 ## 邮件配置

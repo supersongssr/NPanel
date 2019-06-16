@@ -33,7 +33,7 @@
                                 <a class="btn btn-sm red" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
                             </li>
                             <li>
-                                <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">购买充值码/卡密</a> <!-- song -->
+                                <a href="http://www.910ka.com/liebiao/2F5DC943CBACF579" target="_blank" class="btn green btn-sm">购买充值码/卡密</a> <!-- song -->
                             </li>
                         </ul>
                     </div>

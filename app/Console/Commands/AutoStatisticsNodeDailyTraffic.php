@@ -21,8 +21,8 @@ class AutoStatisticsNodeDailyTraffic extends Command
     public function handle()
     {
         $jobStartTime = microtime(true);
-
-        $nodeList = SsNode::query()->where('status', 1)->orderBy('id', 'asc')->get();  //只获取在线的节点
+        $nodeList = SsNode::query()->where('status', 1)->where('id','>',3)->orderBy('id', 'asc')->get();  //只获取在线的节点
+        // 1 2 3 节点是 用来发广告的节点，嘎嘎 可以有，哈哈 嘿嘿 嘎嘎 喜喜
         foreach ($nodeList as $node) {
             $this->statisticsByNode($node->id);
         }
