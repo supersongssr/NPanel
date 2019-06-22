@@ -161,8 +161,21 @@ class AutoJob extends Command
                         User::query()->where('id', $user->referral_uid)->decrement('balance', $referral_money);
                         #写入用户余额变动日志
                         $this->addUserBalanceLog($user->id, 0, $user->balance, $user->balance - $referral_money, -$referral_money, '邀请用户被删除扣除余额');
-                        ## 写入用户邀请返利
-                        $this->addReferralLog($user->id, $user->referral_uid, 0, 0, -500);
+                        
+                        ## 写入用户邀请返利日志
+                        $referrallog = new ReferralLog();
+                        # 用户ID 就是被删除用户ID
+                        $referrallog->user_id = $user->id;
+                        # 这个用户谁邀请的
+                        $referrallog->ref_user_id = $user->referral_uid;
+                        #订单ID 自然是0 
+                        $referrallog->order_id = 0;
+                        $referrallog->amount = 0;
+                        #这里是负值，就是已经扣除了相关的余额
+                        $referrallog->ref_amount = -$referral_money;
+                        #这里设定为2 就是已打款的意思。就是说这个款已经自动扣除了
+                        $referrallog->status = 2;
+                        $referrallog->save();
                     }
                 }
 
