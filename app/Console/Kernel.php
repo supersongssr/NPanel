@@ -33,6 +33,8 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\AutoReportNode::class,
         \App\Console\Commands\upgradeUserBannoPay::class,
         \App\Console\Commands\AutoCheckNodeStatus::class,
+        # 自动禁用余额小于0 的用户
+        \App\Console\Commands\AutoBanUserNoMoney::class,
         \App\Console\Commands\Test::class,
     ];
 
@@ -66,6 +68,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('userExpireAutoWarning')->dailyAt('20:00');
         $schedule->command('userTrafficAutoWarning')->dailyAt('10:30');
         $schedule->command('autoReportNode')->dailyAt('09:00');
+        #song 自动禁用 余额少于0 的用户 每天一次
+        $schedule->command('autoBanUserNoMoney')->dailyAt('05:00');
     }
 
     /**

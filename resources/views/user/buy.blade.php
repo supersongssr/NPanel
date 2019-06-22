@@ -75,7 +75,7 @@
             @endif
             <div class="row">
                 <div class="col-xs-12" style="text-align: right;">
-                    <a href="https://www.510ka.com/liebiao/3163CA017733309A"  class="btn btn-lg red hidden-print uppercase" target="_blank"> 获取充值码 </a><!-- song -->
+                    <a href="https://www.510ka.com/liebiao/4CC81D31BA957D22"  class="btn btn-lg red hidden-print uppercase" target="_blank"> 获取充值码 </a><!-- song -->
 
                     @if(\App\Components\Helpers::systemConfig()['is_youzan'])
                         <a class="btn btn-lg red hidden-print" onclick="onlinePay(0)"> {{trans('home.online_pay')}} </a>
@@ -87,7 +87,7 @@
                     @if($goods->type <= 2)
                         <a class="btn btn-lg blue hidden-print uppercase" onclick="pay()"> {{trans('home.service_pay_button')}} </a>
                     @endif
-                    <p>余额不足？请到发卡平台购买充值码。有问题？提交服务单。</p>
+                    <p>余额不足？请到发卡平台购买充值卡券/卡密，请将充值卡券/卡密在购买服务页面充值余额后，通过余额购买套餐；有疑问？请提交服务单。</p>
                 </div>
 
             </div>

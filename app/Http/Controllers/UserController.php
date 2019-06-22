@@ -667,12 +667,14 @@ class UserController extends Controller
                     # code...
                     User::query()->where('id', $order->user_id)->update(['level' => $goods->sort]);
                 }
+                /**
                 //song 注册返利
                 //64天内，邀请用户购买套餐 给6.99元的返利
                 if ($user->referral_uid && $goods->type == 2 && $user->created_at > date('Y-m-d',strtotime("-64 day"))) {
                     # code...
                     $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $amount, 6.99);
                 }
+                **/
                 // 写入返利日志
                 if ($user->referral_uid) {
                     $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $amount, $amount * self::$systemConfig['referral_percent']);

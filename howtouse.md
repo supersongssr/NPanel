@@ -55,7 +55,7 @@ PHP必须开启zip、xml、curl、gd2、fileinfo、openssl、mbstring组件
 #### 拉取代码
 ````
 cd /home/wwwroot/
-git clone https://github.com/supersongssr/ssrpanel.git
+git clone https://github.com/supersongssr/srp-song.git
 ````
 #### 配置数据库
 ````
@@ -70,8 +70,9 @@ cp .env.example .env
 （然后 vi .env 修改数据库的连接信息）
 php composer.phar install
 php artisan key:generate
-chown -R www:www ssrpanel
-chmod -R a+x ssrpanel
+cd ../
+chown -R www:www srp-song
+chmod -R a+x srp-song
 ````
 #### 加入NGINX的URL重写规则
 ````
@@ -111,7 +112,7 @@ service php-fpm restart
 ## 定时任务
 ````
 crontab加入如下命令（请自行修改php、ssrpanel路径）：
-* * * * * php /home/wwwroot/ssrpanel/artisan schedule:run >> /dev/null 2>&1
+* * * * * php /www/wwwroot/srp-song/artisan schedule:run >> /dev/null 2>&1
 注意运行权限，必须跟ssrpanel项目权限一致，否则出现各种莫名其妙的错误
 例如用lnmp的话默认权限用户组是 www:www，则添加定时任务是这样的：
 crontab -e -u www

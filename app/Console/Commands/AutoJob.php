@@ -150,6 +150,22 @@ class AutoJob extends Command
             foreach ($userDelList as $user) {
                 # code...
                 $id = $user->id;
+                //song 这里查看一下此用户是否有邀请人，然后扣除邀请人的相关的余额。
+                //如果邀请人ID 不是0 就是说存在邀请人 那么
+                if ($user->referral_uid != 0 ) {
+                    # 取出此用户注册邀请奖励值
+                    $referral_money = ReferralLog::where('user_id','=',$user->id)->where('ref_user_id','=',$user->referral_uid)->where('order_id','=',0)->get('ref_amount');
+                    ##如果存在这个邀请ID 那么就扣除这个用户相应的邀请ID，并写入返利日志 直接扣除，直接写入
+                    if (!empty($referral_money) {
+                        #扣除邀请人相应的余额
+                        User::query()->where('id', $user->referral_uid)->decrement('balance', $referral_money);
+                        #写入用户余额变动日志
+                        $this->addUserBalanceLog($user->id, 0, $user->balance, $user->balance - $referral_money, -$referral_money, '邀请用户被删除扣除余额');
+                        ## 写入用户邀请返利
+                        $this->addReferralLog($user->id, $user->referral_uid, 0, 0, -500);
+                    }
+                }
+
                 DB::beginTransaction();
                 try {
                     User::query()->where('id', $id)->delete();
@@ -166,6 +182,8 @@ class AutoJob extends Command
                 }
             }
         }
+
+
         // 过期用户处理
         $userList = User::query()->where('status', '>=', 0)->where('enable', 1)->where('expire_time', '<', date('Y-m-d'))->get();
         if (!$userList->isEmpty()) {

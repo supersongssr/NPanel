@@ -296,7 +296,7 @@ class AuthController extends Controller
             //song 判断邮箱是否以edu.cn结尾，来作为奖励的依据
             if (strrchr($usernameSuffix[1], 'edu.cn') == 'edu.cn') {
                 # code...
-                $user->balance = 96;
+                $user->balance = 60;
                 $user->remark = 'regEDU';
             }
             $user->save();
@@ -338,13 +338,14 @@ class AuthController extends Controller
 
             // 清除邀请人Cookie
             \Cookie::unqueue('register_aff');
-            //song 只有特定邮箱才会获得邀请奖励
             if (self::$systemConfig['is_verify_register']) {
                 if ($referral_uid) {
                     $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
 
                     User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
                     //song add money
+                    // song 写入返利日志 用户ID 邀请人ID 订单ID 因为是邀请注册 所以订单为0 消费金额0 返利500 这个值回头价格自定义。  这个写入返利日志需要用户自己提现
+                    $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 500);
                     //User::query()->where('id', $referral_uid)->increment('balance', '99');                  //
                     //User::query()->where('id', $referral_uid)->update(['status' => 1, 'enable' => 1]);
                 }
@@ -371,6 +372,8 @@ class AuthController extends Controller
 
                         User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
                         // song add money
+                        // song 写入返利日志 用户ID 邀请人ID 订单ID 因为是邀请注册 所以订单为0 消费金额0 返利500 这个值回头价格自定义。  这个写入返利日志需要用户自己提现
+                        $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 500);
                         //User::query()->where('id', $referral_uid)->increment('balance', '99');
                         //User::query()->where('id', $referral_uid)->update(['status' => 1, 'enable' => 1]);
                     }
@@ -752,6 +755,8 @@ class AuthController extends Controller
         }
 
         // 没有用邀请码或者邀请码是管理员生成的，则检查cookie或者url链接
+        // song 优先使用邀请码，然后是通过url或者 cookie判断，可以有，不错不错
+        
         if (!$referral_uid) {
             // 检查一下cookie里有没有aff
             $cookieAff = \Request::hasCookie('register_aff') ? \Request::cookie('register_aff') : 0;
