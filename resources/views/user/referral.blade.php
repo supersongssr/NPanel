@@ -84,6 +84,9 @@
                         <div class="actions">
                             <button type="submit" class="btn red" onclick="extractMoney()"> {{trans('home.referral_table_apply')}} </button>
                         </div>
+                        <div class="actions">
+                            <button type="submit" class="btn red" onclick="autoExtractMoney()"> 自动提现到余额 </button>
+                        </div>
                     </div>
                     <div class="portlet-body">
                         <div class="table-scrollable">
@@ -208,6 +211,17 @@
     <script type="text/javascript">
         // 申请提现
         function extractMoney() {
+            $.post("{{url('extractMoney')}}", {_token:'{{csrf_token()}}'}, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'success') {
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+
+        // 申请提现，自动打款到余额
+        function autoExtractMoney() {
             $.post("{{url('extractMoney')}}", {_token:'{{csrf_token()}}'}, function (ret) {
                 layer.msg(ret.message, {time: 1000}, function () {
                     if (ret.status == 'success') {

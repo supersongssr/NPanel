@@ -762,6 +762,64 @@ class UserController extends Controller
         return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，请等待管理员审核']);
     }
 
+    // 申请提现并自动完成审核打款入账
+    public function autoExtractMoney(Request $request)
+    {
+        // 判断账户是否过期
+        if (Auth::user()->expire_time < date('Y-m-d')) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：账号已过期，请先购买服务吧']);
+        }
+
+        // 判断是否已存在申请
+        $referralApply = ReferralApply::uid()->whereIn('status', [0, 1])->first();
+        if ($referralApply) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：已存在申请，请等待之前的申请处理完']);
+        }
+
+        // 校验可以提现金额是否超过系统设置的阀值
+        $ref_amount = ReferralLog::uid()->where('status', 0)->sum('ref_amount');
+        $ref_amount = $ref_amount / 100;
+        if ($ref_amount < self::$systemConfig['referral_money']) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：满' . self::$systemConfig['referral_money'] . '元才可以提现，继续努力吧']);
+        }
+
+        // 取出本次申请关联返利日志ID
+        $link_logs = '';
+        $referralLog = ReferralLog::uid()->where('status', 0)->get();
+        foreach ($referralLog as $log) {
+            $link_logs .= $log->id . ',';
+            #这里自动将 返利的那个 已返利变为2 就是已返利
+            ReferralLog::query()->whereIn('id', $log->id)->update(['status' => 2]);
+            #song 这里直接将所有的返利记录变为2 
+        }
+        $link_logs = rtrim($link_logs, ',');
+
+        //写入返利申请
+        $obj = new ReferralApply();
+        $obj->user_id = Auth::user()->id;
+        $obj->before = $ref_amount;
+        $obj->after = 0;
+        $obj->amount = $ref_amount;
+        $obj->link_logs = $link_logs;
+        #song 这里直接将提现记录变成 已提现
+        $obj->status = 2;
+        $obj->save();
+
+        // 自动将金额打入用户账户
+        DB::beginTransaction();
+        try {
+            $user = User::query()->where('id', Auth::user()->id)->first();
+            // 写入余额变动日志
+            $this->addUserBalanceLog($user->id, 0, $user->balance, $user->balance + $apply->amount, $apply->amount, '邀请返利打款');
+            //增加余额
+            $user->increment('balance', $ref_amount * 100);
+            DB::commit();
+            return Response::json(['status' => 'success', 'data' => '', 'message' => '操作成功，已打款到余额']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+        }
+    }
+
     // 帮助中心
     public function help(Request $request)
     {
