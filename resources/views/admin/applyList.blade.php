@@ -29,7 +29,8 @@
                                     <option value="-1" @if(Request::get('status') == '-1') selected @endif>驳回</option>
                                     <option value="0" @if(Request::get('status') == '0') selected @endif>待审核</option>
                                     <option value="1" @if(Request::get('status') == '1') selected @endif>审核通过待打款</option>
-                                    <option value="2" @if(Request::get('status') == '2') selected @endif>已打款</option>
+                                    <option value="2" @if(Request::get('status') == '2') selected @endif>已提额</option>
+                                    <option value="3" @if(Request::get('status') == '3') selected @endif>已提现</option>
                                 </select>
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
@@ -70,13 +71,17 @@
                                                 <td> {{$apply->created_at}} </td>
                                                 <td>
                                                     @if($apply->status == -1)
-                                                        <span class="label label-default label-danger"> 驳回 </span>
+                                                        <span class="label label-default label-default"> 驳回 </span>
                                                     @elseif($apply->status == 0)
                                                         <span class="label label-default label-info"> 待审核 </span>
-                                                    @elseif($apply->status == 2)
-                                                        <span class="label label-default label-success"> 已打款 </span>
-                                                    @else
+                                                    @elseif($apply->status == 1)
                                                         <span class="label label-default label-default"> 审核通过待打款 </span>
+                                                    @elseif($apply->status == 2)
+                                                        <span class="label label-default label-success"> 已提额 </span>
+                                                    @elseif($apply->status == 3)
+                                                        <span class="label label-default label-danger"> 已提现 </span>
+                                                    @else
+                                                        <span class="label label-default label-default"> 未知状态 </span>
                                                     @endif
                                                 </td>
                                                 <td> {{$apply->created_at == $apply->updated_at ? '' : $apply->updated_at}} </td>

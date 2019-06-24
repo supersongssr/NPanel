@@ -126,6 +126,7 @@ Route::group(['middleware' => ['isForbidden', 'isLogin']], function () {
     Route::any('profile', 'UserController@profile'); // 修改个人信息
     Route::get('referral', 'UserController@referral'); // 推广返利
     Route::post('extractMoney', 'UserController@extractMoney'); // 申请提现
+    Route::post('autoExtractMoney', 'UserController@autoExtractMoney'); // 申请提现，自动打入余额。
     Route::post("switchToAdmin", "UserController@switchToAdmin"); // 转换成管理员的身份
     Route::post("charge", "UserController@charge"); // 卡券余额充值
     Route::get("help", "UserController@help"); // 帮助中心

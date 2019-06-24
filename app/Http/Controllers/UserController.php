@@ -789,7 +789,7 @@ class UserController extends Controller
         foreach ($referralLog as $log) {
             $link_logs .= $log->id . ',';
             #这里自动将 返利的那个 已返利变为2 就是已返利
-            ReferralLog::query()->whereIn('id', $log->id)->update(['status' => 2]);
+            ReferralLog::query()->where('id', $log->id)->update(['status' => 2]);
             #song 这里直接将所有的返利记录变为2 
         }
         $link_logs = rtrim($link_logs, ',');
@@ -810,7 +810,7 @@ class UserController extends Controller
         try {
             $user = User::query()->where('id', Auth::user()->id)->first();
             // 写入余额变动日志
-            $this->addUserBalanceLog($user->id, 0, $user->balance, $user->balance + $apply->amount, $apply->amount, '邀请返利打款');
+            $this->addUserBalanceLog($user->id, 0, $user->balance, $user->balance + $ref_amount, $ref_amount, '用户返利自动提款');
             //增加余额
             $user->increment('balance', $ref_amount * 100);
             DB::commit();

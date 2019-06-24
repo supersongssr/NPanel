@@ -16,7 +16,9 @@
                             @if($info->status == -1)
                                 <span class="label label-default label-danger"> 已驳回 </span>
                             @elseif($info->status == 2)
-                                <span class="label label-default label-success"> 已打款 </span>
+                                <span class="label label-default label-success"> 已提额 </span>
+                            @elseif($info->status == 3)
+                            <span class="label label-default label-success"> 已提现 </span>
                             @else
                                 <div class="btn-group">
                                     <a class="btn btn-sm blue dropdown-toggle" href="javascript:;" data-toggle="dropdown"> 审核
@@ -31,12 +33,15 @@
                                             <a href="javascript:setStatus('1');"> <i class="fa fa-check"></i> 审核通过 </a>
                                         </li>
                                         <li>
-                                            <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> 审核通过+打款余额 </a>
+                                            <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> 审核通过+余额 </a>
                                         </li>
                                         @endif
                                         @if($info->status == 1)
                                         <li>
-                                            <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> 打款到余额 </a>
+                                            <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> +余额 </a>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:setStatus('3');"> <i class="fa fa-circle-o"></i> +现金打款 </a>
                                         </li>
                                         @endif
                                     </ul>
@@ -70,7 +75,7 @@
                                             <tr>
                                                 <td> {{$vo->id}} </td>
                                                 <td> {{empty($vo->user) ? '【账号已删除】' : $vo->user->username}} </td>
-                                                <td> {{$vo->order->goods->name}}</td>
+                                                <td> {{empty($vo->order) ? '注册返利' : $vo->order->goods->name}}</td>
                                                 <td> {{$vo->amount}} </td>
                                                 <td> {{$vo->ref_amount}} </td>
                                                 <td> {{$vo->created_at}} </td>

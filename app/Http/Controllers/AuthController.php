@@ -345,7 +345,7 @@ class AuthController extends Controller
                     User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
                     //song add money
                     // song 写入返利日志 用户ID 邀请人ID 订单ID 因为是邀请注册 所以订单为0 消费金额0 返利500 这个值回头价格自定义。  这个写入返利日志需要用户自己提现
-                    $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 500);
+                    $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 5);
                     //User::query()->where('id', $referral_uid)->increment('balance', '99');                  //
                     //User::query()->where('id', $referral_uid)->update(['status' => 1, 'enable' => 1]);
                 }
@@ -373,7 +373,7 @@ class AuthController extends Controller
                         User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
                         // song add money
                         // song 写入返利日志 用户ID 邀请人ID 订单ID 因为是邀请注册 所以订单为0 消费金额0 返利500 这个值回头价格自定义。  这个写入返利日志需要用户自己提现
-                        $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 500);
+                        $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 5);
                         //User::query()->where('id', $referral_uid)->increment('balance', '99');
                         //User::query()->where('id', $referral_uid)->update(['status' => 1, 'enable' => 1]);
                     }
@@ -607,6 +607,8 @@ class AuthController extends Controller
         $verify->status = 1;
         $verify->save();
 
+        //Song 这里这个就不必了吧？
+        /**
         // 账号激活后给邀请人送流量
         if ($verify->user->referral_uid) {
             $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
@@ -614,6 +616,7 @@ class AuthController extends Controller
             User::query()->where('id', $verify->user->referral_uid)->increment('transfer_enable', $transfer_enable);
             User::query()->where('id', $verify->user->referral_uid)->update(['enable' => 1]);
         }
+        **/
 
         Session::flash('successMsg', '账号激活成功');
 

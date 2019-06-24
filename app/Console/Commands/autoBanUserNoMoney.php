@@ -23,7 +23,7 @@ class autoBanUserNoMoney extends Command
         $userList = User::query()->where('balance', '<', 0)->where('status','>=',0)->get();
         foreach ($userList as $user) {
             # stauts 会封禁用户登录，同时后端也会封禁用户
-            User::query()->where('id', $user->id)->update(['status' => '-1' , 'enable' => '0']);
+            User::query()->where('id', $user->id)->update(['status' => '0' , 'enable' => '0']);
         }
         Log::info('------------【封禁余额低于0的用户：）】---------------');
     }

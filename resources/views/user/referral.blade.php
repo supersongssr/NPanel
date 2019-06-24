@@ -8,7 +8,7 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="note note-info">
-                    <p>通过您的推广链接注册使用，返利7.99-24.99￥/用户,你们双方都将获得 32GB 流量奖励；当他们消费时，您将获得他们消费金额的 15% 作为奖励。</p>
+                    <p>通过您的推广链接/邀请码注册返利 5￥/用户,你们双方都将获得 32GB 流量奖励；当他们消费时，您将获得他们消费金额的 15% 作为奖励。</p>
                 </div>
             </div>
         </div>
@@ -82,19 +82,18 @@
                             <span class="caption-subject bold"> {{trans('home.referral_title')}} </span>
                         </div>
                         <div class="actions">
-                            <button type="submit" class="btn red" onclick="extractMoney()"> {{trans('home.referral_table_apply')}} </button>
-                        </div>
-                        <div class="actions">
-                            <button type="submit" class="btn red" onclick="autoExtractMoney()"> 自动提现到余额 </button>
+                            <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 自动提取到余额 </button>
+                            <button type="submit" class="btn green" onclick="extractMoney()"> {{trans('home.referral_table_apply')}} </button>
                         </div>
                     </div>
-                    <div class="portlet-body">
+                    <div class="portlet-body">  
                         <div class="table-scrollable">
                             <table class="table table-striped table-bordered table-hover table-checkable order-column">
                                 <thead>
                                 <tr>
                                     <th> # </th>
                                     <th> {{trans('home.referral_table_date')}} </th>
+                                    <th> 订单 </th>
                                     <th> {{trans('home.referral_table_user')}} </th>
                                     <th> {{trans('home.referral_table_amount')}} </th>
                                     <th> {{trans('home.referral_table_commission')}} </th>
@@ -111,6 +110,7 @@
                                         <tr class="odd gradeX">
                                             <td> {{$key + 1}} </td>
                                             <td> {{$referralLog->created_at}} </td>
+                                            <td> @if($referralLog->order_id == 0) 邀请 @elseif($referralLog->order_id == -1) 注销 @else {{$referralLog->order_id}}@endif</td>
                                             <td> {{empty($referralLog->user) ? '【账号已删除】' : $referralLog->user->username}} </td>
                                             <td> ￥{{$referralLog->amount}} </td>
                                             <td> ￥{{$referralLog->ref_amount}} </td>
@@ -118,6 +118,8 @@
                                                 @if ($referralLog->status == 1)
                                                     <span class="label label-sm label-danger">申请中</span>
                                                 @elseif($referralLog->status == 2)
+                                                    <span class="label label-sm label-default">已提额</span>
+                                                @elseif($referralLog->status == 3)
                                                     <span class="label label-sm label-default">已提现</span>
                                                 @else
                                                     <span class="label label-sm label-info">未提现</span>
@@ -177,7 +179,9 @@
                                                 @elseif($vo->status == 1)
                                                     <span class="label label-sm label-default">审核通过待打款</span>
                                                 @elseif($vo->status == 2)
-                                                    <span class="label label-sm label-default">已打款</span>
+                                                    <span class="label label-sm label-default">已提额</span>
+                                                @elseif($vo->status >= 2)
+                                                    <span class="label label-sm label-default">已提现</span>
                                                 @else
                                                     <span class="label label-sm label-info">驳回</span>
                                                 @endif
@@ -222,7 +226,7 @@
 
         // 申请提现，自动打款到余额
         function autoExtractMoney() {
-            $.post("{{url('extractMoney')}}", {_token:'{{csrf_token()}}'}, function (ret) {
+            $.post("{{url('autoExtractMoney')}}", {_token:'{{csrf_token()}}'}, function (ret) {
                 layer.msg(ret.message, {time: 1000}, function () {
                     if (ret.status == 'success') {
                         window.location.reload();

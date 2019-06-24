@@ -532,6 +532,33 @@ class AdminController extends Controller
         if ($id <= 1) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '系统管理员不可删除']);
         }
+        $user = User::query()->where('id', $id)->first();
+        if ($user->referral_uid != 0 ) {
+            # 取出此用户注册邀请奖励值
+            $referral = ReferralLog::where('user_id','=',$id)->where('ref_user_id','=',$user->referral_uid)->where('order_id','=',0)->first();
+            ##如果存在这个邀请ID 那么就扣除这个用户相应的邀请ID，并写入返利日志 直接扣除，直接写入
+            if (!empty($referral->ref_amount)) {
+                #扣除邀请人相应的余额
+                User::query()->where('id', $user->referral_uid)->decrement('balance', $referral->ref_amount);
+                #写入用户余额变动日志
+                $this->addUserBalanceLog($user->id, 0, $user->balance, $user->balance - $referral->ref_amount, -$referral->ref_amount, '邀请用户被删除扣除余额');
+                
+                ## 写入用户邀请返利日志
+                $referrallog = new ReferralLog();
+                # 用户ID 就是被删除用户ID
+                $referrallog->user_id = $user->id;
+                # 这个用户谁邀请的
+                $referrallog->ref_user_id = $user->referral_uid;
+                #订单ID 自然是0 
+                $referrallog->order_id = -1;
+                $referrallog->amount = 0;
+                #这里是负值，就是已经扣除了相关的余额
+                $referrallog->ref_amount = -$referral->ref_amount;
+                #这里设定为2 就是已打款的意思。就是说这个款已经自动扣除了
+                $referrallog->status = 2;
+                $referrallog->save();
+            }
+        }
 
         DB::beginTransaction();
         try {
@@ -2275,7 +2302,6 @@ EOF;
     {
         $id = $request->get('id');
         $status = $request->get('status');
-
         $ret = ReferralApply::query()->where('id', $id)->update(['status' => $status]);
         if ($ret) {
             // 审核申请的时候将关联的
@@ -2285,6 +2311,8 @@ EOF;
                 ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 1]);
             } elseif ($referralApply && $status == 2) {
                 ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 2]);
+            } elseif ($referralApply && $status == 3) {
+                ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 3]);
                 //Song 审核并自动打款到余额
                 //这里通过申请ID，获取到用户id，和提现的金额。
                 $apply = ReferralApply::query()->where('id', $id)->first();
