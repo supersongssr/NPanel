@@ -26,7 +26,7 @@
                 </div>
             @endif
             <div class="form-group">
-                <p>支持qq 163 gmail outlook等常见邮箱，小众邮箱无法注册？联系管理员添加白名单。</p>
+                <p>支持qq 163 gmail等常见邮箱，小众邮箱无法注册？联系管理员添加白名单。</p>
                 <p>邮箱验证码接受可能会有延迟，稍等1-10分钟；感谢支持。</p>
                 <label class="control-label visible-ie8 visible-ie9">{{trans('register.username')}}</label>
                 <input class="form-control placeholder-no-fix" type="text" autocomplete="off" placeholder="{{trans('register.username_placeholder')}}" name="username" id="username" value="{{Request::old('username')}}" required />

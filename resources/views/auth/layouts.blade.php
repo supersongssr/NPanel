@@ -40,9 +40,9 @@
     </div>
     <!-- END LOGO -->
     <!-- BEGIN LOGIN -->
-    <div class="content">
+    <div class="content " >
         <nav style="padding-bottom: 20px;text-align: center;">
-            <a>★邀请返利20%; <br>★SR SS V2技术全平台支持; <br>★NetFlix! Hulu!; BGP HKBN NTT CN2 PCCW多线混合组网; <br>★香港、台湾、日本、韩国、新加坡、俄罗斯等全球100+节点; 15Gbps+ 国际带宽。  </a>
+            <a>★邀请返利20%+5￥/人; <br>★SR SS V2技术全平台支持; <br>★NetFlix! Hulu!; BGP HKBN NTT CN2 PCCW多线混合组网; <br>★香港、台湾、日本、韩国、新加坡、俄罗斯等全球100+节点; 15Gbps+ 国际带宽。  </a>
             <!-- @if(app()->getLocale() == 'zh-CN')
                 <a href="{{url('lang', ['locale' => 'zh-tw'])}}">繁體中文</a>
                 <a href="{{url('lang', ['locale' => 'en'])}}">English</a>
