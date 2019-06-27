@@ -286,7 +286,7 @@ class AuthController extends Controller
             //song 混淆参数
             $user->obfs_param = $usernameSuffix[0].'.edu.cn';
             // Song 教育计划支持 edu.cn自动获取到 50余额支持
-            $user->balance = 1; //注册赠送的余额
+            //$user->balance = 0.99; //注册赠送的余额
             //$eduSupport = 'edu.cn';
             //if (in_array($usernameSuffix[1], $eduSupport)) {
             /**if (strpos($usernameSuffix[1], $eduSupport)) {

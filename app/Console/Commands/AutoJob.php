@@ -144,10 +144,19 @@ class AutoJob extends Command
     private function blockUsers()
     {       
         //删除过期x月，且余额低于x元的用户。
-        $userDelList = User::query()->where('id', '>', 1)->where('status', '>=', 0)->where('enable', 0)->where('balance', '<', 101)->where('expire_time', '<', date('Y-m-d',strtotime("-32 day")))->get();
+        $userDelList = User::query()->where('id', '>', 1)->where('enable', 0)->where('expire_time', '<', date('Y-m-d',strtotime("-7 day")))->get();
         if (!$userDelList->isEmpty()) {
             # code...
             foreach ($userDelList as $user) {
+                #song 这里进行一次判断，判断过期时间和余额之间的关系
+                $expire_time = time() - strtotime($user->expire_time);
+                ## 这里的balance 是 元 
+                #1 元 = 30天 = 2592000s
+                if (floor($expire_time / 25920) < ($user->balance * 100)) {
+                    # 如果过期时间 x 小于余额，比如 过期1个月，余额超过1元的话，就先保留用户
+                    continue;
+                }
+
                 # code...
                 $id = $user->id;
                 //song 这里查看一下此用户是否有邀请人，然后扣除邀请人的相关的余额。
