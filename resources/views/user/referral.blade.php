@@ -27,6 +27,7 @@
                             <a href="javascript:;" class="btn blue mt-clipboard" data-clipboard-action="copy" data-clipboard-target="#mt-target-1">
                                 <i class="icon-note"></i> {{trans('home.referral_button')}}
                             </a>
+                            <p>#审核提现请先 网站 - 个人设置 - 收款信息<br>默认# AliP*y > WeCh*t > 余额</p>
                         </div>
                     </div>
                 </div>

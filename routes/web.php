@@ -10,6 +10,7 @@ Route::group(['middleware' => ['isForbidden', 'affiliate']], function () {
     Route::any('resetPassword', 'AuthController@resetPassword'); // 重设密码
     Route::any('reset/{token}', 'AuthController@reset'); // 重设密码
     Route::any('activeUser', 'AuthController@activeUser'); // 激活账号
+    Route::any('reActiveUser', 'AuthController@reActiveUser'); // 激活账号
     Route::get('active/{token}', 'AuthController@active'); // 激活账号
     Route::post('sendCode', 'AuthController@sendCode'); // 发送注册验证码
     Route::get('free', 'AuthController@free'); // 免费邀请码

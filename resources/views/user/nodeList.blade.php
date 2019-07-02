@@ -69,10 +69,15 @@
                                     </a>
                                     <input type="text" id="mt-target-2" class="form-control" value="{{$link}}?ver=2" />
                                     <a href="javascript:;" class="btn blue mt-clipboard" data-clipboard-action="copy" data-clipboard-target="#mt-target-2">
-                                        {{trans('home.copy_subscribe_address')}}V2+SS订阅地址
+                                        {{trans('home.copy_subscribe_address')}}V2订阅地址
                                     </a>
+                                    <input type="text" id="mt-target-2" class="form-control" value="{{$link}}?ver=3" />
+                                    <a href="javascript:;" class="btn blue mt-clipboard" data-clipboard-action="copy" data-clipboard-target="#mt-target-2">
+                                        {{trans('home.copy_subscribe_address')}}IOS小火箭专用V2订阅
+                                    </a>
+                                    <br>SR、V2 软件不同！技术不同！节点也不同！ 推荐SR > V2 ！本站同时支持SR 、V2 :)  
                                     <a href="javascript:exchangeSubscribe();" class="btn green">
-                                        {{trans('home.exchange_subscribe')}}SR和V2Ray订阅地址
+                                        {{trans('home.exchange_subscribe')}}订阅链接防止外泄
                                     </a>
                                     <div class="tabbable-line">
                                         <ul class="nav nav-tabs ">
@@ -166,7 +171,7 @@
                                                 <hr>
                                                 <ol>【V2 教程】
                                                     <li> 推荐下载kitsunebi（支持kcp tcp协议，需要在美区下载，请注意不是lite 版）；请注意，kitsunebi需要采用本站的kitsunebi专用订阅地址才能获取节点； kitsunebi还在开发阶段，如订阅地址失效，请反馈服务单</li>
-                                                    <li> 或者 使用shadowrocket 也可以使用本站部分V2节点，安装教程参考上面【SR 教程】 </li>
+                                                    <li> 或者 使用shadowrocket 也可以使用本站部分V2节点，安装教程参考上面【SR 教程】 请注意需要使用 IOS小火箭 V2专用订阅地址才可以</li>
                                                 </ol>
                                             </div>
                                             <div class="tab-pane" id="tools5">

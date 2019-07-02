@@ -95,7 +95,8 @@ class AutoJob extends Command
     // 注册验证码自动置无效
     private function expireVerifyCode()
     {
-        VerifyCode::query()->where('status', 0)->where('created_at', '<=', date('Y-m-d H:i:s', strtotime("-10 minutes")))->update(['status' => 2]);
+        //这里验证码变成 36小时内有效
+        VerifyCode::query()->where('status', 0)->where('created_at', '<=', date('Y-m-d H:i:s', strtotime("-36 hours")))->update(['status' => 2]);
     }
 
     // 优惠券到期自动置无效

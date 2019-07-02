@@ -185,13 +185,13 @@
                                                 </div>
                                             </div>
                                             <div class="form-group">
-                                                <label for="wechat" class="col-md-3 control-label">微信</label>
+                                                <label for="wechat" class="col-md-3 control-label">WeChat</label>
                                                 <div class="col-md-8">
                                                     <input type="text" class="form-control" name="wechat" value="{{$user->wechat}}" id="wechat" autocomplete="off" />
                                                 </div>
                                             </div>
                                             <div class="form-group">
-                                                <label for="qq" class="col-md-3 control-label">QQ</label>
+                                                <label for="qq" class="col-md-3 control-label">AliPay</label>
                                                 <div class="col-md-8">
                                                     <input type="text" class="form-control" name="qq" value="{{$user->qq}}" id="qq" autocomplete="off" />
                                                 </div>

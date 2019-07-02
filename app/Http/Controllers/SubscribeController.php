@@ -289,56 +289,41 @@ class SubscribeController extends Controller
             }
             //增加  剩余时间和流量
 
-        }
-        /** elseif ($ver == "3") {
-            # code...
+        }elseif ($ver == "3") { //
+            # 这个是小火箭的订阅规则 嘎嘎 
             foreach ($nodeList as $key => $node) {
                 // 控制显示的节点数
                 if (self::$systemConfig['subscribe_max'] && $key >= self::$systemConfig['subscribe_max']) {
                     break;
                 }
                 //addnode
-                $addn = explode("#", $node['desc']);
                 // 获取分组名称
-                if ($node['type'] == 2) {
-                    //判断是否添加的独立节点
-                    if (empty($addn[1])) {
-                        # code...
-                        // 生成v2ray scheme
-                        $v2_str = 'none' . ':' . $user['vmess_id'] . '@' . ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['v2_port'];
-                        $v2_str = base64_encode($v2_str);
-                        $v2_str .= '?network=' . $node['v2_net'] .'&tls=' . ($node['v2_tls'] == 1 ? "tls" : "0") . '&allowInsecure=1&mux=0&muxConcurrency=8&remark=' . $node['name'] . "\n";
-                        $scheme .= 'vmess://' . $v2_str . "\n";
-                    }else{
-                        // 生成v2ray scheme
-                        $v2_str = 'none' . ':' . $addn['1'] . '@' . ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['v2_port'];
-                        $v2_str = base64_encode($v2_str);
-                        $v2_str .= '?network=' . $node['v2_net'] .'&tls=' . ($node['v2_tls'] == 1 ? "tls" : "0") . '&allowInsecure=1&mux=0&muxConcurrency=8&remark=' . $node['name'] . "\n";
-                        $scheme .= 'vmess://' . $v2_str . "\n";
-                    }
-                    
+                if ($node['type'] == 2 && $node['v2_net'] != 'kcp') {
+                    $v2_str = $node['v2_method'] . ':' . ($node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id']) . '@';
+                    $v2_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['v2_port'];  
+                    $v2_str = base64url_encode($v2_str) . '?remarks=' . urlencode($node['name'].' '.$node['sort'].'♡ '.($node['traffic_rate'] * 100).'% #'.$node['id']) ;
+                    $v2_str .= '&obfsParam=' . $node['v2_host'] . '&path=' . $node['v2_path'] . '&obfs=' . ($node['v2_net'] == 'ws' ? 'websocket' : $node['v2_net']) . '&tls=' . ($node['v2_tls'] == 1 ? "1" : "");
+                    $scheme .= 'vmess://' . $v2_str . "\n";
                 }else{
-                    if (empty($addn[1])) {
+                    if ( empty($node['monitor_url']) ) {
                         # code...
-                        if ( $node['compatible'] && ($user['method'] != 'none')) {
+                        if ( $node['compatible'] ) {
                         $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
-                        $ss_str = base64_encode($ss_str) . '#' . $node['name'];
+                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].' '.$node['sort'].'♡ '.($node['traffic_rate'] * 100).'% #'.$node['id']);
                         $scheme .= 'ss://' . $ss_str . "\n";
                         }
                     }else{
-                        //add addnode
-                        $ss_str = $addn['3'] . ':' . $addn['2'] . '@';
-                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $addn['1'];
-                        $ss_str = base64_encode($ss_str) . '#' . $node['name'];
+                        $ss_str = $node['method'] . ':' . $node['monitor_url'] . '@';
+                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['ssh_port'];
+                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].' '.$node['sort'].'♡ '.($node['traffic_rate'] * 100).'% #'.$node['id']);
                         $scheme .= 'ss://' . $ss_str . "\n";
                     }
-                    
                 }
             }
             //增加用户剩余时间和流量
             
-        } **/
+        } 
 
         exit(base64_encode($scheme));
 

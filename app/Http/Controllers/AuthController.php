@@ -97,7 +97,7 @@ class AuthController extends Controller
                 if (Auth::user()->status < 0) {
                     Auth::logout(); // 强制销毁会话，因为Auth::attempt的时候会产生会话
 
-                    return Redirect::back()->withInput()->withErrors('账号已禁用');
+                    return Redirect::back()->withInput()->withErrors('账号已禁用，请点击<a href="/reActiveUser?username=' . $request->username . '" target="_blank"><span style="color:#000">【解封账号】</span></a>');
                 }
 
                 if (Auth::user()->status == 0 && self::$systemConfig['is_active_register']) {
@@ -585,7 +585,8 @@ class AuthController extends Controller
             Session::flash('errorMsg', '该账号无需激活.');
 
             return Response::view('auth.active');
-        } elseif (time() - strtotime($verify->created_at) >= 1800) {
+        } elseif (time() - strtotime($verify->created_at) >= 86400) {
+            // 这里 激活链接 变成 24小时内有效
             Session::flash('errorMsg', '该链接已过期');
 
             // 置为已失效
@@ -797,5 +798,30 @@ class AuthController extends Controller
         $verify->code = $code;
         $verify->status = 0;
         $verify->save();
+    }
+
+    // 激活账号页面
+    public function reActiveUser(Request $request)
+    {
+        if ($request->isMethod('POST')) {
+            $this->validate($request, [
+                'username' => 'required|email|exists:user,username'
+            ], [
+                'username.required' => '请输入用户名',
+                'username.email'    => '用户名必须是合法邮箱',
+                'username.exists'   => '账号不存在，请重试'
+            ]);
+
+            // 查找账号
+            $user = User::query()->where('username', $request->username)->first();
+            if ($user->status < 0 && $user->balance < 0) {
+                User::query()->where('username', $request->username)->update(['status' => 1]);
+                return Redirect::back()->with('successMsg', '解封成功，请登陆账号后请尽快补充余额至 > 0');
+            } else{
+                return Redirect::back()->withErrors('无效申请，请联系管理员！');
+            }
+        } else {
+            return Response::view('auth.reActiveUser');
+        }
     }
 }

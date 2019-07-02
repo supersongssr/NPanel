@@ -26,10 +26,8 @@
                 </div>
             @endif
             <div class="form-group">
-                <p>支持qq 163 gmail等常见邮箱，小众邮箱无法注册？联系管理员添加白名单。</p>
-                <p>邮箱验证码接受可能会有延迟，稍等1-10分钟；感谢支持。</p>
                 <label class="control-label visible-ie8 visible-ie9">{{trans('register.username')}}</label>
-                <input class="form-control placeholder-no-fix" type="text" autocomplete="off" placeholder="{{trans('register.username_placeholder')}}" name="username" id="username" value="{{Request::old('username')}}" required />
+                <input class="form-control placeholder-no-fix" type="text" autocomplete="off" placeholder="{{trans('register.username_placeholder')}}：小众邮箱请联系管理员添加白名单" name="username" id="username" value="{{Request::old('username')}}" required />
                 <input type="hidden" name="register_token" value="{{Session::get('register_token')}}" />
                 <input type="hidden" name="_token" value="{{csrf_token()}}" />
                 <input type="hidden" name="aff" value="{{Session::get('register_aff')}}" />
@@ -37,7 +35,7 @@
             @if(\App\Components\Helpers::systemConfig()['is_verify_register'])
                 <div class="form-group" style="margin-bottom:75px;">
                     <label class="control-label visible-ie8 visible-ie9">验证码</label>
-                    <input class="form-control placeholder-no-fix" style="width:60%;float:left;" type="text" autocomplete="off" placeholder="验证码" name="verify_code" value="{{Request::old('verify_code')}}" required />
+                    <input class="form-control placeholder-no-fix" style="width:60%;float:left;" type="text" autocomplete="off" placeholder="验证码36小时内有效" name="verify_code" value="{{Request::old('verify_code')}}" required />
                     <input type="button" class="btn grey" id="sendCode" value="发送" style="float:right;" onclick="sendVerifyCode()" >
                 </div>
             @endif
@@ -168,7 +166,7 @@
             // 请求成功才开始倒计时
             if (flag) {
                 // 60秒后重新发送
-                var left_time = 60;
+                var left_time = 3600;
                 var tt = window.setInterval(function () {
                     left_time = left_time - 1;
                     if (left_time <= 0) {

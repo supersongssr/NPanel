@@ -34,7 +34,7 @@
                                             <a href="#tab_1" data-toggle="tab">{{trans('home.password')}}</a>
                                         </li>
                                         <li>
-                                            <a href="#tab_2" data-toggle="tab">{{trans('home.contact')}}</a>
+                                            <a href="#tab_2" data-toggle="tab">收款信息</a>
                                         </li>
                                         <li>
                                             <a href="#tab_3" data-toggle="tab">{{trans('home.ssr_setting')}}</a>
@@ -71,7 +71,7 @@
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="control-label"> QQ </label>
+                                                    <label class="control-label"> AliPay </label>
                                                     <input type="text" class="form-control" name="qq" value="{{Auth::user()->qq}}" id="qq" required />
                                                 </div>
                                                 <div class="form-actions">

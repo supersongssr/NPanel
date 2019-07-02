@@ -68,7 +68,7 @@
                                 <tr style="padding:0;text-align:left;vertical-align:top">
                                     <th style="Margin:0;color:#333;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:400;line-height:19px;margin:0;padding:0;text-align:left">
                                         <div class="release" style="padding-top:5px;padding-left:20px;padding-bottom:20px;padding-right:20px;">
-                                            <p>点击这里去<a href="{{$activeUserUrl}}" target="_blank">【激活账号】</a>，或者点击下面的链接（30分钟内有效）。</p>
+                                            <p>点击这里去<a href="{{$activeUserUrl}}" target="_blank">【激活账号】</a>，或者点击下面的链接（24小时内有效）。</p>
                                             <p>
                                                 <a href="{{$activeUserUrl}}" target="_blank">{{$activeUserUrl}}</a>
                                             </p>

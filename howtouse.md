@@ -119,6 +119,11 @@ crontab -e -u www
 注意，需要设置一下www用户，和相应的目录才可以
 mkdir /home/www ; chown -R www:www /home/www/
 
+还要加个 
+26 4 * * * /www/wwwroot/srp-song/queue.sh
+这个是每天晚上4点 自动启动 queue.sh 发信队列的
+
+
 还要执行一次：
 ./queue.sh 
 这是队列发信的问题 ，需要执行这个才能队列发信。嘎嘎
