@@ -2215,7 +2215,7 @@ EOF;
             });
         }
 
-        if ($status) {
+        if ($status || $status == 0) {
             $query->where('status', $status);
         }
 
