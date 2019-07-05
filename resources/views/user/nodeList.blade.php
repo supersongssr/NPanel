@@ -117,7 +117,7 @@
                                                 <!-- song -->
                                                 <hr>
                                                 <ol>【V2 教程】
-                                                    <li> <a href="/downloads/V2RayX.app.zip" target="_blank">点击此处</a>下载客户端，解压 </li>
+                                                    <li> <a href="/clients/V2RayX.app-1.2.0.zip" target="_blank">点击此处</a>下载客户端，解压 </li>
                                                     <li> 将 V2RayX.app 复制到 程序 文件夹，然后点击网站内菜单---节点列表，点击您想要添加的节点名称 </li>
                                                     <li> 目前MAC端节点需要手动添加节点；您可以在节点列表查看到部分V2节点的配置信息；MAC端推荐使用SR呢 </li>
                                                 </ol>
@@ -138,7 +138,7 @@
                                                 </ol>
                                                 <hr>
                                                 <ol>【V2 教程】
-                                                    <li> 根据系统<a href="/downloads/v2ray_x64.zip" target="_blank">下载64位版</a>或者<a href="/downloads/v2ray_x86.zip" target="_blank">下载32位版</a>，下载后解压 </li>
+                                                    <li> 根据系统<a href="/clients/v2ray-windows-64.zip" target="_blank">下载64位版</a>或者<a href="/clients/v2ray-windows-32.zip" target="_blank">下载32位版</a>，下载后解压 </li>
                                                     <li> 运行程序v2rayN.exe，双击右下角图标 </li>
                                                     <li> V2Ray软件界面，点击订阅，订阅设置，填写本站的V2Ray订阅地址 </li>
                                                     <li> 点订阅，更新订阅，即可获取本站节点</li>
@@ -160,7 +160,7 @@
                                                 <ol>【SR 教程】
                                                     <li> iOS端需要配合电脑，利用爱思助手来免费安装 </li>
                                                     <li> <a href="https://www.i4.cn/news_detail_3339.html" target="_blank">点击此处</a>查看爱思助手安装ipa文件教程 </li>
-                                                    <li> <a href="/downloads/Shadowrocket_2.1.12.ipa" target="_blank">点击此处</a>下载iOS客户端的ipa文件 </li>
+                                                    <li> <a href="https://ssrdownloads.oss-ap-southeast-1.aliyuncs.com/Shadowrocket_2.1.12.ipa" target="_blank">点击此处</a>下载iOS客户端的ipa文件 </li>
                                                     <li> 然后请使用爱思助手安装客户端的ipa文件包（软件原价20元，这个方法可以免费获得） </li>
                                                     <li> 打开 Shadowrocket，点击右上角 “+”号 添加节点，类型选择 Subscribe </li>
                                                     <li> 完整复制本页上方 “订阅服务” 处地址，将其粘贴至 “URL”栏，点击右上角 “完成” </li>
@@ -184,7 +184,7 @@
                                                 </ol>
                                                 <hr>
                                                 <ol>【V2 教程】
-                                                    <li> 推荐下载<a href="/downloads/v2rayng.apk">v2rayNG</a>；或者<a href="/downloads/BifrostV.apk">bifrostv</a>，然后安装。</li>
+                                                    <li> 推荐下载<a href="/clietns/app-universal-release.apk">v2rayNG</a>；或者<a href="/downloads/BifrostV.apk">bifrostv</a>，然后安装。</li>
                                                     <li> 点击右上角 订阅设置 subscription setting，输入本站V2Ray订阅地址 </li>
                                                     <li> 选择一个节点，点击右下角小飞机，即可使用。 </li>
                                                 </ol>
