@@ -44,7 +44,7 @@
                                 <div class="portlet-body">
                                     <div class="tab-content">
                                         <div class="tab-pane active" id="tab_1">
-                                            <form action="{{url('profile')}}" method="post" enctype="multipart/form-data" class="form-bordered">
+                                            <form action="/profile" method="post" enctype="multipart/form-data" class="form-bordered">
                                                 <div class="form-group">
                                                     <label class="control-label">{{trans('home.current_password')}}</label>
                                                     <input type="password" class="form-control" name="old_password" id="old_password" autofocus required />
@@ -64,7 +64,7 @@
                                             </form>
                                         </div>
                                         <div class="tab-pane" id="tab_2">
-                                            <form action="{{url('profile')}}" method="post" enctype="multipart/form-data" class="form-bordered">
+                                            <form action="profile" method="post" enctype="multipart/form-data" class="form-bordered">
                                                 <div class="form-group">
                                                     <label class="control-label">{{trans('home.wechat')}}</label>
                                                     <input type="text" class="form-control" name="wechat" value="{{Auth::user()->wechat}}" id="wechat" required />
@@ -84,7 +84,7 @@
                                             </form>
                                         </div>
                                         <div class="tab-pane" id="tab_3">
-                                            <form action="{{url('profile')}}" method="post" enctype="multipart/form-data" class="form-bordered">
+                                            <form action="/profile" method="post" enctype="multipart/form-data" class="form-bordered">
                                                 <div class="form-group">
                                                     <label class="control-label"> {{trans('home.connection_password')}} </label>
                                                     <input type="text" class="form-control" name="passwd" value="{{Auth::user()->passwd}}" id="passwd" required />

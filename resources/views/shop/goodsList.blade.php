@@ -124,18 +124,18 @@
 
     <script type="text/javascript">
         function addGoods() {
-            window.location.href = '{{url('shop/addGoods')}}';
+            window.location.href = '/shop/addGoods';
         }
 
         // 编辑商品
         function editGoods(id) {
-            window.location.href = '{{url('shop/editGoods?id=')}}' + id;
+            window.location.href = '/shop/editGoods?id=' + id;
         }
 
         // 删除商品
         function delGoods(id) {
             layer.confirm('确定删除该商品？', {icon: 2, title:'警告'}, function(index) {
-                $.post("{{url('shop/delGoods')}}", {id:id, _token:'{{csrf_token()}}'}, function(ret) {
+                $.post("shop/delGoods", {id:id, _token:'{{csrf_token()}}'}, function(ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
                             window.location.reload();

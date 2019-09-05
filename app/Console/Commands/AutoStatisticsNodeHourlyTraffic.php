@@ -43,9 +43,6 @@ class AutoStatisticsNodeHourlyTraffic extends Command
         $u = $query->sum('u');
         $d = $query->sum('d');
         $total = $u + $d;
-        $rate = $query->rate;   //设置流量倍率
-        $rate <= 0 && $rate = 0.01;  //若倍率<=0 设为0.01
-        $total = $total / $rate;    //正确流量为 流量除以倍率
         $traffic = flowAutoShow($total);
 
         if ($total) { // 有数据才记录

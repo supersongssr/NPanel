@@ -67,7 +67,7 @@
     <script type="text/javascript">
         // 签到
         function checkIn() {
-            $.post('{{url('checkIn')}}', function(ret) {
+            $.post('/checkIn', function(ret) {
                 if (ret.status == 'success') {
                     layer.alert(ret.message, {icon:1, title:'提示'});
                 } else {

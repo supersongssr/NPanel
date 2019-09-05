@@ -15,7 +15,7 @@
         </div>
     @endif
     <!-- BEGIN REGISTRATION FORM -->
-    <form class="register-form" action="{{url(Request::getRequestUri())}}" method="post" style="display: block;">
+    <form class="register-form" action="/Request::getRequestUri()" method="post" style="display: block;">
         <div class="form-actions">
             <button type="button" class="btn btn-default" onclick="login()">{{trans('active.login_button')}}</button>
         </div>
@@ -26,7 +26,7 @@
     <script type="text/javascript">
         // 登录
         function login() {
-            window.location.href = '{{url('login')}}';
+            window.location.href = '/login';
         }
     </script>
 @endsection

@@ -36,7 +36,7 @@
                     </div>
                     <div class="portlet-body form">
                         <!-- BEGIN FORM-->
-                        <form action="{{url('shop/addGoods')}}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
+                        <form action="/shop/addGoods" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
                             <div class="form-body">
                                 <div class="form-group">
                                     <label for="type" class="control-label col-md-3">类型</label>

@@ -103,17 +103,17 @@
         function doSearch() {
             var status = $("#status option:checked").val();
 
-            window.location.href = '{{url('subscribe/deviceList')}}' + '?status=' + status;
+            window.location.href = '/subscribe/deviceList' + '?status=' + status;
         }
 
         // 重置
         function doReset() {
-            window.location.href = '{{url('subscribe/deviceList')}}';
+            window.location.href = '/subscribe/deviceList';
         }
 
         // 启用禁用订阅设备
         function setDeviceStatus(id, status) {
-            $.post("{{url('subscribe/setDeviceStatus')}}", {_token:'{{csrf_token()}}', id:id, status:status}, function(ret) {
+            $.post("/subscribe/setDeviceStatus", {_token:'{{csrf_token()}}', id:id, status:status}, function(ret) {
                 layer.msg(ret.message, {time:1000}, function() {
                     window.location.reload();
                 });

@@ -60,7 +60,7 @@
                                             @foreach($inviteList as $key => $invite)
                                                 <tr>
                                                     <td> {{$key + 1}} </td>
-                                                    <td> <a class="copy" data-clipboard-text="{{url('register?aff=' . Auth::user()->id . '&code=' . $invite->code)}}">{{$invite->code}}</a> </td>
+                                                    <td> <a class="copy" data-clipboard-text="'/register?aff=' . Auth::user()->id . '&code=' . $invite->code">{{$invite->code}}</a> </td>
                                                     <td> {{$invite->dateline}} </td>
                                                     <td>
                                                         @if($invite->status == '0')
@@ -108,7 +108,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "{{url('makeInvite')}}",
+                url: "/makeInvite",
                 async: false,
                 data: {_token:_token},
                 dataType: 'json',

@@ -41,9 +41,9 @@
         <!-- BEGIN LOGO -->
         <div class="page-logo">
             @if(\App\Components\Helpers::systemConfig()['website_logo'])
-                <a href="{{url('/')}}"><img src="{{\App\Components\Helpers::systemConfig()['website_logo']}}" alt="logo" class="logo-default" style="width:150px; height:30px;"/> </a>
+                <a href="/"><img src="{{\App\Components\Helpers::systemConfig()['website_logo']}}" alt="logo" class="logo-default" style="width:150px; height:30px;"/> </a>
             @else
-                <a href="{{url('/')}}"><img src="/assets/images/logo.png" alt="logo" class="logo-default" /> </a>
+                <a href="/"><img src="/assets/images/logo.png" alt="logo" class="logo-default" /> </a>
             @endif
             <div class="menu-toggler sidebar-toggler">
                 <!-- DOC: Remove the above "hide" to enable the sidebar toggler button on header -->
@@ -67,15 +67,15 @@
                     <ul class="dropdown-menu dropdown-menu-default">
                         @if(Auth::user()->is_admin)
                             <li>
-                                <a href="{{url('admin')}}"> <i class="icon-settings"></i>{{trans('home.console')}}</a>
+                                <a href="/admin"> <i class="icon-settings"></i>{{trans('home.console')}}</a>
                             </li>
                         @endif
                         <li>
-                            <a href="{{url('profile')}}"> <i class="icon-user"></i>{{trans('home.profile')}}</a>
+                            <a href="/profile"> <i class="icon-user"></i>{{trans('home.profile')}}</a>
                         </li>
                         <li class="divider"> </li>
                         <li>
-                            <a href="{{url('logout')}}"> <i class="icon-key"></i>{{trans('home.logout')}}</a>
+                            <a href="/logout"> <i class="icon-key"></i>{{trans('home.logout')}}</a>
                         </li>
                     </ul>
                 </li>
@@ -114,25 +114,25 @@
                     </a>
                 </li>
                 <li class="nav-item {{in_array(Request::path(), ['nodeList']) || in_array(Request::segment(1), ['nodeList']) ? 'active open' : ''}}">
-                    <a href="{{url('nodeList')}}" class="nav-link nav-toggle">
+                    <a href="/nodeList" class="nav-link nav-toggle">
                         <i class="icon-list"></i>
                         <span class="title">使用教程/节点</span>
                     </a>
                 </li>
                 <li class="nav-item {{in_array(Request::path(), ['services']) || in_array(Request::segment(1), ['buy', 'payment']) ? 'active open' : ''}}">
-                    <a href="{{url('services')}}" class="nav-link nav-toggle">
+                    <a href="/services" class="nav-link nav-toggle">
                         <i class="icon-basket"></i>
                         <span class="title">{{trans('home.services')}}</span>
                     </a>
                 </li>
                 <li class="nav-item {{in_array(Request::path(), ['invoices']) || Request::segment(1) == 'invoice' ? 'active open' : ''}}">
-                    <a href="{{url('invoices')}}" class="nav-link nav-toggle">
+                    <a href="/invoices" class="nav-link nav-toggle">
                         <i class="icon-wallet"></i>
                         <span class="title">{{trans('home.invoices')}}</span>
                     </a>
                 </li>
                 <li class="nav-item {{in_array(Request::path(), ['tickets', 'replyTicket']) ? 'active open' : ''}}">
-                    <a href="{{url('tickets')}}" class="nav-link nav-toggle">
+                    <a href="/tickets" class="nav-link nav-toggle">
                         <i class="icon-question"></i>
                         <span class="title">{{trans('home.tickets')}}</span>
                     </a>
@@ -140,7 +140,7 @@
                 <!-- Song -->
                 @if(\App\Components\Helpers::systemConfig()['is_invite_register'])
                 <li class="nav-item {{in_array(Request::path(), ['invite']) ? 'active open' : ''}}">
-                    <a href="{{url('invite')}}" class="nav-link nav-toggle">
+                    <a href="/invite" class="nav-link nav-toggle">
                         <i class="icon-user-follow"></i>
                         <span class="title">{{trans('home.invite_code')}}</span>
                     </a>
@@ -148,14 +148,14 @@
                 @endif
                 @if(\App\Components\Helpers::systemConfig()['referral_status'])
                 <li class="nav-item {{in_array(Request::path(), ['referral']) ? 'active open' : ''}}">
-                    <a href="{{url('referral')}}" class="nav-link nav-toggle">
+                    <a href="/referral" class="nav-link nav-toggle">
                         <i class="icon-diamond"></i>
                         <span class="title">{{trans('home.referrals')}}</span>
                     </a>
                 </li>
                 @endif
                 <li class="nav-item {{in_array(Request::path(), ['help', 'article']) ? 'active open' : ''}}">
-                    <a href="{{url('help')}}" class="nav-link nav-toggle">
+                    <a href="/help" class="nav-link nav-toggle">
                         <i class="icon-doc"></i>
                         <span class="title">{{trans('home.help')}}</span>
                     </a>
@@ -210,7 +210,7 @@
     <script type="text/javascript">
         $("#return_to_admin").click(function () {
             $.ajax({
-                'url': "{{url("switchToAdmin")}}",
+                'url': "/switchToAdmin",
                 'data': {
                     '_token': "{{csrf_token()}}"
                 },
@@ -219,7 +219,7 @@
                 success: function (ret) {
                     layer.msg(ret.message, {time: 1000}, function () {
                         if (ret.status == 'success') {
-                            window.location.href = "{{url('admin')}}";
+                            window.location.href = "/admin";
                         }
                     });
                 },
@@ -234,7 +234,7 @@
 <!-- BEGIN THEME GLOBAL SCRIPTS -->
 <script src="/assets/global/scripts/app.min.js" type="text/javascript"></script>
 <!-- END THEME GLOBAL SCRIPTS -->
-<!-- BEGIN THEME LAYOUT SCRIPTS -->
+<!-- BEGIN THEME LAYOUT SCRIPTS --
 <script src="/assets/layouts/layout4/scripts/layout.min.js" type="text/javascript"></script>
 <!-- END THEME LAYOUT SCRIPTS -->
 

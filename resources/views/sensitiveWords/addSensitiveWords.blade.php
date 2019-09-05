@@ -78,14 +78,14 @@
 
             $.ajax({
                 type: "POST",
-                url: "{{url('admin/addSensitiveWords')}}",
+                url: "/admin/addSensitiveWords",
                 async: false,
                 data: {_token:_token, words:words},
                 dataType: 'json',
                 success: function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            window.location.href = '{{url('admin/sensitiveWordsList')}}';
+                            window.location.href = '/admin/sensitiveWordsList';
                         }
                     });
                 }

@@ -53,7 +53,7 @@
                     </div>
                     @if(Auth::user()->subscribe->status)
                         @if($nodeList->isEmpty())
-                            <div style="text-align: center;"><h2>请先<a href="{{url('services')}}">购买服务</a></h2></div>
+                            <div style="text-align: center;"><h2>请先<a href="/services">购买服务</a></h2></div>
                         @else
                             <div class="portlet-body">
                                 <div class="mt-clipboard-container">
@@ -305,7 +305,7 @@
         //
         // 节点流量监控 song
         function nodeMonitor(id) {
-            window.location.href = '{{url('nodeMonitor?id=')}}' + id ;
+            window.location.href = '/nodeMonitor?id=' + id ;
         }
     </script>
 
@@ -313,7 +313,7 @@
         // 更换订阅地址
         function exchangeSubscribe() {
             layer.confirm('更换订阅地址将导致：<br>1.旧地址立即失效；<br>2.连接密码被更改；', {icon: 7, title:'警告'}, function(index) {
-                $.post("{{url('exchangeSubscribe')}}", {_token:'{{csrf_token()}}'}, function (ret) {
+                $.post("/exchangeSubscribe", {_token:'{{csrf_token()}}'}, function (ret) {
                     layer.msg(ret.message, {time:1000}, function () {
                         if (ret.status == 'success') {
                             window.location.reload();

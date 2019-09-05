@@ -99,7 +99,7 @@
                 return false;
             }
 
-            $.post("{{url('sensitiveWords/add')}}", {_token:'{{csrf_token()}}', words:words}, function(ret) {
+            $.post("/sensitiveWords/add", {_token:'{{csrf_token()}}', words:words}, function(ret) {
                 layer.msg(ret.message, {time:1000}, function() {
                     if (ret.status == 'success') {
                         window.location.reload();
@@ -112,7 +112,7 @@
         function delWord(id)
         {
             layer.confirm('确定删除该敏感词？', {icon: 2, title:'警告'}, function(index) {
-                $.post("{{url('sensitiveWords/del')}}", {id:id, _token:'{{csrf_token()}}'}, function(ret) {
+                $.post("/sensitiveWords/del", {id:id, _token:'{{csrf_token()}}'}, function(ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
                             window.location.reload();

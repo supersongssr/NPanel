@@ -5,7 +5,7 @@
 @endsection
 @section('content')
     <!-- BEGIN REGISTRATION FORM -->
-    <form class="register-form" action="{{url(Request::getRequestUri())}}" method="post" style="display: block;">
+    <form class="register-form" action="/Request::getRequestUri()" method="post" style="display: block;">
         @if(Session::get('successMsg'))
             <div class="alert alert-success">
                 <span> {{Session::get('successMsg')}} </span>
@@ -47,7 +47,7 @@
     <script type="text/javascript">
         // 登录
         function login() {
-            window.location.href = '{{url('login')}}';
+            window.location.href = '/login';
         }
     </script>
 @endsection

@@ -136,14 +136,14 @@
         function closeTicket() {
             $.ajax({
                 type: "POST",
-                url: "{{url('closeTicket')}}",
+                url: "/closeTicket",
                 async: true,
                 data: {_token:'{{csrf_token()}}', id:'{{$ticket->id}}'},
                 dataType: 'json',
                 success: function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            window.location.href = '{{url('tickets')}}';
+                            window.location.href = '/tickets';
                         }
                     });
                 }
@@ -160,7 +160,7 @@
             }
             
             layer.confirm('确定回复工单？', {icon: 3, title:'提示'}, function(index) {
-                $.post("{{url('replyTicket')}}",{_token:'{{csrf_token()}}', id:'{{$ticket->id}}', content:content}, function(ret) {
+                $.post("/replyTicket",{_token:'{{csrf_token()}}', id:'{{$ticket->id}}', content:content}, function(ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
                             window.location.reload();

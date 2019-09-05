@@ -106,7 +106,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "{{url('redeemCoupon')}}",
+                url: "/redeemCoupon",
                 async: false,
                 data: {_token:'{{csrf_token()}}', coupon_sn:coupon_sn},
                 dataType: 'json',
@@ -161,7 +161,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "{{url('payment/create')}}",
+                url: "/payment/create",
                 async: false,
                 data: {_token:'{{csrf_token()}}', goods_id:goods_id, coupon_sn:coupon_sn, pay_type:pay_type},
                 dataType: 'json',
@@ -178,10 +178,10 @@
                                 document.body.innerHTML += ret.data;
                                 document.forms['alipaysubmit'].submit();
                             } else {
-                                window.location.href = '{{url('payment')}}' + "/" + ret.data;
+                                window.location.href = '/payment' + "/" + ret.data;
                             }
                         } else {
-                            window.location.href = '{{url('invoices')}}';
+                            window.location.href = '/invoices';
                         }
                     });
                 }
@@ -214,7 +214,7 @@
                 success: function (ret) {
                     layer.msg(ret.message, {time:1300}, function() {
                         if (ret.status == 'success') {
-                            window.location.href = '{{url('invoices')}}';
+                            window.location.href = '/invoices';
                         } else {
                             layer.close(index);
                         }

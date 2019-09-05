@@ -301,7 +301,7 @@
             }
 
             $.ajax({
-                url:'{{url('charge')}}',
+                url:'/charge',
                 type:"POST",
                 data:{_token:'{{csrf_token()}}', coupon_sn:charge_coupon},
                 beforeSend:function(){

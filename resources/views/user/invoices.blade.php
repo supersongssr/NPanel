@@ -39,7 +39,7 @@
                                     @foreach($orderList as $key => $order)
                                         <tr class="odd gradeX">
                                             <td>{{$key + 1}}</td>
-                                            <td><a href="{{url('invoice/' . $order->order_sn)}}">{{$order->order_sn}}</a></td>
+                                            <td><a href="'/invoice/' . $order->order_sn">{{$order->order_sn}}</a></td>
                                             <td>{{empty($order->goods) ? trans('home.invoice_table_goods_deleted') : $order->goods->name}}</td>
                                             <td>{{$order->pay_way === 1 ? trans('home.service_pay_button') : trans('home.online_pay')}}</td>
                                             <td>￥{{$order->amount}}</td>
@@ -52,7 +52,7 @@
                                                     @elseif($order->status == 0)
                                                         <a href="javascript:;" class="btn btn-sm dark disabled"> {{trans('home.invoice_table_wait_payment')}} </a>
                                                         @if(!empty($order->payment))
-                                                            <a href="{{url('payment/' . $order->payment->sn)}}" target="_self" class="btn btn-sm red">{{trans('home.pay')}}</a>
+                                                            <a href="'/payment/' . $order->payment->sn" target="_self" class="btn btn-sm red">{{trans('home.pay')}}</a>
                                                         @endif
                                                     @elseif($order->status == 1)
                                                         <a href="javascript:;" class="btn btn-sm dark disabled"> {{trans('home.invoice_table_wait_confirm')}} </a>

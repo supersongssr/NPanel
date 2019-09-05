@@ -68,7 +68,7 @@
                                                     @if(empty($subscribe->user))
                                                         【账号已删除】
                                                     @else
-                                                        <a href="{{url('admin/userList?id=' . $subscribe->user->id)}}">{{$subscribe->user->username}}</a>
+                                                        <a href="/admin/userList?id=' . $subscribe->user->id">{{$subscribe->user->username}}</a>
                                                     @endif
                                                 </td>
                                                 <td> <span class="label label-danger"> {{$subscribe->code}} </span> </td>
@@ -117,17 +117,17 @@
             var username = $("#username").val();
             var status = $("#status option:checked").val();
 
-            window.location.href = '{{url('subscribe/subscribeList')}}' + '?user_id=' + user_id + '&username=' + username + '&status=' + status;
+            window.location.href = '/subscribe/subscribeList' + '?user_id=' + user_id + '&username=' + username + '&status=' + status;
         }
 
         // 重置
         function doReset() {
-            window.location.href = '{{url('subscribe/subscribeList')}}';
+            window.location.href = '/subscribe/subscribeList';
         }
 
         // 启用禁用用户的订阅
         function setSubscribeStatus(id, status) {
-            $.post("{{url('subscribe/setSubscribeStatus')}}", {_token:'{{csrf_token()}}', id:id, status:status}, function(ret) {
+            $.post("/subscribe/setSubscribeStatus", {_token:'{{csrf_token()}}', id:id, status:status}, function(ret) {
                 layer.msg(ret.message, {time:1000}, function() {
                     window.location.reload();
                 });
