@@ -516,7 +516,7 @@
                 success: function (ret) {
                     if (ret.status == 'success') {
                         layer.confirm('更新成功，是否返回？', {icon: 1, title:'提示'}, function(index) {
-                            window.location.href = '/admin/userList?page=' . Request::get('page');
+                            window.location.href = '{{'/admin/userList?page=' . Request::get('page')}}';
 
                             layer.close(index);
                         });
