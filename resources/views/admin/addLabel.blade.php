@@ -19,7 +19,7 @@
                 </div>
             </div>
             <div class="portlet-body form">
-                <form role="form" action="{{url('admin/addLabel')}}" method="post" enctype="multipart/form-data" class="form-horizontal" onsubmit="return doSubmit();">
+                <form role="form" action="/admin/addLabel" method="post" enctype="multipart/form-data" class="form-horizontal" onsubmit="return doSubmit();">
                     <div class="form-body">
                         <div class="form-group">
                             <label for="name" class="control-label col-md-3">名称</label>
@@ -61,14 +61,14 @@
 
             $.ajax({
                 type: "POST",
-                url: "{{url('admin/addLabel')}}",
+                url: "/admin/addLabel",
                 async: false,
                 data: {_token:_token, name: name, sort:sort},
                 dataType: 'json',
                 success: function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            window.location.href = '{{url('admin/labelList')}}';
+                            window.location.href = '/admin/labelList';
                         }
                     });
                 }

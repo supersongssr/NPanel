@@ -755,7 +755,7 @@
                                             </form>
                                         </div>
                                         <div class="tab-pane" id="tab_7">
-                                            <form action="{{url('admin/setExtend')}}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form" id="setExtend">
+                                            <form action="/admin/setExtend" method="post" enctype="multipart/form-data" class="form-horizontal" role="form" id="setExtend">
                                                 {{csrf_field()}}
                                                 <div class="form-group">
                                                     <div class="col-md-6 col-sm-6 col-xs-12">
@@ -1146,7 +1146,7 @@
             var initial_labels_for_user = $(this).val() ? $(this).val().join(',') : '';
 
             console.log(initial_labels_for_user);
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'initial_labels_for_user',
                 value: initial_labels_for_user
@@ -1164,7 +1164,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_rand_port = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_rand_port',
                     value: is_rand_port
@@ -1183,7 +1183,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_forbid_china = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_forbid_china',
                     value: is_forbid_china
@@ -1202,7 +1202,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_forbid_oversea = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_forbid_oversea',
                     value: is_forbid_oversea
@@ -1221,7 +1221,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_forbid_robot = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_forbid_robot',
                     value: is_forbid_robot
@@ -1240,7 +1240,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_verify_register = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_verify_register',
                     value: is_verify_register
@@ -1259,7 +1259,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_user_rand_port = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_user_rand_port',
                     value: is_user_rand_port
@@ -1278,7 +1278,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_checkin = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_checkin',
                     value: is_checkin
@@ -1297,7 +1297,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_register = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_register',
                     value: is_register
@@ -1315,7 +1315,7 @@
         $('#is_invite_register').change(function () {
             var is_invite_register = $(this).val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'is_invite_register',
                 value: is_invite_register
@@ -1333,7 +1333,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_reset_password = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_reset_password',
                     value: is_reset_password
@@ -1352,7 +1352,7 @@
             var is_captcha = $(this).val();
             toggleCaptchaTab(is_captcha);
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'is_captcha',
                 value: is_captcha
@@ -1370,7 +1370,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_free_code = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_free_code',
                     value: is_free_code
@@ -1389,7 +1389,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_active_register = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_active_register',
                     value: is_active_register
@@ -1408,7 +1408,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var expire_warning = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'expire_warning',
                     value: expire_warning
@@ -1427,7 +1427,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_node_crash_warning = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_node_crash_warning',
                     value: is_node_crash_warning
@@ -1446,7 +1446,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_server_chan = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_server_chan',
                     value: is_server_chan
@@ -1465,7 +1465,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_namesilo = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_namesilo',
                     value: is_namesilo
@@ -1484,7 +1484,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var mix_subscribe = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'mix_subscribe',
                     value: mix_subscribe
@@ -1503,7 +1503,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var rand_subscribe = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'rand_subscribe',
                     value: rand_subscribe
@@ -1522,7 +1522,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_custom_subscribe = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_custom_subscribe',
                     value: is_custom_subscribe
@@ -1541,7 +1541,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_tcp_check = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_tcp_check',
                     value: is_tcp_check
@@ -1560,7 +1560,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_subscribe_ban = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_subscribe_ban',
                     value: is_subscribe_ban
@@ -1579,7 +1579,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var referral_status = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'referral_status',
                     value: referral_status
@@ -1598,7 +1598,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var traffic_warning = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'traffic_warning',
                     value: traffic_warning
@@ -1617,7 +1617,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_clear_log = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_clear_log',
                     value: is_clear_log
@@ -1636,7 +1636,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var reset_traffic = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'reset_traffic',
                     value: reset_traffic
@@ -1655,7 +1655,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_traffic_ban = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_traffic_ban',
                     value: is_traffic_ban
@@ -1674,7 +1674,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var auto_release_port = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'auto_release_port',
                     value: auto_release_port
@@ -1693,7 +1693,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var node_daily_report = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'node_daily_report',
                     value: node_daily_report
@@ -1712,7 +1712,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_ban_status = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_ban_status',
                     value: is_ban_status
@@ -1731,7 +1731,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_youzan = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_youzan',
                     value: is_youzan
@@ -1750,7 +1750,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_alipay = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_alipay',
                     value: is_alipay
@@ -1769,7 +1769,7 @@
             'switchChange.bootstrapSwitch': function (event, state) {
                 var is_f2fpay = state ? 1 : 0;
 
-                $.post("{{url('admin/setConfig')}}", {
+                $.post("/admin/setConfig", {
                     _token: '{{csrf_token()}}',
                     name: 'is_f2fpay',
                     value: is_f2fpay
@@ -1792,7 +1792,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'traffic_ban_value',
                 value: traffic_ban_value
@@ -1814,7 +1814,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'traffic_ban_time',
                 value: traffic_ban_time
@@ -1831,7 +1831,7 @@
         function setCrashWarningEmail() {
             var crash_warning_email = $("#crash_warning_email").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'crash_warning_email',
                 value: crash_warning_email
@@ -1848,7 +1848,7 @@
         function setServerChanKey() {
             var server_chan_key = $("#server_chan_key").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'server_chan_key',
                 value: server_chan_key
@@ -1865,7 +1865,7 @@
         function setNamesiloKey() {
             var namesilo_key = $("#namesilo_key").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'namesilo_key',
                 value: namesilo_key
@@ -1887,7 +1887,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'tcp_check_warning_times',
                 value: tcp_check_warning_times
@@ -1909,7 +1909,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'subscribe_ban_times',
                 value: subscribe_ban_times
@@ -1926,7 +1926,7 @@
         function setKdtId() {
             var kdt_id = $("#kdt_id").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'kdt_id',
                 value: kdt_id
@@ -1943,7 +1943,7 @@
         function setYouzanClientId() {
             var youzan_client_id = $("#youzan_client_id").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'youzan_client_id',
                 value: youzan_client_id
@@ -1960,7 +1960,7 @@
         function setYouzanClientSecret() {
             var youzan_client_secret = $("#youzan_client_secret").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'youzan_client_secret',
                 value: youzan_client_secret
@@ -1977,7 +1977,7 @@
         $('#alipay_sign_type').change(function () {
             var alipay_sign_type = $(this).val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'alipay_sign_type',
                 value: alipay_sign_type
@@ -1994,7 +1994,7 @@
         $('#alipay_transport').change(function () {
             var alipay_transport = $(this).val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'alipay_transport',
                 value: alipay_transport
@@ -2011,7 +2011,7 @@
         function setAlipayPartner() {
             var alipay_partner = $("#alipay_partner").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'alipay_partner',
                 value: alipay_partner
@@ -2028,7 +2028,7 @@
         function setAlipayKey() {
             var alipay_key = $("#alipay_key").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'alipay_key',
                 value: alipay_key
@@ -2045,7 +2045,7 @@
         function setAlipayPrivateKey() {
             var alipay_private_key = $("#alipay_private_key").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'alipay_private_key',
                 value: alipay_private_key
@@ -2062,7 +2062,7 @@
         function setAlipayPublicKey() {
             var alipay_public_key = $("#alipay_public_key").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'alipay_public_key',
                 value: alipay_public_key
@@ -2079,7 +2079,7 @@
         $('#alipay_currency').change(function () {
             var alipay_currency = $(this).val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'alipay_currency',
                 value: alipay_currency
@@ -2096,7 +2096,7 @@
         function setF2fpayAppId() {
             var f2fpay_app_id = $("#f2fpay_app_id").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'f2fpay_app_id',
                 value: f2fpay_app_id
@@ -2113,7 +2113,7 @@
         function setF2fpayPrivateKey() {
             var f2fpay_private_key = $("#f2fpay_private_key").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'f2fpay_private_key',
                 value: f2fpay_private_key
@@ -2130,7 +2130,7 @@
         function setF2fpayPublicKey() {
             var f2fpay_public_key = $("#f2fpay_public_key").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'f2fpay_public_key',
                 value: f2fpay_public_key
@@ -2152,7 +2152,7 @@
         function setF2fpaySubjectName() {
             var f2fpay_subject_name = $("#f2fpay_subject_name").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'f2fpay_subject_name',
                 value: f2fpay_subject_name
@@ -2169,7 +2169,7 @@
         function setGeetestId() {
             var geetest_id = $("#geetest_id").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'geetest_id',
                 value: geetest_id
@@ -2186,7 +2186,7 @@
         function setGeetestKey() {
             var geetest_key = $("#geetest_key").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'geetest_key',
                 value: geetest_key
@@ -2203,7 +2203,7 @@
         function setGoogleCaptchaId() {
             var google_captcha_sitekey = $("#google_captcha_sitekey").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'google_captcha_sitekey',
                 value: google_captcha_sitekey
@@ -2220,7 +2220,7 @@
         function setGoogleCaptchaKey() {
             var google_captcha_secret = $("#google_captcha_secret").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'google_captcha_secret',
                 value: google_captcha_secret
@@ -2266,7 +2266,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'min_rand_traffic',
                 value: min_rand_traffic
@@ -2294,7 +2294,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'max_rand_traffic',
                 value: max_rand_traffic
@@ -2323,7 +2323,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'min_port',
                 value: min_port
@@ -2352,7 +2352,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'max_port',
                 value: max_port
@@ -2367,7 +2367,7 @@
 
         $("#goods_purchase_limit_strategy").change(function () {
             var strategy = $(this).val();
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'goods_purchase_limit_strategy',
                 value: strategy
@@ -2389,7 +2389,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'default_days',
                 value: default_days
@@ -2411,7 +2411,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'default_traffic',
                 value: default_traffic
@@ -2433,7 +2433,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'invite_num',
                 value: invite_num
@@ -2455,7 +2455,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'reset_password_times',
                 value: reset_password_times
@@ -2477,7 +2477,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'active_times',
                 value: active_times
@@ -2494,7 +2494,7 @@
         function setSubscribeDomain() {
             var subscribe_domain = $("#subscribe_domain").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'subscribe_domain',
                 value: subscribe_domain
@@ -2516,7 +2516,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'register_ip_limit',
                 value: register_ip_limit
@@ -2538,7 +2538,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'subscribe_max',
                 value: subscribe_max
@@ -2560,7 +2560,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'user_invite_days',
                 value: user_invite_days
@@ -2582,7 +2582,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'admin_invite_days',
                 value: admin_invite_days
@@ -2604,7 +2604,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'traffic_warning_percent',
                 value: traffic_warning_percent
@@ -2626,7 +2626,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'expire_days',
                 value: expire_days
@@ -2643,7 +2643,7 @@
         function setWebsiteName() {
             var website_name = $("#website_name").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'website_name',
                 value: website_name
@@ -2660,7 +2660,7 @@
         function setWebsiteUrl() {
             var website_url = $("#website_url").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'website_url',
                 value: website_url
@@ -2675,7 +2675,7 @@
 
         // 生成网站安全码
         function makeWebsiteSecurityCode() {
-            $.get("{{url('makeSecurityCode')}}",  function(ret) {
+            $.get("/makeSecurityCode",  function(ret) {
                 $("#website_security_code").val(ret);
             });
         }
@@ -2684,7 +2684,7 @@
         function setWebsiteSecurityCode() {
             var website_security_code = $("#website_security_code").val();
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'website_security_code',
                 value: website_security_code
@@ -2706,7 +2706,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'traffic_limit_time',
                 value: traffic_limit_time
@@ -2728,7 +2728,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'referral_traffic',
                 value: referral_traffic
@@ -2755,7 +2755,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'referral_percent',
                 value: referral_percent
@@ -2777,7 +2777,7 @@
                 return;
             }
 
-            $.post("{{url('admin/setConfig')}}", {
+            $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
                 name: 'referral_money',
                 value: referral_money

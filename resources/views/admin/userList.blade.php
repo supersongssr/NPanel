@@ -202,13 +202,13 @@
         // 导出原版json配置
         function exportSSJson() {
             layer.msg("成功导出原版SS的用户配置信息，加密方式为系统默认的加密方式");
-            window.location.href = '{{url('admin/exportSSJson')}}';
+            window.location.href = '/admin/exportSSJson';
         }
 
         // 批量生成账号
         function batchAddUsers() {
             layer.confirm('将自动生成5个账号，确定继续吗？', {icon: 3, title:'注意'}, function(index) {
-                $.post("{{url('admin/batchAddUsers')}}", {_token:'{{csrf_token()}}'}, function(ret) {
+                $.post("/admin/batchAddUsers", {_token:'{{csrf_token()}}'}, function(ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
                             window.location.reload();
@@ -222,18 +222,18 @@
 
         // 添加账号
         function addUser() {
-            window.location.href = '{{url('admin/addUser')}}';
+            window.location.href = '/admin/addUser';
         }
 
         // 编辑账号
         function editUser(id) {
-            window.location.href = '{{url('admin/editUser?id=')}}' + id;
+            window.location.href = '/admin/editUser?id=' + id;
         }
 
         // 删除账号
         function delUser(id) {
             layer.confirm('确定删除账号？', {icon: 2, title:'警告'}, function(index) {
-                $.post("{{url('admin/delUser')}}", {id:id, _token:'{{csrf_token()}}'}, function(ret) {
+                $.post("/admin/delUser", {id:id, _token:'{{csrf_token()}}'}, function(ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
                             window.location.reload();
@@ -256,32 +256,32 @@
             var status = $("#status option:checked").val();
             var enable = $("#enable option:checked").val();
 
-            window.location.href = '{{url('admin/userList')}}' + '?id=' + id +'&username=' + username + '&wechat=' + wechat + '&qq=' + qq + '&port=' + port + '&pay_way=' + pay_way + '&status=' + status + '&enable=' + enable;
+            window.location.href = '/admin/userList' + '?id=' + id +'&username=' + username + '&wechat=' + wechat + '&qq=' + qq + '&port=' + port + '&pay_way=' + pay_way + '&status=' + status + '&enable=' + enable;
         }
 
         // 重置
         function doReset() {
-            window.location.href = '{{url('admin/userList')}}';
+            window.location.href = '/admin/userList';
         }
 
         // 导出配置
         function doExport(id) {
-            window.location.href = '{{url('admin/export?id=')}}' + id;
+            window.location.href = '/admin/export?id=' + id;
         }
 
         // 流量监控
         function doMonitor(id) {
-            window.location.href = '{{url('admin/userMonitor?id=')}}' + id;
+            window.location.href = '/admin/userMonitor?id=' + id;
         }
 
         function ipMonitor(id) {
-            window.location.href = '{{url('admin/onlineIPMonitor?id=')}}' + id;
+            window.location.href = '/admin/onlineIPMonitor?id=' + id;
         }
 
         // 重置流量
         function resetTraffic(id) {
             layer.confirm('确定重置该用户流量吗？', {icon: 7, title:'警告'}, function(index) {
-                $.post("{{url('admin/resetUserTraffic')}}", {_token:'{{csrf_token()}}', id:id}, function (ret) {
+                $.post("/admin/resetUserTraffic", {_token:'{{csrf_token()}}', id:id}, function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
                             window.location.reload();
@@ -296,7 +296,7 @@
         // 切换用户身份
         function switchToUser(user_id) {
             $.ajax({
-                'url': "{{url("/admin/switchToUser")}}",
+                'url': "/admin/switchToUser",
                 'data': {
                     'user_id': user_id,
                     '_token': '{{csrf_token()}}'

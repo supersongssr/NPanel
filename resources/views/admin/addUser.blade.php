@@ -11,7 +11,7 @@
             <div class="portlet light bordered">
                 <div class="portlet-body form">
                     <!-- BEGIN FORM-->
-                    <form action="{{url('admin/addUser')}}" method="post" class="form-horizontal" onsubmit="return do_submit();">
+                    <form action="/admin/addUser" method="post" class="form-horizontal" onsubmit="return do_submit();">
                         <div class="form-body">
                             <div class="row">
                                 <div class="col-md-6">
@@ -391,7 +391,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "{{url('admin/addUser')}}",
+                url: "/admin/addUser",
                 async: false,
                 data: {
                     _token:_token,
@@ -425,7 +425,7 @@
                 success: function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            window.location.href = '{{url('admin/userList')}}';
+                            window.location.href = '/admin/userList';
                         }
                     });
                 }
@@ -436,21 +436,21 @@
 
         // 生成随机端口
         function makePort() {
-            $.get("{{url('admin/makePort')}}",  function(ret) {
+            $.get("/admin/makePort",  function(ret) {
                 $("#port").val(ret);
             });
         }
 
         // 生成随机VmessId
         function makeVmessId() {
-            $.get("{{url('makeVmessId')}}",  function(ret) {
+            $.get("/makeVmessId",  function(ret) {
                 $("#vmess_id").val(ret);
             });
         }
 
         // 生成随机密码
         function makePasswd() {
-            $.get("{{url('makePasswd')}}",  function(ret) {
+            $.get("/makePasswd",  function(ret) {
                 $("#passwd").val(ret);
             });
         }

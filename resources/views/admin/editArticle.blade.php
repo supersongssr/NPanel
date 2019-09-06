@@ -30,7 +30,7 @@
                     </div>
                     <div class="portlet-body form">
                         <!-- BEGIN FORM-->
-                        <form action="{{url('admin/editArticle')}}" method="post" enctype="multipart/form-data" class="form-horizontal">
+                        <form action="/admin/editArticle" method="post" enctype="multipart/form-data" class="form-horizontal">
                             <div class="form-body">
                                 <div class="form-group">
                                     <label for="type" class="control-label col-md-2">类型</label>
@@ -156,14 +156,14 @@
 
             {{--$.ajax({--}}
                 {{--type: "POST",--}}
-                {{--url: "{{url('admin/editArticle')}}",--}}
+                {{--url: "/admin/editArticle",--}}
                 {{--async: false,--}}
                 {{--data: {_token:_token, id:id, title: title, type:type, author:author, summary:summary, sort:sort, content:content},--}}
                 {{--dataType: 'json',--}}
                 {{--success: function (ret) {--}}
                     {{--layer.msg(ret.message, {time:1000}, function() {--}}
                         {{--if (ret.status == 'success') {--}}
-                            {{--window.location.href = '{{url('admin/articleList')}}';--}}
+                            {{--window.location.href = '/admin/articleList';--}}
                         {{--}--}}
                     {{--});--}}
                 {{--}--}}

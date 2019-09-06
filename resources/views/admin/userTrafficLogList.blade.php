@@ -96,12 +96,12 @@
         function do_search() {
             var username = $("#username").val();
 
-            window.location.href = '{{url('admin/userTrafficLogList')}}' + '?username=' + username;
+            window.location.href = '/admin/userTrafficLogList' + '?username=' + username;
         }
 
         // 重置
         function do_reset() {
-            window.location.href = '{{url('admin/userTrafficLogList')}}';
+            window.location.href = '/admin/userTrafficLogList';
         }
     </script>
 @endsection

@@ -98,12 +98,12 @@
         function do_search() {
             var username = $("#username").val();
 
-            window.location.href = '{{url('admin/userBalanceLogList')}}' + '?username=' + username;
+            window.location.href = '/admin/userBalanceLogList' + '?username=' + username;
         }
 
         // 重置
         function do_reset() {
-            window.location.href = '{{url('admin/userBalanceLogList')}}';
+            window.location.href = '/admin/userBalanceLogList';
         }
     </script>
 @endsection

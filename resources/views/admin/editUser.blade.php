@@ -11,7 +11,7 @@
             <div class="portlet light bordered">
                 <div class="portlet-body form">
                     <!-- BEGIN FORM-->
-                    <form action="{{url('admin/editUser')}}" method="post" class="form-horizontal" onsubmit="return do_submit();">
+                    <form action="/admin/editUser" method="post" class="form-horizontal" onsubmit="return do_submit();">
                         <div class="form-body">
                             <div class="row">
                                 <div class="col-md-6">
@@ -420,7 +420,7 @@
         // 切换用户身份
         function switchToUser() {
             $.ajax({
-                'url': "{{url("/admin/switchToUser")}}",
+                'url': "/admin/switchToUser",
                 'data': {
                     'user_id': '{{$user->id}}',
                     '_token': '{{csrf_token()}}'
@@ -479,7 +479,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "{{url('admin/editUser')}}",
+                url: "/admin/editUser",
                 async: false,
                 data: {
                     _token:_token,
@@ -516,7 +516,7 @@
                 success: function (ret) {
                     if (ret.status == 'success') {
                         layer.confirm('更新成功，是否返回？', {icon: 1, title:'提示'}, function(index) {
-                            window.location.href = '{{url('admin/userList?page=') . Request::get('page')}}';
+                            window.location.href = '/admin/userList?page=' . Request::get('page');
 
                             layer.close(index);
                         });
@@ -531,21 +531,21 @@
 
         // 生成随机端口
         function makePort() {
-            $.get("{{url('admin/makePort')}}",  function(ret) {
+            $.get("/admin/makePort",  function(ret) {
                 $("#port").val(ret);
             });
         }
 
         // 生成随机VmessId
         function makeVmessId() {
-            $.get("{{url('makeVmessId')}}",  function(ret) {
+            $.get("/makeVmessId",  function(ret) {
                 $("#vmess_id").val(ret);
             });
         }
 
         // 生成随机密码
         function makePasswd() {
-            $.get("{{url('makePasswd')}}",  function(ret) {
+            $.get("/makePasswd",  function(ret) {
                 $("#passwd").val(ret);
             });
         }
@@ -562,7 +562,7 @@
             }
 
             $.ajax({
-                url:'{{url('admin/handleUserBalance')}}',
+                url:'/admin/handleUserBalance',
                 type:"POST",
                 data:{_token:'{{csrf_token()}}', user_id:'{{Request::get('id')}}', amount:amount},
                 beforeSend:function(){

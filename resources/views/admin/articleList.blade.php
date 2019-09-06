@@ -54,7 +54,7 @@
                                             @else
                                                 <td> 未知 </td>
                                             @endif
-                                            <td> <a href="{{url('article?id=' . $vo->id)}}" target="_blank"> {{str_limit($vo->title, 80)}} </a> </td>
+                                            <td> <a href="'/article?id=' . $vo->id" target="_blank"> {{str_limit($vo->title, 80)}} </a> </td>
                                             <td> {{$vo->sort}} </td>
                                             <td> {{$vo->created_at}} </td>
                                             <td>
@@ -90,18 +90,18 @@
     <script type="text/javascript">
         // 添加文章
         function addArticle() {
-            window.location.href = '{{url('admin/addArticle')}}';
+            window.location.href = '/admin/addArticle';
         }
 
         // 编辑文章
         function editArticle(id) {
-            window.location.href = '{{url('admin/editArticle?id=')}}' + id + '&page=' + '{{Request::get('page', 1)}}';
+            window.location.href = '/admin/editArticle?id=' + id + '&page=' + '{{Request::get('page', 1)}}';
         }
 
         // 删除文章
         function delArticle(id) {
             layer.confirm('确定删除文章？', {icon: 2, title:'警告'}, function(index) {
-                $.post("{{url('admin/delArticle')}}", {id:id, _token:'{{csrf_token()}}'}, function(ret) {
+                $.post("/admin/delArticle", {id:id, _token:'{{csrf_token()}}'}, function(ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
                             window.location.reload();

@@ -86,12 +86,12 @@
         function doSearch() {
             var username = $("#username").val();
 
-            window.location.href = '{{url('admin/userBanLogList')}}' + '?username=' + username;
+            window.location.href = '/admin/userBanLogList' + '?username=' + username;
         }
 
         // 重置
         function doReset() {
-            window.location.href = '{{url('admin/userBanLogList')}}';
+            window.location.href = '/admin/userBanLogList';
         }
     </script>
 @endsection

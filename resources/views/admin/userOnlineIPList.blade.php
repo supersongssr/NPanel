@@ -138,12 +138,12 @@
             var qq = $("#qq").val();
             var port = $("#port").val();
 
-            window.location.href = '{{url('admin/userOnlineIPList')}}' + '?username=' + username + '&wechat=' + wechat + '&qq=' + qq + '&port=' + port;
+            window.location.href = '/admin/userOnlineIPList' + '?username=' + username + '&wechat=' + wechat + '&qq=' + qq + '&port=' + port;
         }
 
         // 重置
         function doReset() {
-            window.location.href = '{{url('admin/userOnlineIPList')}}';
+            window.location.href = '/admin/userOnlineIPList';
         }
     </script>
 @endsection

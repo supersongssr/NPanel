@@ -34,7 +34,7 @@
                                         <tr>
                                             <td>{{$k + 1}}</td>
                                             <td>
-                                                <a href="{{url('admin/editNode?id=') . $node->id}}" target="_blank"> {{$node->name}} </a>
+                                                <a href="'admin/editNode?id=' . $node->id" target="_blank"> {{$node->name}} </a>
                                             </td>
                                             <td>
                                                 @if($node->compatible) <span class="label label-info">兼</span> @endif

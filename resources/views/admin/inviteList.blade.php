@@ -61,7 +61,7 @@
                                             @foreach($inviteList as $invite)
                                                 <tr>
                                                     <td> {{$invite->id}} </td>
-                                                    <td> <a href="{{url('register?code='.$invite->code)}}" target="_blank">{{$invite->code}}</a> </td>
+                                                    <td> <a href="'register?code='.$invite->code" target="_blank">{{$invite->code}}</a> </td>
                                                     <td> {{$invite->dateline}} </td>
                                                     <td> 
                                                         @if($invite->uid == '0')
@@ -113,7 +113,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "{{url('admin/makeInvite')}}",
+                url: "/admin/makeInvite",
                 async: false,
                 data: {_token:_token},
                 dataType: 'json',
@@ -131,7 +131,7 @@
 
         // 导出邀请码
         function exportInvite() {
-            window.location.href = '{{url('admin/exportInvite')}}';
+            window.location.href = '/admin/exportInvite';
         }
     </script>
 @endsection

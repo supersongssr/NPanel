@@ -88,7 +88,7 @@
     <!-- END LOGIN FORM -->
 <!-- song -->
 <script>
-alert("家: ssvss.xyz 保存书签呦 \nQQ：2107254004 \nQQ群：1016820452 \nTG群：ssvssxyz");  
+alert("家: ssvss.xyz 保存书签呦 \nQQ：2107254004 \nQQ群： \nTG群：dossrxyz");  
 </script>  
 @endsection
 @section('script')

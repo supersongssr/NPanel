@@ -24,7 +24,7 @@
                 <div class="portlet light bordered">
                     <div class="portlet-body form">
                         <!-- BEGIN FORM-->
-                        <form action="{{url('admin/addNode')}}" method="post" class="form-horizontal" onsubmit="return do_submit();">
+                        <form action="/admin/addNode" method="post" class="form-horizontal" onsubmit="return do_submit();">
                             <div class="form-body">
                                 <div class="row">
                                     <div class="col-md-6">
@@ -566,7 +566,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "{{url('admin/addNode')}}",
+                url: "/admin/addNode",
                 async: false,
                 data: {
                     _token: '{{csrf_token()}}',
@@ -618,7 +618,7 @@
                 success: function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            window.location.href = '{{url('admin/nodeList')}}';
+                            window.location.href = '/admin/nodeList';
                         }
                     });
                 }

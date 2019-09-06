@@ -65,7 +65,7 @@
                                     <div class="tab-content">
                                         <!-- CHANGE PASSWORD TAB -->
                                         <div class="tab-pane active" id="tab_1">
-                                            <form action="{{url('admin/profile')}}" method="post" enctype="multipart/form-data" class="form-bordered">
+                                            <form action="/admin/profile" method="post" enctype="multipart/form-data" class="form-bordered">
                                                 <div class="form-group">
                                                     <label class="control-label"> 旧密码 </label>
                                                     <input type="password" class="form-control" name="old_password" id="old_password" autofocus required />

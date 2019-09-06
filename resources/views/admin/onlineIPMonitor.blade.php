@@ -112,12 +112,12 @@
             var port = $("#port").val();
             var nodeId = $("#nodeId option:checked").val();
 
-            window.location.href = '{{url('admin/onlineIPMonitor')}}' + '?id=' + id + '&ip=' + ip + '&username=' + username + '&port=' + port + '&nodeId=' + nodeId;
+            window.location.href = '/admin/onlineIPMonitor' + '?id=' + id + '&ip=' + ip + '&username=' + username + '&port=' + port + '&nodeId=' + nodeId;
         }
 
         // 重置
         function doReset() {
-            window.location.href = '{{url('admin/onlineIPMonitor')}}';
+            window.location.href = '/admin/onlineIPMonitor';
         }
     </script>
 @endsection

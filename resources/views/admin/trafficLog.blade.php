@@ -72,7 +72,7 @@
                                                     @if(empty($vo->user))
                                                         【账号已删除】
                                                     @else
-                                                        <a href="{{url('admin/userList?id=') . $vo->user->id}}" target="_blank"> <span class="label label-info"> {{$vo->user->username}} </span> </a>
+                                                        <a href="'/admin/userList?id=' . $vo->user->id" target="_blank"> <span class="label label-info"> {{$vo->user->username}} </span> </a>
                                                     @endif
                                                 </td>
                                                 <td> {{$vo->node ? $vo->node->name : '【节点已删除】'}} </td>
@@ -115,12 +115,12 @@
             var username = $("#username").val();
             var nodeId = $("#nodeId option:checked").val();
 
-            window.location.href = '{{url('admin/trafficLog')}}' + '?port=' + port + '&user_id=' + user_id + '&username=' + username + '&nodeId=' + nodeId;
+            window.location.href = '/admin/trafficLog' + '?port=' + port + '&user_id=' + user_id + '&username=' + username + '&nodeId=' + nodeId;
         }
 
         // 重置
         function do_reset() {
-            window.location.href = '{{url('admin/trafficLog')}}';
+            window.location.href = '/admin/trafficLog';
         }
     </script>
 @endsection

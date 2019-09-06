@@ -105,7 +105,7 @@
                                                     @if(empty($order->user) )
                                                         【账号不存在】
                                                     @else
-                                                        <a href="{{url('admin/userList?id=') . $order->user->id}}" target="_blank"> {{$order->user->username}} </a>
+                                                        <a href="/admin/userList?id=' . $order->user->id" target="_blank"> {{$order->user->username}} </a>
                                                     @endif
                                                 </td>
                                                 <td> {{$order->order_sn}} </td>
@@ -184,12 +184,12 @@
             var sort = $("input:radio[name='sort']:checked").val();
             var range_time = $("#range_time").val();
 
-            window.location.href = '{{url('admin/orderList')}}' + '?username=' + username + '&is_expire=' + is_expire + '&is_coupon=' + is_coupon + '&pay_way=' + pay_way + '&status=' + status + '&sort=' + sort + '&range_time=' + range_time;
+            window.location.href = '/admin/orderList' + '?username=' + username + '&is_expire=' + is_expire + '&is_coupon=' + is_coupon + '&pay_way=' + pay_way + '&status=' + status + '&sort=' + sort + '&range_time=' + range_time;
         }
 
         // 重置
         function doReset() {
-            window.location.href = '{{url('admin/orderList')}}';
+            window.location.href = '/admin/orderList';
         }
     </script>
 @endsection

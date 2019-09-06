@@ -23,7 +23,7 @@
                         </div>
                         @endif
                         <!-- BEGIN FORM-->
-                        <form action="{{url('admin/import')}}" method="post" enctype="multipart/form-data" class="form-horizontal form-bordered">
+                        <form action="/admin/import" method="post" enctype="multipart/form-data" class="form-horizontal form-bordered">
                             <div class="form-body">
                                 <div class="form-group">
                                     <label class="control-label col-md-2"> JSON文件 </label>

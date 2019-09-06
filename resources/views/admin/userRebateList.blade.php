@@ -127,12 +127,12 @@
             var ref_username = $("#ref_username").val();
             var status = $("#status option:checked").val();
 
-            window.location.href = '{{url('admin/userRebateList')}}' + '?username=' + username + '&ref_username=' + ref_username + '&status=' + status;
+            window.location.href = '/admin/userRebateList' + '?username=' + username + '&ref_username=' + ref_username + '&status=' + status;
         }
 
         // 重置
         function do_reset() {
-            window.location.href = '{{url('admin/userRebateList')}}';
+            window.location.href = '/admin/userRebateList';
         }
     </script>
 @endsection
