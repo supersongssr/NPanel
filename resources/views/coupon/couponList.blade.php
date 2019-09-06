@@ -121,18 +121,18 @@
     <script type="text/javascript">
         // 批量导出卡券
         function exportCoupon() {
-            window.location.href = '{{url('coupon/exportCoupon')}}';
+            window.location.href = '/coupon/exportCoupon';
         }
 
         // 添加卡券
         function addCoupon() {
-            window.location.href = '{{url('coupon/addCoupon')}}';
+            window.location.href = '/coupon/addCoupon';
         }
 
         // 删除卡券
         function delCoupon(id) {
             layer.confirm('确定删除该卡券吗？', {icon: 2, title:'警告'}, function(index) {
-                $.post("{{url('coupon/delCoupon')}}", {id:id, _token:'{{csrf_token()}}'}, function(ret) {
+                $.post("/coupon/delCoupon", {id:id, _token:'{{csrf_token()}}'}, function(ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
                             window.location.reload();

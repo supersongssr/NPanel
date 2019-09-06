@@ -118,14 +118,14 @@ class AuthController extends Controller
                 return Redirect::to('admin');
             }
 
-            return Redirect::to('/#');
+            return Redirect::to('/nodeList');
         } else {
             if (Auth::check()) {
                 if (Auth::user()->is_admin) {
                     return Redirect::to('admin');
                 }
 
-                return Redirect::to('/#');
+                return Redirect::to('/nodeList');
             }
 
             return Response::view('auth.login');

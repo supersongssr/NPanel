@@ -29,7 +29,7 @@
                     </div>
                     <div class="portlet-body form">
                         <!-- BEGIN FORM-->
-                        <form action="{{url('coupon/addCoupon')}}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
+                        <form action="/coupon/addCoupon" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
                             <div class="form-body">
                                 <div class="form-group">
                                     <label class="control-label col-md-3">卡券名称</label>
