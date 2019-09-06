@@ -9,6 +9,8 @@ use App\Http\Models\User;
 use App\Http\Models\Goods;  //Song 
 use App\Http\Models\UserLabel;
 use App\Http\Models\GoodsLabel;
+use App\Http\Models\ReferralLog;
+
 use Log;
 use DB;
 
@@ -40,6 +42,8 @@ class Test extends Command
     // 扣减用户到期商品的流量
     private function decGoodsTraffic()
     {
+
+        /**
         $userDelList = User::query()->where('id', '>', 1)->where('enable', 0)->where('expire_time', '<', date('Y-m-d',strtotime("-7 day")))->get();
         if (!$userDelList->isEmpty()) {
             # code...
@@ -56,6 +60,15 @@ class Test extends Command
                 echo '----------';
                 
             }
+        }
+        **/
+
+
+        # 先获取所有的 删除记录，然后，再取查找 那个返利记录，如果返利记录有就返回1 
+        $referrals = ReferralLog::query()->where('order_id','=',-1)->where('status','=',2)->get();
+        foreach ($referrals as $ref) {
+            # code...
+            User::query()->where('id', $ref->ref_user_id)->increment('balance', $ref->ref_amount*100);
         }
     }
 }

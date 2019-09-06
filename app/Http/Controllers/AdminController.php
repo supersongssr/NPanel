@@ -539,9 +539,9 @@ class AdminController extends Controller
             ##如果存在这个邀请ID 那么就扣除这个用户相应的邀请ID，并写入返利日志 直接扣除，直接写入
             if (!empty($referral->ref_amount)) {
                 #扣除邀请人相应的余额
-                User::query()->where('id', $user->referral_uid)->decrement('balance', $referral->ref_amount);
+                User::query()->where('id', $user->referral_uid)->decrement('balance', $referral->ref_amount*100);
                 #写入用户余额变动日志
-                $this->addUserBalanceLog($user->id, 0, $user->balance, $user->balance - $referral->ref_amount, -$referral->ref_amount, '邀请用户被删除扣除余额');
+                $this->addUserBalanceLog($user->referral_uid, 0, $user->balance, $user->balance - $referral->ref_amount, -$referral->ref_amount, '邀请用户被删除扣除余额');
                 
                 ## 写入用户邀请返利日志
                 $referrallog = new ReferralLog();
