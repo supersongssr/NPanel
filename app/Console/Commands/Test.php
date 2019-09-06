@@ -68,7 +68,9 @@ class Test extends Command
         $referrals = ReferralLog::query()->where('order_id','=',-1)->where('status','=',2)->get();
         foreach ($referrals as $ref) {
             # code...
-            User::query()->where('id', $ref->ref_user_id)->increment('balance', $ref->ref_amount*100);
+            @User::query()->where('id', $ref->ref_user_id)->increment('balance', $ref->ref_amount*100);
+            echo $ref->id;
+            echo ' ';
         }
     }
 }
