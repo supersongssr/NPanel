@@ -84,7 +84,7 @@
                         </div>
                         <div class="actions">
                             <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 自动提取到余额 </button>
-                            <button type="submit" class="btn green" onclick="extractMoney()"> {{trans('home.referral_table_apply')}} </button>
+                            <button type="submit" class="btn green" onclick="extractMoney()"> {{trans('home.referral_table_apply')}} </button> 
                         </div>
                     </div>
                     <div class="portlet-body">  

@@ -40,7 +40,7 @@
                                     @foreach($ticketList as $key => $ticket)
                                         <tr class="odd gradeX">
                                             <td> {{$key + 1}} </td>
-                                            <td> <a href="'/replyTicket?id=' . $ticket->id" target="_blank">{{$ticket->title}}</a> </td>
+                                            <td> <a href="/replyTicket?id={{$ticket->id}}" target="_blank">{{$ticket->title}}</a> </td>
                                             <td>
                                                 @if ($ticket->status == 0)
                                                     <span class="label label-info"> {{trans('home.ticket_table_status_wait')}} </span>

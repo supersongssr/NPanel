@@ -10,6 +10,8 @@ use App\Http\Models\Goods;  //Song
 use App\Http\Models\UserLabel;
 use App\Http\Models\GoodsLabel;
 use App\Http\Models\ReferralLog;
+use App\Http\Models\SsNode;
+
 
 use Log;
 use DB;
@@ -43,6 +45,13 @@ class Test extends Command
     private function decGoodsTraffic()
     {
 
+        // 批量替换所有节点里面的域名
+        $nodeList = SsNode::query()->where('id','>',128)->orderBy('id', 'asc')->get(); 
+        foreach ($nodeList as $node) {
+            # code...
+            $node->server = str_replace("ssvss.tk","ssyes.xyz",$node->server);
+            SsNode::query()->where('id',$node->id)->update(['server'=>$node->server]);
+        }
         /**
         $userDelList = User::query()->where('id', '>', 1)->where('enable', 0)->where('expire_time', '<', date('Y-m-d',strtotime("-7 day")))->get();
         if (!$userDelList->isEmpty()) {
@@ -64,6 +73,8 @@ class Test extends Command
         **/
 
 
+
+/**
         # 先获取所有的 删除记录，然后，再取查找 那个返利记录，如果返利记录有就返回1 
         $referrals = ReferralLog::query()->where('order_id','=',-1)->where('status','=',2)->get();
         foreach ($referrals as $ref) {
@@ -72,5 +83,6 @@ class Test extends Command
             echo $ref->id;
             echo ' ';
         }
+        **/
     }
 }

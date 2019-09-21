@@ -75,7 +75,8 @@
                                     <a href="javascript:;" class="btn blue mt-clipboard" data-clipboard-action="copy" data-clipboard-target="#mt-target-2">
                                         {{trans('home.copy_subscribe_address')}}IOS小火箭专用V2订阅
                                     </a>
-                                    <br>SR、V2 软件不同！技术不同！节点也不同！ 推荐SR > V2 ！本站同时支持SR 、V2 :)  
+                                    <br>SR、V2 软件不同！技术不同！节点也不同！ 推荐SR > V2 ！本站同时支持SR 、V2 :)
+                                    <br>特殊时期，推荐用户使用V2软件； 2019.9.20  
                                     <a href="javascript:exchangeSubscribe();" class="btn green">
                                         {{trans('home.exchange_subscribe')}}订阅链接防止外泄
                                     </a>
@@ -184,7 +185,7 @@
                                                 </ol>
                                                 <hr>
                                                 <ol>【V2 教程】
-                                                    <li> 推荐下载<a href="/clietns/app-universal-release.apk">v2rayNG</a>；或者<a href="/downloads/BifrostV.apk">bifrostv</a>，然后安装。</li>
+                                                    <li> 推荐下载<a href="/clients/app-universal-release.apk">v2rayNG</a>；或者<a href="/downloads/BifrostV.apk">bifrostv</a>，然后安装。</li>
                                                     <li> 点击右上角 订阅设置 subscription setting，输入本站V2Ray订阅地址 </li>
                                                     <li> 选择一个节点，点击右下角小飞机，即可使用。 </li>
                                                 </ol>

@@ -31,7 +31,7 @@
                                                 </a>
                                                 <div class="search-content">
                                                     <h2 class="search-title">
-                                                        <a href="'/article?id=' . $article->id">{{str_limit($article->title, 300)}}</a>
+                                                        <a href="/article?id={{$article->id}}">{{str_limit($article->title, 300)}}</a>
                                                     </h2>
                                                     <p class="search-desc" style="font-size: 16px;"> {{$article->summary}} </p>
                                                 </div>

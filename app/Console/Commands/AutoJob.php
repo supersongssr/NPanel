@@ -145,7 +145,7 @@ class AutoJob extends Command
     private function blockUsers()
     {       
         //删除过期x月，且余额低于x元的用户。
-        $userDelList = User::query()->where('id', '>', 1)->where('enable', 0)->where('expire_time', '<', date('Y-m-d',strtotime("-7 day")))->get();
+        $userDelList = User::query()->where('id', '>', 1)->where('enable', 0)->where('expire_time', '<', date('Y-m-d',strtotime("-16 day")))->get();
         if (!$userDelList->isEmpty()) {
             # code...
             foreach ($userDelList as $user) {

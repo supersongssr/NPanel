@@ -745,8 +745,8 @@ class UserController extends Controller
         //加一个功能 song 如果消费返利 < 注册返利，那么就无法申请提现 判定订单中 订单为0 的 比例
         $reg_money = ReferralLog::uid()->where('status', 0)->where('order_id',0)->sum('ref_amount');
         // 这里取 邀请注册返利占比不能大于 1/2 
-        if ($reg_money > ($ref_amount * 50)) {  //*50 = *100 /2
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：注册返利太多了！消费返利太少了！']);
+        if ($reg_money > ($ref_amount * 5)) {  //*50 = *100 /2
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：注册返利多了！充值消费返利少了！']);
         }
 
         // 取出本次申请关联返利日志ID
