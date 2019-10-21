@@ -106,17 +106,23 @@
             <!-- DOC: Set data-keep-expand="true" to keep the submenues expanded -->
             <!-- DOC: Set data-auto-speed="200" to adjust the sub menu slide up/down speed -->
             <ul class="page-sidebar-menu" data-keep-expanded="false" data-auto-scroll="true" data-slide-speed="200">
-                <li class="nav-item start {{in_array(Request::path(), ['/', 'subscribe', 'profile']) ? 'active open' : ''}}">
+                <li class="nav-item start {{in_array(Request::path(), ['/', 'profile']) ? 'active open' : ''}}">
                     <a href="/" class="nav-link nav-toggle">
                         <i class="icon-home"></i>
                         <span class="title">{{trans('home.home')}}</span>
                         <span class="selected"></span>
                     </a>
                 </li>
+                <li class="nav-item {{in_array(Request::path(), ['subscribe']) || in_array(Request::segment(1), ['subscribe']) ? 'active open' : ''}}">
+                    <a href="/subscribe" class="nav-link nav-toggle">
+                        <i class="icon-rocket"></i>
+                        <span class="title">订阅教程</span>
+                    </a>
+                </li>
                 <li class="nav-item {{in_array(Request::path(), ['nodeList']) || in_array(Request::segment(1), ['nodeList']) ? 'active open' : ''}}">
                     <a href="/nodeList" class="nav-link nav-toggle">
                         <i class="icon-list"></i>
-                        <span class="title">使用教程/节点</span>
+                        <span class="title">节点列表</span>
                     </a>
                 </li>
                 <li class="nav-item {{in_array(Request::path(), ['services']) || in_array(Request::segment(1), ['buy', 'payment']) ? 'active open' : ''}}">

@@ -30,12 +30,13 @@
                                 </h4>
                             </li>
                             <li>
-                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
+                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">点我{{trans('home.recharge')}}</a>
                             </li>
                             <li>
-                                <a href="http://www.910fk.com/liebiao/55E728B4D7930933" target="_blank" class="btn green btn-sm">获取充值卡券</a> <!-- song -->
+                                <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">获取充值卡券</a> <!-- song -->
                             </li>
                         </ul>
+                        <p><small>*如果您余额 < 0 ，请在推广返利页面 提取返利金额 试试？</small></p>
                     </div>
                 </div>
             </div>
@@ -47,38 +48,41 @@
                     <div class="portlet light">
                         <div class="tabbable-line">
                             <ul class="nav nav-tabs">
-                                <li >
+                                <li  class="active">
                                     <a href="#services1" data-toggle="tab"> <i class="fa fa-book"></i> 说明 </a>
                                 </li>
-                                <li class="active">
-                                    <a href="#services2" data-toggle="tab"> <i class="fa fa-cloud"></i> 帝王VIP套餐区 </a>
+                                <li>
+                                    <a href="#services2" data-toggle="tab"> <i class="fa fa-cloud"></i> 套餐 </a>
                                 </li>
                                 <li>
-                                    <a href="#services3" data-toggle="tab"> <i class="fa fa-jsfiddle"></i> 低价公益亲民区 </a>
+                                    <a href="#services3" data-toggle="tab"> <i class="fa fa-jsfiddle"></i> 流量包 </a>
                                 </li>
                             </ul>
-                            <div class="tab-content" style="font-size:16px;">
-                                <div class="tab-pane" id="services1">
+                            <div class="tab-content " style="font-size:16px;">
+                                <div class="tab-pane active" id="services1">
                                     <h4>购买帮助：</h4>
                                     <ol>
-                                        <li>第一步：充值余额（购买卡密充值）。</li>
-                                        <li>第二步：购买VIP套餐或者体验包。</li>
+                                        <li>如果您余额不足，请充值余额后再购买套餐</li>
+                                        <li>套餐和流量包都可以获取VIP等级，套餐每月流量重置，流量包每月流量不重置</li>
+                                        <li>流量包可为账号续期；建议套餐用户在流量不足情况下再购买流量包。</li>
                                     </ol>
-                                    <h4>帝王VIP套餐：</h4>
+                                    <h4>套餐（*G流量/月）：</h4>
                                     <ol>
-                                        <li>在套餐生效的时间内，您将获得「VIP节点」、「套餐对应的网络速度」、「套餐内相应的流量」。</li>
-                                        <li>基础套餐每月将会重置一次流量，重置日为购买日。</li>
-                                        <li>如在套餐未到期的情况下购买新套餐，则会导致旧套餐的所有配置立即失效，新套餐的配置立即生效。</li>
+                                        <li>套餐不可叠加。</li>
+                                        <li>在套餐生效的时间内，您将获得「VIP节点」、「套餐对应的网络速度」、「套餐内相应的流量」</li>
+                                        <li>基础套餐每月将会重置一次流量，重置日为购买日</li>
+                                        <li>如在套餐未到期的情况下购买新套餐，则会导致旧套餐的所有配置立即失效，新套餐的配置立即生效</li>
                                     </ol>
-                                    <h4>低价亲民区：</h4>
+                                    <h4>流量包（*G流量）：</h4>
                                     <ol>
-                                        <li>流量包用于补充流量，可叠加购买。</li>
-                                        <li>亲民VIP全网价格最低，适合小流量用户使用，提供VIP节点。</li>
-                                        <li>本区流量可叠加，可重复购买，流量用完即止，到期即止。</li>
+                                        <li>流量包可以补充账号流量</li>
+                                        <li>购买多个流量包，可叠加流量</li>
+                                        <li>购买流量包，可获得对应的VIP等级</li>
+
                                     </ol>
 
                                 </div>
-                                <div class="tab-pane  active" id="services2">
+                                <div class="tab-pane" id="services2">
                                     <div class="pricing-content-1" style="padding-top: 10px;">
                                         <div class="row">
                                             @if($packageList->isEmpty())

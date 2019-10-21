@@ -111,6 +111,7 @@ Route::group(['middleware' => ['isForbidden', 'isLogin']], function () {
     Route::any('/', 'UserController@index'); // 用户首页
     Route::any('article', 'UserController@article'); // 文章详情
     Route::post('exchangeSubscribe', 'UserController@exchangeSubscribe'); // 更换节点订阅地址
+    Route::get('subscribe', 'UserController@subscribe'); // 节点列表
     Route::get('nodeList', 'UserController@nodeList'); // 节点列表
     Route::post('checkIn', 'UserController@checkIn'); // 签到
     Route::get('services', 'UserController@services'); // 商品列表

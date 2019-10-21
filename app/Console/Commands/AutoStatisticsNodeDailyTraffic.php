@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Http\Models\SsNode;
 use App\Http\Models\SsNodeTrafficDaily;
+use App\Http\Models\SsNodeTrafficHourly;
 use App\Http\Models\UserTrafficLog;
 use Log;
 
@@ -21,7 +22,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
     public function handle()
     {
         $jobStartTime = microtime(true);
-        $nodeList = SsNode::query()->where('status', 1)->where('id','>',3)->orderBy('id', 'asc')->get();  //只获取在线的节点
+        $nodeList = SsNode::query()->where('status', 1)->where('id','>',9)->orderBy('id', 'asc')->get();  //只获取在线的节点
         // 1 2 3 节点是 用来发广告的节点，嘎嘎 可以有，哈哈 嘿嘿 嘎嘎 喜喜
         foreach ($nodeList as $node) {
             $this->statisticsByNode($node->id);
@@ -110,13 +111,23 @@ class AutoStatisticsNodeDailyTraffic extends Command
         $end_time = strtotime(date('Y-m-d 23:59:59', strtotime("-1 day")));
 
         $query = UserTrafficLog::query()->where('node_id', $node_id)->whereBetween('log_time', [$start_time, $end_time]);
+        //$query = SsNodeTrafficHourly::query()->where('node_id', $node_id)->whereBetween('log_time', [$start_time, $end_time]);
 
         $u = $query->sum('u');
         $d = $query->sum('d');
         $total = $u + $d;
+        //获取节点信息
+        $node = SsNode::query()->where('id', $node_id)->first();
+        //如果倍率为0的话，无法做除数，改为最低倍率0.1
+        $node->traffic_rate == 0 && $node->traffic_rate = 1;
+        !empty($node->monitor_url) && $node->traffic_rate = 1;
+        $total = $total / $node->traffic_rate;
         $traffic = flowAutoShow($total);
 
-        if ($total) { // 有数据才记录
+        //写入每日流量数据 有记录才会写 显得好看些
+        if ( $total ) {
+            # code...
+            //写入每日流量数据
             $obj = new SsNodeTrafficDaily();
             $obj->node_id = $node_id;
             $obj->u = $u;
@@ -125,13 +136,30 @@ class AutoStatisticsNodeDailyTraffic extends Command
             $obj->traffic = $traffic;
             $obj->save();
         }
-
-        // 在线节点少于 16G流量的隐藏 且 加点
+        
+        // 在线节点少于 16G流量的隐藏 且节点名称加 - 
+        // 这个主要是用来证明节点是否可以正常使用的！
         if ($total < 17179869184) {
             # code...
-            $node = SsNode::query()->where('id', $node_id)->first();
-            $node->name .= '·';
-            SsNode::query()->where('id',$node_id)->update(['status'=>0, 'name'=>$node->name]);
+            $node->ipv6 .= '*';
+            $node->status = 0;
         }
+        //节点描述里，加上每日节点流量表现数值 
+        $node->desc = floor($total / 1073741824) . ' ' . $node->desc;
+        $node->desc = substr($node->desc, 0,64);
+        // 保留1位小数
+        $node->traffic_rate = round( ($total * 64 / 1073741824 / $node->bandwidth) , 2);
+        $node->traffic_rate == 0 && $node->traffic_rate = 1;
+
+        // 
+        /**
+        if ($node->traffic_rate <= 1) {
+            # code...
+            $node->ipv6 .= '*';
+            $node->status = 0;
+        }
+        **/
+
+        SsNode::query()->where('id',$node_id)->update(['status'=>$node->status, 'ipv6'=>$node->ipv6 , 'desc'=>$node->desc ,'traffic_rate'=>$node->traffic_rate ]);
     }
 }

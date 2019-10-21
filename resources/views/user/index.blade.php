@@ -17,7 +17,7 @@
                         </div>
                         <div class="actions">
                             <span class="caption-subject">
-                                <a class="btn btn-sm green" href="nodeList">订阅、使用教程、节点列表</a>
+                                <a class="btn btn-sm green" href="subscribe">订阅、使用教程</a>
                                 <a class="btn btn-sm blue" href="javascript:checkIn();"> 签到 </a>
                             </span>
                         </div>

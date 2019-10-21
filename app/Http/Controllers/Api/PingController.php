@@ -95,18 +95,32 @@ class PingController extends Controller
         $node = SsNode::query()->where('id', $id)->first();
         $traffic_mark = $node['traffic'];
         //写入node数据 status
-        SsNode::query()->where('id',$node['id'])->update(['status'=>$status,'traffic'=>$traffic]);
+        SsNode::query()->where('id',$id)->update(['status'=>$status,'traffic'=>$traffic]);
         empty($node['monitor_url']) && exit;  //如果ssn关键数据为空，剩下的流量就不写了。 正常节点有正常写入流量的
         //写入每小时节点流量
+        //直接写入用户流量数据
+        $obj = new UserTrafficLog();
+        $traffic_now = $traffic - $traffic_mark;
+        $traffic_now < 0 && $traffic_now = 1;    //如果流量差<0 那么可能是重置了 设为1 
+        $obj->user_id =  0; //用户为0的使用的流量就是上传的流量
+        $obj->u = 0;
+        $obj->d = $traffic_now;
+        $obj->node_id = $id;
+        $obj->rate = 1;
+        $obj->traffic = floor($traffic_now / 1048576) . 'MB';
+        $obj->log_time = time();
+        $obj->save();
+        /**
         $obj = new SsNodeTrafficHourly();
         $traffic_now = $traffic - $traffic_mark;
-        $traffic_now < 0 && $traffic_now= 1;    //如果流量差<0 那么可能是重置了 设为1 
+        $traffic_now < 0 && $traffic_now = 1;    //如果流量差<0 那么可能是重置了 设为1 
         $obj->node_id = $id;
         $obj->u = 0;
         $obj->d = $traffic_now;
         $obj->total = $traffic_now;
-        $obj->traffic = $traffic_now;
+        $obj->traffic = floor($traffic_now / 1048576) . 'MB';
         $obj->save();
+        **/
         //写入节点在线人数
         $online_log = new SsNodeOnlineLog();
         $online_log->node_id = $id;

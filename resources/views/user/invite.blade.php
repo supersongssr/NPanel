@@ -7,7 +7,9 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="note note-info">
-                    <p>通过您的推广链接注册使用，返利7.99-24.99￥/用户,你们双方都将获得 32GB 流量奖励；当他们消费时，您将获得他们消费金额的 20% 作为奖励。</p>
+                    <p>通过您的推广链接/邀请码注册返利4￥/用户,你们双方都将获得 20GB 流量奖励；当他们消费时，您将获得他们消费金额的 20% 作为奖励。</p>
+                    <p>推广返利：（ 4元余额 + 20G流量 ）* 注册人数 + （ 20%消费返利 * 用户消费 ）；</p>
+                    <p>*EDU推广返利：（ 20元余额 + 20G流量 ）* 注册人数 + （ 20%消费返利 * 用户消费 ）；</p>
                 </div>
             </div>
         </div>
@@ -60,7 +62,7 @@
                                             @foreach($inviteList as $key => $invite)
                                                 <tr>
                                                     <td> {{$key + 1}} </td>
-                                                    <td> <a class="copy" data-clipboard-text="'/register?aff=' . Auth::user()->id . '&code=' . $invite->code">{{$invite->code}}</a> </td>
+                                                    <td> <a class="copy" data-clipboard-text="{{url('register?aff=' . Auth::user()->id . '&code=' . $invite->code)}}">{{$invite->code}}</a> </td>
                                                     <td> {{$invite->dateline}} </td>
                                                     <td>
                                                         @if($invite->status == '0')
@@ -108,7 +110,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "/makeInvite",
+                url: "{{url('makeInvite')}}",
                 async: false,
                 data: {_token:_token},
                 dataType: 'json',

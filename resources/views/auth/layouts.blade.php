@@ -33,16 +33,16 @@
     <!-- BEGIN LOGO -->
     <div class="logo">
         @if(\App\Components\Helpers::systemConfig()['website_home_logo'])
-            <a href="/"> <img src="{{\App\Components\Helpers::systemConfig()['website_home_logo']}}" alt="" style="max-width:300px; max-height:90px;"/> </a>
+            <a href="{{url('/')}}"> <img src="{{\App\Components\Helpers::systemConfig()['website_home_logo']}}" alt="" style="max-width:300px; max-height:90px;"/> </a>
         @else
-            <a href="/"> <img src="/assets/images/home_logo.png" alt="" /> </a>
+            <a href="{{url('/')}}"> <img src="/assets/images/home_logo.png" alt="" /> </a>
         @endif
     </div>
     <!-- END LOGO -->
     <!-- BEGIN LOGIN -->
     <div class="content " >
         <nav style="padding-bottom: 20px;text-align: center;">
-            <a>★邀请返利20%+5￥/人; <br>★SR SS V2技术全平台支持; <br>★NetFlix! Hulu!; BGP HKBN NTT CN2 PCCW多线混合组网; <br>★香港、台湾、日本、韩国、新加坡、俄罗斯等全球100+节点; 15Gbps+ 国际带宽。  </a>
+            <a>★公益站点<br>★全协议SR SS Vmess支持<br>★正在努力提供尽可能多的国家地区的节点<br>★解锁:NetFlix<br>★宗旨:为科研教育提供稳定免费的上网机会<br>★使用本站服务，请遵守Republic of Singapore/新加坡/新加坡共和國相关法律</a>
             <!-- @if(app()->getLocale() == 'zh-CN')
                 <a href="{{url('lang', ['locale' => 'zh-tw'])}}">繁體中文</a>
                 <a href="{{url('lang', ['locale' => 'en'])}}">English</a>

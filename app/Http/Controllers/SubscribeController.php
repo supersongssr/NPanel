@@ -142,13 +142,13 @@ class SubscribeController extends Controller
             exit($this->noneNode());
         }
 
-        $user = User::query()->whereIn('status', [0, 1])->where('enable', 1)->where('id', $subscribe->user_id)->first();
+        $user = User::query()->where('status', 1)->where('enable', 1)->where('id', $subscribe->user_id)->first();
         if (!$user) {
             exit($this->noneNode());
         }
 
         // 更新访问次数
-        $subscribe->increment('times', 1);
+        $subscribe->increment('times', 1); 
 
         // 记录每次请求
         $this->log($subscribe->id, getClientIp(), $request->headers);
@@ -205,7 +205,8 @@ class SubscribeController extends Controller
                 if ($node['type'] == 1) {
                     if ( empty($node['monitor_url']) ) {
                         # code...
-                        $group = SsGroup::query()->where('id', $node['group_id'])->first();
+                        //$group = SsGroup::query()->where('id', $node['group_id'])->first();
+                        $group = self::$systemConfig['website_name'];
 
                         $obfs_param = $user->obfs_param ? $user->obfs_param : $node['obfs_param'];
                         $protocol_param = $node['single'] ? $user->port . ':' . $user->passwd : $user->protocol_param;
@@ -216,23 +217,24 @@ class SubscribeController extends Controller
                         $ssr_str .= ':' . ($node['single'] ? $node['single_obfs'] : $user->obfs) . ':' . ($node['single'] ? base64url_encode($node['single_passwd']) : base64url_encode($user->passwd));
                         $ssr_str .= '/?obfsparam=' . base64url_encode($obfs_param);
                         $ssr_str .= '&protoparam=' . ($node['single'] ? base64url_encode($user->port . ':' . $user->passwd) : base64url_encode($protocol_param));
-                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].'#'.$node['sort'].'*'.$node['traffic_rate'].'~'.$node['id']);
-                        $ssr_str .= '&group=' . base64url_encode(empty($group) ? '' : $group->name);
+                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].'-'.$node['traffic_rate'].'倍-'.$node['sort'].'级-'.$node['id']);
+                        $ssr_str .= '&group=' . base64url_encode($group);
                         $ssr_str .= '&udpport=0';
                         $ssr_str .= '&uot=0';
                         $ssr_str = base64url_encode($ssr_str);
                         $scheme .= 'ssr://' . $ssr_str . "\n";
                     }elseif ( $node['compatible'] ) {
                         # code...
-                        $group = SsGroup::query()->where('id', $node['group_id'])->first();
+                        //$group = SsGroup::query()->where('id', $node['group_id'])->first();
+                        $group = self::$systemConfig['website_name'];
                         // 生成ssr scheme
                         $ssr_str = ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['ssh_port'];
                         $ssr_str .= ':origin' . ':' . $node['method'];
                         $ssr_str .= ':plain' . ':' . base64url_encode($node['monitor_url']);
                         $ssr_str .= '/?obfsparam=';
                         $ssr_str .= '&protoparam=';
-                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].'#'.$node['sort'].'*'.$node['traffic_rate'].'~'.$node['id']);
-                        $ssr_str .= '&group=' . base64url_encode(empty($group) ? '' : $group->name);
+                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].'-'.$node['traffic_rate'].'倍-'.$node['sort'].'级-'.$node['id']);
+                        $ssr_str .= '&group=' . base64url_encode($group);
                         $ssr_str .= '&udpport=0';
                         $ssr_str .= '&uot=0';
                         $ssr_str = base64url_encode($ssr_str);
@@ -258,7 +260,7 @@ class SubscribeController extends Controller
                     // 生成v2ray scheme
                     $v2_json = [
                         "v"    => "2",
-                        "ps"   => $node['name'].'#'.$node['sort'].'*'.$node['traffic_rate'].'~'.$node['id'],
+                        "ps"   => $node['name'].'-'.$node['sort'].'级-'.$node['traffic_rate'].'倍-'.$node['id'],
                         "add"  => $node['server'] ? $node['server'] : $node['ip'],
                         "port" => $node['v2_port'],
                         "id"   => $node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id'],
@@ -276,13 +278,13 @@ class SubscribeController extends Controller
                         if ( $node['compatible'] ) {
                         $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
-                        $ss_str = base64_encode($ss_str) . '#' . $node['name'].'$'.$node['sort'].'*'.$node['traffic_rate'].'~'.$node['id'];
+                        $ss_str = base64_encode($ss_str) . '#' . $node['name'].'-'.$node['sort'].'级-'.$node['traffic_rate'].'倍-'.$node['id'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                         }
                     }else{
                         $ss_str = $node['method'] . ':' . $node['monitor_url'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['ssh_port'];
-                        $ss_str = base64_encode($ss_str) . '#' . $node['name'].'&'.$node['sort'].'*'.$node['traffic_rate'].'~'.$node['id'];
+                        $ss_str = base64_encode($ss_str) . '#' . $node['name'].'-'.$node['sort'].'级-'.$node['traffic_rate'].'倍-'.$node['id'];
                         $scheme .= 'ss://' . $ss_str . "\n";
                     }
                 }   
@@ -301,7 +303,7 @@ class SubscribeController extends Controller
                 if ($node['type'] == 2 && $node['v2_net'] != 'kcp') {
                     $v2_str = $node['v2_method'] . ':' . ($node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id']) . '@';
                     $v2_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['v2_port'];  
-                    $v2_str = base64url_encode($v2_str) . '?remarks=' . urlencode($node['name'].'$'.$node['sort'].'*'.$node['traffic_rate'].'~'.$node['id']) ;
+                    $v2_str = base64url_encode($v2_str) . '?remarks=' . urlencode($node['name'].'-'.$node['sort'].'级-'.$node['traffic_rate'].'倍-'.$node['id']) ;
                     $v2_str .= '&obfsParam=' . $node['v2_host'] . '&path=' . $node['v2_path'] . '&obfs=' . ($node['v2_net'] == 'ws' ? 'websocket' : $node['v2_net']) . '&tls=' . ($node['v2_tls'] == 1 ? "1" : "");
                     $scheme .= 'vmess://' . $v2_str . "\n";
                 }else{
@@ -310,13 +312,13 @@ class SubscribeController extends Controller
                         if ( $node['compatible'] ) {
                         $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
-                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'$'.$node['sort'].'*'.$node['traffic_rate'].'~'.$node['id']);
+                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'-'.$node['sort'].'级'.$node['traffic_rate'].'倍-'.$node['id']);
                         $scheme .= 'ss://' . $ss_str . "\n";
                         }
                     }else{
                         $ss_str = $node['method'] . ':' . $node['monitor_url'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['ssh_port'];
-                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'&'.$node['sort'].'*'.$node['traffic_rate'].'~'.$node['id']);
+                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'-'.$node['sort'].'级'.$node['traffic_rate'].'倍-'.$node['id']);
                         $scheme .= 'ss://' . $ss_str . "\n";
                     }
                 }

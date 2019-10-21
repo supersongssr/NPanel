@@ -148,6 +148,26 @@
                                                         <input type="text" class="form-control" name="desc" value="{{$node->desc}}" id="desc" placeholder="简单描述">
                                                     </div>
                                                 </div>
+                                                
+                                                 
+                                                <div class="form-group">
+                                                    <label for="bandwidth" class="col-md-3 control-label">每月流量</label>
+                                                    <div class="col-md-8">
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control" name="bandwidth" value="{{$node->bandwidth}}" id="bandwidth" placeholder="" required>
+                                                            <span class="input-group-addon">G</span>
+                                                        </div>
+                                                    </div>
+                                                </div> 
+                                                <div class="form-group">
+                                                    <label for="traffic" class="col-md-3 control-label">已用流量</label>
+                                                    <div class="col-md-8">
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control right" name="traffic" value="{{floor($node->traffic / 1024/1024/1024)}}" id="traffic" placeholder="" required>
+                                                            <span class="input-group-addon">G</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 <div class="form-group">
                                                     <label for="status" class="col-md-3 control-label">状态</label>
                                                     <div class="col-md-8">
@@ -163,26 +183,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <!--   
-                                                <div class="form-group">
-                                                    <label for="bandwidth" class="col-md-3 control-label">SRS端口</label>
-                                                    <div class="col-md-8">
-                                                        <div class="input-group">
-                                                            <input type="text" class="form-control" name="bandwidth" value="{{$node->bandwidth}}" id="bandwidth" placeholder="" required>
-                                                            <span class="input-group-addon">这个地方变成了端口</span>
-                                                        </div>
-                                                    </div>
-                                                </div> 
-                                                <div class="form-group">
-                                                    <label for="traffic" class="col-md-3 control-label">每月可用流量</label>
-                                                    <div class="col-md-8">
-                                                        <div class="input-group">
-                                                            <input type="text" class="form-control right" name="traffic" value="1000" id="traffic" placeholder="" required>
-                                                            <span class="input-group-addon">G</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                -->
+                                                
                                                 <div class="form-group">
                                                     <label for="ssh_port" class="col-md-3 control-label"> SRS端口 </label>
                                                     <div class="col-md-8">

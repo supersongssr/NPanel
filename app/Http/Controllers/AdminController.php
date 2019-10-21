@@ -592,14 +592,16 @@ class AdminController extends Controller
             $query->where('status', intval($status));
         }
 
-        $nodeList = $query->orderBy('id', 'desc')->paginate(32)->appends($request->except('page'));
+        $nodeList = $query->orderBy('id', 'desc')->paginate(10)->appends($request->except('page'));
         foreach ($nodeList as &$node) {
             // 在线人数
             $online_log = SsNodeOnlineLog::query()->where('node_id', $node->id)->where('log_time', '>=', strtotime("-2 hours"))->orderBy('id', 'desc')->first();
             $node->online_users = empty($online_log) ? 0 : $online_log->online_user;
 
             // 已产生流量
-            $totalTraffic = SsNodeTrafficDaily::query()->where('node_id', $node->id)->sum('total');
+            //$totalTraffic = SsNodeTrafficDaily::query()->where('node_id', $node->id)->sum('total');
+            //song 这里直接用节点上的数据
+            $totalTraffic = $node->traffic;
             $node->transfer = flowAutoShow($totalTraffic);
 
             // 负载（10分钟以内）
@@ -617,6 +619,8 @@ class AdminController extends Controller
     public function addNode(Request $request)
     {
         if ($request->isMethod('POST')) {
+
+            /**
             if ($request->get('ssh_port') <= 0 || $request->get('ssh_port') >= 65535) {
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '添加失败：SSH端口不合法']);
             }
@@ -638,6 +642,7 @@ class AdminController extends Controller
                     return Response::json(['status' => 'fail', 'data' => '', 'message' => '绑定域名不合法']);
                 }
             }
+            **/
 
             // TODO：判断是否已存在绑定了相同域名的节点，提示是否要强制替换，或者不提示之前强制将其他节点的绑定域名置为空，然后发起域名绑定请求，或者请求进入队列
 
@@ -736,6 +741,7 @@ class AdminController extends Controller
         $id = $request->get('id');
 
         if ($request->isMethod('POST')) {
+            /**
             if ($request->get('ssh_port') <= 0 || $request->get('ssh_port') >= 65535) {
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '编辑失败：SSH端口不合法']);
             }
@@ -761,6 +767,8 @@ class AdminController extends Controller
             if ($request->get('v2_alter_id') <= 0 || $request->get('v2_alter_id') >= 65535) {
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '编辑失败：AlterId不合法']);
             }
+
+            **/
 
             DB::beginTransaction();
             try {

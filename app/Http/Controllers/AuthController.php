@@ -177,7 +177,8 @@ class AuthController extends Controller
             $sensitiveWords = $this->sensitiveWords();
             $usernameSuffix = explode('@', $request->username); // 提取邮箱后缀
             if (!in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
-                Session::flash('errorMsg', '呃，陌生的邮箱，请联系管理员将邮箱添加到白名单！');
+                return Redirect::back()->withInput()->withErrors('呃，邮箱不常见呢，请联系管理员将邮箱添加到白名单！');
+                //Session::flash('errorMsg', '呃，陌生的邮箱，请联系管理员将邮箱添加到白名单！');
 
                 return Redirect::back()->withInput();
             }
@@ -293,12 +294,14 @@ class AuthController extends Controller
                 $user->balance = 96;
                 $user->remark = 'regEDU';
             }**/
+            /**
             //song 判断邮箱是否以edu.cn结尾，来作为奖励的依据
             if (strrchr($usernameSuffix[1], 'edu.cn') == 'edu.cn') {
                 # code...
                 $user->balance = 90;
                 $user->remark = 'regEDU';
             }
+            **/
             $user->save();
 
             // 注册失败，抛出异常
@@ -338,6 +341,30 @@ class AuthController extends Controller
 
             // 清除邀请人Cookie
             \Cookie::unqueue('register_aff');
+
+            //song 不管是否开启验证，都直接给 奖励啥的
+            if ($referral_uid) {
+                $ref_user=User::query()->where('id', $referral_uid)->first();
+                //判断邀请用户id是否是EDU邮箱结尾的，来判断注册是否可用！
+                if (strrchr($ref_user->username, 'edu.cn') == 'edu.cn') {
+                    # code...
+                    $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
+                    User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
+                    //返利日志写入
+                    $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 20);
+                } else {
+                    $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
+                    User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
+                    //返利日志写入
+                    $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 4);
+                }
+            }
+
+            User::query()->where('id', $user->id)->update(['status' => 1, 'enable' => 1]);
+
+            Session::flash('regSuccessMsg', '注册成功');
+
+            /**
             if (self::$systemConfig['is_verify_register']) {
                 if ($referral_uid) {
                     $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
@@ -354,6 +381,7 @@ class AuthController extends Controller
 
                 Session::flash('regSuccessMsg', '注册成功');
             } else {
+                
                 // 发送激活邮件
                 if (self::$systemConfig['is_active_register']) {
                     // 生成激活账号的地址
@@ -382,7 +410,7 @@ class AuthController extends Controller
 
                     Session::flash('regSuccessMsg', '注册成功');
                 }
-            }
+            } **/
 
             return Redirect::to('login')->withInput();
         } else {

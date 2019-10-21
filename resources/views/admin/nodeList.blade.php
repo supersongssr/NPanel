@@ -10,9 +10,11 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="note note-info">
+                    <!-- 
                     <p>节点绑定域名推荐使用<a href="https://www.namesilo.com/?rid=326ec20pa" target="_blank">Namesilo</a>，本面板支持自动更新DNS <a href="https://github.com/ssrpanel/SSRPanel/wiki/%E8%B4%AD%E4%B9%B0%E5%9F%9F%E5%90%8D%EF%BC%88%E8%87%AA%E5%B8%A6%E9%9A%90%E7%A7%81%E4%BF%9D%E6%8A%A4%EF%BC%89" target="_blank" style="color:red;">[购买域名]</a></p>
                     <p>状态显示为'离线'：1.后端进程挂掉；2.节点和数据库之间的时区不一致或者通信延迟过高；3.服务器真的宕机。<a href="https://github.com/ssrpanel/ssrpanel/wiki/VPS%E6%8E%A8%E8%8D%90&%E8%B4%AD%E4%B9%B0%E7%BB%8F%E9%AA%8C" target="_blank" style="color:red;">[VPS推荐]</a></p>
                     <p>务必检查各节点服务器的时间是否同步。<a href="https://github.com/ssrpanel/SSRPanel/wiki/%E5%8D%95%E7%AB%AF%E5%8F%A3%E5%A4%9A%E7%94%A8%E6%88%B7%E7%9A%84%E5%9D%91" target="_blank" style="color:red;">[时间校准]</a></p>
+                -->
                 </div>
             </div>
         </div>
@@ -38,15 +40,15 @@
                                     <th> 操作 </th>
                                     <th> <span class="node-id"><a href="javascript:showIdTips();">ID</a></span> </th>
                                     <th> 类型 </th>
+                                    <th> 16G </th>
                                     <th> 名称 </th>
-                                    <th> 流量 </th>
-                                    <th> IP </th>
-                                    <th> 域名 </th>
+                                    <th> 统计 </th>
+                                    <th> <span class="node-flow"><a href="javascript:showFlowTips();">流量</a></span> </th>
+                                    <th> 监控 </th>
                                     <th> 存活 </th>
                                     <th> 状态 </th>
                                     <th> 在线 </th>
-                                    <th> <span class="node-flow"><a href="javascript:showFlowTips();">产生流量</a></span> </th>
-                                    <th> 流量比例 </th>
+                                    <th> 倍率 </th>
                                     <th> 等级 </th>
                                     <th> 操作 </th>
                                 </tr>
@@ -69,21 +71,25 @@
                                                         <span class="label {{$node->status ? 'label-info' : 'label-default'}}">{{$node->type == 2 ? 'V2' : 'SR'}}</span>
                                                     @endif
                                                 </td>
+                                                <td> {{$node->ipv6}} </td>
                                                 <td> {{$node->name}} </td>
-                                                <td><a class="btn green" href="javascript:nodeMonitor('{{$node->id}}');"> 流量 </a>
-                                                </td>
                                                 <td>
+                                                    <!-- 
                                                     @if($node->is_nat)
                                                         <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">NAT</span>
                                                     @else
                                                         <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->ip}}</span>
                                                     @endif
+                                                -->
+                                                    <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->desc}}</span>
                                                 </td>
-                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->server}}</span> </td>
+                                                <td> {{$node->is_transit ? '' : $node->transfer}} </td>
+                                                <td><a class="btn green" href="javascript:nodeMonitor('{{$node->id}}');"> 流量 </a>
+                                                </td>
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->uptime}}</span> </td>
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->load}}</span> </td>
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->online_users}}</span> </td>
-                                                <td> {{$node->is_transit ? '' : $node->transfer}} </td>
+                                                
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->traffic_rate}}</span> </td>
                                                 <td><span class="label label-info">{{$node->sort}}</span></td>
                                                 <td>

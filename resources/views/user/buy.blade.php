@@ -75,7 +75,7 @@
             @endif
             <div class="row">
                 <div class="col-xs-12" style="text-align: right;">
-                    <a href="http://www.910fk.com/liebiao/55E728B4D7930933"  class="btn btn-lg red hidden-print uppercase" target="_blank"> 获取充值码 </a><!-- song -->
+                    <a href="https://www.510ka.com/liebiao/3163CA017733309A"  class="btn btn-lg red hidden-print uppercase" target="_blank"> 获取充值码 </a><!-- song -->
 
                     @if(\App\Components\Helpers::systemConfig()['is_youzan'])
                         <a class="btn btn-lg red hidden-print" onclick="onlinePay(0)"> {{trans('home.online_pay')}} </a>

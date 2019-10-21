@@ -45,13 +45,46 @@ class Test extends Command
     private function decGoodsTraffic()
     {
 
+        /**
+        //所有节点前面加上： 撸白嫖
+        $nodeList = SsNode::query()->where('id','>',9)->orderBy('id', 'asc')->get(); 
+        foreach ($nodeList as $node) {
+            # code...
+            $node->name = '撸啊撸' . $node->name;
+            SsNode::query()->where('id',$node->id)->update(['name'=>$node->name]);
+        }
+        **/
+
+
+        // 批量替换所有节点里面的名字
+        $nodeList = SsNode::query()->where('id','>',9)->orderBy('id', 'asc')->get(); 
+        foreach ($nodeList as $node) {
+            # code...
+            #$node->name = str_replace("-","",$node->name);
+            SsNode::query()->where('id',$node->id)->update(['bandwidth'=>1000]);
+        }
+
+        /**
+        $userList = User::query()->where('id', '>', 1)->where('d',0)->where('t',0)->where('balance',0)->where('last_login',0)->where('status', 1)->get();
+        foreach ($userList as $user) {
+            # code...
+            User::query()->where('id', $user->id)->update(['status' => 0]);
+
+        }
+
+        **/
+
+
+        /**
         // 批量替换所有节点里面的域名
-        $nodeList = SsNode::query()->where('id','>',128)->orderBy('id', 'asc')->get(); 
+        $nodeList = SsNode::query()->where('id','>',9)->orderBy('id', 'asc')->get(); 
         foreach ($nodeList as $node) {
             # code...
             $node->server = str_replace("ssvss.tk","ssyes.xyz",$node->server);
             SsNode::query()->where('id',$node->id)->update(['server'=>$node->server]);
         }
+        **/
+
         /**
         $userDelList = User::query()->where('id', '>', 1)->where('enable', 0)->where('expire_time', '<', date('Y-m-d',strtotime("-7 day")))->get();
         if (!$userDelList->isEmpty()) {

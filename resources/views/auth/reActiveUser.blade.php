@@ -16,7 +16,7 @@
         </div>
     @endif
     <!-- BEGIN FORGOT PASSWORD FORM -->
-    <form class="forget-form" action="/reActiveUser" method="post" style="display: block;">
+    <form class="forget-form" action="{{url('reActiveUser')}}" method="post" style="display: block;">
             <div class="form-title">
                 <span class="form-title">账号申请解封</span>
             </div>
@@ -38,7 +38,7 @@
     <script type="text/javascript">
         // 登录
         function login() {
-            window.location.href = '/login';
+            window.location.href = '{{url('login')}}';
         }
     </script>
 @endsection

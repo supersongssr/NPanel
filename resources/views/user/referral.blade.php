@@ -8,7 +8,9 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="note note-info">
-                    <p>通过您的推广链接/邀请码注册返利 5￥/用户,你们双方都将获得 32GB 流量奖励；当他们消费时，您将获得他们消费金额的 15% 作为奖励。</p>
+                    <p>通过您的推广链接/邀请码注册返利4￥/用户,你们双方都将获得 20GB 流量奖励；当他们消费时，您将获得他们消费金额的 20% 作为奖励。</p>
+                    <p>推广返利：（ 4元余额 + 20G流量 ）* 邀请人数 + （ 20%消费返利 * 用户消费 ）；</p>
+                    <p>*EDU用户推广注册：（ 20元余额 + 20G流量 ）* 邀请人数 + （ 20%消费返利 * 用户消费 ）；</p>
                 </div>
             </div>
         </div>
@@ -27,7 +29,13 @@
                             <a href="javascript:;" class="btn blue mt-clipboard" data-clipboard-action="copy" data-clipboard-target="#mt-target-1">
                                 <i class="icon-note"></i> {{trans('home.referral_button')}}
                             </a>
-                            <p>#审核提现请先 网站 - 个人设置 - 收款信息<br>默认# AliP*y > WeCh*t > 余额</p>
+                            <br>
+                            <p>推广返利：（ 4元余额 + 20G流量 ）* 邀请人数 + （ 20%消费返利 * 用户消费 ）;
+                            <br>*EDU用户推广返利：（ 20元余额 + 20G流量 ）* 邀请人数 + （ 20%消费返利 * 用户消费 ）;
+                            <br><small>*采用学校邮箱注册用户识别为教育用户;</small>
+                            <br><small>*请确保您邀请的用户有在使用本站服务;</small>
+                            <br><small>*若您邀请的用户注册未使用本站服务，系统可能会收回该用户的推广返利;</small>
+                            <br><small>*从被邀请用户注册至账号被注销为止，已使用天数为 a 天，已使用流量为 b G，若 a + b < 20，系统可能会收回该用户的推广返利;</small></p>
                         </div>
                     </div>
                 </div>
@@ -83,8 +91,8 @@
                             <span class="caption-subject bold"> {{trans('home.referral_title')}} </span>
                         </div>
                         <div class="actions">
-                            <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 自动提取到余额 </button>
-                            <button type="submit" class="btn green" onclick="extractMoney()"> {{trans('home.referral_table_apply')}} </button> 
+                            <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 提取 </button>
+                            <!-- <button type="submit" class="btn green" onclick="extractMoney()"> {{trans('home.referral_table_apply')}} </button> -->
                         </div>
                     </div>
                     <div class="portlet-body">  

@@ -130,6 +130,22 @@ class UserController extends Controller
         return Response::json(['status' => 'success', 'message' => '签到成功，系统送您 ' . $traffic . 'M 流量']);
     }
 
+    //订阅教程
+    // 节点列表
+    public function subscribe(Request $request)
+    {
+        // 在线安装APP
+        //$view['ipa_list'] = 'itms-services://?action=download-manifest&url=' . self::$systemConfig['website_url'] . '/clients/ipa.plist';
+
+        // 订阅连接
+        $view['link'] = (self::$systemConfig['subscribe_domain'] ? self::$systemConfig['subscribe_domain'] : self::$systemConfig['website_url']) . '/s/' . Auth::user()->subscribe->code;
+
+        // 订阅连接二维码
+        //$view['link_qrcode'] = 'sub://' . base64url_encode($view['link']) . '#' . base64url_encode(self::$systemConfig['website_name']);
+
+        return Response::view('user.subscribe', $view);
+    }
+
     // 节点列表
     public function nodeList(Request $request)
     {
