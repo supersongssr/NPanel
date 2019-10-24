@@ -6,6 +6,7 @@ use App\Components\Helpers;
 use Illuminate\Console\Command;
 use App\Http\Models\Order;
 use App\Http\Models\User;
+use App\Http\Models\Goods;  // song 商品找到
 use Log;
 
 class AutoResetUserTraffic extends Command
@@ -70,7 +71,13 @@ class AutoResetUserTraffic extends Command
                         continue;
                     }
 
-                    User::query()->where('id', $user->id)->update(['u' => 0, 'd' => 0]);
+                    // 这里从用户已用流量中扣除相应的流量。
+                    $goods = Goods::query()->where('id',$order->goods_id)->first();
+                    // 这里从已使用流量中 扣除掉 套餐赠送的流量
+                    $traffic = $user->u + $user->d - $traffic * 1024 * 1024;
+                    // 如果扣除后发现流量小于0 那么设定为 0 
+                    $traffic < 0 && $traffic = 0;
+                    User::query()->where('id', $user->id)->update(['u' => 0, 'd' => $traffic]);
                 }
             }
         }

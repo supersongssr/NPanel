@@ -52,6 +52,14 @@ PHP必须开启zip、xml、curl、gd2、fileinfo、openssl、mbstring组件
 安装完成后记得编辑.env中 APP_DEBUG 改为 false
 ````
 
+#### 编辑php.ini
+````
+找到php.ini
+vim /usr/local/php/etc/php.ini
+搜索disable_function
+删除proc_开头的所有函数 以及 force_env这个函数
+````
+
 #### 拉取代码
 ````
 cd /home/wwwroot/
@@ -79,14 +87,6 @@ chmod -R a+x srp-song
 location / {
     try_files $uri $uri/ /index.php$is_args$args;
 }
-````
-
-#### 编辑php.ini
-````
-找到php.ini
-vim /usr/local/php/etc/php.ini
-搜索disable_function
-删除proc_开头的所有函数
 ````
 
 #### 出现500错误

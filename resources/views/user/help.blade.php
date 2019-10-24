@@ -24,14 +24,14 @@
                                             <li class="search-item clearfix">
                                                 <a href="javascript:;">
                                                     @if($article->logo)
-                                                        <img src="/$article->logo" style="max-width: 100px; max-height: 75px;">
+                                                        <img src="{{url($article->logo)}}" style="max-width: 100px; max-height: 75px;">
                                                     @else
                                                         <img src="{{asset('assets/images/noimage.png')}}">
                                                     @endif
                                                 </a>
                                                 <div class="search-content">
                                                     <h2 class="search-title">
-                                                        <a href="/article?id={{$article->id}}">{{str_limit($article->title, 300)}}</a>
+                                                        <a href="{{url('article?id=') . $article->id}}">{{str_limit($article->title, 300)}}</a>
                                                     </h2>
                                                     <p class="search-desc" style="font-size: 16px;"> {{$article->summary}} </p>
                                                 </div>

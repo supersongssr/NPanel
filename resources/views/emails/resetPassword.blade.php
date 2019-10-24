@@ -68,7 +68,7 @@
                                 <tr style="padding:0;text-align:left;vertical-align:top">
                                     <th style="Margin:0;color:#333;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:400;line-height:19px;margin:0;padding:0;text-align:left">
                                         <div class="release" style="padding-top:5px;padding-left:20px;padding-bottom:20px;">
-                                            <p>点击<a href="{{$resetPasswordUrl}}" target="_blank">【重设密码】</a>，或者点击下面的链接（30分钟内有效）。</p>
+                                            <p>点击<a href="{{$resetPasswordUrl}}" target="_blank">【重设密码】</a>，或者点击下面的链接（36小时内有效）。</p>
                                             <p>
                                                 <a href="{{$resetPasswordUrl}}" target="_blank">{{$resetPasswordUrl}}</a>
                                             </p>

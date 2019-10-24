@@ -152,7 +152,7 @@
                                                 <ol>【SR 教程】
                                                     <li> iOS端需要配合电脑，利用爱思助手来免费安装 </li>
                                                     <li> <a href="https://www.i4.cn/news_detail_3339.html" target="_blank">点击此处</a>查看爱思助手安装ipa文件教程 </li>
-                                                    <li> <a href="https://ssrdownloads.oss-ap-southeast-1.aliyuncs.com/Shadowrocket_2.1.12.ipa" target="_blank">点击此处</a>下载iOS客户端的ipa文件 </li>
+                                                    <li> <a href="/clients/Shadowrocket_2.1.12.ipa" target="_blank">点击此处</a>下载iOS客户端的ipa文件 </li>
                                                     <li> 然后请使用爱思助手安装客户端的ipa文件包（软件原价20元，这个方法可以免费获得） </li>
                                                     <li> 打开 Shadowrocket，点击右上角 “+”号 添加节点，类型选择 Subscribe </li>
                                                     <li> 完整复制本页上方 “订阅服务” 处地址，将其粘贴至 “URL”栏，点击右上角 “完成” </li>

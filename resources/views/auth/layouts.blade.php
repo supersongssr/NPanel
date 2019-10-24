@@ -42,7 +42,7 @@
     <!-- BEGIN LOGIN -->
     <div class="content " >
         <nav style="padding-bottom: 20px;text-align: center;">
-            <a>★公益站点<br>★全协议SR SS Vmess支持<br>★正在努力提供尽可能多的国家地区的节点<br>★解锁:NetFlix<br>★宗旨:为科研教育提供稳定免费的上网机会<br>★使用本站服务，请遵守Republic of Singapore/新加坡/新加坡共和國相关法律</a>
+            <a>★公益站点<br>★全协议SR SS Vmess支持<br>★努力最多国家地区的节点<br>★解锁:NetFlix<br>★宗旨:为科研教育提供稳定免费的上网机会<br>★使用本站服务，请遵守Republic of Singapore/新加坡/新加坡共和國法律</a>
             <!-- @if(app()->getLocale() == 'zh-CN')
                 <a href="{{url('lang', ['locale' => 'zh-tw'])}}">繁體中文</a>
                 <a href="{{url('lang', ['locale' => 'en'])}}">English</a>
