@@ -120,8 +120,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
         $node = SsNode::query()->where('id', $node_id)->first();
         //如果倍率为0的话，无法做除数，改为最低倍率0.1
         $node->traffic_rate < 0.1 && $node->traffic_rate = 0.1;
-        !empty($node->monitor_url) && $node->traffic_rate = 1;
-        $total = $total / $node->traffic_rate;
+        //empty($node->monitor_url) && $total = $total / $node->traffic_rate;
         $traffic = flowAutoShow($total);
 
         //写入每日流量数据 有记录才会写 显得好看些
