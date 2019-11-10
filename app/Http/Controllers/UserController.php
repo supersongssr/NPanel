@@ -340,12 +340,12 @@ class UserController extends Controller
                 $logId = Helpers::addEmailLog(self::$systemConfig['crash_warning_email'], $emailTitle, $content);
                 Mail::to(self::$systemConfig['crash_warning_email'])->send(new newTicket($logId, $emailTitle, $content));
             }
-**/
+
             // 通过ServerChan发微信消息提醒管理员
             if (self::$systemConfig['is_server_chan'] && self::$systemConfig['server_chan_key']) {
                 ServerChan::send($emailTitle, $content);
             }
-
+**/
             return Response::json(['status' => 'success', 'data' => '', 'message' => '提交成功']);
         } else {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '提交失败']);
@@ -377,13 +377,15 @@ class UserController extends Controller
             if ($obj->id) {
                 // 重新打开工单
                 $ticket->status = 0;
+                $ticket->created_at = time();
+                $ticket->updated_at = time();
                 $ticket->save();
 
                 //song
                 $title = $id . "--回复";
                 //
                 $content = "标题：【" . $ticket->title . "】<br> https://web.ssvss.xyz/ticket/replyTicket?id=" .$id. "<br>用户回复：" . $content;
-
+/**
                 // 发邮件通知管理员
                 if (self::$systemConfig['crash_warning_email']) {
                     $logId = Helpers::addEmailLog(self::$systemConfig['crash_warning_email'], $title, $content);
@@ -391,7 +393,7 @@ class UserController extends Controller
                 }
 
                 ServerChan::send($title, $content);
-
+**/
                 return Response::json(['status' => 'success', 'data' => '', 'message' => '回复成功']);
             } else {
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '回复失败']);

@@ -32,7 +32,7 @@ class TicketController extends Controller
     // 工单列表
     public function ticketList(Request $request)
     {
-        $view['ticketList'] = Ticket::query()->orderBy('id', 'desc')->paginate(10);
+        $view['ticketList'] = Ticket::query()->orderBy('created_at', 'desc')->paginate(10);
 
         return Response::view('ticket.ticketList', $view);
     }
@@ -109,11 +109,11 @@ class TicketController extends Controller
 
         $title = "工单关闭提醒";
         $content = "工单【" . $ticket->title . "】已关闭";
-
+/**
         // 发邮件通知用户
         $logId = Helpers::addEmailLog($ticket->user->username, $title, $content);
         Mail::to($ticket->user->username)->send(new closeTicket($logId, $title, $content));
-
+**/
         return Response::json(['status' => 'success', 'data' => '', 'message' => '关闭成功']);
     }
 

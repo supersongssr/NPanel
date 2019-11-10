@@ -143,7 +143,8 @@
                 success: function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            window.location.href = '{{url('ticket/ticketList')}}';
+                            //window.location.href = '{{url('ticket/ticketList')}}';
+                            window.history.back();
                         }
                     });
                 }
@@ -163,7 +164,8 @@
                 $.post("{{url('ticket/replyTicket')}}",{_token:'{{csrf_token()}}', id:'{{$ticket->id}}', content:content}, function(ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            window.location.reload();
+                            //window.location.reload();
+                            window.history.back();
                         }
                     });
                 });

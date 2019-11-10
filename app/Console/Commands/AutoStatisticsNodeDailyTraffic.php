@@ -119,7 +119,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
         //获取节点信息
         $node = SsNode::query()->where('id', $node_id)->first();
         //如果倍率为0的话，无法做除数，改为最低倍率0.1
-        $node->traffic_rate < 0.1 && $node->traffic_rate = 0.1;
+        //$node->traffic_rate < 0.1 && $node->traffic_rate = 0.1;
         //empty($node->monitor_url) && $total = $total / $node->traffic_rate;
         $traffic = flowAutoShow($total);
 
@@ -148,7 +148,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
         $node->desc = substr($node->desc, 0,64);
         // 保留1位小数
         $node->traffic_rate = round( ($total * 64 / 1073741824 / $node->bandwidth) , 2);
-        $node->traffic_rate < 0.1 && $node->traffic_rate = 0.1;
+        // $node->traffic_rate < 0.1 && $node->traffic_rate = 0.1;
 
         // 
         /**
