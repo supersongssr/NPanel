@@ -45,6 +45,18 @@ class Test extends Command
     private function decGoodsTraffic()
     {
 
+        // 把所有edu.cn结尾的账号都给设定为 status=0需要激活一下的那种！
+        $userList = User::query()->where('status', 1)->get();
+        foreach ($userList as $user) {
+            # code...
+            if (strrchr($user->username, 'edu.cn') == 'edu.cn') {
+                # code...
+                echo $user->username ;
+                echo ' | ';
+                User::query()->where('id', $user->id)->update(['status' => 0]);
+            }
+        }
+
         /**
         //所有节点前面加上： 撸白嫖
         $nodeList = SsNode::query()->where('id','>',9)->orderBy('id', 'asc')->get(); 
@@ -55,7 +67,7 @@ class Test extends Command
         }
         **/
 
-
+/**
         // 批量替换所有节点里面的名字
         $nodeList = SsNode::query()->where('id','>',9)->orderBy('id', 'asc')->get(); 
         foreach ($nodeList as $node) {
@@ -63,7 +75,7 @@ class Test extends Command
             #$node->name = str_replace("-","",$node->name);
             SsNode::query()->where('id',$node->id)->update(['bandwidth'=>1000]);
         }
-
+**/
         /**
         $userList = User::query()->where('id', '>', 1)->where('d',0)->where('t',0)->where('balance',0)->where('last_login',0)->where('status', 1)->get();
         foreach ($userList as $user) {

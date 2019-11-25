@@ -133,12 +133,13 @@ class PingController extends Controller
     {
         //$id < 32 && exit;   #id 小于32的没有需求 直接退出
         $node = SsNode::query()->where('id', $id)->first();
-        empty($node['monitor_url']) && exit; #如果关键数据为空，直接退出
         $s1 = $request->get('s1');
         $v2 = $request->get('v2');
         //写入节点数据
         if ($node['type'] == 1 && !empty($s1)) {
             # code...
+            //empty($node['monitor_url']) && exit; #如果关键数据为空，直接退出
+            //empty($node['monitor_url']) && exit;
             $addn = explode('#',$s1);
             $data = [
                 'ip'=>$addn['0'] , 
@@ -146,7 +147,7 @@ class PingController extends Controller
                 'monitor_url'=>$addn['2'], 
                 'method'=>$addn['3']
             ];
-            SsNode::query()->where('id',$node['id'])->update($data);
+            SsNode::query()->where('id',$id)->update($data);
         }
         if ($node['type'] == 2 && !empty($v2)) {
             # code...
@@ -169,7 +170,7 @@ class PingController extends Controller
                 $data['v2_tls'] = empty($addn['8']) ? '0': '1';
             }
 
-            SsNode::query()->where('id',$node['id'])->update($data);
+            SsNode::query()->where('id',$id)->update($data);
         }
     }
 }

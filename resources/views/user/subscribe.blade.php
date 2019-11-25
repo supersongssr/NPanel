@@ -11,6 +11,24 @@
                         <ul class="list-inline">
                             <li>
                                 <h4>
+                                    <span class="font-blue">账号：</span>
+                                    <span class="font-red">{{Auth::user()->username}}</span>
+                                </h4>
+                            </li>
+                            <li>
+                                <h4>
+                                    <span class="font-blue">状态：</span>
+                                    @if ( Auth::user()->status == 0  )
+                                        <span class="label label-danger">状态异常 请退出重新登陆</span>
+                                    @elseif ( Auth::user()->status == 1 )
+                                        <span class="label label-success">正常</span>
+                                    @else
+                                        <span class="label label-info">异常</span>
+                                    @endif
+                                </h4>
+                            </li>
+                            <li>
+                                <h4>
                                     <span class="font-blue">{{trans('home.account_expire')}}：</span>
                                     <span class="font-red">@if(date('Y-m-d') > Auth::user()->expire_time) {{trans('home.expired')}} @else {{Auth::user()->expire_time}} @endif</span>
                                 </h4>

@@ -345,7 +345,7 @@ class SubscribeController extends Controller
     // 抛出无可用的节点信息，用于兼容防止客户端订阅失败
     private function noneNode()
     {
-        return base64url_encode('ssr://' . base64url_encode('0.0.0.0:1:origin:none:plain:' . base64url_encode('0000') . '/?obfsparam=&protoparam=&remarks=' . base64url_encode('无节点！网站 www.ssvss.xyz 欢迎您') . '&group=' . base64url_encode('错误') . '&udpport=0&uot=0') . "\n");
+        return base64url_encode('ssr://' . base64url_encode('0.0.0.0:1:origin:none:plain:' . base64url_encode('0000') . '/?obfsparam=&protoparam=&remarks=' . base64url_encode('检查账号！网站' . Helpers::systemConfig()['website_name'] .'欢迎您') . '&group=' . base64url_encode('错误') . '&udpport=0&uot=0') . "\n");
     }
 
     /**

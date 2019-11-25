@@ -140,6 +140,10 @@ class UserController extends Controller
         // 订阅连接
         $view['link'] = (self::$systemConfig['subscribe_domain'] ? self::$systemConfig['subscribe_domain'] : self::$systemConfig['website_url']) . '/s/' . Auth::user()->subscribe->code;
 
+        if (Auth::user()->status < 1 ) {
+            $view['link'] = '您的账号处理保护状态，请退出后验证账号安全    ';
+        }
+
         // 订阅连接二维码
         //$view['link_qrcode'] = 'sub://' . base64url_encode($view['link']) . '#' . base64url_encode(self::$systemConfig['website_name']);
 
@@ -685,6 +689,13 @@ class UserController extends Controller
                     # code...
                     User::query()->where('id', $order->user_id)->update(['level' => $goods->sort]);
                 }
+
+                /** 如果是edu.cn结尾的用户， 直接把用户设置为 status=0 需要重新激活一下账号
+                if ($goods->sort > 3 && strrchr($user->username, 'edu.cn') ) {
+                    User::query()->where('id', $user->id)->update(['status' => 0]);
+                }
+                **/
+
                 /**
                 //song 注册返利
                 //64天内，邀请用户购买套餐 给6.99元的返利
@@ -702,6 +713,12 @@ class UserController extends Controller
                 //User::query()->where('id', $order->user_id)->update(['referral_uid' => 0]);
 
                 DB::commit();
+/**
+                // 如果是edu.cn结尾的用户， 直接把用户设置为 status=0 需要重新激活一下账号
+                if ($goods->sort > 3 && strrchr($user->username, 'edu.cn') ) {
+                    Auth::logout();
+                }
+                **/
 
                 return Response::json(['status' => 'success', 'data' => '', 'message' => '支付成功']);
             } catch (\Exception $e) {
@@ -920,8 +937,13 @@ class UserController extends Controller
             // 写入卡券日志
             Helpers::addCouponLog($coupon->id, 0, 0, '账户余额充值使用');
 
-            // 余额充值 不知道为啥要*100
-            User::uid()->increment('balance', $coupon->amount * 100);
+            if ( strrchr(Auth::user()->username, 'edu.cn') == 'edu.cn' ) {
+                #  教育用户 这里 * 200可以呦 
+                User::uid()->increment('balance', $coupon->amount * 200);
+            }else{
+                // 余额充值 不知道为啥要*100
+                User::uid()->increment('balance', $coupon->amount * 100);
+            }
 
             DB::commit();
 

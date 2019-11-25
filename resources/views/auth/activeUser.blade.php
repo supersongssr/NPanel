@@ -22,7 +22,7 @@
                 <span class="form-title">{{trans('active.title')}}</span>
             </div>
             <div class="alert alert-danger">
-                <span> 为什么需要激活账号？<br> 1、 新注册用户。 <br>2、 账户行为异常，触发账号保护机制。 <br> PS: 如果您余额 < 0 ，请激活账号后，充值使余额 > 0 ，然后购买任意商品即可恢复账号！ (参考 网站 - 帮助中心 - 邀请返利 提现说明 )</span>
+                <span> 为什么需要保护您的账号？<br> 1、 新注册用户。 <br>2、 账户行为异常，触发账号保护机制。 <br> PS: 如果您余额 < 0 ，请激活账号后，充值使余额 > 0 ，然后购买任意商品即可恢复账号！ (参考 网站 - 帮助中心 - 邀请返利 提现说明 )</span>
             </div>
             <div class="form-group">
                 <input class="form-control placeholder-no-fix" type="text" autocomplete="off" placeholder="{{trans('active.username_placeholder')}}" name="username" value="{{Request::get('username')}}" required />

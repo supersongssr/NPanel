@@ -97,13 +97,13 @@ class AuthController extends Controller
                 if (Auth::user()->status < 0) {
                     Auth::logout(); // 强制销毁会话，因为Auth::attempt的时候会产生会话
 
-                    return Redirect::back()->withInput()->withErrors('账号已禁用，请点击<a href="/reActiveUser?username=' . $request->username . '" target="_blank"><span style="color:#000">【解封账号】</span></a>');
+                    return Redirect::back()->withInput()->withErrors('账号异常，请点击<a href="/reActiveUser?username=' . $request->username . '" target="_blank"><span style="color:#000">【解封您的账号】</span></a>');
                 }
 
                 if (Auth::user()->status == 0 && self::$systemConfig['is_active_register']) {
                     Auth::logout(); // 强制销毁会话，因为Auth::attempt的时候会产生会话
 
-                    return Redirect::back()->withInput()->withErrors('账号未激活，请点击<a href="/activeUser?username=' . $request->username . '" target="_blank"><span style="color:#000">【激活账号】</span></a>');
+                    return Redirect::back()->withInput()->withErrors('账号异常，请点击<a href="/activeUser?username=' . $request->username . '" target="_blank"><span style="color:#000">【保护您的账号】</span></a>');
                 }
             }
 
@@ -350,8 +350,8 @@ class AuthController extends Controller
                     # code...
                     $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
                     User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
-                    //返利日志写入
-                    $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 20);
+                    //返利日志写入 学生给 8元
+                    $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 8);
                 } else {
                     $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
                     User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
@@ -361,7 +361,7 @@ class AuthController extends Controller
             }
 
             User::query()->where('id', $user->id)->update(['status' => 1, 'enable' => 1]);
-
+            
             Session::flash('regSuccessMsg', '注册成功');
 
             /**

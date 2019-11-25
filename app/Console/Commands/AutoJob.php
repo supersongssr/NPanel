@@ -131,10 +131,15 @@ class AutoJob extends Command
                     // 24小时内不同IP的请求次数
                     $request_times = UserSubscribeLog::query()->where('sid', $subscribe->id)->where('request_time', '>=', date("Y-m-d H:i:s", strtotime("-24 hours")))->distinct('request_ip')->count('request_ip');
                     if ($request_times >= self::$systemConfig['subscribe_ban_times']) {
-                        UserSubscribe::query()->where('id', $subscribe->id)->update(['status' => 0, 'ban_time' => time(), 'ban_desc' => '存在异常，自动封禁']);
-
-                        // 记录封禁日志
-                        $this->addUserBanLog($subscribe->user_id, 0, '【完全封禁订阅】-订阅24小时内请求异常');
+                        //如果订阅超过了阈值，就直接把该用户设置为未激活
+                        User::query()->where('id', $subscribe->user_id)->update(['status' => 0]);
+                        //如果订阅超过了阈值的两倍 ，就把该用户设置为
+                        if ($request_times >= self::$systemConfig['subscribe_ban_times'] * 2 ) {
+                            # code...
+                            UserSubscribe::query()->where('id', $subscribe->id)->update(['status' => 0, 'ban_time' => time(), 'ban_desc' => '存在异常，自动封禁']);
+                            // 记录封禁日志
+                            $this->addUserBanLog($subscribe->user_id, 0, '【完全封禁订阅】-订阅24小时内请求异常');
+                        }
                     }
                 }
             }
@@ -237,6 +242,7 @@ class AutoJob extends Command
                         //'d'                 => 0,
                         //song 
                         //'transfer_enable'   => 0,
+                        'status'            => 0,
                         'enable'            => 0,
                         'traffic_reset_day' => 0,
                         'ban_time'          => 0,
@@ -295,7 +301,7 @@ class AutoJob extends Command
                     // 多往前取5分钟，防止数据统计任务执行时间过长导致没有数据
                     $totalTraffic = UserTrafficHourly::query()->where('user_id', $user->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m-d H:i:s', time() - 3900))->sum('total');
                     if ($totalTraffic >= $traffic_ban_limit) {
-                        User::query()->where('id', $user->id)->update(['enable' => 0, 'ban_time' => strtotime(date('Y-m-d H:i:s', strtotime("+" . self::$systemConfig['traffic_ban_time'] . " minutes")))]);
+                        User::query()->where('id', $user->id)->update(['status' => 0, 'enable' => 0, 'ban_time' => strtotime(date('Y-m-d H:i:s', strtotime("+" . self::$systemConfig['traffic_ban_time'] . " minutes")))]);
 
                         // 写入日志
                         $this->addUserBanLog($user->id, self::$systemConfig['traffic_ban_time'], '【临时封禁代理】-1小时内流量异常');
