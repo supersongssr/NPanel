@@ -29,10 +29,8 @@
                                 <i class="icon-note"></i> {{trans('home.referral_button')}}
                             </a>
                             <br>
-                            <p>推广返利：（ 4元余额 + 5G流量 ）* 邀请人数 + （ 20%消费返利 * 用户消费 ）;
-                            <br><small>*请确保您邀请的用户有在使用本站服务;</small>
-                            <br><small>*若您邀请的用户注册未使用本站服务，系统可能会收回该用户的推广返利;</small>
-                            <br><small>*从被邀请用户注册至账号被注销为止，已使用天数为 a 天，已使用流量为 b G，若 a + b < 20，系统可能会收回该用户的推广返利;</small></p>
+                            <p>推广返利：（ 4元余额 + 5G流量 ）* 邀请人数 + 消费返利;
+                            <br><small>*用户使用天数+流量 < 20，可能会收回返利;</small></p>
                         </div>
                     </div>
                 </div>
@@ -89,7 +87,7 @@
                         </div>
                         <div class="actions">
                             <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 提取 </button>
-                            <!-- <button type="submit" class="btn green" onclick="extractMoney()"> {{trans('home.referral_table_apply')}} </button> -->
+                            <button type="submit" class="btn green" onclick="extractMoney()"> 银行卡提现 </button>
                         </div>
                     </div>
                     <div class="portlet-body">  

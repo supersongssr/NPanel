@@ -584,15 +584,62 @@ class AdminController extends Controller
     // 节点列表
     public function nodeList(Request $request)
     {
-        $status = $request->input('status');
+        //$status = $request->input('status');
+
+        $id = intval($request->get('id'));
+        $nodename = trim($request->get('nodename'));
+        $ipv6 = trim($request->get('ipv6'));
+        $type = $request->get('type');
+        $sort = $request->get('sort');
+        $status = $request->get('status');
+        $traffic_rate = $request->get('traffic_rate');
+        $traffic = $request->get('traffic');
 
         $query = SsNode::query();
 
-        if ($status != '') {
+        /** if ($status != '') {
+            $query->where('status', intval($status));
+        }**/
+
+        if (!empty($id)) {
+            $query->where('id', $id);
+        }
+
+        if (!empty($nodename)) {
+            $query->where('name', 'like', '%' . $nodename . '%');
+        }
+
+        if (!empty($ipv6)) {
+            $query->where('ipv6', 'like', '%' . $ipv6 . '%');
+        }
+
+        if (!empty($type)) {
+            $query->where('type', $type);
+        }
+
+        if ($sort == '-1') {
+            $query->orderBy('sort', 'desc');
+        }elseif ($sort == '1') {
+            $query->orderBy('sort', 'asc');
+        }
+
+        if (!empty($status)) {
             $query->where('status', intval($status));
         }
 
-        $nodeList = $query->orderBy('traffic_rate', 'asc')->paginate(25)->appends($request->except('page'));
+        if ($traffic_rate == '-1') {
+            $query->orderBy('traffic_rate', 'desc');
+        }else{
+            $query->orderBy('traffic_rate', 'asc');
+        }
+
+        if ($traffic == '-1') {
+            $query->orderBy('traffic', 'desc');
+        }elseif ($traffic == '1') {
+            $query->orderBy('traffic', 'asc');
+        }
+
+        $nodeList = $query->paginate(25)->appends($request->except('page'));
         foreach ($nodeList as &$node) {
             // 在线人数
             $online_log = SsNodeOnlineLog::query()->where('node_id', $node->id)->where('log_time', '>=', strtotime("-2 hours"))->orderBy('id', 'desc')->first();
@@ -610,7 +657,35 @@ class AdminController extends Controller
             $node->uptime = empty($node_info) ? 0 : seconds2time($node_info->uptime);
         }
 
+        $sts['userall'] = User::where("enable",1)->where("status",1)->count();
+        $sts['uservip0'] = User::where("enable",1)->where("status",1)->where("level",0)->count();
+        $sts['uservip1'] = User::where("enable",1)->where("status",1)->where("level",1)->count();
+        $sts['uservip2'] = User::where("enable",1)->where("status",1)->where("level",2)->count();
+        $sts['uservip3'] = User::where("enable",1)->where("status",1)->where("level",3)->count();
+        $sts['uservip4'] = User::where("enable",1)->where("status",1)->where("level",4)->count();
+        $sts['uservip5'] = User::where("enable",1)->where("status",1)->where("level",5)->count();
+        $sts['uservip6'] = User::where("enable",1)->where("status",1)->where("level",6)->count();
+        $sts['uservip7'] = User::where("enable",1)->where("status",1)->where("level",7)->count();
+        $sts['uservip8'] = User::where("enable",1)->where("status",1)->where("level",8)->count();
+        $sts['uservip9'] = User::where("enable",1)->where("status",1)->where("level",9)->count();
+        $sts['uservip10'] = User::where("enable",1)->where("status",1)->where("level",10)->count();
+
+        $sts['nodeall'] = SsNode::where("status",1)->count();
+        $sts['nodelv0'] = SsNode::where("status",1)->where("sort",0)->count();
+        $sts['nodelv1'] = SsNode::where("status",1)->where("sort",1)->count();
+        $sts['nodelv2'] = SsNode::where("status",1)->where("sort",2)->count();
+        $sts['nodelv3'] = SsNode::where("status",1)->where("sort",3)->count();
+        $sts['nodelv4'] = SsNode::where("status",1)->where("sort",4)->count();
+        $sts['nodelv5'] = SsNode::where("status",1)->where("sort",5)->count();
+        $sts['nodelv6'] = SsNode::where("status",1)->where("sort",6)->count();
+        $sts['nodelv7'] = SsNode::where("status",1)->where("sort",7)->count();
+        $sts['nodelv8'] = SsNode::where("status",1)->where("sort",8)->count();
+        $sts['nodelv9'] = SsNode::where("status",1)->where("sort",9)->count();
+        $sts['nodelv10'] = SsNode::where("status",1)->where("sort",10)->count();
+
+
         $view['nodeList'] = $nodeList;
+        $view['sts'] = $sts;
 
         return Response::view('admin.nodeList', $view);
     }

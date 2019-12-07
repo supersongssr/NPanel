@@ -21,7 +21,7 @@ class Goods extends Model
 
     function scopeType($query, $type)
     {
-        return $query->where('type', $type)->where('status', 1)->orderBy('sort', 'desc');
+        return $query->where('type', $type)->where('status', 1)->orderBy('price', 'asc');
     }
 
     function label()

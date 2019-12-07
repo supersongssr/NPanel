@@ -170,7 +170,7 @@ class SubscribeController extends Controller
         }
 
 **/     // 这里 不再以标签的形式来获取节点了，现在是以节点等级的形式嘎嘎 sort 和 level
-        $nodeList = $query->where('ss_node.status', 1)->where('sort', '<=' ,$user->level)->where('ss_node.is_subscribe', 1)->groupBy('ss_node.id')->orderBy('ss_node.sort', 'desc')->orderBy('ss_node.traffic_rate', 'asc')->get()->toArray();
+        $nodeList = $query->where('ss_node.status', 1)->where('sort', '<=' ,$user->level)->where('ss_node.is_subscribe', 1)->groupBy('ss_node.id')->orderBy('ss_node.sort', 'desc')->orderBy('ss_node.traffic_rate', 'asc')->take(self::$systemConfig['subscribe_max'])->get()->toArray();
         if (empty($nodeList)) {
             exit($this->noneNode());
         }

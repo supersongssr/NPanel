@@ -82,7 +82,7 @@
                                     </a>
                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ver=1" />
                                     <a href="javascript:;" class="btn blue mt-clipboard" data-clipboard-action="copy" data-clipboard-target="#mt-target-1">
-                                        {{trans('home.copy_subscribe_address')}}SR订阅地址
+                                        {{trans('home.copy_subscribe_address')}}SS-R订阅地址
                                     </a>
                                     <input type="text" id="mt-target-2" class="form-control" value="{{$link}}?ver=2" />
                                     <a href="javascript:;" class="btn blue mt-clipboard" data-clipboard-action="copy" data-clipboard-target="#mt-target-2">
@@ -113,7 +113,7 @@
                                         <div class="tab-content" style="font-size:16px;">
                                             <div class="tab-pane active" id="tools1">
                                                 <!-- Song-->
-                                                <ol>【SR 教程】
+                                                <ol>【SS-R 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksX-NG-R8-1.4.4.dmg')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 点击状态栏纸飞机 -> 服务器 -> 编辑订阅 </li>
                                                     <li> 点击窗口左下角 “+”号 新增订阅，完整复制本页上方“订阅服务”处地址，然后将其粘贴至“订阅地址”栏 </li>
@@ -126,7 +126,7 @@
                                                 </ol>
                                                 <!-- song -->
                                                 <hr>
-                                                <ol>【V2 教程】
+                                                <ol>【Vmess 教程】
                                                     <li> <a href="/clients/V2RayX.app-1.2.0.zip" target="_blank">点击此处</a>下载客户端，解压 </li>
                                                     <li> 将 V2RayX.app 复制到 程序 文件夹，然后点击网站内菜单---节点列表，点击您想要添加的节点名称 </li>
                                                     <li> 目前MAC端节点需要手动添加节点；您可以在节点列表查看到部分V2节点的配置信息；MAC端推荐使用SR呢 </li>
@@ -135,7 +135,7 @@
                                             </div>
                                             <div class="tab-pane" id="tools2">
                                                 <!-- song -->
-                                                <ol>【SR 教程】
+                                                <ol>【SS-R 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksR-win.zip')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 运行 ShadowsocksR 文件夹内的 ShadowsocksR.exe </li>
                                                     <li> 右击桌面右下角状态栏（或系统托盘）纸飞机 -> 服务器订阅 -> SSR服务器订阅设置 </li>
@@ -147,7 +147,7 @@
                                                     <li> 右击纸飞机，取消勾选“服务器负载均衡” </li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【V2 教程】
+                                                <ol>【Vmess 教程】
                                                     <li> <a href="/clients/v2rayN.zip" target="_blank">下载V2rayN软件</a>，下载后解压 （PS:请注意，本版本采用本地端口是10808，普通用户不用理会。如需指定代理，您可以在软件设置中配置您想用的端口。）</li>
                                                     <li> 运行程序v2rayN.exe，双击右下角图标 </li>
                                                     <li> V2Ray软件界面，点击订阅，订阅设置，填写本站的V2Ray订阅地址 </li>
@@ -156,40 +156,44 @@
                                                 </ol>
                                             </div>
                                             <div class="tab-pane" id="tools3">
-                                                <ol>【SR 教程】
+                                                <ol>【SS-R 教程】
                                                     <li> <a href="{{asset('clients/Shadowsocks-qt5-3.0.1.zip')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 单击状态栏小飞机，找到服务器 -> 编辑订阅，复制黏贴订阅地址 </li>
                                                     <li> 更新订阅设置即可 </li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【V2 教程】
+                                                <ol>【Vmess 教程】
                                                     <li>能耍 Linux 的都是大佬了，受我一拜</li>
                                                 </ol>
                                             </div>
                                             <div class="tab-pane" id="tools4">
-                                                <ol>【SR 教程】
-                                                    <li> iOS端需要配合电脑，利用爱思助手来免费安装 </li>
-                                                    <li> <a href="https://www.i4.cn/news_detail_3339.html" target="_blank">点击此处</a>查看爱思助手安装ipa文件教程 </li>
-                                                    <li> <a href="/clients/Shadowrocket_2.1.12.ipa" target="_blank">点击此处</a>下载iOS客户端的ipa文件 </li>
-                                                    <li> 然后请使用爱思助手安装客户端的ipa文件包（软件原价20元，这个方法可以免费获得） </li>
+                                                <ol>【SS-R 教程】
+                                                    <li> 1 下载软件：推荐使用 shadowrocket </li>
+                                                    <li> 2 下载软件：网站帮助中心有提供用于下载 shadowrocket的 苹果商店的账号和密码。请务必注意此商店账号米处吗，只能用于登录苹果商店，不能用户登录设置中的appleid！ </li>
+                                                    <li> 3 下载软件：登录苹果商店后，搜索shadowrocket 安装（原价20元，用本站提供的免费账号密码下载免费） </li>
                                                     <li> 打开 Shadowrocket，点击右上角 “+”号 添加节点，类型选择 Subscribe </li>
                                                     <li> 完整复制本页上方 “订阅服务” 处地址，将其粘贴至 “URL”栏，点击右上角 “完成” </li>
                                                     <li> 左划新增的服务器订阅，点击 “更新” </li>
                                                     <li> 选定合适服务器节点，点击右上角连接开关，屏幕上方状态栏出现“VPN”图标 </li>
-                                                    <li> 当进行海外游戏时请将 Shadowrocket “首页” 页面中的 “全局路由” 切换至 “代理”，并确保“设置”页面中的“UDP”已开启转发 </li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【V2 教程】
-                                                    <li> 推荐下载kitsunebi（支持kcp tcp协议，需要在美区下载，请注意不是lite 版）；请注意，kitsunebi需要采用本站的kitsunebi专用订阅地址才能获取节点； kitsunebi还在开发阶段，如订阅地址失效，请反馈服务单</li>
-                                                    <li> 或者 使用shadowrocket 也可以使用本站部分V2节点，安装教程参考上面【SR 教程】 请注意需要使用 IOS小火箭 V2专用订阅地址才可以</li>
+                                                <ol>【Vmess 教程】
+                                                    <li> 1 下载软件：推荐您使用 shadowrocket 或者 kitsunebi（均需要在美国商店下载）</li>
+                                                    <li> 2 下载软件： 网站帮助中心有提供一些用于下载 shadowrocket的苹果商店账号密码，请注意，此账号密码只能用于登录苹果商店，千万不要登录设置里的appleID。</li>
+                                                    <li> 3 添加订阅： 以shadowrocket为例，进入点击右上角+号，类型选择 Subscribe</li>
+                                                    <li> 4 添加订阅： 完整复制本页上方“订阅服务”处 Vmess地址，将其粘贴至“URL”栏，点击右上角完成</li>
+                                                    <li> 5 获取节点： 右滑或左滑添加的订阅，更新以获取节点。</li>
+                                                    <li> 6 Vmess节点设置： Shadowrocket软件，要使用vmess节点，必须将您要使用的节点，点击右边 i ，进入此节点的编辑，然后开启 允许不安全 。注意，使用哪个节点，就需要单独设置哪个节点的 允许不安全（节点采用了自签证书）（WIN 安卓等平台不存在此问题）</li>
+                                                    <li> 7 连接使用： 接下来就可以正常使用Vmess节点了。</li>
+                                                    <li> 8 kitsunbe教程与此类似。不再赘述。</li>
                                                     <input type="text" id="mt-target-3" class="form-control" value="{{$link}}?ver=3" />
                                                     <a href="javascript:;" class="btn blue mt-clipboard" data-clipboard-action="copy" data-clipboard-target="#mt-target-3">
-                                                        {{trans('home.copy_subscribe_address')}}IOS小火箭专用V2订阅
+                                                        {{trans('home.copy_subscribe_address')}}IOS小火箭专用Vmess订阅
                                                     </a>
                                                 </ol>
                                             </div>
                                             <div class="tab-pane" id="tools5">
-                                                <ol>【SR 教程】
+                                                <ol>【SS-R 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksRR-3.5.1.1.apk')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 单击左上角的shadowsocksR进入配置文件页，点击右下角的“+”号，点击“添加/升级SSR订阅”，完整复制本页上方“订阅服务”处地址，填入订阅信息并保存 </li>
                                                     <li> 选中任意一个节点，返回软件首页 </li>
@@ -197,14 +201,14 @@
                                                     <li> 点击右上角的小飞机图标进行连接，提示是否添加（或创建）VPN连接，点同意（或允许） </li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【V2 教程】
+                                                <ol>【Vmess 教程】
                                                     <li> 推荐下载<a href="/clients/app-universal-release.apk">v2rayNG</a>；或者<a href="/downloads/BifrostV.apk">bifrostv</a>，然后安装。</li>
                                                     <li> 点击右上角 订阅设置 subscription setting，输入本站V2Ray订阅地址 </li>
                                                     <li> 选择一个节点，点击右下角小飞机，即可使用。 </li>
                                                 </ol>
                                             </div>
                                             <div class="tab-pane" id="tools6">
-                                                <ol>【SR 教程】
+                                                <ol>【SS-R 教程】
                                                     <li> <a href="{{asset('clients/SSTap-beta-setup-1.0.9.7.zip')}}" target="_blank">点击此处</a>下载客户端并安装 </li>
                                                     <li> 打开 SSTap，选择 <i class="fa fa-cog"></i> -> SSR订阅 -> SSR订阅管理，添加订阅地址 </li>
                                                     <li> 添加完成后，再次选择 <i class="fa fa-cog"></i> - SSR订阅 - 手动更新SSR订阅，即可同步节点列表。</li>
@@ -218,7 +222,9 @@
                             </div>
                         
                     @else
-                        <div style="text-align: center;"><h3>{{trans('home.subscribe_baned')}}</h3></div>
+                        <div style="text-align: center;"><h3>{{trans('home.subscribe_baned')}}</h3>
+                        <br>您的订阅受到保护，直到24小时内不同请求IP少于32次；您可以临时解除保护，系统会分配新的节点给您。
+                        <br><br><button type="button" class="btn btn-big red btn-outline" onclick="reActiveSubscribe()">临时解除保护</button><br>*点击 临时解除保护 软件中的旧的节点会失效，请更新订阅获取新的节点使用。</div>
                     @endif
                 </div>
             </div>
@@ -259,6 +265,15 @@
                 });
 
                 layer.close(index);
+            });
+        }
+
+        // 启用禁用用户的订阅
+        function reActiveSubscribe() {
+            $.post("/reActiveSubscribe", {_token:'{{csrf_token()}}'}, function(ret) {
+                layer.msg(ret.message, {time:1000}, function() {
+                    window.location.reload();
+                });
             });
         }
     </script>

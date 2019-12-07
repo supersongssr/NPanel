@@ -13,6 +13,9 @@
                         <div class="caption">
                             <span class="caption-subject font-dark bold">我的账单</span>
                         </div>
+                        <div style="text-align: center;"><span class="font-blue">账户等级：</span>
+                                    <span class="font-red">Lv.{{Auth::user()->level}}&nbsp;&nbsp;&nbsp;</span>
+                        <button type="button" class="btn btn-sm green btn-outline" onclick="reLevel()">等级校正</button></div>
                         <div class="actions"></div>
                     </div>
                     <div class="portlet-body">
@@ -39,7 +42,7 @@
                                     @foreach($orderList as $key => $order)
                                         <tr class="odd gradeX">
                                             <td>{{$key + 1}}</td>
-                                            <td><a href="'/invoice/' . $order->order_sn">{{$order->order_sn}}</a></td>
+                                            <td><a href="{{url('invoice/' . $order->order_sn)}}">{{$order->order_sn}}</a></td>
                                             <td>{{empty($order->goods) ? trans('home.invoice_table_goods_deleted') : $order->goods->name}}</td>
                                             <td>{{$order->pay_way === 1 ? trans('home.service_pay_button') : trans('home.online_pay')}}</td>
                                             <td>￥{{$order->amount}}</td>
@@ -52,7 +55,7 @@
                                                     @elseif($order->status == 0)
                                                         <a href="javascript:;" class="btn btn-sm dark disabled"> {{trans('home.invoice_table_wait_payment')}} </a>
                                                         @if(!empty($order->payment))
-                                                            <a href="'/payment/' . $order->payment->sn" target="_self" class="btn btn-sm red">{{trans('home.pay')}}</a>
+                                                            <a href="{{url('payment/' . $order->payment->sn)}}" target="_self" class="btn btn-sm red">{{trans('home.pay')}}</a>
                                                         @endif
                                                     @elseif($order->status == 1)
                                                         <a href="javascript:;" class="btn btn-sm dark disabled"> {{trans('home.invoice_table_wait_confirm')}} </a>
@@ -88,4 +91,15 @@
     <!-- END CONTENT BODY -->
 @endsection
 @section('script')
+
+<script type="text/javascript">
+    //    // 重置用户等级
+    function reLevel() {
+        $.post("/reLevel", {_token:'{{csrf_token()}}'}, function(ret) {
+            layer.msg(ret.message, {time:1000}, function() {
+                window.location.reload();
+            });
+        });
+    }
+</script>
 @endsection

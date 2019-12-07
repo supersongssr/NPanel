@@ -9,7 +9,7 @@ return [
     'reset_password_title'            => '重置密码',
     'username_placeholder'            => '请输入用户名',
     'system_down'                     => '系统维护中',
-    'subscribe_baned'                 => '您的订阅在24小时内被超过32个不同的IP请求，请提交工单申请首次解封，然后等待32小时后回复工单申请二次解封即可。',
+    'subscribe_baned'                 => '您的订阅已被保护，因为在24小时内有超过32个不同来源的IP请求您的订阅。',
     'download'                        => '下载',
 
     // 菜单

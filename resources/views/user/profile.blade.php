@@ -66,12 +66,12 @@
                                         <div class="tab-pane" id="tab_2">
                                             <form action="profile" method="post" enctype="multipart/form-data" class="form-bordered">
                                                 <div class="form-group">
-                                                    <label class="control-label">{{trans('home.wechat')}}</label>
+                                                    <label class="control-label">姓名</label>
                                                     <input type="text" class="form-control" name="wechat" value="{{Auth::user()->wechat}}" id="wechat" required />
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="control-label"> AliPay </label>
+                                                    <label class="control-label"> 银行卡号 </label>
                                                     <input type="text" class="form-control" name="qq" value="{{Auth::user()->qq}}" id="qq" required />
                                                 </div>
                                                 <div class="form-actions">

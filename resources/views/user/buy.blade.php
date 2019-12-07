@@ -5,6 +5,35 @@
 @section('content')
     <!-- BEGIN CONTENT BODY -->
     <div class="page-content" style="padding-top:0;">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="portlet light">
+                    <div class="portlet-body">
+                        <ul class="list-inline">
+                            <li>
+                                <h4>
+                                     song<span class="font-blue">账户等级：</span>
+                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span> 
+                                </h4>
+                            </li>
+                            <li>
+                                <h4>
+                                    <span class="font-blue">账户余额：</span>
+                                    <span class="font-red">{{Auth::user()->balance}}</span>
+                                </h4>
+                            </li>
+                            <li>
+                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">点我{{trans('home.recharge')}}</a>
+                            </li>
+                            <li>
+                                <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">获取充值卡券</a> <!-- song -->
+                            </li>
+                        </ul>
+                        <p><small>*如果您余额 < 0 ，请在推广返利页面 提取返利金额 试试？</small></p>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- BEGIN PAGE BASE CONTENT -->
         <div class="invoice-content-2 bordered">
             <div class="row invoice-body">
@@ -93,6 +122,43 @@
             </div>
         </div>
         <!-- END PAGE BASE CONTENT -->
+        <div id="charge_modal" class="modal fade" tabindex="-1" data-focus-on="input:first" data-keyboard="false">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                        <h4 class="modal-title">{{trans('home.recharge_balance')}}</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-danger" style="display: none; text-align: center;" id="charge_msg"></div>
+                        <form action="#" method="post" class="form-horizontal">
+                            <div class="form-body">
+                                <div class="form-group">
+                                    <label for="charge_type" class="col-md-4 control-label">{{trans('home.payment_method')}}</label>
+                                    <div class="col-md-6">
+                                        <select class="form-control" name="charge_type" id="charge_type">
+                                            <option value="1" selected>{{trans('home.coupon_code')}}</option>
+                                            
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group" id="charge_coupon_code">
+                                    <label for="charge_coupon" class="col-md-4 control-label"> {{trans('home.coupon_code')}} </label>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="charge_coupon" id="charge_coupon" placeholder="{{trans('home.please_input_coupon')}}">
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" data-dismiss="modal" class="btn dark btn-outline">{{trans('home.close')}}</button>
+                        <button type="button" class="btn red btn-outline" onclick="return charge();">{{trans('home.recharge')}}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <!-- END CONTENT BODY -->
 @endsection
@@ -220,6 +286,58 @@
                         }
                     });
                 }
+            });
+        }
+
+        // 切换充值方式
+        $("#charge_type").change(function(){
+            if ($(this).val() == 2) {
+                $("#charge_balance").show();
+                $("#charge_coupon_code").hide();
+            } else {
+                $("#charge_balance").hide();
+                $("#charge_coupon_code").show();
+            }
+        });
+
+        // 充值
+        function charge() {
+            var charge_type = $("#charge_type").val();
+            var charge_coupon = $("#charge_coupon").val();
+            var online_pay = $("#online_pay").val();
+
+            if (charge_type == '2') {
+                $("#charge_msg").show().html("正在跳转支付界面");
+                window.location.href = '/buy/' + online_pay;
+                return false;
+            }
+
+            if (charge_type == '1' && (charge_coupon == '' || charge_coupon == undefined)) {
+                $("#charge_msg").show().html("{{trans('home.coupon_not_empty')}}");
+                $("#charge_coupon").focus();
+                return false;
+            }
+
+            $.ajax({
+                url:'{{url('charge')}}',
+                type:"POST",
+                data:{_token:'{{csrf_token()}}', coupon_sn:charge_coupon},
+                beforeSend:function(){
+                    $("#charge_msg").show().html("{{trans('home.recharging')}}");
+                },
+                success:function(ret){
+                    if (ret.status == 'fail') {
+                        $("#charge_msg").show().html(ret.message);
+                        return false;
+                    }
+
+                    $("#charge_modal").modal("hide");
+                    window.location.reload();
+                },
+                error:function(){
+                    $("#charge_msg").show().html("{{trans('home.error_response')}}");
+                },
+                complete:function(){}
             });
         }
     </script>

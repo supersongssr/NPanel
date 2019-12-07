@@ -47,7 +47,7 @@ class AutoResetUserTraffic extends Command
                 }
 
                 // 取出用户最后购买的有效套餐
-                $order = Order::query()
+                $orders = Order::query()
                     ->with(['user', 'goods'])
                     ->whereHas('goods', function ($q) {
                         $q->where('type', 2);
@@ -55,30 +55,35 @@ class AutoResetUserTraffic extends Command
                     ->where('user_id', $user->id)
                     ->where('is_expire', 0)
                     ->orderBy('oid', 'desc')
-                    ->first();
+                    ->get();
 
                 if (!$order) {
                     continue;
                 }
 
-                $month = abs(date('m'));
-                $today = abs(date('d'));
-                if ($order->user->traffic_reset_day == $today) {
-                    // 跳过本月，防止异常重置
-                    if ($month == date('m', strtotime($order->expire_at))) {
-                        continue;
-                    } elseif ($month == date('m', strtotime($order->created_at))) {
-                        continue;
-                    }
+                foreach ($orders as $order) {
+                    # code...
+                    $month = abs(date('m'));
+                    $today = abs(date('d'));
+                    if ($order->user->traffic_reset_day == $today) {
+                        // 跳过本月，防止异常重置
+                        if ($month == date('m', strtotime($order->expire_at))) {
+                            continue;
+                        } elseif ($month == date('m', strtotime($order->created_at))) {
+                            continue;
+                        }
 
-                    // 这里从用户已用流量中扣除相应的流量。
-                    $goods = Goods::query()->where('id',$order->goods_id)->first();
-                    // 这里从已使用流量中 扣除掉 套餐赠送的流量
-                    $traffic = $user->u + $user->d - $traffic * 1024 * 1024;
-                    // 如果扣除后发现流量小于0 那么设定为 0 
-                    $traffic < 0 && $traffic = 0;
-                    User::query()->where('id', $user->id)->update(['u' => 0, 'd' => $traffic]);
+                        // 这里从用户已用流量中扣除相应的流量。
+                        $goods = Goods::query()->where('id',$order->goods_id)->first();
+                        // 这里从已使用流量中 扣除掉 套餐赠送的流量
+                        $traffic = $user->u + $user->d - $traffic * 1024 * 1024;
+                        // 如果扣除后发现流量小于0 那么设定为 0 
+                        $traffic < 0 && $traffic = 0;
+                        User::query()->where('id', $user->id)->update(['u' => 0, 'd' => $traffic]);
+                    }
                 }
+
+                
             }
         }
     }

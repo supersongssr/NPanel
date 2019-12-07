@@ -96,7 +96,7 @@
                                                 </div>
                                                 <div class="mt-comment-body">
                                                     <div class="mt-comment-info">
-                                                        <span class="mt-comment-author">{{$node->name}} -Lv.{{$node->sort}}</span>
+                                                        <span class="mt-comment-author">{{$node->name}} -等级Lv.{{$node->sort}}</span>
                                                         <!-- <span class="mt-comment-date">
                                                                 <span class="badge badge-danger">Lv.{{$node->sort}}</span>
                                                             </span>  -->
@@ -109,8 +109,8 @@
                                                                         <span class="badge badge-info">{{$vo->labelInfo->name}}</span>
                                                                     @endforeach
                                                                 @endif
-                                                                <span class="badge badge-success">{{$node->traffic_rate * 100}}% 倍</span>
-                                                                <span class="badge badge-inverse">#{{$node->id}}</span>
+                                                                <span class="badge badge-success">{{$node->traffic_rate}} 倍率</span>
+                                                                <span class="badge badge-inverse">编号#{{$node->id}}</span>
                                                             </span>
                                                         <!-- <ul class="mt-comment-actions" style="display: block;">
                                                             <li>

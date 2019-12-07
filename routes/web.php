@@ -19,7 +19,7 @@ Route::group(['middleware' => ['isForbidden', 'affiliate']], function () {
     Route::get('makeSecurityCode', 'Controller@makeSecurityCode'); // 生成网站安全码
 });
 
-Route::group(['middleware' => ['isForbidden', 'isLogin', 'isAdmin']], function () {
+Route::group(['middleware' => ['isLogin', 'isAdmin']], function () {
     Route::get('admin', 'AdminController@index'); // 后台首页
     Route::get('admin/userList', 'AdminController@userList'); // 账号列表
     Route::any('admin/addUser', 'AdminController@addUser'); // 添加账号
@@ -107,7 +107,7 @@ Route::group(['middleware' => ['isForbidden', 'isLogin', 'isAdmin']], function (
     Route::get('admin/makePort', 'AdminController@makePort'); // 生成端口
 });
 
-Route::group(['middleware' => ['isForbidden', 'isLogin']], function () {
+Route::group(['middleware' => ['isLogin']], function () {
     Route::any('/', 'UserController@index'); // 用户首页
     Route::any('article', 'UserController@article'); // 文章详情
     Route::post('exchangeSubscribe', 'UserController@exchangeSubscribe'); // 更换节点订阅地址
@@ -133,6 +133,8 @@ Route::group(['middleware' => ['isForbidden', 'isLogin']], function () {
     Route::post("charge", "UserController@charge"); // 卡券余额充值
     Route::get("help", "UserController@help"); // 帮助中心
     Route::get("nodeMonitor", "UserController@nodeMonitor"); // 帮助中心
+    Route::post("reActiveSubscribe", "UserController@reActiveSubscribe"); // 恢复订阅
+    Route::post("reLevel", "UserController@reLevel"); // 矫正等级
     
 
     Route::post('payment/create', 'PaymentController@create'); // 创建支付

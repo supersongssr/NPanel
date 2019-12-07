@@ -17,12 +17,12 @@
                 <div class="portlet light">
                     <div class="portlet-body">
                         <ul class="list-inline">
-                            <!--<li>
+                            <li>
                                 <h4>
-                                     song<span class="font-blue">账户等级：</span>
+                                    <span class="font-blue">账户等级：</span>
                                     <span class="font-red">{{Auth::user()->levelList->level_name}}</span> 
                                 </h4>
-                            </li>-->
+                            </li>
                             <li>
                                 <h4>
                                     <span class="font-blue">账户余额：</span>
@@ -36,7 +36,7 @@
                                 <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">获取充值卡券</a> <!-- song -->
                             </li>
                         </ul>
-                        <p><small>*如果您余额 < 0 ，请在推广返利页面 提取返利金额 试试？</small></p>
+                        <p><small>*等级越高，节点越多，带宽越大</small></p>
                     </div>
                 </div>
             </div>
@@ -48,37 +48,34 @@
                     <div class="portlet light">
                         <div class="tabbable-line">
                             <ul class="nav nav-tabs">
-                                <li  class="active">
+                                <li>
                                     <a href="#services1" data-toggle="tab"> <i class="fa fa-book"></i> 说明 </a>
                                 </li>
                                 <li>
-                                    <a href="#services2" data-toggle="tab"> <i class="fa fa-cloud"></i> 套餐 </a>
+                                    <a href="#services2" data-toggle="tab"> <i class="fa fa-cloud"></i> 按时间买 </a>
                                 </li>
-                                <li>
-                                    <a href="#services3" data-toggle="tab"> <i class="fa fa-jsfiddle"></i> 流量包 </a>
+                                <li  class="active">
+                                    <a href="#services3" data-toggle="tab"> <i class="fa fa-jsfiddle"></i> 按流量买 </a>
                                 </li>
                             </ul>
                             <div class="tab-content " style="font-size:16px;">
-                                <div class="tab-pane active" id="services1">
-                                    <h4>购买帮助：</h4>
+                                <div class="tab-pane" id="services1">
+                                    <h4>如何购买：</h4>
                                     <ol>
-                                        <li>如果您余额不足，请充值余额后再购买套餐</li>
-                                        <li>套餐和流量包都可以获取VIP等级，套餐每月流量重置，流量包每月流量不重置</li>
-                                        <li>流量包可为账号续期；建议套餐用户在流量不足情况下再购买流量包。</li>
+                                        <li>① 充值余额</li>
+                                        <li>② 购买商品</li>
+                                        <li>③ 等级越高，节点越多、带宽越大</li>
+                                        <li>④ 商品可叠加。</li>
                                     </ol>
-                                    <h4>套餐（*G流量/月）：</h4>
+                                    <h4>按时间买：</h4>
                                     <ol>
-                                        <li>套餐不可叠加。</li>
-                                        <li>在套餐生效的时间内，您将获得「VIP节点」、「套餐对应的网络速度」、「套餐内相应的流量」</li>
-                                        <li>基础套餐每月将会重置一次流量，重置日为购买日</li>
-                                        <li>如在套餐未到期的情况下购买新套餐，则会导致旧套餐的所有配置立即失效，新套餐的配置立即生效</li>
+                                        <li>每月赠送相应流量</li>
+                                        <li>等级越高，流量越多、带宽越大</li>
                                     </ol>
-                                    <h4>流量包（*G流量）：</h4>
+                                    <h4>按流量买：</h4>
                                     <ol>
-                                        <li>流量包可以补充账号流量</li>
-                                        <li>购买多个流量包，可叠加流量</li>
-                                        <li>购买流量包，可获得对应的VIP等级</li>
-
+                                        <li>一次性赠送流量</li>
+                                        <li>等级越高，节点越多、带宽越大</li>
                                     </ol>
 
                                 </div>
@@ -140,7 +137,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="tab-pane" id="services3">
+                                <div class="tab-pane active" id="services3">
                                     <div class="pricing-content-1" style="padding-top: 10px;">
                                         <div class="row">
                                             @if($trafficList->isEmpty())
@@ -166,19 +163,19 @@
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-bar-chart"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">内含流量：{{$goods->traffic_label}}</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">赠送流量：{{$goods->traffic_label}}</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-clock"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">有效时长：{{$goods->days}}天</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">赠送时长：{{$goods->days}}天</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-rocket"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">用完即止、Lv.{{$goods->sort}}</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">赠送节点: {{$goods->sort}}级</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">

@@ -177,9 +177,9 @@ class UserController extends Controller
             ->leftJoin('ss_node_label', 'ss_node.id', '=', 'ss_node_label.node_id')
             //->whereIn('ss_node_label.label_id', $userLabelIds)
             ->where('ss_node.status', 1)
-            ->groupBy('ss_node.id')
+            //->groupBy('ss_node.id')
             //->orderBy('ss_node.sort', 'desc')
-            ->orderBy('ss_node.id', 'asc')
+            ->orderBy('ss_node.sort', 'desc')
             //->orderBy('ss_node.id', 'asc')
             //->limit(21) //Song 
             ->get();
@@ -505,6 +505,14 @@ class UserController extends Controller
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：商品或服务已下架']);
             }
 
+/**
+            // 如果商品等级 不允许购买比自己等级低的商品
+            if ($goods->sort < Auth::user()->level) {
+                # code...
+                return Response::json(['status' => 'fail', 'data' => '', 'message' => '购买失败，商品等级小于用户等级']);
+            }
+**/
+
             // 限购控制：all-所有商品限购, free-价格为0的商品限购, none-不限购（默认）
             $strategy = self::$systemConfig['goods_purchase_limit_strategy'];
             if ($strategy == 'all' || ($strategy == 'package' && $goods->type == 2) || ($strategy == 'free' && $goods->price == 0) || ($strategy == 'package&free' && ($goods->type == 2 || $goods->price == 0))) {
@@ -575,7 +583,7 @@ class UserController extends Controller
                 $order->coupon_id = !empty($coupon) ? $coupon->id : 0;
                 $order->origin_amount = $goods->price;
                 $order->amount = $amount;
-                $order->expire_at = date("Y-m-d H:i:s", strtotime("+" . $goods->days . " days"));
+                $order->expire_at = date("Y-m-d H:i:s", strtotime(Auth::user()->expire_time . "+" . $goods->days . " days"));
                 $order->is_expire = 0;
                 $order->pay_way = 1;
                 $order->status = 2;
@@ -598,6 +606,7 @@ class UserController extends Controller
                     Helpers::addCouponLog($coupon->id, $goods_id, $order->oid, '余额支付订单使用');
                 }
 
+/**
                 // 如果买的是套餐，则先将之前购买的所有套餐置都无效，并扣掉之前所有套餐的流量，重置用户已用流量为0
                 if ($goods->type == 2) {
                     $existOrderList = Order::query()
@@ -630,7 +639,7 @@ class UserController extends Controller
                         }
                     }
                 }
-
+**/
                 // 写入用户流量变动记录
                 $user = User::query()->where('id', $user->id)->first(); // 重新取出user信息
                 Helpers::addUserTrafficModifyLog($user->id, $order->oid, $user->transfer_enable, ($user->transfer_enable + $goods->traffic * 1048576), '[余额支付]用户购买商品，加上流量');
@@ -639,11 +648,14 @@ class UserController extends Controller
                 User::query()->where('id', $user->id)->increment('transfer_enable', $goods->traffic * 1048576);
 
                 // 计算账号过期时间
+                /**
                 if ($user->expire_time < date('Y-m-d', strtotime("+" . $goods->days . " days"))) {
                     $expireTime = date('Y-m-d', strtotime("+" . $goods->days . " days"));
                 } else {
                     $expireTime = $user->expire_time;
                 }
+                **/
+                $expireTime  = date('Y-m-d', strtotime($user->expire_time ."+" . $goods->days . " days" ));
 
                 // 套餐就改流量重置日，流量包不改
                 if ($goods->type == 2) {
@@ -780,8 +792,8 @@ class UserController extends Controller
         //加一个功能 song 如果消费返利 < 注册返利，那么就无法申请提现 判定订单中 订单为0 的 比例
         $reg_money = ReferralLog::uid()->where('status', 0)->where('order_id',0)->sum('ref_amount');
         // 这里取 邀请注册返利占比不能大于 1/2 
-        if ($reg_money > ($ref_amount * 5)) {  //*50 = *100 /2
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：注册返利多了！充值消费返利少了！']);
+        if ($reg_money > 0) {  //*50 = *100 /2
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：包含注册返利！']);
         }
 
         // 取出本次申请关联返利日志ID
@@ -1015,5 +1027,28 @@ class UserController extends Controller
         //$view['monthDays'] = "'" . implode("','", $monthDays) . "'";
 
         return Response::view('user.nodeMonitor', $view);
+    }
+
+    // 设置用户的订阅的状态
+    public function reActiveSubscribe(Request $request)
+    {
+
+        UserSubscribe::query()->where('id', Auth::user()->id)->update(['status' => 1, 'ban_time' => 0, 'ban_desc' => '']);
+        User::uid()->update(['passwd' => time()]);
+
+        return Response::json(['status' => 'success', 'data' => '', 'message' => '临时解封成功,请更新订阅']);
+    }
+
+    // 矫正用户等级
+    public function reLevel(Request $request)
+    {
+
+        $goodsIds = Order::query()->where('user_id', Auth::user()->id)->where('status', 2)->where('is_expire', 0)->where('expire_at', '>', date('Y-m-d H:i:s'))->groupBy('goods_id')->pluck('goods_id')->toArray();
+        // song 获取 用户商品最大 等级
+        $maxLevel = Goods::query()->whereIn('id', $goodsIds)->orderBy('sort','desc')->pluck('sort')->first();  
+        empty($maxLevel) && $maxLevel = 0;  // 如果为空 就算 0 
+        // 将最新的等级写入到用户 中
+        User::uid()->update(['level' => $maxLevel]);
+        return Response::json(['status' => 'success', 'data' => '', 'message' => '等级校正成功']);
     }
 }

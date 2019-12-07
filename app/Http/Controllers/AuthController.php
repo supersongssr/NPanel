@@ -842,7 +842,7 @@ class AuthController extends Controller
 
             // 查找账号
             $user = User::query()->where('username', $request->username)->first();
-            if ($user->status < 0 && $user->balance < 0) {
+            if ($user->status < 0 ) {
                 User::query()->where('username', $request->username)->update(['status' => 1]);
                 return Redirect::back()->with('successMsg', '解封成功，请登陆账号后请尽快补充余额至 > 0');
             } else{

@@ -7,17 +7,7 @@
     <!-- BEGIN CONTENT BODY -->
     <div class="page-content" style="padding-top:0;">
         <!-- BEGIN PAGE BASE CONTENT -->
-        <div class="row">
-            <div class="col-md-12">
-                <div class="note note-info">
-                    <!-- 
-                    <p>节点绑定域名推荐使用<a href="https://www.namesilo.com/?rid=326ec20pa" target="_blank">Namesilo</a>，本面板支持自动更新DNS <a href="https://github.com/ssrpanel/SSRPanel/wiki/%E8%B4%AD%E4%B9%B0%E5%9F%9F%E5%90%8D%EF%BC%88%E8%87%AA%E5%B8%A6%E9%9A%90%E7%A7%81%E4%BF%9D%E6%8A%A4%EF%BC%89" target="_blank" style="color:red;">[购买域名]</a></p>
-                    <p>状态显示为'离线'：1.后端进程挂掉；2.节点和数据库之间的时区不一致或者通信延迟过高；3.服务器真的宕机。<a href="https://github.com/ssrpanel/ssrpanel/wiki/VPS%E6%8E%A8%E8%8D%90&%E8%B4%AD%E4%B9%B0%E7%BB%8F%E9%AA%8C" target="_blank" style="color:red;">[VPS推荐]</a></p>
-                    <p>务必检查各节点服务器的时间是否同步。<a href="https://github.com/ssrpanel/SSRPanel/wiki/%E5%8D%95%E7%AB%AF%E5%8F%A3%E5%A4%9A%E7%94%A8%E6%88%B7%E7%9A%84%E5%9D%91" target="_blank" style="color:red;">[时间校准]</a></p>
-                -->
-                </div>
-            </div>
-        </div>
+        
         <div class="row">
             <div class="col-md-12">
                 <!-- BEGIN EXAMPLE TABLE PORTLET-->
@@ -28,11 +18,67 @@
                         </div>
                         <div class="actions">
                             <div class="btn-group">
+                                <button type="button" class="btn blue" onclick="doSearch();">查询</button>
+                                <button type="button" class="btn grey" onclick="doReset();">重置</button>
                                 <button class="btn sbold blue" onclick="addNode()"> 添加节点 </button>
                             </div>
                         </div>
                     </div>
                     <div class="portlet-body">
+                        <div class="row">
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="id" value="{{Request::get('id')}}" id="id" placeholder="节点ID" onkeydown="if(event.keyCode==13){doSearch();}">
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="nodename" value="{{Request::get('nodename')}}" id="nodename" placeholder="节点名" onkeydown="if(event.keyCode==13){doSearch();}">
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="ipv6" value="{{Request::get('ipv6')}}" id="ipv6" placeholder="ipv6" onkeydown="if(event.keyCode==13){doSearch();}">
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="type" id="type" onChange="doSearch()">
+                                    <option value="" @if(Request::get('type') == '') selected @endif>类型</option>
+                                    <option value="1" @if(Request::get('type') == '1') selected @endif>S1</option>
+                                    <option value="2" @if(Request::get('type') == '2') selected @endif>V2</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="sort" id="sort" onChange="doSearch()">
+                                    <option value="" @if(Request::get('sort') == '') selected @endif>等级</option>
+                                    <option value="-1" @if(Request::get('sort') == '-1') selected @endif>高->低</option>
+                                    <option value="1" @if(Request::get('sort') == '1') selected @endif>低->高</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="status" id="status" onChange="doSearch()">
+                                    <option value="" @if(Request::get('status') == '') selected @endif>状态</option>
+                                    <option value="1" @if(Request::get('status') == '1') selected @endif>正常</option>
+                                    <option value="0" @if(Request::get('status') == '0') selected @endif>维护</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="traffic_rate" id="traffic_rate" onChange="doSearch()">
+                                    <option value="" @if(Request::get('traffic_rate') == '') selected @endif>倍率</option>
+                                    <option value="-1" @if(Request::get('traffic_rate') == '-1') selected @endif>高->低</option>
+                                    <option value="1" @if(Request::get('traffic_rate') == '1') selected @endif>低->高</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="traffic" id="traffic" onChange="doSearch()">
+                                    <option value="" @if(Request::get('traffic') == '') selected @endif>流量</option>
+                                    <option value="-1" @if(Request::get('traffic') == '-1') selected @endif>高->低</option>
+                                    <option value="1" @if(Request::get('traffic') == '1') selected @endif>低->高</option>
+                                </select>
+                            </div>
+                            
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8 col-sm-8">
+                                <div class="dataTables_paginate paging_bootstrap_full_number pull-right">
+                                    {{ $nodeList->links() }}
+                                </div>
+                            </div>
+                        </div>
                         <div class="table-scrollable table-scrollable-borderless">
                             <table class="table table-hover table-light">
                                 <thead>
@@ -132,6 +178,70 @@
             </div>
         </div>
         <!-- END PAGE BASE CONTENT -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="note note-info">
+                    <table class="table table-hover table-light">
+                        <tr>
+                            <th>等级</th>
+                            <th>All</th>
+                            <th>Lv.9</th>
+                            <th>Lv.8</th>
+                            <th>Lv.7</th>
+                            <th>Lv.6</th>
+                            <th>Lv.5</th>
+                            <th>Lv.4</th>
+                            <th>Lv.3</th>
+                            <th>Lv.2</th>
+                            <th>Lv.1</th>
+                            <th>Lv.0</th>
+                        </tr>
+                        <tr>
+                            <td>用户</td>
+                            <td>{{$sts['userall']}}</td>
+                            <td>{{$sts['uservip9']}}</td>
+                            <td>{{$sts['uservip8']}}</td>
+                            <td>{{$sts['uservip7']}}</td>
+                            <td>{{$sts['uservip6']}}</td>
+                            <td>{{$sts['uservip5']}}</td>
+                            <td>{{$sts['uservip4']}}</td>
+                            <td>{{$sts['uservip3']}}</td>
+                            <td>{{$sts['uservip2']}}</td>
+                            <td>{{$sts['uservip1']}}</td>
+                            <td>{{$sts['uservip0']}}</td>
+                        </tr>
+                        <tr>
+                            <td>节点</td>
+                            <td>{{$sts['nodeall']}}</td>
+                            <td>{{$sts['nodelv9']}}</td>
+                            <td>{{$sts['nodelv8']}}</td>
+                            <td>{{$sts['nodelv7']}}</td>
+                            <td>{{$sts['nodelv6']}}</td>
+                            <td>{{$sts['nodelv5']}}</td>
+                            <td>{{$sts['nodelv4']}}</td>
+                            <td>{{$sts['nodelv3']}}</td>
+                            <td>{{$sts['nodelv2']}}</td>
+                            <td>{{$sts['nodelv1']}}</td>
+                            <td>{{$sts['nodelv0']}}</td>
+                        </tr>
+                        <tr>
+                            <td>比率</td>
+                            <td>{{ @floor($sts['userall'] / $sts['nodeall']) }}</td>
+                            <td>{{ @floor($sts['uservip9'] / $sts['nodelv9']) }}</td>
+                            <td>{{ @floor($sts['uservip8'] / $sts['nodelv8']) }}</td>
+                            <td>{{ @floor($sts['uservip7'] / $sts['nodelv7']) }}</td>
+                            <td>{{ @floor($sts['uservip6'] / $sts['nodelv6']) }}</td>
+                            <td>{{ @floor($sts['uservip5'] / $sts['nodelv5']) }}</td>
+                            <td>{{ @floor($sts['uservip4'] / $sts['nodelv4']) }}</td>
+                            <td>{{ @floor($sts['uservip3'] / $sts['nodelv3']) }}</td>
+                            <td>{{ @floor($sts['uservip2'] / $sts['nodelv2']) }}</td>
+                            <td>{{ @floor($sts['uservip1'] / $sts['nodelv1']) }}</td>
+                            <td>{{ @floor($sts['uservip0'] / $sts['nodelv0']) }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
     <!-- END CONTENT BODY -->
 @endsection
@@ -173,6 +283,25 @@
                 tips: [3, '#3595CC'],
                 time: 1200
             });
+        }
+
+        // 搜索
+        function doSearch() {
+            var id = $("#id").val();
+            var nodename = $("#nodename").val();
+            var ipv6 = $("#ipv6").val();
+            var type = $("#type option:checked").val();
+            var sort = $("#sort option:checked").val();
+            var status = $("#status option:checked").val();
+            var traffic_rate = $("#traffic_rate option:checked").val();
+            var traffic = $("#traffic option:checked").val();
+
+            window.location.href = '/admin/nodeList' + '?id=' + id +'&nodename=' + nodename + '&ipv6=' + ipv6 + '&type=' + type + '&sort=' + sort + '&status=' + status + '&traffic_rate=' + traffic_rate + '&traffic=' + traffic;
+        }
+
+        // 重置
+        function doReset() {
+            window.location.href = '/admin/nodeList';
         }
 
         // 显示提示
