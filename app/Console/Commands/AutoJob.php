@@ -167,7 +167,7 @@ class AutoJob extends Command
                 $id = $user->id;
 
                 // 用户的使用天数 + 用户的使用流量 之和要是小于 100 ，就说明是baduser 就删除返利
-                $used_time = floor( ( time() - strtotime($user->enable_time) ) / 86400 );
+                //$used_time = floor( ( time() - strtotime($user->enable_time) ) / 86400 );
                 //$used_data = floor( ($user->u + $user->d) / 1073741824 );
                 /**
                 // 如果注册时间 + 100天 小于当前时间，说明注册时间超过100天，不删除
@@ -184,7 +184,7 @@ class AutoJob extends Command
 
                 //song 这里查看一下此用户是否有邀请人，然后扣除邀请人的相关的余额。
                 //如果邀请人ID 不是0 就是说存在邀请人 ； 同时该用户不是 bad user
-                if ( $user->referral_uid != 0 && $used_time < 64 ) {
+                if ( $user->referral_uid != 0 ) {
                     # 取出此用户注册邀请奖励值
                     $referral = ReferralLog::where('user_id','=',$user->id)->where('ref_user_id','=',$user->referral_uid)->where('order_id','=',0)->first();
                     ##如果存在这个邀请ID 那么就扣除这个用户相应的邀请ID，并写入返利日志 直接扣除，直接写入

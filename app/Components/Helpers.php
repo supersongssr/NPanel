@@ -156,13 +156,14 @@ class Helpers
      *
      * @return int
      */
-    public static function addCouponLog($couponId, $goodsId, $orderId, $desc = '')
+    public static function addCouponLog($couponId, $goodsId, $orderId, $user_id,$desc = '')
     {
         $log = new CouponLog();
         $log->coupon_id = $couponId;
         $log->goods_id = $goodsId;
         $log->order_id = $orderId;
-        $log->desc = $desc;
+        $log->user_id = $user_id;
+        $log->desc = $desc; 
 
         return $log->save();
     }

@@ -10,6 +10,9 @@ use App\Http\Models\Goods;  //Song
 use App\Http\Models\UserLabel;
 use App\Http\Models\GoodsLabel;
 use App\Http\Models\ReferralLog;
+use App\Http\Models\UserBalanceLog;
+use App\Http\Models\Coupon;
+
 use App\Http\Models\SsNode;
 
 
@@ -45,6 +48,36 @@ class Test extends Command
     private function decGoodsTraffic()
     {
 
+/**
+        // 把所有用户的充值记录，就是已用的用户的ID，记录到卡券那里！很重要！
+        $balance_logs = UserBalanceLog::->where('amount','>',0)->orderBy('id', 'desc')->get();
+        foreach ($balance_logs as $balance_log) {
+            # code...
+
+        }
+        **/
+        $balance_logs = UserBalanceLog::query()->where('amount','>',0)->get();
+        foreach ($balance_logs as $balance_log) {
+            # code...
+            $coupon_key = explode('：',$balance_log->desc);
+            if (!empty($coupon_key['1'])) {
+                # code...
+                $coupon_key['1'] = str_replace("]","",$coupon_key['1']);
+                // 更新coupon 使用者
+                $coupon = Coupon::type(3)->where('sn', $coupon_key['1'])->first();
+                $coupon->user_id = $balance_log->user_id;
+                $coupon->save();
+                // 更新userbalance log 使用者的coupinID
+                $balance_log->coupon_id = $coupon->id;
+                $balance_log->save();
+                //
+                echo $coupon_key['1'].'-';
+                echo $balance_log->user_id.'-';
+                echo $coupon->id.'-';
+            }
+        }
+        
+/**
         // 把所有edu.cn结尾的账号都给设定为 status=0需要激活一下的那种！
         $userList = User::query()->where('status', 1)->get();
         foreach ($userList as $user) {
@@ -56,7 +89,7 @@ class Test extends Command
                 User::query()->where('id', $user->id)->update(['status' => 0]);
             }
         }
-
+**/
         /**
         //所有节点前面加上： 撸白嫖
         $nodeList = SsNode::query()->where('id','>',9)->orderBy('id', 'asc')->get(); 

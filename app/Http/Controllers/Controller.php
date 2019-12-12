@@ -94,7 +94,7 @@ class Controller extends BaseController
      *
      * @return int
      */
-    public function addUserBalanceLog($userId, $oid, $before, $after, $amount, $desc = '')
+    public function addUserBalanceLog($userId, $oid, $before, $after, $amount, $coupon_id, $desc = '')
     {
         $log = new UserBalanceLog();
         $log->user_id = $userId;
@@ -102,6 +102,7 @@ class Controller extends BaseController
         $log->before = $before;
         $log->after = $after;
         $log->amount = $amount;
+        $log->coupon_id = $coupon_id;
         $log->desc = $desc;
         $log->created_at = date('Y-m-d H:i:s');
 

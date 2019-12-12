@@ -160,6 +160,12 @@
                     </a>
                 </li>
                 @endif
+                <li class="nav-item {{in_array(Request::path(), ['profile']) ? 'active open' : ''}}">
+                    <a href="/profile" class="nav-link nav-toggle">
+                        <i class="icon-user"></i>
+                        <span class="title">个人设置</span>
+                    </a>
+                </li>
                 <li class="nav-item {{in_array(Request::path(), ['help', 'article']) ? 'active open' : ''}}">
                     <a href="/help" class="nav-link nav-toggle">
                         <i class="icon-doc"></i>

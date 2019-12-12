@@ -551,10 +551,26 @@ class UserController extends Controller
 
             // 验证账号余额是否充足
             $user = User::uid()->first();
+
+            // song 这里判断用户钱是否充值，再确定是否返利
+            $user_coupons = Coupon::type(3)->where('user_id', $user->id)->where('status', 1)->sum('amount');
+            
+            //检测 商品金额不能低于用户充值金额的 10%;
+            if ($amount > 120 && $amount > $user_coupons / 10 ) {
+                # code...
+                return Response::json(['status' => 'fail', 'data' => '', 'message' => '您充值满'.$amount /10 .'就能购买本套餐:)']);
+
+            }
+            
+
+            /**
             if ($user->balance < $amount) {
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：您的余额不足，请先充值']);
             }
 
+            **/
+
+/**
             // 验证账号是否存在有效期更长的套餐
             if ($goods->type == 2) {
                 $existOrderList = Order::uid()
@@ -572,6 +588,7 @@ class UserController extends Controller
                     }
                 }
             }
+            **/
 
             DB::beginTransaction();
             try {
@@ -599,11 +616,13 @@ class UserController extends Controller
                 if (!empty($coupon)) {
                     if ($coupon->usage == 1) {
                         $coupon->status = 1;
+                        // song 这里记录一下优惠券使用的是谁
+                        $coupon->user_id = $user->id;
                         $coupon->save();
                     }
 
                     // 写入日志
-                    Helpers::addCouponLog($coupon->id, $goods_id, $order->oid, '余额支付订单使用');
+                    Helpers::addCouponLog($coupon->id, $goods_id, $order->oid, $user->id,'余额支付订单使用');
                 }
 
 /**
@@ -716,11 +735,15 @@ class UserController extends Controller
                     $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $amount, 6.99);
                 }
                 **/
+                
+                // 这里还要考虑一下 payment里面的充值的数据，这个可能需要到时候再考虑吧
                 // 写入返利日志
-                if ($user->referral_uid) {
+                if (  ($user_coupons - $user->balance_used) >= $amount * 100 && $user->referral_uid) {
+                    # code...
                     $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $amount, $amount * self::$systemConfig['referral_percent']);
+                    $user->balance_used += $amount * 100;
+                    $user->save();
                 }
-
                 // 取消重复返利  Song 允许重复返利
                 //User::query()->where('id', $order->user_id)->update(['referral_uid' => 0]);
 
@@ -732,6 +755,7 @@ class UserController extends Controller
                 }
                 **/
 
+                //return Response::json(['status' => 'success', 'data' => '', 'message' => '支付成功']);
                 return Response::json(['status' => 'success', 'data' => '', 'message' => '支付成功']);
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -940,14 +964,15 @@ class UserController extends Controller
         DB::beginTransaction();
         try {
             // 写入日志
-            $this->addUserBalanceLog(Auth::user()->id, 0, Auth::user()->balance, Auth::user()->balance + $coupon->amount, $coupon->amount, '用户手动充值 - [充值券：' . $request->coupon_sn . ']');
+            $this->addUserBalanceLog(Auth::user()->id, 0, Auth::user()->balance, Auth::user()->balance + $coupon->amount, $coupon->amount, $coupon->id, '用户手动充值 - [充值券：' . $request->coupon_sn . ']');
 
             // 更改卡券状态
             $coupon->status = 1;
+            $coupon->user_id = Auth::user()->id;
             $coupon->save();
 
             // 写入卡券日志
-            Helpers::addCouponLog($coupon->id, 0, 0, '账户余额充值使用');
+            Helpers::addCouponLog($coupon->id, 0, 0, Auth::user()->id, '账户余额充值使用');
 
             if ( strrchr(Auth::user()->username, 'edu.cn') == 'edu.cn' ) {
                 #  教育用户 这里 * 200可以呦 

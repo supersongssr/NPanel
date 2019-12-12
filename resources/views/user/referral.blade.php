@@ -29,8 +29,7 @@
                                 <i class="icon-note"></i> {{trans('home.referral_button')}}
                             </a>
                             <br>
-                            <p>推广返利：（ 4元余额 + 5G流量 ）* 邀请人数 + 消费返利;
-                            <br><small>*用户使用天数+流量 < 20，可能会收回返利;</small></p>
+                            <p>推广返利：（ 5元余额 + 5G流量 ）* 邀请人数 + 消费返利;
                         </div>
                     </div>
                 </div>

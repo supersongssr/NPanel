@@ -1269,6 +1269,31 @@ CREATE TABLE `migrations` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='迁移';
 
+-- ----------------------------
+-- Song 2019.12.12 `
+-- ----------------------------
+-- ----------------------------
+-- coupon新增用户ID`
+-- ----------------------------
+ALTER TABLE `coupon`
+  ADD COLUMN `user_id` INT(11) COMMENT '使用者ID' AFTER `status`;
+
+-- ----------------------------
+-- 新增使用者ID`
+-- ----------------------------
+ALTER TABLE `coupon_log`
+  ADD COLUMN `user_id` INT(11) COMMENT '使用者ID' AFTER `desc`;
+-- ----------------------------
+-- 新增使用者ID`
+-- ----------------------------
+ALTER TABLE `user_balance_log`
+  ADD COLUMN `coupon_id` INT(11) COMMENT '充值券ID' AFTER `amount`;
+-- ----------------------------
+-- user字段新增用户已用余额数据`
+-- ----------------------------
+ALTER TABLE `user`
+  ADD COLUMN `balance_used` INT(11) Default 0 COMMENT '已用余额' AFTER `balance`;
+
 
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1276,3 +1301,5 @@ CREATE TABLE `migrations` (
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
