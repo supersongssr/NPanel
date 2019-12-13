@@ -800,12 +800,13 @@ class UserController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：账号已过期，请先购买服务吧']);
         }
 
+/**
         // 判断是否已存在申请
         $referralApply = ReferralApply::uid()->whereIn('status', [0, 1])->first();
         if ($referralApply) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：已存在申请，请等待之前的申请处理完']);
         }
-
+**/
         // 校验可以提现金额是否超过系统设置的阀值
         $ref_amount = ReferralLog::uid()->where('status', 0)->sum('ref_amount');
         $ref_amount = $ref_amount / 100;
@@ -813,18 +814,22 @@ class UserController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：满' . self::$systemConfig['referral_money'] . '元才可以提现，继续努力吧']);
         }
 
+/**
         //加一个功能 song 如果消费返利 < 注册返利，那么就无法申请提现 判定订单中 订单为0 的 比例
         $reg_money = ReferralLog::uid()->where('status', 0)->where('order_id',0)->sum('ref_amount');
         // 这里取 邀请注册返利占比不能大于 1/2 
         if ($reg_money > 0) {  //*50 = *100 /2
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：包含注册返利！']);
         }
-
+**/
         // 取出本次申请关联返利日志ID
         $link_logs = '';
-        $referralLog = ReferralLog::uid()->where('status', 0)->get();
+        $referralLog = ReferralLog::uid()->where('status', 0)->where('order_id','>',0)->get();
         foreach ($referralLog as $log) {
             $link_logs .= $log->id . ',';
+            #这里自动将 返利的那个 已返利变为1 就是已申请
+            ReferralLog::query()->where('id', $log->id)->update(['status' => 1]);
+            #song 这里直接将提现记录变成1 就是已申请
         }
         $link_logs = rtrim($link_logs, ',');
 
@@ -848,12 +853,13 @@ class UserController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：账号已过期，请先购买服务吧']);
         }
 
+/**
         // 判断是否已存在申请
         $referralApply = ReferralApply::uid()->whereIn('status', [0, 1])->first();
         if ($referralApply) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：已存在申请，请等待之前的申请处理完']);
         }
-
+**/
         // 校验可以提现金额是否超过系统设置的阀值
         $ref_amount = ReferralLog::uid()->where('status', 0)->sum('ref_amount');
         $ref_amount = $ref_amount / 100;

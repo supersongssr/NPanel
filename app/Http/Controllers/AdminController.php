@@ -541,7 +541,7 @@ class AdminController extends Controller
                 #扣除邀请人相应的余额
                 User::query()->where('id', $user->referral_uid)->decrement('balance', $referral->ref_amount*100);
                 #写入用户余额变动日志
-                $this->addUserBalanceLog($user->referral_uid, 0, $user->balance, $user->balance - $referral->ref_amount, -$referral->ref_amount, '邀请用户被删除扣除余额');
+                $this->addUserBalanceLog($user->referral_uid, 0, $user->balance, $user->balance - $referral->ref_amount, -$referral->ref_amount, 0,'邀请用户被删除扣除余额');
                 
                 ## 写入用户邀请返利日志
                 $referrallog = new ReferralLog();
@@ -2391,10 +2391,13 @@ EOF;
             $referralApply = ReferralApply::query()->where('id', $id)->first();
             $log_ids = explode(',', $referralApply->link_logs);
             if ($referralApply && $status == 1) {
+                // 审核通过
                 ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 1]);
             } elseif ($referralApply && $status == 3) {
+                // 3 现金提现
                 ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 3]);
             } elseif ($referralApply && $status == 2) {
+                // 2 打款到余额
                 ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 2]);
                 //Song 审核并自动打款到余额
                 //这里通过申请ID，获取到用户id，和提现的金额。 
@@ -2406,7 +2409,7 @@ EOF;
                 DB::beginTransaction();
                 try {
                     // 写入余额变动日志
-                    $this->addUserBalanceLog($user->id, 0, $user->balance, $user->balance + $apply->amount, $apply->amount, '邀请返利打款');
+                    $this->addUserBalanceLog($user->id, 0, $user->balance, $user->balance + $apply->amount, $apply->amount,0, '邀请返利打款');
                     //增加余额
                     $user->increment('balance', $apply->amount * 100);
                     DB::commit();
@@ -2447,7 +2450,7 @@ EOF;
                 $user = User::query()->where('id', $userId)->first();
 
                 // 写入余额变动日志
-                $this->addUserBalanceLog($userId, 0, $user->balance, $user->balance + $amount, $amount, '后台手动充值');
+                $this->addUserBalanceLog($userId, 0, $user->balance, $user->balance + $amount, $amount, 0,'后台手动充值');
 
                 // 加减余额
                 if ($amount < 0) {

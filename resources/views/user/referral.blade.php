@@ -8,9 +8,14 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="note note-info">
-                    <p>通过您的推广链接/邀请码注册返利4￥/用户,你们双方都将获得 20GB 流量奖励；当他们消费时，您将获得他们消费金额的 20% 作为奖励。</p>
-                    <p>推广返利：（ 4元余额 + 5G流量 ）* 邀请人数 + （ 20%消费返利 * 用户消费 ）；</p>
+                    <p>通过您的推广链接/邀请码注册返利5$/用户,你们双方都将获得 5GB 流量奖励；当他们消费时，您将获得他们消费金额的 20% 作为奖励，奖励可提现。</p>
+                    <p>推广返利：（ 5$余额 + 5G流量 ）* 邀请人数 + （ 20%消费返利 * 用户消费 ）；</p>
                 </div>
+                @if(Auth::user()->level == 0)
+                <div class="note note-info">
+                    <p>您可以申请信用额度<button type="submit" class="btn blue" onclick="CreditMoney()"> 信用花呗 </button></p>
+                </div>
+                @endif
             </div>
         </div>
         <div class="row">
@@ -29,7 +34,7 @@
                                 <i class="icon-note"></i> {{trans('home.referral_button')}}
                             </a>
                             <br>
-                            <p>推广返利：（ 5元余额 + 5G流量 ）* 邀请人数 + 消费返利;
+                            <p>推广返利：（ 5$余额 + 5G流量 ）* 邀请人数 + 20%消费返利(可提现);
                         </div>
                     </div>
                 </div>
@@ -85,7 +90,7 @@
                             <span class="caption-subject bold"> {{trans('home.referral_title')}} </span>
                         </div>
                         <div class="actions">
-                            <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 提取 </button>
+                            <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 提取余额 </button>
                             <button type="submit" class="btn green" onclick="extractMoney()"> 银行卡提现 </button>
                         </div>
                     </div>
@@ -136,7 +141,7 @@
                         </div>
                         <div class="row">
                             <div class="col-md-5 col-sm-5">
-                                <div class="dataTables_info" role="status" aria-live="polite">{{trans('home.referral_summary', ['total' => $referralLogList->total(), 'amount' => $canAmount, 'money' => $referral_money])}}</div>
+                                <div class="dataTables_info" role="status" aria-live="polite">{{trans('home.referral_summary', ['total' => $referralLogList->total(), 'amount' => $canAmount, 'money' => $referral_money])}}<br>银行卡提现请先<a href="/profile#tab_2">设置收款信息</a>，每笔提现手续费1￥。</div>
                             </div>
                             <div class="col-md-7 col-sm-7">
                                 <div class="dataTables_paginate paging_bootstrap_full_number pull-right">
@@ -230,6 +235,17 @@
         // 申请提现，自动打款到余额
         function autoExtractMoney() {
             $.post("/autoExtractMoney", {_token:'{{csrf_token()}}'}, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'success') {
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+
+        // 信用额度
+        function CreditMoney() {
+            $.post("/CreditMoney", {_token:'{{csrf_token()}}'}, function (ret) {
                 layer.msg(ret.message, {time: 1000}, function () {
                     if (ret.status == 'success') {
                         window.location.reload();
