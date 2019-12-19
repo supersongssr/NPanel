@@ -39,7 +39,7 @@ class AutoResetUserTraffic extends Command
     // 重置用户流量
     private function resetUserTraffic()
     {
-        $userList = User::query()->where('status', '>=', 0)->where('expire_time', '>=', date('Y-m-d'))->get();
+        $userList = User::query()->where('status', '>=', 0)->where('traffic_reset_day','!=',0)->where('expire_time', '>=', date('Y-m-d'))->get();
         if (!$userList->isEmpty()) {
             foreach ($userList as $user) {
                 if (!$user->traffic_reset_day) {
@@ -57,7 +57,7 @@ class AutoResetUserTraffic extends Command
                     ->orderBy('oid', 'desc')
                     ->get();
 
-                if (!$order) {
+                if (!$orders) {
                     continue;
                 }
 
@@ -76,7 +76,7 @@ class AutoResetUserTraffic extends Command
                         // 这里从用户已用流量中扣除相应的流量。
                         $goods = Goods::query()->where('id',$order->goods_id)->first();
                         // 这里从已使用流量中 扣除掉 套餐赠送的流量
-                        $traffic = $user->u + $user->d - $traffic * 1024 * 1024;
+                        $traffic = $user->u + $user->d - $goods->traffic * 1024 * 1024;
                         // 如果扣除后发现流量小于0 那么设定为 0 
                         $traffic < 0 && $traffic = 0;
                         User::query()->where('id', $user->id)->update(['u' => 0, 'd' => $traffic]);
