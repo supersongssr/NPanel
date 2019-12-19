@@ -301,7 +301,7 @@ class AutoJob extends Command
                     // 多往前取5分钟，防止数据统计任务执行时间过长导致没有数据
                     $totalTraffic = UserTrafficHourly::query()->where('user_id', $user->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m-d H:i:s', time() - 3900))->sum('total');
                     if ($totalTraffic >= $traffic_ban_limit) {
-                        User::query()->where('id', $user->id)->update(['status' => 0, 'enable' => 0, 'ban_time' => strtotime(date('Y-m-d H:i:s', strtotime("+" . self::$systemConfig['traffic_ban_time'] . " minutes")))]);
+                        User::query()->where('id', $user->id)->update(['status' => -1, 'enable' => 0, 'ban_time' => strtotime(date('Y-m-d H:i:s', strtotime("+" . self::$systemConfig['traffic_ban_time'] . " minutes")))]);
 
                         // 写入日志
                         $this->addUserBanLog($user->id, self::$systemConfig['traffic_ban_time'], '【临时封禁代理】-1小时内流量异常');
