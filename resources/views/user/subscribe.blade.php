@@ -136,7 +136,7 @@
                                             <div class="tab-pane" id="tools2">
                                                 <!-- song -->
                                                 <ol>【SS-R 教程】
-                                                    <li> <a href="{{asset('clients/ShadowsocksR-win.zip')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
+                                                    <li> <a href="https://github.com/shadowsocksrr/shadowsocksr-csharp/releases/download/4.9.2/ShadowsocksR-win-4.9.2.zip" target="_blank">点击此处（V4.9.2版本）</a>下载客户端并启动 </li>
                                                     <li> 运行 ShadowsocksR 文件夹内的 ShadowsocksR.exe </li>
                                                     <li> 右击桌面右下角状态栏（或系统托盘）纸飞机 -> 服务器订阅 -> SSR服务器订阅设置 </li>
                                                     <li> 点击窗口左下角 “Add” 新增订阅，完整复制本页上方 “订阅服务” 处地址，将其粘贴至“网址”栏，点击“确定” </li>
@@ -148,7 +148,7 @@
                                                 </ol>
                                                 <hr>
                                                 <ol>【Vmess 教程】
-                                                    <li> <a href="/clients/v2rayN.zip" target="_blank">下载V2rayN软件</a>，下载后解压 （PS:请注意，本版本采用本地端口是10808，普通用户不用理会。如需指定代理，您可以在软件设置中配置您想用的端口。）</li>
+                                                    <li> <a href="https://github.com/2dust/v2rayN/releases/download/3.5/v2rayN.zip" target="_blank">下载V2rayN软件(网站提供版本为V3.5版本)</a>，下载后解压 （PS:请注意，本版本采用本地端口是10808，普通用户不用理会。如需指定代理，您可以在软件设置中配置您想用的端口。）</li>
                                                     <li> 运行程序v2rayN.exe，双击右下角图标 </li>
                                                     <li> V2Ray软件界面，点击订阅，订阅设置，填写本站的V2Ray订阅地址 </li>
                                                     <li> 点订阅，更新订阅，即可获取本站节点</li>

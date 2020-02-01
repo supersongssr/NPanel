@@ -66,6 +66,19 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
+                                                    <label for="country_code" class="col-md-3 control-label"> 国家/地区 </label>
+                                                    <div class="col-md-8">
+                                                        <select class="form-control" name="country_code" id="country_code">
+                                                            <option value="">请选择</option>
+                                                            @if(!$country_list->isEmpty())
+                                                                @foreach($country_list as $country)
+                                                                    <option value="{{$country->country_code}}" {{$node->country_code == $country->country_code ? 'selected' : ''}}>{{$country->country_code}} - {{$country->country_name}}</option>
+                                                                @endforeach
+                                                            @endif
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
                                                     <label for="name" class="col-md-3 control-label"> 节点名称 </label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" name="name" value="{{$node->name}}" id="name" placeholder="" autofocus required>
@@ -129,19 +142,7 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="form-group">
-                                                    <label for="country_code" class="col-md-3 control-label"> 国家/地区 </label>
-                                                    <div class="col-md-8">
-                                                        <select class="form-control" name="country_code" id="country_code">
-                                                            <option value="">请选择</option>
-                                                            @if(!$country_list->isEmpty())
-                                                                @foreach($country_list as $country)
-                                                                    <option value="{{$country->country_code}}" {{$node->country_code == $country->country_code ? 'selected' : ''}}>{{$country->country_code}} - {{$country->country_name}}</option>
-                                                                @endforeach
-                                                            @endif
-                                                        </select>
-                                                    </div>
-                                                </div>
+                                                
                                                 <div class="form-group">
                                                     <label for="desc" class="col-md-3 control-label"> 描述 </label>
                                                     <div class="col-md-8">

@@ -33,7 +33,7 @@
                                 <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">点我{{trans('home.recharge')}}</a>
                             </li>
                             <li>
-                                <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">获取充值卡券</a> <!-- song -->
+                                <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">发卡平台获取充值卡券（请关闭代理访问）</a> <!-- song -->
                             </li>
                         </ul>
                         <p><small>*等级越高，节点越多，带宽越大</small></p>
