@@ -105,19 +105,19 @@
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-bar-chart"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">每月流量：{{$goods->traffic_label}}</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">流量：{{$goods->traffic_label}}每月</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-clock"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">有效时长：{{$goods->days}}天</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">时长：{{$goods->days}}天</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-rocket"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">NetFlix、Lv.{{$goods->sort}}</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">VIP{{$goods->level}}:中转、奈飞</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
@@ -163,19 +163,19 @@
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-bar-chart"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">赠送流量：{{$goods->traffic_label}}</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">流量：{{$goods->traffic_label}}</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-clock"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">赠送时长：{{$goods->days}}天</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">时长：{{$goods->days}}天</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-rocket"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">赠送节点: {{$goods->sort}}级</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">节点: 0-{{$goods->level}}级</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">

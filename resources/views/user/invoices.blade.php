@@ -15,7 +15,18 @@
                         </div>
                         <div style="text-align: center;"><span class="font-blue">账户等级：</span>
                                     <span class="font-red">Lv.{{Auth::user()->level}}&nbsp;&nbsp;&nbsp;</span>
-                        <button type="button" class="btn btn-sm green btn-outline" onclick="reLevel()">等级校正</button></div>
+                        <button type="button" class="btn btn-sm green btn-outline" onclick="reLevel()">等级校正</button>
+                        <br>
+                        <span class="font-blue">是否开启vmess节点使用权：</span>
+                        @if(Auth::user()->level < 5)
+                        <span class="font-red">已启用&nbsp;&nbsp;&nbsp;</span>
+                        @else
+                        <span class="font-red">{{empty(Auth::user()->vmess_id) ? '没有' : '已开启'}}&nbsp;&nbsp;&nbsp;</span>
+                        @endif
+                        <button type="button" class="btn btn-sm green btn-outline" onclick="reUUID()">启用vmess节点！</button>
+                        <br>
+                        <span class="font-blue">*如果您没有开启vmess节点使用权，将无法使用部分高级vmess节点。 我们为VIP3以上用户提供vmess节点，为VIP7 以上用户提供中转加速节点</span>
+                        </div>
                         <div class="actions"></div>
                     </div>
                     <div class="portlet-body">
@@ -96,6 +107,14 @@
     //    // 重置用户等级
     function reLevel() {
         $.post("/reLevel", {_token:'{{csrf_token()}}'}, function(ret) {
+            layer.msg(ret.message, {time:1000}, function() {
+                window.location.reload();
+            });
+        });
+    }
+    //    开启 vmess节点
+    function reUUID() {
+        $.post("/reUUID", {_token:'{{csrf_token()}}'}, function(ret) {
             layer.msg(ret.message, {time:1000}, function() {
                 window.location.reload();
             });

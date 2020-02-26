@@ -132,7 +132,7 @@ class AutoJob extends Command
                     $request_times = UserSubscribeLog::query()->where('sid', $subscribe->id)->where('request_time', '>=', date("Y-m-d H:i:s", strtotime("-24 hours")))->distinct('request_ip')->count('request_ip');
                     if ($request_times >= self::$systemConfig['subscribe_ban_times']) {
                         //如果订阅超过了阈值，就直接把该用户设置为未激活
-                        User::query()->where('id', $subscribe->user_id)->update(['status' => 0]);
+                        User::query()->where('id', $subscribe->user_id)->update(['status' => -1]);
                         //如果订阅超过了阈值的两倍 ，就把该用户设置为
                         if ($request_times >= self::$systemConfig['subscribe_ban_times'] * 2 ) {
                             # code...
@@ -543,9 +543,9 @@ class AutoJob extends Command
 
                             // 更新用户等级  商品等级 > 用户等级，则更新用户等级
                             $user = User::query()->where('id', $order->user_id)->first(); // 重新取出user信息 
-                            if ($goods->sort > $user->level) {
+                            if ($goods->level > $user->level) {
                                 # code...
-                                User::query()->where('id', $order->user_id)->update(['level' => $goods->sort]);
+                                User::query()->where('id', $order->user_id)->update(['level' => $goods->level]);
                             }
 
                             // 写入返利日志

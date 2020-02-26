@@ -6,6 +6,56 @@
     <div class="page-content" style="padding-top:0;">
         <!-- BEGIN PAGE BASE CONTENT -->
         <div class="row">
+            <div class="col-md-12">
+                <div class="note note-info">
+                    <table class="table table-hover table-light">
+                        <tr>
+                            <th>等级</th>
+                            <th>All</th>
+                            <th>Lv.9</th>
+                            <th>Lv.8</th>
+                            <th>Lv.7</th>
+                            <th>Lv.6</th>
+                            <th>Lv.5</th>
+                            <th>Lv.4</th>
+                            <th>Lv.3</th>
+                            <th>Lv.2</th>
+                            <th>Lv.1</th>
+                            <th>Lv.0</th>
+                        </tr>
+                        <tr>
+                            <td>用户</td>
+                            <td>{{$userall}}</td>
+                            <td>{{$uservip9}}</td>
+                            <td>{{$uservip8}}</td>
+                            <td>{{$uservip7}}</td>
+                            <td>{{$uservip6}}</td>
+                            <td>{{$uservip5}}</td>
+                            <td>{{$uservip4}}</td>
+                            <td>{{$uservip3}}</td>
+                            <td>{{$uservip2}}</td>
+                            <td>{{$uservip1}}</td>
+                            <td>{{$uservip0}}</td>
+                        </tr>
+                        <tr>
+                            <td>节点</td>
+                            <td>{{$nodeall}}</td>
+                            <td>{{$nodelv9}}</td>
+                            <td>{{$nodelv8}}</td>
+                            <td>{{$nodelv7}}</td>
+                            <td>{{$nodelv6}}</td>
+                            <td>{{$nodelv5}}</td>
+                            <td>{{$nodelv4}}</td>
+                            <td>{{$nodelv3}}</td>
+                            <td>{{$nodelv2}}</td>
+                            <td>{{$nodelv1}}</td>
+                            <td>{{$nodelv0}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="row">
             <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
                 <div class="dashboard-stat2 bordered" onclick="skip('admin/userList');">
                     <div class="display">

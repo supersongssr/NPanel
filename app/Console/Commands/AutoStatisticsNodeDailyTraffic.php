@@ -138,16 +138,16 @@ class AutoStatisticsNodeDailyTraffic extends Command
         
         // 在线节点少于 16G流量的隐藏 且节点名称加 - 
         // 这个主要是用来证明节点是否可以正常使用的！
-        if ($total < 17179869184) {
+        if ($total < 10737418240) {
             # code...
             $node->ipv6 .= '*';
             $node->status = 0;
         }
         //节点描述里，加上每日节点流量表现数值 
         $node->desc = floor($total / 1073741824) . ' ' . $node->desc;
-        $node->desc = substr($node->desc, 0,64);
+        $node->desc = substr($node->desc, 0, 32);
         // 保留1位小数
-        $node->traffic_rate = round( ($total * 64 / 1073741824 / $node->bandwidth) , 2);
+        $node->traffic_rate = round( ($total * 64 / 1073741824 / $node->bandwidth) , 1);
         // $node->traffic_rate < 0.1 && $node->traffic_rate = 0.1;
 
         // 

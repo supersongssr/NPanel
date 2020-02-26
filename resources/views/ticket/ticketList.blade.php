@@ -21,10 +21,11 @@
                             <table class="table table-hover table-light">
                                 <thead>
                                 <tr>
-                                    <th style="width: 10%;"> # </th>
+                                    <th style="width: 5%;"> # </th>
                                     <th style="width: 20%;"> 账号 </th>
-                                    <th style="width: 55%;"> 标题 </th>
+                                    <th style="width: 60%;"> 标题 </th>
                                     <th style="width: 15%; text-align: center;"> 状态 </th>
+                                    <th style="width: 5%; text-align: center;"> 公开 </th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -50,6 +51,15 @@
                                                     <span class="label label-danger"> 已回复 </span>
                                                 @else
                                                     <span class="label label-default"> 已关闭 </span>
+                                                @endif
+                                            </td>
+                                            <td style="text-align: center;">
+                                                @if ($ticket->open == 0)
+                                                    <span class="label label-info"> N </span>
+                                                @elseif ($ticket->open == 1)
+                                                    <span class="label label-danger"> 公开 </span>
+                                                @else
+                                                    <span class="label label-default"> ? </span>
                                                 @endif
                                             </td>
                                         </tr>

@@ -64,7 +64,7 @@
                                                     @if(empty($apply->user))
                                                         【账号已删除】
                                                     @else
-                                                        <a href="'/admin/editUser?id=' . $apply->user_id" target="_blank">{{$apply->user->username}}</a>
+                                                        <a href="{{url('admin/editUser?id=' . $apply->user_id)}}" target="_blank">{{$apply->user->username}}</a>
                                                     @endif
                                                 </td>
                                                 <td> {{$apply->amount}} </td>
@@ -120,7 +120,7 @@
     <script type="text/javascript">
         // 审核
         function doAudit(id) {
-            window.open('/admin/applyDetail?id=' + id);
+            window.open('{{url('admin/applyDetail?id=')}}' + id);
         }
 
         // 搜索
@@ -128,12 +128,12 @@
             var username = $("#username").val();
             var status = $("#status option:checked").val();
 
-            window.location.href = '/admin/applyList' + '?username=' + username + '&status=' + status;
+            window.location.href = '{{url('admin/applyList')}}' + '?username=' + username + '&status=' + status;
         }
 
         // 重置
         function do_reset() {
-            window.location.href = '/admin/applyList';
+            window.location.href = '{{url('admin/applyList')}}';
         }
     </script>
 @endsection

@@ -166,6 +166,12 @@
                                                 </div>
                                             </div>
                                             <div class="form-group">
+                                                <label for="group" class="col-md-3 control-label">分组</label>
+                                                <div class="col-md-8">
+                                                    <input type="text" class="form-control" name="group" value="{{$user->group}}" id="group" autocomplete="off" />
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
                                                 <label for="remark" class="col-md-3 control-label">备注</label>
                                                 <div class="col-md-8">
                                                     <textarea class="form-control" rows="3" name="remark" id="remark"></textarea>
@@ -365,6 +371,7 @@
             var gender = $("input:radio[name='gender']:checked").val();
             var wechat = $('#wechat').val();
             var qq = $('#qq').val();
+            var group = $('#group').val();
             var remark = $('#remark').val();
             var level = $("#level option:selected").val();
             var port = $('#port').val();
@@ -406,6 +413,7 @@
                     gender:gender,
                     wechat:wechat,
                     qq:qq,
+                    group:group,
                     remark:remark,
                     level:level,
                     port:port,

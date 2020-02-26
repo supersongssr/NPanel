@@ -35,7 +35,6 @@ class Test extends Command
     {
         $jobStartTime = microtime(true);
 
-        // 扣减用户到期商品的流量
         $this->decGoodsTraffic();
 
         $jobEndTime = microtime(true);
@@ -47,7 +46,38 @@ class Test extends Command
     // 扣减用户到期商品的流量
     private function decGoodsTraffic()
     {
+        /**
+        $goods = Goods::all();
+        foreach ($goods as $good) {
+            $good->level = $good->sort;
+            $good->save();
+        }
+        **/
+/**
+        $nodeList = SsNode::query()->orderBy('id', 'asc')->get(); 
+        foreach ($nodeList as $node) {
+            $group = $node->id % 2 + 1;
+            SsNode::query()->where('id',$node->id)->update(['group'=>$group]);
+        }
+        
+**/
+        $users = User::query()->get();
+        foreach ($users as $user) {
+            $group = $user->id % 2 +1 ;
+            User::query()->where('id', $user->id)->update(['group' => $group]);
+            echo $user->id.'|';
+        }
+        
 
+/**
+        $date_check = date('Y-m-d H:i:s',strtotime('-1 month'));
+        $userNoUse = User::query()->where('id', '>', 10)->where('status','>',0)->where('updated_at','<',$date_check)->get();
+        foreach ($userNoUse as $user) {
+            if ( $user->t +(32*86400) < time() ) {
+                User::query()->where('id', $user->id)->update(['status' => '-1']);
+            }
+        }
+        **/
 /**
         // 把所有用户的充值记录，就是已用的用户的ID，记录到卡券那里！很重要！
         $balance_logs = UserBalanceLog::->where('amount','>',0)->orderBy('id', 'desc')->get();
@@ -56,6 +86,7 @@ class Test extends Command
 
         }
         **/
+        /**
         $balance_logs = UserBalanceLog::query()->where('amount','>',0)->get();
         foreach ($balance_logs as $balance_log) {
             # code...
@@ -76,7 +107,7 @@ class Test extends Command
                 echo $coupon->id.'-';
             }
         }
-        
+        **/
 /**
         // 把所有edu.cn结尾的账号都给设定为 status=0需要激活一下的那种！
         $userList = User::query()->where('status', 1)->get();

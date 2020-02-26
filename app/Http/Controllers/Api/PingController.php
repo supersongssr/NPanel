@@ -94,8 +94,16 @@ class PingController extends Controller
         //获取NODE数据
         $node = SsNode::query()->where('id', $id)->first();
         $traffic_mark = $node['traffic'];
+        // 
+        if (empty($node['monitor_url'])) {
+            $nodeOnlineLog = SsNodeOnlineLog::query()->where('node_id', $id)->orderBy('id', 'desc')->first();
+            if (!empty($nodeOnlineLog->online_user)) {
+                $online = $nodeOnlineLog->online_user;
+            }
+        }
+        $node_onload = round(($online / $node->node_cost),2);
         //写入node数据 status
-        SsNode::query()->where('id',$id)->update(['status'=>$status,'traffic'=>$traffic]);
+        SsNode::query()->where('id',$id)->update(['status'=>$status,'traffic'=>$traffic,'node_online'=>$online,'node_onload'=>$node_onload]);
         empty($node['monitor_url']) && exit;  //如果ssn关键数据为空，剩下的流量就不写了。 正常节点有正常写入流量的
         //写入每小时节点流量
         //直接写入用户流量数据

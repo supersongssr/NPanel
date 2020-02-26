@@ -274,7 +274,7 @@ class AuthController extends Controller
             $user->password = Hash::make($request->password);
             $user->port = $port;
             $user->passwd = makeRandStr();
-            $user->vmess_id = createGuid();
+            #$user->vmess_id = createGuid();
             $user->transfer_enable = $transfer_enable;
             $user->method = Helpers::getDefaultMethod();
             $user->protocol = Helpers::getDefaultProtocol();

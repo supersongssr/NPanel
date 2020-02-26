@@ -47,6 +47,7 @@ Route::group(['middleware' => ['isLogin', 'isAdmin']], function () {
     Route::get('ticket/ticketList', 'TicketController@ticketList'); // 工单列表
     Route::any('ticket/replyTicket', 'TicketController@replyTicket'); // 回复工单
     Route::post('ticket/closeTicket', 'TicketController@closeTicket'); // 关闭工单
+    Route::post('ticket/openTicket', 'TicketController@openTicket'); // 公开工单
     Route::get('admin/orderList', 'AdminController@orderList'); // 订单列表
     Route::get('admin/inviteList', 'AdminController@inviteList'); // 邀请码列表
     Route::post('admin/makeInvite', 'AdminController@makeInvite'); // 生成邀请码
@@ -118,6 +119,7 @@ Route::group(['middleware' => ['isLogin']], function () {
     Route::get('tickets', 'UserController@ticketList'); // 工单
     Route::post('addTicket', 'UserController@addTicket'); // 快速添加工单
     Route::any('replyTicket', 'UserController@replyTicket'); // 回复工单
+    Route::any('viewTicket', 'UserController@viewTicket'); // 回复工单
     Route::post('closeTicket', 'UserController@closeTicket'); // 关闭工单
     Route::get('invoices', 'UserController@invoices'); // 订单列表
     Route::get('invoice/{sn}', 'UserController@invoiceDetail'); // 订单明细
@@ -135,6 +137,7 @@ Route::group(['middleware' => ['isLogin']], function () {
     Route::get("nodeMonitor", "UserController@nodeMonitor"); // 帮助中心
     Route::post("reActiveSubscribe", "UserController@reActiveSubscribe"); // 恢复订阅
     Route::post("reLevel", "UserController@reLevel"); // 矫正等级
+    Route::post("reUUID", "UserController@reUUID"); // 开启vmess节点
     
 
     Route::post('payment/create', 'PaymentController@create'); // 创建支付

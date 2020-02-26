@@ -23,7 +23,7 @@
                                     @elseif ( Auth::user()->status == 1 )
                                         <span class="label label-success">正常</span>
                                     @else
-                                        <span class="label label-info">异常</span>
+                                        <span class="label label-info">异常,请退出登录</span>
                                     @endif
                                 </h4>
                             </li>

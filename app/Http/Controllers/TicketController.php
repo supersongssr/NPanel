@@ -117,4 +117,26 @@ class TicketController extends Controller
         return Response::json(['status' => 'success', 'data' => '', 'message' => '关闭成功']);
     }
 
+    // 关闭工单
+    public function openTicket(Request $request)
+    {
+        $id = $request->get('id');
+
+        $ticket = Ticket::query()->with(['user'])->where('id', $id)->first();
+        if (!$ticket) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '没有此工单']);
+        }
+
+        if ( $ticket->open == 1 ) {
+            $ticket->open =0;
+            $ticket->save();
+            return Response::json(['status' => 'success', 'data' => '', 'message' => '取消公开']);
+        }elseif ($ticket->open == 0) {
+            $ticket->open =1;
+            $ticket->save();
+            return Response::json(['status' => 'success', 'data' => '', 'message' => '公开工单成功']);
+        }
+        return Response::json(['status' => 'success', 'data' => '', 'message' => '切换成功']);
+    }
+
 }

@@ -1,4 +1,4 @@
-@extends('admin.layouts')
+@extends('user.layouts')
 @section('css')
     <link href="/assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css" />
     <link href="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.css" rel="stylesheet" type="text/css" />
@@ -15,17 +15,15 @@
                             <i class="icon-question font-green"></i>
                             <span class="caption-subject bold font-green uppercase"> {{$ticket->title}} </span>
                         </div>
+                        <!-- 
                         <div class="actions">
                             @if($ticket->status != 2)
                                 <div class="btn-group btn-group-devided" data-toggle="buttons">
                                     <a class="btn red btn-outline sbold" data-toggle="modal" href="#closeTicket"> 关闭 </a>
                                 </div>
-                            @else
-                                <div class="btn-group btn-group-devided" data-toggle="buttons">
-                                    <a class="btn red btn-outline sbold" data-toggle="modal" href="#openTicket"> 公开工单 </a>
-                                </div>
                             @endif
                         </div>
+                    -->
                     </div>
                     <div class="portlet-body">
                         <div class="timeline">
@@ -39,7 +37,7 @@
                                     <div class="timeline-body-arrow"></div>
                                     <div class="timeline-body-head">
                                         <div class="timeline-body-head-caption">
-                                            <span class="timeline-body-alerttitle font-blue-madison">{{empty($ticket->user) ? '【账号已删除】' : $ticket->user->username}}</span>
+                                            <span class="timeline-body-alerttitle font-blue-madison">用户</span>
                                             <span class="timeline-body-time font-grey-cascade"> {{$ticket->created_at}} </span>
                                         </div>
                                         <div class="timeline-body-head-actions"></div>
@@ -53,7 +51,7 @@
                                 @foreach ($replyList as $reply)
                                     <div class="timeline-item">
                                         <div class="timeline-badge">
-                                            @if ($reply->user->is_admin)
+                                            @if($reply->user->is_admin)
                                                 <img class="timeline-badge-userpic" src="/assets/images/avatar.png">
                                             @else
                                                 <div class="timeline-icon">
@@ -66,9 +64,9 @@
                                             <div class="timeline-body-head">
                                                 <div class="timeline-body-head-caption">
                                                     @if($reply->user->is_admin)
-                                                        <a href="javascript:;" class="timeline-body-title font-red-intense">管理员</a>
+                                                        <a href="javascript:;" class="timeline-body-title font-red-intense">{{trans('home.ticket_reply_master')}}</a>
                                                     @else
-                                                        <span class="timeline-body-alerttitle font-blue-madison">{{empty($reply->user) ? '【账号已删除】' : $reply->user->username}}</span>
+                                                        <span class="timeline-body-alerttitle font-blue-madison">用户</span>
                                                     @endif
                                                     <span class="timeline-body-time font-grey-cascade"> {{$reply->created_at}} </span>
                                                 </div>
@@ -82,15 +80,17 @@
                                 @endforeach
                             @endif
                         </div>
+                        <!-- 
                         @if($ticket->status != 2)
                             <hr />
                             <div class="row">
                                 <div class="col-md-12">
                                     <script id="editor" type="text/plain" style="padding-bottom:10px;"></script>
-                                    <button class="btn blue" type="button" onclick="replyTicket()"> 回 复 </button>
+                                    <button type="button" class="btn blue" onclick="replyTicket()"> {{trans('home.ticket_reply_button')}} </button>
                                 </div>
                             </div>
                         @endif
+                    -->
                     </div>
                 </div>
 
@@ -106,25 +106,6 @@
                             <div class="modal-footer">
                                 <button type="button" class="btn dark btn-outline" data-dismiss="modal">取消</button>
                                 <button type="button" class="btn red" onclick="closeTicket()">确定</button>
-                            </div>
-                        </div>
-                        <!-- /.modal-content -->
-                    </div>
-                    <!-- /.modal-dialog -->
-                </div>
-
-                <!-- 公开工单弹窗 -->
-                <div class="modal fade" id="openTicket" tabindex="-1" role="basic" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                                <h4 class="modal-title">公开工单</h4>
-                            </div>
-                            <div class="modal-body"> 您确定要公开该工单吗？ </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn dark btn-outline" data-dismiss="modal">取消</button>
-                                <button type="button" class="btn red" onclick="openTicket()">确定</button>
                             </div>
                         </div>
                         <!-- /.modal-content -->
@@ -159,40 +140,20 @@
         function closeTicket() {
             $.ajax({
                 type: "POST",
-                url: "{{url('ticket/closeTicket')}}",
+                url: "/closeTicket",
                 async: true,
                 data: {_token:'{{csrf_token()}}', id:'{{$ticket->id}}'},
                 dataType: 'json',
                 success: function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            //window.location.href = '{{url('ticket/ticketList')}}';
-                            window.history.back();
+                            window.location.href = '/tickets';
                         }
                     });
                 }
             });
         }
-
-        // 公开工单
-        function openTicket() {
-            $.ajax({
-                type: "POST",
-                url: "{{url('ticket/openTicket')}}",
-                async: true,
-                data: {_token:'{{csrf_token()}}', id:'{{$ticket->id}}'},
-                dataType: 'json',
-                success: function (ret) {
-                    layer.msg(ret.message, {time:1000}, function() {
-                        if (ret.status == 'success') {
-                            //window.location.href = '{{url('ticket/ticketList')}}';
-                            window.history.back();
-                        }
-                    });
-                }
-            });
-        }
-
+      
         // 回复工单
         function replyTicket() {
             var content = UE.getEditor('editor').getContent();
@@ -201,19 +162,17 @@
                 layer.alert('您未填写工单内容', {icon: 2, title:'提示'});
                 return false;
             }
-
+            
             layer.confirm('确定回复工单？', {icon: 3, title:'提示'}, function(index) {
-                $.post("{{url('ticket/replyTicket')}}",{_token:'{{csrf_token()}}', id:'{{$ticket->id}}', content:content}, function(ret) {
+                $.post("/replyTicket",{_token:'{{csrf_token()}}', id:'{{$ticket->id}}', content:content}, function(ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            //window.location.reload();
-                            window.history.back();
+                            window.location.reload();
                         }
                     });
                 });
-
                 layer.close(index);
             });
-        }
+        }         
     </script>
 @endsection

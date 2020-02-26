@@ -14,6 +14,7 @@
                     <div class="portlet-title">
                         <div class="caption font-dark">
                             <span class="caption-subject bold"> {{trans('home.ticket_title')}} </span>
+                            <p>建议您先参考下面公开工单，也许有人遇到了和您相似的问题，已经解决了</p>
                         </div>
                         <div class="actions">
                             <div class="btn-group">
@@ -66,6 +67,55 @@
                     </div>
                 </div>
                 <!-- END EXAMPLE TABLE PORTLET-->
+
+                <!-- BEGIN EXAMPLE TABLE PORTLET-->
+                <div class="portlet light bordered">
+                    <div class="portlet-title">
+                        <div class="caption font-dark">
+                            <span class="caption-subject bold"> 公开工单 - 快速获取帮助 </span>
+                            <p>您可以在这里寻找到和您相似的问题的解决方案</p>
+                        </div>
+                    </div>
+                    <div class="portlet-body">
+                        <div class="table-scrollable table-scrollable-borderless">
+                            <table class="table table-hover table-light table-checkable order-column">
+                                <thead>
+                                    <tr>
+                                        <th> # </th>
+                                        <th> {{trans('home.ticket_table_title')}} </th>
+                                        <th> {{trans('home.ticket_table_status')}} </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @if($openTicket->isEmpty())
+                                    <tr>
+                                        <td colspan="4" style="text-align: center;"> <h3>{{trans('home.ticket_table_none')}}</h3> </td>
+                                    </tr>
+                                @else
+                                    @foreach($openTicket as $key => $ticket)
+                                        <tr class="odd gradeX">
+                                            <td> {{$key + 1}} </td>
+                                            <td> <a href="/viewTicket?id={{$ticket->id}}" target="_blank">{{$ticket->title}}</a> </td>
+                                            <td>
+                                                <span class="label label-info"> 公开工单 </span>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @endif
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 col-sm-12">
+                                <div class="dataTables_paginate paging_bootstrap_full_number pull-right">
+                                    {{ $ticketList->links() }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- END EXAMPLE TABLE PORTLET-->
+
             </div>
         </div>
         <div id="charge_modal" class="modal fade" tabindex="-1" data-focus-on="input:first" data-keyboard="false">

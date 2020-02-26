@@ -179,7 +179,7 @@ class UserController extends Controller
             ->where('ss_node.status', 1)
             //->groupBy('ss_node.id')
             //->orderBy('ss_node.sort', 'desc')
-            ->orderBy('ss_node.sort', 'desc')
+            ->orderBy('ss_node.level', 'desc')
             //->orderBy('ss_node.id', 'asc')
             //->limit(21) //Song 
             ->get();
@@ -195,12 +195,12 @@ class UserController extends Controller
         $view['nodeList'] = $nodeList;
 
         // 使用教程
-        $view['tutorial1'] = Article::type(4)->where('sort', 1)->orderBy('id', 'desc')->first();
-        $view['tutorial2'] = Article::type(4)->where('sort', 2)->orderBy('id', 'desc')->first();
-        $view['tutorial3'] = Article::type(4)->where('sort', 3)->orderBy('id', 'desc')->first();
-        $view['tutorial4'] = Article::type(4)->where('sort', 4)->orderBy('id', 'desc')->first();
-        $view['tutorial5'] = Article::type(4)->where('sort', 5)->orderBy('id', 'desc')->first();
-        $view['tutorial6'] = Article::type(4)->where('sort', 6)->orderBy('id', 'desc')->first();
+        $view['tutorial1'] = Article::type(4)->where('level', 1)->orderBy('id', 'desc')->first();
+        $view['tutorial2'] = Article::type(4)->where('level', 2)->orderBy('id', 'desc')->first();
+        $view['tutorial3'] = Article::type(4)->where('level', 3)->orderBy('id', 'desc')->first();
+        $view['tutorial4'] = Article::type(4)->where('level', 4)->orderBy('id', 'desc')->first();
+        $view['tutorial5'] = Article::type(4)->where('level', 5)->orderBy('id', 'desc')->first();
+        $view['tutorial6'] = Article::type(4)->where('level', 6)->orderBy('id', 'desc')->first();
 
         return Response::view('user.nodeList', $view);
     }
@@ -295,7 +295,8 @@ class UserController extends Controller
     // 工单
     public function ticketList(Request $request)
     {
-        $view['ticketList'] = Ticket::uid()->orderBy('id', 'desc')->paginate(10)->appends($request->except('page'));
+        $view['ticketList'] = Ticket::uid()->orderBy('id', 'desc')->paginate(3)->appends($request->except('page'));
+        $view['openTicket'] = Ticket::where('open',1)->orderBy('created_at', 'desc')->paginate(10)->appends($request->except('page'));
 
         return Response::view('user.ticketList', $view);
     }
@@ -408,6 +409,16 @@ class UserController extends Controller
 
             return Response::view('user.replyTicket', $view);
         }
+    }
+
+    // 查看工单
+    public function viewTicket(Request $request)
+    {
+        $id = intval($request->get('id'));
+
+        $view['ticket'] = Ticket::where('id', $id)->where('open',1)->first();
+        $view['replyList'] = TicketReply::query()->where('ticket_id', $id)->orderBy('id', 'asc')->get();
+        return Response::view('user.viewTicket', $view);
     }
 
     // 关闭工单
@@ -716,9 +727,9 @@ class UserController extends Controller
                 }
 
                 // 更新用户等级  商品等级 > 用户等级，则更新用户等级
-                if ($goods->sort > $user->level) {
+                if ($goods->level > $user->level) {
                     # code...
-                    User::query()->where('id', $order->user_id)->update(['level' => $goods->sort]);
+                    User::query()->where('id', $order->user_id)->update(['level' => $goods->level]);
                 }
 
                 /** 如果是edu.cn结尾的用户， 直接把用户设置为 status=0 需要重新激活一下账号
@@ -1003,7 +1014,7 @@ class UserController extends Controller
     {
         $node_id = $request->get('id');
 
-        $node = SsNode::query()->where('id', $node_id)->orderBy('sort', 'desc')->first();
+        $node = SsNode::query()->where('id', $node_id)->orderBy('level', 'desc')->first();
         if (!$node) {
             Session::flash('errorMsg', '节点不存在，请重试');
 
@@ -1076,10 +1087,23 @@ class UserController extends Controller
 
         $goodsIds = Order::query()->where('user_id', Auth::user()->id)->where('status', 2)->where('is_expire', 0)->where('expire_at', '>', date('Y-m-d H:i:s'))->groupBy('goods_id')->pluck('goods_id')->toArray();
         // song 获取 用户商品最大 等级
-        $maxLevel = Goods::query()->whereIn('id', $goodsIds)->orderBy('sort','desc')->pluck('sort')->first();  
+        $maxLevel = Goods::query()->whereIn('id', $goodsIds)->orderBy('level','desc')->pluck('level')->first();  
         empty($maxLevel) && $maxLevel = 0;  // 如果为空 就算 0 
         // 将最新的等级写入到用户 中
         User::uid()->update(['level' => $maxLevel]);
         return Response::json(['status' => 'success', 'data' => '', 'message' => '等级校正成功']);
+    }
+
+    // 矫正用户等级
+    public function reUUID(Request $request)
+    {
+
+        $user = User::uid()->first();
+        # 5级以上用户才开启
+        if ($user->level > 4 && empty($user->vmess_id)) {
+            $uuid = createGuid();
+            User::uid()->update(['vmess_id' => $uuid]);
+        }
+        return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功']);
     }
 }

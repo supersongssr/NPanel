@@ -1289,11 +1289,38 @@ ALTER TABLE `coupon_log`
 ALTER TABLE `user_balance_log`
   ADD COLUMN `coupon_id` INT(11) COMMENT '充值券ID' AFTER `amount`;
 -- ----------------------------
+-- user字段新增ban_times`
+-- ----------------------------
+ALTER TABLE `user`
+  ADD COLUMN `ban_times` INT(11) Default 0 COMMENT '封禁次数' AFTER `updated_at`;
 -- user字段新增用户已用余额数据`
 -- ----------------------------
 ALTER TABLE `user`
   ADD COLUMN `balance_used` INT(11) Default 0 COMMENT '已用余额' AFTER `balance`;
 
+-- ----------------------------
+ALTER TABLE `ticket`
+  ADD COLUMN `open` INT(11) Default 0 COMMENT '公开工单' AFTER `status`;
+
+-- ----------------------------
+ALTER TABLE `ss_node`
+  ADD COLUMN `node_cost` FLOAT Default 5 COMMENT '服务器成本' AFTER `status`;
+-- ----------------------------
+ALTER TABLE `ss_node`
+  ADD COLUMN `node_online` INT(11) Default 0 COMMENT '在线人数' AFTER `node_cost`;
+-- ----------------------------
+ALTER TABLE `ss_node`
+  ADD COLUMN `node_onload` FLOAT Default 1 COMMENT '人数成本负载比率' AFTER `node_online`;
+ALTER TABLE `ss_node`
+  ADD COLUMN `level` INT(11) Default 1 COMMENT '节点等级' AFTER `sort`;
+ALTER TABLE `ss_node`
+ADD COLUMN `group` INT(11) Default 1 COMMENT '节点分组' AFTER `group_id`;
+-- ----------------------------
+ALTER TABLE `goods`
+  ADD COLUMN `level` INT(11) Default 1 COMMENT '节点等级' AFTER `sort`;
+
+ALTER TABLE `user`
+  ADD COLUMN `group` INT(11) Default 0 COMMENT '分组' AFTER `level`;
 
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

@@ -123,14 +123,28 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="sort" class="col-md-3 control-label">等级 Lv.</label>
+                                                    <label for="sort" class="col-md-3 control-label">节点排序</label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" name="sort" value="{{$node->sort}}" id="sort" placeholder="">
-                                                        <span class="help-block"> sort节点等级 </span>
+                                                        <span class="help-block"> sort节点排序 </span>
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="group_id" class="col-md-3 control-label"> 所属分组 </label>
+                                                    <label for="level" class="col-md-3 control-label">节点等级</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="level" value="{{$node->level}}" id="level" placeholder="">
+                                                        <span class="help-block"> 节点level等级 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="group" class="col-md-3 control-label">节点等级</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="group" value="{{$node->group}}" id="group" placeholder="">
+                                                        <span class="help-block"> 节点分组 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="group_id" class="col-md-3 control-label"> 所属分组 功能无用 </label>
                                                     <div class="col-md-8">
                                                         <select class="form-control" name="group_id" id="group_id">
                                                             <option value="0">请选择</option>
@@ -555,6 +569,8 @@
             var single_protocol = $('#single_protocol').val();
             var single_obfs = $('#single_obfs').val();
             var sort = $('#sort').val();
+            var level = $('#level').val();
+            var group = $('#group').val();
             var status = $("input:radio[name='status']:checked").val();
             var is_tcp_check = $("input:radio[name='is_tcp_check']:checked").val();
 
@@ -607,6 +623,8 @@
                     single_protocol: single_protocol,
                     single_obfs: single_obfs,
                     sort: sort,
+                    level: level,
+                    group: group,
                     status: status,
                     is_tcp_check: is_tcp_check,
                     type: service,
@@ -625,8 +643,8 @@
                 success: function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            //window.location.href = '{{'/admin/nodeList?page=' . Request::get('page')}}';
-                            window.history.back();
+                            window.location.href = '{{'/admin/nodeList?page=' . Request::get('page')}}';
+                            //window.history.back();
                         }
                     });
                 }

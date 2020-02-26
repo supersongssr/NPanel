@@ -128,6 +128,34 @@ class AdminController extends Controller
         $view['totalSuccessOrder'] = Order::query()->where('status', 2)->count();
         $view['todaySuccessOrder'] = Order::query()->where('status', 2)->where('created_at', '>=', date('Y-m-d 00:00:00'))->where('created_at', '<=', date('Y-m-d 23:59:59'))->count();
 **/
+
+        $view['userall'] = User::where("enable",1)->where("status",1)->count();
+        $view['uservip0'] = User::where("enable",1)->where("status",1)->where("level",0)->count();
+        $view['uservip1'] = User::where("enable",1)->where("status",1)->where("level",1)->count();
+        $view['uservip2'] = User::where("enable",1)->where("status",1)->where("level",2)->count();
+        $view['uservip3'] = User::where("enable",1)->where("status",1)->where("level",3)->count();
+        $view['uservip4'] = User::where("enable",1)->where("status",1)->where("level",4)->count();
+        $view['uservip5'] = User::where("enable",1)->where("status",1)->where("level",5)->count();
+        $view['uservip6'] = User::where("enable",1)->where("status",1)->where("level",6)->count();
+        $view['uservip7'] = User::where("enable",1)->where("status",1)->where("level",7)->count();
+        $view['uservip8'] = User::where("enable",1)->where("status",1)->where("level",8)->count();
+        $view['uservip9'] = User::where("enable",1)->where("status",1)->where("level",9)->count();
+        $view['uservip10'] = User::where("enable",1)->where("status",1)->where("level",10)->count();
+
+        $view['nodeall'] = SsNode::where("status",1)->count();
+        $view['nodelv0'] = SsNode::where("status",1)->where("sort",0)->count();
+        $view['nodelv1'] = SsNode::where("status",1)->where("sort",1)->count();
+        $view['nodelv2'] = SsNode::where("status",1)->where("sort",2)->count();
+        $view['nodelv3'] = SsNode::where("status",1)->where("sort",3)->count();
+        $view['nodelv4'] = SsNode::where("status",1)->where("sort",4)->count();
+        $view['nodelv5'] = SsNode::where("status",1)->where("sort",5)->count();
+        $view['nodelv6'] = SsNode::where("status",1)->where("sort",6)->count();
+        $view['nodelv7'] = SsNode::where("status",1)->where("sort",7)->count();
+        $view['nodelv8'] = SsNode::where("status",1)->where("sort",8)->count();
+        $view['nodelv9'] = SsNode::where("status",1)->where("sort",9)->count();
+        $view['nodelv10'] = SsNode::where("status",1)->where("sort",10)->count();
+
+
         return Response::view('admin.index', $view);
     }
 
@@ -275,6 +303,7 @@ class AdminController extends Controller
             $user->gender = intval($request->get('gender'));
             $user->wechat = $request->get('wechat') ? $request->get('wechat') : '';
             $user->qq = $request->get('qq') ? $request->get('qq') : '';
+            $user->group = $request->get('group') ? $request->get('group') : '';
             $user->usage = $request->get('usage');
             $user->pay_way = $request->get('pay_way');
             $user->balance = 0;
@@ -405,6 +434,7 @@ class AdminController extends Controller
             $gender = intval($request->get('gender'));
             $wechat = $request->get('wechat');
             $qq = $request->get('qq');
+            $group = $request->get('group');
             $usage = $request->get('usage');
             $pay_way = $request->get('pay_way');
             $status = $request->get('status');
@@ -458,6 +488,7 @@ class AdminController extends Controller
                     'gender'               => $gender,
                     'wechat'               => $wechat,
                     'qq'                   => $qq,
+                    'group'                => $group,
                     'usage'                => $usage,
                     'pay_way'              => $pay_way,
                     'status'               => $status,
@@ -623,7 +654,7 @@ class AdminController extends Controller
             $query->orderBy('sort', 'asc');
         }
 
-        if (!empty($status)) {
+        if ( isset($status)) {
             $query->where('status', intval($status));
         }
 
@@ -639,7 +670,7 @@ class AdminController extends Controller
             $query->orderBy('traffic', 'asc');
         }
 
-        $nodeList = $query->paginate(25)->appends($request->except('page'));
+        $nodeList = $query->paginate(10)->appends($request->except('page'));
         foreach ($nodeList as &$node) {
             // 在线人数
             $online_log = SsNodeOnlineLog::query()->where('node_id', $node->id)->where('log_time', '>=', strtotime("-2 hours"))->orderBy('id', 'desc')->first();
@@ -656,7 +687,7 @@ class AdminController extends Controller
             $node->load = $node->is_transit ? '' : (empty($node_info) || empty($node_info->load) ? '离线' : $node_info->load);
             $node->uptime = empty($node_info) ? 0 : seconds2time($node_info->uptime);
         }
-
+/**
         $sts['userall'] = User::where("enable",1)->where("status",1)->count();
         $sts['uservip0'] = User::where("enable",1)->where("status",1)->where("level",0)->count();
         $sts['uservip1'] = User::where("enable",1)->where("status",1)->where("level",1)->count();
@@ -683,9 +714,9 @@ class AdminController extends Controller
         $sts['nodelv9'] = SsNode::where("status",1)->where("sort",9)->count();
         $sts['nodelv10'] = SsNode::where("status",1)->where("sort",10)->count();
 
-
+**/
         $view['nodeList'] = $nodeList;
-        $view['sts'] = $sts;
+        //$view['sts'] = $sts;
 
         return Response::view('admin.nodeList', $view);
     }
@@ -756,6 +787,8 @@ class AdminController extends Controller
                 $ssNode->single_protocol = intval($request->get('single')) ? $request->get('single_protocol') : '';
                 $ssNode->single_obfs = intval($request->get('single')) ? $request->get('single_obfs') : '';
                 $ssNode->sort = $request->get('sort') ? intval($request->get('sort')) : 0;
+                $ssNode->level = $request->get('level') ? intval($request->get('level')) : 0;
+                $ssNode->group = $request->get('group') ? intval($request->get('group')) : 0;
                 $ssNode->status = $request->get('status') ? intval($request->get('status')) : 1;
                 $ssNode->v2_alter_id = $request->get('v2_alter_id') ? intval($request->get('v2_alter_id')) : 16;
                 $ssNode->v2_port = $request->get('v2_port') ? intval($request->get('v2_port')) : 10087;
@@ -880,6 +913,8 @@ class AdminController extends Controller
                     'single_protocol'  => intval($request->get('single')) ? $request->get('single_protocol') : '',
                     'single_obfs'      => intval($request->get('single')) ? $request->get('single_obfs') : '',
                     'sort'             => intval($request->get('sort')),
+                    'level'            => intval($request->get('level')),
+                    'group'            => intval($request->get('group')),
                     'status'           => intval($request->get('status')),
                     'v2_alter_id'      => $request->get('v2_alter_id') ? intval($request->get('v2_alter_id')) : 16,
                     'v2_port'          => $request->get('v2_port') ? intval($request->get('v2_port')) : 10087,

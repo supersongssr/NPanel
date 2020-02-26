@@ -178,70 +178,7 @@
             </div>
         </div>
         <!-- END PAGE BASE CONTENT -->
-        <div class="row">
-            <div class="col-md-12">
-                <div class="note note-info">
-                    <table class="table table-hover table-light">
-                        <tr>
-                            <th>等级</th>
-                            <th>All</th>
-                            <th>Lv.9</th>
-                            <th>Lv.8</th>
-                            <th>Lv.7</th>
-                            <th>Lv.6</th>
-                            <th>Lv.5</th>
-                            <th>Lv.4</th>
-                            <th>Lv.3</th>
-                            <th>Lv.2</th>
-                            <th>Lv.1</th>
-                            <th>Lv.0</th>
-                        </tr>
-                        <tr>
-                            <td>用户</td>
-                            <td>{{$sts['userall']}}</td>
-                            <td>{{$sts['uservip9']}}</td>
-                            <td>{{$sts['uservip8']}}</td>
-                            <td>{{$sts['uservip7']}}</td>
-                            <td>{{$sts['uservip6']}}</td>
-                            <td>{{$sts['uservip5']}}</td>
-                            <td>{{$sts['uservip4']}}</td>
-                            <td>{{$sts['uservip3']}}</td>
-                            <td>{{$sts['uservip2']}}</td>
-                            <td>{{$sts['uservip1']}}</td>
-                            <td>{{$sts['uservip0']}}</td>
-                        </tr>
-                        <tr>
-                            <td>节点</td>
-                            <td>{{$sts['nodeall']}}</td>
-                            <td>{{$sts['nodelv9']}}</td>
-                            <td>{{$sts['nodelv8']}}</td>
-                            <td>{{$sts['nodelv7']}}</td>
-                            <td>{{$sts['nodelv6']}}</td>
-                            <td>{{$sts['nodelv5']}}</td>
-                            <td>{{$sts['nodelv4']}}</td>
-                            <td>{{$sts['nodelv3']}}</td>
-                            <td>{{$sts['nodelv2']}}</td>
-                            <td>{{$sts['nodelv1']}}</td>
-                            <td>{{$sts['nodelv0']}}</td>
-                        </tr>
-                        <tr>
-                            <td>比率</td>
-                            <td>{{ @floor($sts['userall'] / $sts['nodeall']) }}</td>
-                            <td>{{ @floor($sts['uservip9'] / $sts['nodelv9']) }}</td>
-                            <td>{{ @floor($sts['uservip8'] / $sts['nodelv8']) }}</td>
-                            <td>{{ @floor($sts['uservip7'] / $sts['nodelv7']) }}</td>
-                            <td>{{ @floor($sts['uservip6'] / $sts['nodelv6']) }}</td>
-                            <td>{{ @floor($sts['uservip5'] / $sts['nodelv5']) }}</td>
-                            <td>{{ @floor($sts['uservip4'] / $sts['nodelv4']) }}</td>
-                            <td>{{ @floor($sts['uservip3'] / $sts['nodelv3']) }}</td>
-                            <td>{{ @floor($sts['uservip2'] / $sts['nodelv2']) }}</td>
-                            <td>{{ @floor($sts['uservip1'] / $sts['nodelv1']) }}</td>
-                            <td>{{ @floor($sts['uservip0'] / $sts['nodelv0']) }}</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-        </div>
+        
     </div>
     <!-- END CONTENT BODY -->
 @endsection
