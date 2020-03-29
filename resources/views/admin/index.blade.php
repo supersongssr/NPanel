@@ -10,25 +10,19 @@
                 <div class="note note-info">
                     <table class="table table-hover table-light">
                         <tr>
-                            <th>等级</th>
+                            <th>数据</th>
                             <th>All</th>
-                            <th>Lv.9</th>
-                            <th>Lv.8</th>
-                            <th>Lv.7</th>
-                            <th>Lv.6</th>
-                            <th>Lv.5</th>
-                            <th>Lv.4</th>
-                            <th>Lv.3</th>
-                            <th>Lv.2</th>
-                            <th>Lv.1</th>
-                            <th>Lv.0</th>
+                            <th>6</th>
+                            <th>5</th>
+                            <th>4</th>
+                            <th>3</th>
+                            <th>2</th>
+                            <th>1</th>
+                            <th>0</th>
                         </tr>
                         <tr>
-                            <td>用户</td>
+                            <td>Usr</td>
                             <td>{{$userall}}</td>
-                            <td>{{$uservip9}}</td>
-                            <td>{{$uservip8}}</td>
-                            <td>{{$uservip7}}</td>
                             <td>{{$uservip6}}</td>
                             <td>{{$uservip5}}</td>
                             <td>{{$uservip4}}</td>
@@ -38,18 +32,51 @@
                             <td>{{$uservip0}}</td>
                         </tr>
                         <tr>
-                            <td>节点</td>
-                            <td>{{$nodeall}}</td>
-                            <td>{{$nodelv9}}</td>
-                            <td>{{$nodelv8}}</td>
-                            <td>{{$nodelv7}}</td>
-                            <td>{{$nodelv6}}</td>
-                            <td>{{$nodelv5}}</td>
-                            <td>{{$nodelv4}}</td>
-                            <td>{{$nodelv3}}</td>
-                            <td>{{$nodelv2}}</td>
-                            <td>{{$nodelv1}}</td>
-                            <td>{{$nodelv0}}</td>
+                            <td>G1</td>
+                            <td>{{$nodeallgroup1 - $userliveallgroup1}}</td>
+                            <td>{{$nodelv6group1 - $userlivevip6group1}}</td>
+                            <td>{{$nodelv5group1 - $userlivevip5group1}}</td>
+                            <td>{{$nodelv4group1 - $userlivevip4group1}}</td>
+                            <td>{{$nodelv3group1 - $userlivevip3group1}}</td>
+                            <td>{{$nodelv2group1 - $userlivevip2group1}}</td>
+                            <td>{{$nodelv1group1 - $userlivevip1group1}}</td>
+                            <td>{{$nodelv0group1 - $userlivevip0group1}}</td>
+                        </tr>
+                        <tr>
+                            <td>G2</td>
+                            <td>{{$nodeallgroup2 - $userliveallgroup2}}</td>
+                            <td>{{$nodelv6group2 - $userlivevip6group2}}</td>
+                            <td>{{$nodelv5group2 - $userlivevip5group2}}</td>
+                            <td>{{$nodelv4group2 - $userlivevip4group2}}</td>
+                            <td>{{$nodelv3group2 - $userlivevip3group2}}</td>
+                            <td>{{$nodelv2group2 - $userlivevip2group2}}</td>
+                            <td>{{$nodelv1group2 - $userlivevip1group2}}</td>
+                            <td>{{$nodelv0group2 - $userlivevip0group2}}</td>
+                        </tr>
+                        <tr>
+                            <td>G3</td>
+                            <td>{{$nodeallgroup3 - $userliveallgroup3}}</td>
+                            <td>{{$nodelv6group3 - $userlivevip6group3}}</td>
+                            <td>{{$nodelv5group3 - $userlivevip5group3}}</td>
+                            <td>{{$nodelv4group3 - $userlivevip4group3}}</td>
+                            <td>{{$nodelv3group3 - $userlivevip3group3}}</td>
+                            <td>{{$nodelv2group3 - $userlivevip2group3}}</td>
+                            <td>{{$nodelv1group3 - $userlivevip1group3}}</td>
+                            <td>{{$nodelv0group3 - $userlivevip0group3}}</td>
+                        </tr>
+                    </table>
+                    <table class="table table-hover table-light">
+                        <tr>
+                            <td>分组</td>
+                            <td>G3</td>
+                            <td>G2</td>
+                            <td>G1</td>
+                        </tr>
+                        <tr>
+                            <td>VIP</td>
+                            <td>{{$usergroup3}}</td>
+                            <td>{{$usergroup2}}</td>
+                            <td>{{$usergroup1}}</td>
                         </tr>
                     </table>
                 </div>

@@ -21,6 +21,10 @@ use App\Http\Models\SsNodeLabel;
 use App\Http\Models\Ticket;
 use App\Http\Models\TicketReply;
 use App\Http\Models\User;
+
+// Cncdn cdn自选入口功能
+use App\Http\Models\Cncdn;
+//
 use App\Http\Models\UserLabel;
 use App\Http\Models\UserSubscribe;
 use App\Http\Models\UserTrafficDaily;
@@ -195,12 +199,12 @@ class UserController extends Controller
         $view['nodeList'] = $nodeList;
 
         // 使用教程
-        $view['tutorial1'] = Article::type(4)->where('level', 1)->orderBy('id', 'desc')->first();
-        $view['tutorial2'] = Article::type(4)->where('level', 2)->orderBy('id', 'desc')->first();
-        $view['tutorial3'] = Article::type(4)->where('level', 3)->orderBy('id', 'desc')->first();
-        $view['tutorial4'] = Article::type(4)->where('level', 4)->orderBy('id', 'desc')->first();
-        $view['tutorial5'] = Article::type(4)->where('level', 5)->orderBy('id', 'desc')->first();
-        $view['tutorial6'] = Article::type(4)->where('level', 6)->orderBy('id', 'desc')->first();
+        $view['tutorial1'] = Article::type(4)->where('sort', 1)->orderBy('id', 'desc')->first();
+        $view['tutorial2'] = Article::type(4)->where('sort', 2)->orderBy('id', 'desc')->first();
+        $view['tutorial3'] = Article::type(4)->where('sort', 3)->orderBy('id', 'desc')->first();
+        $view['tutorial4'] = Article::type(4)->where('sort', 4)->orderBy('id', 'desc')->first();
+        $view['tutorial5'] = Article::type(4)->where('sort', 5)->orderBy('id', 'desc')->first();
+        $view['tutorial6'] = Article::type(4)->where('sort', 6)->orderBy('id', 'desc')->first();
 
         return Response::view('user.nodeList', $view);
     }
@@ -222,6 +226,9 @@ class UserController extends Controller
             $wechat = $request->get('wechat');
             $qq = $request->get('qq');
             $passwd = trim($request->get('passwd'));
+            $vmess_id = trim($request->get('vmess_id'));
+            $cncdn = trim($request->get('cncdn'));
+            //$cn_update = trim($request->get('cn_update'));
 
             // 修改密码
             if ($old_password && $new_password) {
@@ -259,8 +266,8 @@ class UserController extends Controller
             }
 
             // 修改代理密码
-            if ($passwd) {
-                $ret = User::uid()->update(['passwd' => $passwd]);
+            if ($passwd || $vmess_id) {
+                $ret = User::uid()->update(['passwd' => $passwd,'vmess_id' => $vmess_id]);
                 if (!$ret) {
                     return Redirect::to('profile#tab_3')->withErrors('修改失败');
                 } else {
@@ -268,9 +275,20 @@ class UserController extends Controller
                 }
             }
 
+            //修改 cncdn
+            if (isset($cncdn)) {
+                $ret = User::uid()->update(['cncdn' => $cncdn]);
+                if (!$ret) {
+                    return Redirect::to('profile#tab_4')->withErrors('修改失败');
+                } else {
+                    return Redirect::to('profile#tab_4')->with('successMsg', '修改成功,请客户端更新节点');
+                }
+            }
+
             return Redirect::to('profile#tab_1')->withErrors('非法请求');
         } else {
-            return Response::view('user.profile');
+            $view['cncdns'] = Cncdn::where('status',1)->where('show',1)->get();
+            return Response::view('user.profile',$view);
         }
     }
 
@@ -296,7 +314,7 @@ class UserController extends Controller
     public function ticketList(Request $request)
     {
         $view['ticketList'] = Ticket::uid()->orderBy('id', 'desc')->paginate(3)->appends($request->except('page'));
-        $view['openTicket'] = Ticket::where('open',1)->orderBy('created_at', 'desc')->paginate(10)->appends($request->except('page'));
+        $view['openTicket'] = Ticket::where('open',1)->orderBy('updated_at', 'desc')->paginate(10)->appends($request->except('page'));
 
         return Response::view('user.ticketList', $view);
     }
@@ -330,9 +348,11 @@ class UserController extends Controller
 
         $obj = new Ticket();
         $obj->user_id = Auth::user()->id;
+        $obj->sort += Auth::user()->level;
         $obj->title = $title;
         $obj->content = $content;
         $obj->status = 0;
+        $obj->open = 0;
         $obj->save();
 
         if ($obj->id) {
@@ -382,7 +402,10 @@ class UserController extends Controller
             if ($obj->id) {
                 // 重新打开工单
                 $ticket->status = 0;
-                $ticket->created_at = time();
+                // 工单设置为 不展示
+                $ticket->open = 0;
+                $ticket->sort += Auth::user()->level;
+                //$ticket->created_at = time();
                 $ticket->updated_at = time();
                 $ticket->save();
 
@@ -563,13 +586,13 @@ class UserController extends Controller
             // 验证账号余额是否充足
             $user = User::uid()->first();
 
-            // song 这里判断用户钱是否充值，再确定是否返利
+            // song 统计所有用户 充值金额 
             $user_coupons = Coupon::type(3)->where('user_id', $user->id)->where('status', 1)->sum('amount');
             
-            //检测 商品金额不能低于用户充值金额的 10%;
-            if ($amount > 120 && $amount > $user_coupons / 10 ) {
+            //检测 商品金额不能低于用户充值总金额的 10%;
+            if ($amount > $user_coupons / 10 ) {
                 # code...
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '您充值满'.$amount /10 .'就能购买本套餐:)']);
+                return Response::json(['status' => 'fail', 'data' => '', 'message' => '累计充值满'.$amount /10 .'就能购买本套餐:)']);
 
             }
             
@@ -611,7 +634,7 @@ class UserController extends Controller
                 $order->coupon_id = !empty($coupon) ? $coupon->id : 0;
                 $order->origin_amount = $goods->price;
                 $order->amount = $amount;
-                $order->expire_at = date("Y-m-d H:i:s", strtotime(Auth::user()->expire_time . "+" . $goods->days . " days"));
+                $order->expire_at = date("Y-m-d H:i:s", strtotime("+" . $goods->days . " days"));
                 $order->is_expire = 0;
                 $order->pay_way = 1;
                 $order->status = 2;
@@ -687,14 +710,17 @@ class UserController extends Controller
                 **/
                 $expireTime  = date('Y-m-d', strtotime($user->expire_time ."+" . $goods->days . " days" ));
 
-                // 套餐就改流量重置日，流量包不改
+                // 套餐的话，就要改流量重置日，同时把流量写入到transfer_montly 
                 if ($goods->type == 2) {
                     if (date('m') == 2 && date('d') == 29) {
                         $traffic_reset_day = 28;
                     } else {
+                        // 更改套餐重置日 
                         $traffic_reset_day = date('d') == 31 ? 30 : abs(date('d'));
                     }
                     User::query()->where('id', $order->user_id)->update(['traffic_reset_day' => $traffic_reset_day, 'expire_time' => $expireTime, 'enable' => 1]);
+                    //是按时间买套餐 的话， 流量写入到 transfer_monthly 表中
+                    User::query()->where('id', $user->id)->increment('transfer_monthly', $goods->traffic * 1048576);
                 } else {
                     User::query()->where('id', $order->user_id)->update(['expire_time' => $expireTime, 'enable' => 1]);
                 }
@@ -752,6 +778,7 @@ class UserController extends Controller
                 if (  ($user_coupons - $user->balance_used) >= $amount * 100 && $user->referral_uid) {
                     # code...
                     $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $amount, $amount * self::$systemConfig['referral_percent']);
+                    // 这个 balance_used 记录的就是 已使用的余额。
                     $user->balance_used += $amount * 100;
                     $user->save();
                 }
@@ -819,10 +846,11 @@ class UserController extends Controller
         }
 **/
         // 校验可以提现金额是否超过系统设置的阀值
-        $ref_amount = ReferralLog::uid()->where('status', 0)->sum('ref_amount');
+// 之前这里有过bug，导致 用户在提现的时候，金额计算的是，用户邀请返利的所有金额。但是，却只把消费返利的 给 设置为1 了。
+        $ref_amount = ReferralLog::uid()->where('status', 0)->where('order_id','>',0)->sum('ref_amount');
         $ref_amount = $ref_amount / 100;
         if ($ref_amount < self::$systemConfig['referral_money']) {
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：满' . self::$systemConfig['referral_money'] . '元才可以提现，继续努力吧']);
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：满' . self::$systemConfig['referral_money'] . '元才可以银行卡，继续努力吧']);
         }
 
 /**
@@ -931,8 +959,12 @@ class UserController extends Controller
             // 更换订阅码
             UserSubscribe::uid()->update(['code' => Helpers::makeSubscribeCode()]);
 
-            // 更换连接密码
+            // 更换sr 连接密码
             User::uid()->update(['passwd' => makeRandStr()]);
+
+            // 更换 uuid 
+            $uuid = createGuid();
+            User::uid()->update(['vmess_id' => $uuid]);
 
             DB::commit();
 
@@ -1100,10 +1132,47 @@ class UserController extends Controller
 
         $user = User::uid()->first();
         # 5级以上用户才开启
-        if ($user->level > 4 && empty($user->vmess_id)) {
+        if (empty($user->vmess_id)) {
             $uuid = createGuid();
             User::uid()->update(['vmess_id' => $uuid]);
         }
         return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功']);
+    }
+
+    // CN + 节点申请
+    public function cnUpdate(Request $request)
+    {
+        $cn_update = trim($request->get('cn_update'));
+        $user = User::uid()->first();
+        if ($cn_update != $user->username) {
+            return Redirect::to('profile#tab_5')->withErrors('邮箱输入错误');
+        }elseif ($user->node_group > 1) {
+            return Redirect::to('profile#tab_5')->withErrors('您已申请通过');
+        }elseif ($user->balance < 0 ) {
+            return Redirect::to('profile#tab_5')->withErrors('您的余额 < 0');
+        }elseif ($cn_update == $user->username) {
+            
+            $orders = Order::where('user_id','=',$user->id)->where('is_expire','=','0')->where('status',2)->where('expire_at','>',date('Y-m-d H:i:s'))->get();
+            $level = 0;
+            $transfer_enable = 0;
+            $transfer_monthly = 0;
+            foreach ($orders as $order) {
+                // 选取流量 
+                $order->goods->level > $level && $level = $order->goods->level;
+                $transfer_enable += $order->goods->traffic * 1048576;
+                if ($order->goods->type == 2) {
+                    $transfer_monthly += $order->goods->traffic * 1048576;
+                }
+            }
+            //
+            $ret = User::uid()->update(['level' => $level, 'transfer_enable' => $transfer_enable, 'transfer_monthly' => $transfer_monthly, 'node_group' => '2']);
+            if (!$ret) {
+                return Redirect::to('profile#tab_5')->withErrors('升级失败，请联系管理员');
+            } else {
+                return Redirect::to('profile#tab_5')->with('successMsg', '升级成功，请在客户端更新节点');
+                }
+        }else{
+            return Redirect::to('profile#tab_5')->withErrors('未知错误，请联系管理员');
+        }
     }
 }

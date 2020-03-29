@@ -36,6 +36,12 @@
                                 <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="ipv6" value="{{Request::get('ipv6')}}" id="ipv6" placeholder="ipv6" onkeydown="if(event.keyCode==13){doSearch();}">
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="node_group" value="{{Request::get('node_group')}}" id="node_group" placeholder="分组" onkeydown="if(event.keyCode==13){doSearch();}">
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="level" value="{{Request::get('level')}}" id="level" placeholder="等级" onkeydown="if(event.keyCode==13){doSearch();}">
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
                                 <select class="form-control" name="type" id="type" onChange="doSearch()">
                                     <option value="" @if(Request::get('type') == '') selected @endif>类型</option>
                                     <option value="1" @if(Request::get('type') == '1') selected @endif>S1</option>
@@ -44,9 +50,16 @@
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
                                 <select class="form-control" name="sort" id="sort" onChange="doSearch()">
-                                    <option value="" @if(Request::get('sort') == '') selected @endif>等级</option>
+                                    <option value="" @if(Request::get('sort') == '') selected @endif>维护排序</option>
                                     <option value="-1" @if(Request::get('sort') == '-1') selected @endif>高->低</option>
                                     <option value="1" @if(Request::get('sort') == '1') selected @endif>低->高</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="level_sort" id="level_sort" onChange="doSearch()">
+                                    <option value="" @if(Request::get('level_sort') == '') selected @endif>等级排序</option>
+                                    <option value="-1" @if(Request::get('level_sort') == '-1') selected @endif>高->低</option>
+                                    <option value="1" @if(Request::get('level_sort') == '1') selected @endif>低->高</option>
                                 </select>
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
@@ -58,14 +71,14 @@
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
                                 <select class="form-control" name="traffic_rate" id="traffic_rate" onChange="doSearch()">
-                                    <option value="" @if(Request::get('traffic_rate') == '') selected @endif>倍率</option>
+                                    <option value="" @if(Request::get('traffic_rate') == '') selected @endif>倍率排序</option>
                                     <option value="-1" @if(Request::get('traffic_rate') == '-1') selected @endif>高->低</option>
                                     <option value="1" @if(Request::get('traffic_rate') == '1') selected @endif>低->高</option>
                                 </select>
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
                                 <select class="form-control" name="traffic" id="traffic" onChange="doSearch()">
-                                    <option value="" @if(Request::get('traffic') == '') selected @endif>流量</option>
+                                    <option value="" @if(Request::get('traffic') == '') selected @endif>流量排序</option>
                                     <option value="-1" @if(Request::get('traffic') == '-1') selected @endif>高->低</option>
                                     <option value="1" @if(Request::get('traffic') == '1') selected @endif>低->高</option>
                                 </select>
@@ -86,16 +99,17 @@
                                     <th> 操作 </th>
                                     <th> <span class="node-id"><a href="javascript:showIdTips();">ID</a></span> </th>
                                     <th> 类型 </th>
-                                    <th> 16G </th>
+                                    <th> ! </th>
+                                    <th> ? </th>
                                     <th> 名称 </th>
+                                    <th> O </th>
+                                    <th> R </th>
+                                    <th> G </th>
+                                    <th> L </th>
                                     <th> 统计 </th>
                                     <th> <span class="node-flow"><a href="javascript:showFlowTips();">流量</a></span> </th>
                                     <th> 监控 </th>
                                     <th> 存活 </th>
-                                    <th> 状态 </th>
-                                    <th> 在线 </th>
-                                    <th> 倍率 </th>
-                                    <th> 等级 </th>
                                     <th> 操作 </th>
                                 </tr>
                                 </thead>
@@ -117,8 +131,14 @@
                                                         <span class="label {{$node->status ? 'label-info' : 'label-default'}}">{{$node->type == 2 ? 'V2' : 'SR'}}</span>
                                                     @endif
                                                 </td>
+                                                <td> {{$node->sort}}</td>
                                                 <td> {{$node->ipv6}} </td>
                                                 <td> {{$node->name}} </td>
+                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->online_users}}</span> </td>
+                                                
+                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->traffic_rate}}</span> </td>
+                                                <td><span class="label label-info">{{$node->node_group}}</span></td>
+                                                <td><span class="label label-info">{{$node->level}}</span></td>
                                                 <td>
                                                     <!-- 
                                                     @if($node->is_nat)
@@ -133,11 +153,7 @@
                                                 <td><a class="btn green" href="javascript:nodeMonitor('{{$node->id}}');"> 流量 </a>
                                                 </td>
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->uptime}}</span> </td>
-                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->load}}</span> </td>
-                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->online_users}}</span> </td>
                                                 
-                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->traffic_rate}}</span> </td>
-                                                <td><span class="label label-info">{{$node->sort}}</span></td>
                                                 <td>
                                                     <div class="btn-group">
                                                         <a class="btn btn-default dropdown-toggle" data-toggle="dropdown" href="javascript:;" aria-expanded="false"> 操作
@@ -227,13 +243,16 @@
             var id = $("#id").val();
             var nodename = $("#nodename").val();
             var ipv6 = $("#ipv6").val();
+            var node_group = $("#node_group").val();
+            var level = $("#level").val();
             var type = $("#type option:checked").val();
             var sort = $("#sort option:checked").val();
+            var level_sort = $("#level_sort option:checked").val();
             var status = $("#status option:checked").val();
             var traffic_rate = $("#traffic_rate option:checked").val();
             var traffic = $("#traffic option:checked").val();
 
-            window.location.href = '/admin/nodeList' + '?id=' + id +'&nodename=' + nodename + '&ipv6=' + ipv6 + '&type=' + type + '&sort=' + sort + '&status=' + status + '&traffic_rate=' + traffic_rate + '&traffic=' + traffic;
+            window.location.href = '/admin/nodeList' + '?id=' + id +'&nodename=' + nodename + '&ipv6=' + ipv6 + '&type=' + type + '&sort=' + sort + '&status=' + status + '&traffic_rate=' + traffic_rate + '&traffic=' + traffic + '&node_group=' + node_group + '&level=' + level + '&level_sort=' + level_sort;
         }
 
         // 重置

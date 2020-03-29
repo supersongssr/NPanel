@@ -40,70 +40,110 @@ class AutoDecGoodsTraffic extends Command
     // 扣减用户到期商品的流量
     private function decGoodsTraffic()
     {
-        $orderList = Order::query()->with(['user', 'goods'])->where('status', 2)->where('is_expire', 0)->where('expire_at', '<', date('Y-m-d H:i:s'))->get();
+        $orderList = Order::query()->where('status', 2)->where('is_expire', 0)->where('expire_at', '<', date('Y-m-d H:i:s'))->get();
         if (!$orderList->isEmpty()) {
+            /**
             // 用户默认标签
             $defaultLabels = [];
             if (self::$systemConfig['initial_labels_for_user']) {
                 $defaultLabels = explode(',', self::$systemConfig['initial_labels_for_user']);
             }
+            **/
 
             DB::beginTransaction();
             try {
                 foreach ($orderList as $order) {
+
                     // 先过期本订单
                     Order::query()->where('oid', $order->oid)->update(['is_expire' => 1]);
-
-                    // 再检查该订单对应用户是否还有套餐（非流量包）存在
-                    $haveOrder = Order::query()
-                        ->with(['user', 'goods'])
-                        ->where('is_expire', 0)
-                        ->where('user_id', $order->user_id)
-                        ->whereHas('goods', function ($q) {
-                            $q->where('type', 2);
-                        })
-                        ->orderBy('oid', 'desc')
-                        ->first();
-                    if (!$haveOrder) {
-                        // 如果不存在有效套餐（非流量包），则清空用户重置日
-                        User::query()->where('id', $order->user_id)->update(['traffic_reset_day' => 0]);
-                    }
-
-                    if (empty($order->user) || empty($order->goods)) {
+                    
+                    if (empty($order->user_id) || empty($order->goods_id)) {
                         continue;
                     }
 
-                    if ($order->user->transfer_enable - $order->goods->traffic * 1048576 <= 0) {
-                        // 写入用户流量变动记录
-                        Helpers::addUserTrafficModifyLog($order->user_id, $order->oid, $order->user->transfer_enable, 0, '[定时任务]用户所购商品到期，扣减商品对应的流量(扣完并重置)');
+                    $user = User::query()->where('id',$order->user_id)->first();
+                    $goods = Goods::query()->where('id',$order->goods_id)->first();
 
-                        User::query()->where('id', $order->user_id)->update(['u' => 0, 'd' => 0, 'transfer_enable' => 0]);
-                    } else {
-                        // 写入用户流量变动记录
-                        Helpers::addUserTrafficModifyLog($order->user_id, $order->oid, $order->user->transfer_enable, ($order->user->transfer_enable - $order->goods->traffic * 1048576), '[定时任务]用户所购商品到期，扣减商品对应的流量(没扣完)');
+                    if (empty($user)) {
+                        continue;
+                    }
 
-                        User::query()->where('id', $order->user_id)->decrement('transfer_enable', $order->goods->traffic * 1048576);
+                    // 处理如果是套餐的情况。 剪掉 transfer_monthly内的流量
+                    if ($goods->type == 2) {
+                        // 如果记录的月流量 > 当前套餐流量 就减去
+                        if ($user->transfer_monthly > $goods->traffic * 1048576) {
+                            User::query()->where('id', $order->user_id)->decrement('transfer_monthly', $goods->traffic * 1048576);
+                            echo ' 2 ';
+                        }else{
+                            User::query()->where('id', $order->user_id)->update(['transfer_monthly' => 0]);
 
-                        // 处理已用流量
-                        if ($order->user->u + $order->user->d - $order->goods->traffic * 1048576 <= 0) {
-                            User::query()->where('id', $order->user_id)->update(['u' => 0, 'd' => 0]);
-                        } else {
-                            // 一般来说d的值远远大于u
-                            if ($order->user->d - $order->goods->traffic * 1048576 >= 0) {
-                                User::query()->where('id', $order->user_id)->decrement('d', $order->goods->traffic * 1048576);
-                            } else { // 如果d不够减，则减u，然后d置0
-                                User::query()->where('id', $order->user_id)->decrement('u', $order->goods->traffic * 1048576 - $order->user->d);
-                                User::query()->where('id', $order->user_id)->update(['d' => 0]);
+                        }
+                    }
+
+                    // 再检查该订单对应用户是否还有套餐（非流量包）存在
+                    $haveOrders = Order::query()
+                        ->where('is_expire', 0)
+                        ->where('user_id', $order->user_id)
+                        ->orderBy('oid', 'desc')
+                        ->get();
+                    $user_level = 0;
+                    $user_reset_day = 0;
+                    if (!$haveOrders->isEmpty()) {
+                        foreach ($haveOrders as $haveOrder) {
+                            // 找到商品
+                            $haveGoods = Goods::query()->where('id',$haveOrder->goods_id)->first();
+                            // 如果商品 type = 2 说明时重置周期的那种 
+                            if ($haveGoods->type == 2) {
+                                $user_reset_day += 1;
+                            }
+                            // 如果商品等级 大于当前 就重置一下等级
+                            if ($haveGoods->level >  $user_level) {
+                                $user_level = $haveGoods->level;
                             }
                         }
                     }
 
+                    // 如果存在有效的套餐，就不重置流量重置日 
+                    if ($user_reset_day > 0 ) {
+                        User::query()->where('id', $order->user_id)->update(['level' => $user_level]);
+                    }else{
+                        User::query()->where('id', $order->user_id)->update(['traffic_reset_day' => 0, 'level' => $user_level]);
+                    }
+
+                    // 如果 目前流量 小于等于套餐流量 ，说明
+                    if ($user->transfer_enable < $goods->traffic * 1048576 ) {
+                        // 写入用户流量变动记录
+                        Helpers::addUserTrafficModifyLog($order->user_id, $order->oid, $user->transfer_enable, 0, '[定时任务]用户所购商品到期，扣减商品对应的流量(扣完并重置)');
+
+                        User::query()->where('id', $order->user_id)->update(['d' => 0, 'transfer_enable' => 0]);
+                    } else {
+                        // 写入用户流量变动记录
+                        Helpers::addUserTrafficModifyLog($order->user_id, $order->oid, $user->transfer_enable, ($user->transfer_enable - $goods->traffic * 1048576), '[定时任务]用户所购商品到期，扣减商品对应的流量(没扣完)');
+
+                        User::query()->where('id', $order->user_id)->decrement('transfer_enable', $goods->traffic * 1048576);
+
+                        // 处理已用流量
+                        // 如果 d 大于套餐流量 
+                        if ($user->d > $goods->traffic * 1048576) {
+                            User::query()->where('id', $order->user_id)->decrement('d', $user->d - $goods->traffic * 1048576);
+                        } else {
+                            User::query()->where('id', $order->user_id)->update(['d' => 0]);
+                        }
+
+                    }
+
+                    Helpers::addUserTrafficModifyLog($order->user_id, $order->oid, $user->transfer_enable, ($user->transfer_enable - $goods->traffic * 1048576), '[定时任务]用户所购商品到期，扣减商品对应的流量');
+
+
+
+/**
                     // 删除该商品对应用户的所有标签
                     UserLabel::query()->where('user_id', $order->user->id)->delete();
 
                     // 取出用户的其他商品带有的标签
                     $goodsIds = Order::query()->where('user_id', $order->user->id)->where('oid', '<>', $order->oid)->where('status', 2)->where('is_expire', 0)->groupBy('goods_id')->pluck('goods_id')->toArray();
                     $goodsLabels = GoodsLabel::query()->whereIn('goods_id', $goodsIds)->groupBy('label_id')->pluck('label_id')->toArray();
+
 
                     // 生成标签 写入用户最新标签
                     $labels = array_values(array_unique(array_merge($goodsLabels, $defaultLabels))); // 标签去重
@@ -113,12 +153,7 @@ class AutoDecGoodsTraffic extends Command
                         $userLabel->label_id = $vo;
                         $userLabel->save();
                     }
-
-                    // song 获取 用户商品最大 等级
-                    $maxLevel = Goods::query()->whereIn('id', $goodsIds)->orderBy('level','desc')->pluck('level')->first();  
-                    empty($maxLevel) && $maxLevel = 0;  // 如果为空 就算 0 
-                    // 将最新的等级写入到用户 中
-                    User::query()->where('id', $order->user->id)->update(['level' => $maxLevel]);
+**/
                 }
 
                 DB::commit();

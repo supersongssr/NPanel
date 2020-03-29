@@ -108,8 +108,41 @@
                                                 <div class="form-group">
                                                     <label for="traffic_rate" class="col-md-3 control-label"> 流量比例 </label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="traffic_rate" value="{{$node->traffic_rate}}" value="1.0" id="traffic_rate" placeholder="" required>
+                                                        <input type="text" class="form-control" name="traffic_rate" value="{{$node->traffic_rate}}" id="traffic_rate" placeholder="" required>
                                                         <span class="help-block"> 举例：0.1用100M结算10M，5用100M结算500M </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="node_cost" class="col-md-3 control-label"> 成本 </label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="node_cost" value="{{$node->node_cost}}" id="node_cost" placeholder="" required>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="level" class="col-md-3 control-label">节点等级</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="level" value="{{$node->level}}" id="level" placeholder="">
+                                                        <span class="help-block"> 节点level等级 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="node_group" class="col-md-3 control-label">节点分组</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="node_group" value="{{$node->node_group}}" id="node_group" placeholder="">
+                                                        <span class="help-block"> 节点分组 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="group_id" class="col-md-3 control-label"> 所属分组 功能无用 </label>
+                                                    <div class="col-md-8">
+                                                        <select class="form-control" name="group_id" id="group_id">
+                                                            <option value="0">请选择</option>
+                                                            @if(!$group_list->isEmpty())
+                                                                @foreach($group_list as $group)
+                                                                    <option value="{{$group->id}}" {{$node->group_id == $group->id ? 'selected' : ''}}>{{$group->name}}</option>
+                                                                @endforeach
+                                                            @endif
+                                                        </select>
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
@@ -129,34 +162,6 @@
                                                         <span class="help-block"> sort节点排序 </span>
                                                     </div>
                                                 </div>
-                                                <div class="form-group">
-                                                    <label for="level" class="col-md-3 control-label">节点等级</label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="level" value="{{$node->level}}" id="level" placeholder="">
-                                                        <span class="help-block"> 节点level等级 </span>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="group" class="col-md-3 control-label">节点等级</label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="group" value="{{$node->group}}" id="group" placeholder="">
-                                                        <span class="help-block"> 节点分组 </span>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="group_id" class="col-md-3 control-label"> 所属分组 功能无用 </label>
-                                                    <div class="col-md-8">
-                                                        <select class="form-control" name="group_id" id="group_id">
-                                                            <option value="0">请选择</option>
-                                                            @if(!$group_list->isEmpty())
-                                                                @foreach($group_list as $group)
-                                                                    <option value="{{$group->id}}" {{$node->group_id == $group->id ? 'selected' : ''}}>{{$group->name}}</option>
-                                                                @endforeach
-                                                            @endif
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                
                                                 <div class="form-group">
                                                     <label for="desc" class="col-md-3 control-label"> 描述 </label>
                                                     <div class="col-md-8">
@@ -549,6 +554,7 @@
             var desc = $('#desc').val();
             var method = $('#method').val();
             var traffic_rate = $('#traffic_rate').val();
+            var node_cost = $('#node_cost').val();
             var protocol = $('#protocol').val();
             var protocol_param = $('#protocol_param').val();
             var obfs = $('#obfs').val();
@@ -570,7 +576,7 @@
             var single_obfs = $('#single_obfs').val();
             var sort = $('#sort').val();
             var level = $('#level').val();
-            var group = $('#group').val();
+            var node_group = $('#node_group').val();
             var status = $("input:radio[name='status']:checked").val();
             var is_tcp_check = $("input:radio[name='is_tcp_check']:checked").val();
 
@@ -603,6 +609,7 @@
                     desc: desc,
                     method: method,
                     traffic_rate: traffic_rate,
+                    node_cost: node_cost,
                     protocol: protocol,
                     protocol_param: protocol_param,
                     obfs: obfs,
@@ -624,7 +631,7 @@
                     single_obfs: single_obfs,
                     sort: sort,
                     level: level,
-                    group: group,
+                    node_group: node_group,
                     status: status,
                     is_tcp_check: is_tcp_check,
                     type: service,
@@ -643,8 +650,9 @@
                 success: function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            window.location.href = '{{'/admin/nodeList?page=' . Request::get('page')}}';
+                            //window.location.href = '{{'/admin/nodeList?page=' . Request::get('page')}}';
                             //window.history.back();
+                            window.location.replace(document.referrer);
                         }
                     });
                 }

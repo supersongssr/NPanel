@@ -1314,13 +1314,45 @@ ALTER TABLE `ss_node`
 ALTER TABLE `ss_node`
   ADD COLUMN `level` INT(11) Default 1 COMMENT '节点等级' AFTER `sort`;
 ALTER TABLE `ss_node`
-ADD COLUMN `group` INT(11) Default 1 COMMENT '节点分组' AFTER `group_id`;
+ADD COLUMN `node_group` INT(11) Default 1 COMMENT '节点分组' AFTER `group_id`;
 -- ----------------------------
 ALTER TABLE `goods`
   ADD COLUMN `level` INT(11) Default 1 COMMENT '节点等级' AFTER `sort`;
 
 ALTER TABLE `user`
-  ADD COLUMN `group` INT(11) Default 0 COMMENT '分组' AFTER `level`;
+  ADD COLUMN `node_group` INT(11) Default 0 COMMENT '分组' AFTER `level`;
+
+# 增加 节点 cncdn 自选节点功能
+CREATE TABLE IF NOT EXISTS `cncdn` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `area` varchar(128) NOT NULL COMMENT '地区',
+  `areaid` varchar(128) NOT NULL COMMENT '地区的编号',
+  `server` varchar(64) NOT NULL COMMENT '域名',
+  `cdnip` varchar(128) NOT NULL COMMENT 'CDN地区的ip',
+  `show` int(11) NOT NULL Default '1' COMMENT '是否用户页面展示',
+  `status` int(11) NOT NULL Default '1' COMMENT '是否启用 1为启用 0为不启用',
+  primary key (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+#用户列表增加cncdn cfcdn 自选ip的功能
+ALTER TABLE `user` ADD `rss_ip` VARCHAR(64) DEFAULT NULL COMMENT '订阅ip' AFTER `ban_times`;
+ALTER TABLE `user` ADD `cncdn` VARCHAR(64) DEFAULT '0' COMMENT 'CN自选入口' AFTER `rss_ip`;
+ALTER TABLE `user` ADD `cncdn_count` VARCHAR(64) DEFAULT '0' COMMENT 'CN次数统计' AFTER `cncdn`;
+ALTER TABLE `user` ADD `cfcdn` VARCHAR(64) DEFAULT '0' COMMENT 'CF自选ip' AFTER `cncdn_count`;
+ALTER TABLE `user` ADD `cfcdn_count` VARCHAR(64) DEFAULT '0' COMMENT 'CF次数统计' AFTER `cfcdn`;
+
+# 增加 月流量功能
+ALTER TABLE `user` ADD `transfer_monthly` BIGINT(20) DEFAULT '0' COMMENT '每月套餐流量' AFTER `transfer_enable`;
+
+# 工单加入等级功能
+ALTER TABLE `ticket` ADD `sort` BIGINT(20) DEFAULT '0' COMMENT '等级排序' AFTER `user_id`;
+
+
+
+
+
+
 
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

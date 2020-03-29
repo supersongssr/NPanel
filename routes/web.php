@@ -46,6 +46,7 @@ Route::group(['middleware' => ['isLogin', 'isAdmin']], function () {
     Route::post('admin/delLabel', 'AdminController@delLabel'); // 删除标签
     Route::get('ticket/ticketList', 'TicketController@ticketList'); // 工单列表
     Route::any('ticket/replyTicket', 'TicketController@replyTicket'); // 回复工单
+    Route::any('ticket/replyOpenTicket', 'TicketController@replyOpenTicket'); // 回复并公开工单
     Route::post('ticket/closeTicket', 'TicketController@closeTicket'); // 关闭工单
     Route::post('ticket/openTicket', 'TicketController@openTicket'); // 公开工单
     Route::get('admin/orderList', 'AdminController@orderList'); // 订单列表
@@ -128,6 +129,7 @@ Route::group(['middleware' => ['isLogin']], function () {
     Route::get('invite', 'UserController@invite'); // 邀请码
     Route::post('makeInvite', 'UserController@makeInvite'); // 生成邀请码
     Route::any('profile', 'UserController@profile'); // 修改个人信息
+    Route::any('cnupdate', 'UserController@cnUpdate'); // 升级到 cn+套餐 重置用户的流量
     Route::get('referral', 'UserController@referral'); // 推广返利
     Route::post('extractMoney', 'UserController@extractMoney'); // 申请提现
     Route::post('autoExtractMoney', 'UserController@autoExtractMoney'); // 申请提现，自动打入余额。

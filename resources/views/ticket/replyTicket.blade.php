@@ -16,15 +16,12 @@
                             <span class="caption-subject bold font-green uppercase"> {{$ticket->title}} </span>
                         </div>
                         <div class="actions">
-                            @if($ticket->status != 2)
                                 <div class="btn-group btn-group-devided" data-toggle="buttons">
                                     <a class="btn red btn-outline sbold" data-toggle="modal" href="#closeTicket"> 关闭 </a>
                                 </div>
-                            @else
                                 <div class="btn-group btn-group-devided" data-toggle="buttons">
                                     <a class="btn red btn-outline sbold" data-toggle="modal" href="#openTicket"> 公开工单 </a>
                                 </div>
-                            @endif
                         </div>
                     </div>
                     <div class="portlet-body">
@@ -87,7 +84,8 @@
                             <div class="row">
                                 <div class="col-md-12">
                                     <script id="editor" type="text/plain" style="padding-bottom:10px;"></script>
-                                    <button class="btn blue" type="button" onclick="replyTicket()"> 回 复 </button>
+                                    <button class="btn blue" type="button" onclick="replyTicket()"> 回 复 </button>&nbsp&nbsp
+                                    <button class="btn red" type="button" onclick="replyOpenTicket()"> 回复 & 公开  </button>
                                 </div>
                             </div>
                         @endif
@@ -166,8 +164,8 @@
                 success: function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            //window.location.href = '{{url('ticket/ticketList')}}';
-                            window.history.back();
+                            window.location.href = '{{url("/ticket/replyTicket?id=$nextid")}}';
+                            //window.history.back();
                         }
                     });
                 }
@@ -185,8 +183,8 @@
                 success: function (ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            //window.location.href = '{{url('ticket/ticketList')}}';
-                            window.history.back();
+                            window.location.href = '{{url("/ticket/replyTicket?id=$nextid")}}';
+                            //window.history.back();
                         }
                     });
                 }
@@ -202,12 +200,35 @@
                 return false;
             }
 
-            layer.confirm('确定回复工单？', {icon: 3, title:'提示'}, function(index) {
+            layer.confirm('回复工单？', {icon: 3, title:'提示'}, function(index) {
                 $.post("{{url('ticket/replyTicket')}}",{_token:'{{csrf_token()}}', id:'{{$ticket->id}}', content:content}, function(ret) {
                     layer.msg(ret.message, {time:1000}, function() {
                         if (ret.status == 'success') {
-                            //window.location.reload();
-                            window.history.back();
+                            window.location.href = '{{url("/ticket/replyTicket?id=$nextid")}}';
+                            //window.history.back();
+                        }
+                    });
+                });
+
+                layer.close(index);
+            });
+        }
+
+        // 回复工单
+        function replyOpenTicket() {
+            var content = UE.getEditor('editor').getContent();
+
+            if (content == "" || content == undefined) {
+                layer.alert('您未填写工单内容', {icon: 2, title:'提示'});
+                return false;
+            }
+
+            layer.confirm('回复并 公开 工单？', {icon: 3, title:'提示'}, function(index) {
+                $.post("{{url('ticket/replyOpenTicket')}}",{_token:'{{csrf_token()}}', id:'{{$ticket->id}}', content:content}, function(ret) {
+                    layer.msg(ret.message, {time:1000}, function() {
+                        if (ret.status == 'success') {
+                            window.location.href = '{{url("/ticket/replyTicket?id=$nextid")}}';
+                            //window.history.back();
                         }
                     });
                 });

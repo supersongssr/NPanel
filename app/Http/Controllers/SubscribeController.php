@@ -11,6 +11,10 @@ use App\Http\Models\UserLabel;
 use App\Http\Models\UserSubscribe;
 use App\Http\Models\UserSubscribeLog;
 use Illuminate\Http\Request;
+
+// cncdn 
+use App\Http\Models\Cncdn;
+
 use Redirect;
 use Response;
 
@@ -132,9 +136,11 @@ class SubscribeController extends Controller
 
 #Song 获取查询字符串
         $ver = $request->get('ver');
-        if (empty($ver)) {
-            $ver = '1';
-        } 
+        $ss_sub = $request->get('ss');
+        $sr_sub = $request->get('ssr');
+        $v2ray_sub = $request->get('v2ray');
+        $rocket_sub = $request->get('rocket');
+
 #end
         // 校验合法性
         $subscribe = UserSubscribe::query()->with('user')->where('status', 1)->where('code', $code)->first();
@@ -169,8 +175,8 @@ class SubscribeController extends Controller
             $query->where('ss_node.type', 1);
         }
 
-**/     // 这里 不再以标签的形式来获取节点了，现在是以节点等级的形式嘎嘎 level 和 level
-        $nodeList = $query->where('ss_node.status', 1)->where('level', '<=' ,$user->level)->where('ss_node.is_subscribe', 1)->groupBy('ss_node.id')->orderBy('ss_node.level', 'desc')->orderBy('ss_node.node_onload', 'desc')->take(self::$systemConfig['subscribe_max'])->get()->toArray();
+**/     // 这里 等级 level 和 分组 group 获取节点
+        $nodeList = $query->where('ss_node.status', 1)->where('level', '<=' ,$user->level)->where('node_group',$user->node_group)->where('ss_node.is_subscribe', 1)->groupBy('ss_node.id')->orderBy('ss_node.level', 'desc')->orderBy('ss_node.node_onload', 'desc')->take(self::$systemConfig['subscribe_max'])->get()->toArray();
         if (empty($nodeList)) {
             exit($this->noneNode());
         }
@@ -191,35 +197,30 @@ class SubscribeController extends Controller
 **/
 
 //song add ver
-        if (($ver == "1")) {
+        if ($ver == "1" || !empty($sr_sub)) {
             # code...
             foreach ($nodeList as $key => $node) {
                 $node_warm = '';
-                $node['traffic_rate'] < 0.3 && $node_warm = '|Error 404 ' ;
-//addnode
-                //$addn = explode("#", $node['desc']);
-// 控制显示的节点数
-                if (self::$systemConfig['subscribe_max'] && $key >= self::$systemConfig['subscribe_max']) {
+                $node['traffic_rate'] < 0.3 && $node_warm = '' ;
+                // 控制显示的节点数
+                if (!empty($sr_sub) && $key >= $sr_sub) {
                     break;
                 }
-
-                // 获取分组名称
+                //
                 if ($node['type'] == 1) {
                     if ( empty($node['monitor_url']) ) {
                         # code...
                         //$group = SsGroup::query()->where('id', $node['group_id'])->first();
                         $group = self::$systemConfig['website_name'];
-
                         $obfs_param = $user->obfs_param ? $user->obfs_param : $node['obfs_param'];
                         $protocol_param = $node['single'] ? $user->port . ':' . $user->passwd : $user->protocol_param;
-
                         // 生成ssr scheme
                         $ssr_str = ($node['server'] ? $node['server'] : $node['ip']) . ':' . ($node['single'] ? $node['single_port'] : $user->port);
                         $ssr_str .= ':' . ($node['single'] ? $node['single_protocol'] : $user->protocol) . ':' . ($node['single'] ? $node['single_method'] : $user->method);
                         $ssr_str .= ':' . ($node['single'] ? $node['single_obfs'] : $user->obfs) . ':' . ($node['single'] ? base64url_encode($node['single_passwd']) : base64url_encode($user->passwd));
                         $ssr_str .= '/?obfsparam=' . base64url_encode($obfs_param);
                         $ssr_str .= '&protoparam=' . ($node['single'] ? base64url_encode($user->port . ':' . $user->passwd) : base64url_encode($protocol_param));
-                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' ·'.$node['level'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
+                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
                         $ssr_str .= '&group=' . base64url_encode($group);
                         $ssr_str .= '&udpport=0';
                         $ssr_str .= '&uot=0';
@@ -235,7 +236,7 @@ class SubscribeController extends Controller
                         $ssr_str .= ':plain' . ':' . base64url_encode($node['monitor_url']);
                         $ssr_str .= '/?obfsparam=';
                         $ssr_str .= '&protoparam=';
-                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' ·'.$node['level'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
+                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
                         $ssr_str .= '&group=' . base64url_encode($group);
                         $ssr_str .= '&udpport=0';
                         $ssr_str .= '&uot=0';
@@ -247,28 +248,34 @@ class SubscribeController extends Controller
             //add time 和流量
             $scheme .= $this->expireDate($user);
             $scheme .= $this->lastTraffic($user);
+        }
 
-        }elseif ($ver == "2") {
-            # code...
+        if ($ver == "2" || !empty($v2ray_sub)) {
             foreach ($nodeList as $key => $node) {
-
-                
-                //addnode
-                //$addn = explode("#", $node['desc']);
                 // 控制显示的节点数
-                if (self::$systemConfig['subscribe_max'] && $key >= self::$systemConfig['subscribe_max']) {
-                   break;
+                if(!empty($v2ray_sub) && $key > $v2ray_sub){
+                    break;
                 }
 
+                //控制显示 cncdn 自定义
+                $node_server = $node['server'];
+                if ($user->cncdn != '0') {
+                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$node['server'])->where('areaid','=',$user->cncdn)->first();
+                    if (!empty($cncdn->cdnip)) {
+                        $node_server = $cncdn->cdnip;
+                    }
+                }
+
+                //
                 $node_warm = '';
-                $node['traffic_rate'] < 0.3 && $node_warm = '|Error 404 ' ;
+                $node['traffic_rate'] < 0.3 && $node_warm = '' ;
                 // 获取分组名称
                 if ($node['type'] == 2) {
                     // 生成v2ray scheme
                     $v2_json = [
                         "v"    => "2",
-                        "ps"   => $node['name'].' ·'.$node['level'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm,
-                        "add"  => $node['server'] ? $node['server'] : $node['ip'],
+                        "ps"   => $node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm,
+                        "add"  => $node['server'] ? $node_server : $node['ip'],
                         "port" => $node['v2_port'],
                         "id"   => $node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id'],
                         "aid"  => $node['v2_alter_id'],
@@ -279,45 +286,62 @@ class SubscribeController extends Controller
                         "tls"  => $node['v2_tls'] == 1 ? "tls" : ""
                     ];
                     $scheme .= 'vmess://' . base64_encode(json_encode($v2_json)) . "\n";
-                }else{
-                    if ( empty($node['monitor_url']) ) {
-                        # code...
-                        if ( $node['compatible'] ) {
-                        $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
-                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
-                        $ss_str = base64_encode($ss_str) . '#' . $node['name'].' ·'.$node['level'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm;
-                        $scheme .= 'ss://' . $ss_str . "\n";
-                        }
-                    }else{
-                        $ss_str = $node['method'] . ':' . $node['monitor_url'] . '@';
-                        $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['ssh_port'];
-                        $ss_str = base64_encode($ss_str) . '#' . $node['name'].' ·'.$node['level'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm;
-                        $scheme .= 'ss://' . $ss_str . "\n";
+                }
+            }
+        }
+
+        if ( !empty($ss_sub) ) {
+            foreach ($nodeList as $key => $node) {
+                // 控制显示的节点数
+                if ($key >= $ss_sub) {
+                    break;
+                }
+
+                $node_warm = '';
+                $node['traffic_rate'] < 0.3 && $node_warm = '' ;
+                // 获取分组名称
+                if ( empty($node['monitor_url']) ) {
+                    # code...
+                    if ( $node['compatible'] ) {
+                    $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
+                    $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
+                    $ss_str = base64_encode($ss_str) . '#' . $node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm;
+                    $scheme .= 'ss://' . $ss_str . "\n";
                     }
-                }   
+                }else{
+                    $ss_str = $node['method'] . ':' . $node['monitor_url'] . '@';
+                    $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['ssh_port'];
+                    $ss_str = base64_encode($ss_str) . '#' . $node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm;
+                    $scheme .= 'ss://' . $ss_str . "\n";
+                }
             }
             //增加  剩余时间和流量
+        }
 
-        }elseif ($ver == "3") { //
+        if ($ver == "3" || !empty($rocket_sub) ) { //
             # 这个是小火箭的订阅规则 嘎嘎 
             foreach ($nodeList as $key => $node) {
-
                 $node_warm = '';
-                $node['traffic_rate'] < 0.3 && $node_warm = '|Error 404 ' ;
-
-                $node_warm = '';
-                $node['traffic_rate'] < 0.3 && $node_warm = '|Error 404 ' ;
+                $node['traffic_rate'] < 0.3 && $node_warm = '' ;
                 // 控制显示的节点数
                 if (self::$systemConfig['subscribe_max'] && $key >= self::$systemConfig['subscribe_max']) {
                     break;
                 }
-                //addnode
-                // 获取分组名称
+
+                //控制显示 cncdn 自定义
+                $node_server = $node['server'];
+                if ($user->cncdn != '0') {
+                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$node['server'])->where('areaid','=',$user->cncdn)->first();
+                    if (!empty($cncdn->cdnip)) {
+                        $node_server = $cncdn->cdnip;
+                    }
+                }
+                //
                 if ($node['type'] == 2 && $node['v2_net'] != 'kcp') {
                     $v2_str = $node['v2_method'] . ':' . ($node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id']) . '@';
-                    $v2_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['v2_port'];  
-                    $v2_str = base64url_encode($v2_str) . '?remarks=' . urlencode($node['name'].'·'.$node['level'].'·'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm) ;
-                    $v2_str .= '&obfsParam=' . $node['v2_host'] . '&path=' . $node['v2_path'] . '&obfs=' . ($node['v2_net'] == 'ws' ? 'websocket' : $node['v2_net']) . '&tls=' . ($node['v2_tls'] == 1 ? "1" : "").'&peer='.$node['v2_host'];
+                    $v2_str .= ($node['server'] ? $node_server : $node['ip']) . ':' . $node['v2_port'];  
+                    $v2_str = base64url_encode($v2_str) . '?remarks=' . urlencode($node['name'].'·'.$node['level'].'#'.$node['id'].'·'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm) ;
+                    $v2_str .= '&obfsParam=' . $node['v2_host'] . '&path=' . $node['v2_path'] . '&obfs=' . ($node['v2_net'] == 'ws' ? 'websocket' : $node['v2_net']) . '&tls=' . ($node['v2_tls'] == 1 ? "1" : "").'&peer='.$node['v2_host'].'&allowInsecure=1';
                     $scheme .= 'vmess://' . $v2_str . "\n";
                 }else{
                     if ( empty($node['monitor_url']) ) {
@@ -325,19 +349,17 @@ class SubscribeController extends Controller
                         if ( $node['compatible'] ) {
                         $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
-                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'·'.$node['level'].'·'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
+                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'·'.$node['level'].'#'.$node['id'].'·'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
                         $scheme .= 'ss://' . $ss_str . "\n";
                         }
                     }else{
                         $ss_str = $node['method'] . ':' . $node['monitor_url'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['ssh_port'];
-                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'·'.$node['level'].'·'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
+                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'·'.$node['level'].'#'.$node['id'].'·'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
                         $scheme .= 'ss://' . $ss_str . "\n";
                     }
                 }
             }
-            //增加用户剩余时间和流量
-            
         } 
 
         exit(base64_encode($scheme));

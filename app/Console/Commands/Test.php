@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Console\Commands;
 
@@ -14,6 +14,7 @@ use App\Http\Models\UserBalanceLog;
 use App\Http\Models\Coupon;
 
 use App\Http\Models\SsNode;
+use App\Http\Models\Cncdn;
 
 
 use Log;
@@ -35,7 +36,7 @@ class Test extends Command
     {
         $jobStartTime = microtime(true);
 
-        $this->decGoodsTraffic();
+        $this->aTest();
 
         $jobEndTime = microtime(true);
         $jobUsedTime = round(($jobEndTime - $jobStartTime), 4);
@@ -44,8 +45,26 @@ class Test extends Command
     }
 
     // 扣减用户到期商品的流量
-    private function decGoodsTraffic()
+    private function aTest()
     {
+
+        $users = User::query()->where('node_group',2)->get();
+        foreach ($users as $user) {
+            $orders = Order::where('user_id','=',$user->id)->where('is_expire','=','0')->where('status',2)->where('expire_at','>',date('Y-m-d H:i:s'))->get();
+            $level = 0;
+            $transfer_enable = 0;
+            $transfer_monthly = 0;
+            foreach ($orders as $order) {
+                // 选取流量 
+                $order->goods->level > $level && $level = $order->goods->level;
+                $transfer_enable += $order->goods->traffic * 1048576;
+                if ($order->goods->type == 2) {
+                    $transfer_monthly += $order->goods->traffic * 1048576;
+                }
+            }
+            echo $user->id .' ';
+            User::query()->where('id',$user->id)->update(['level' => $level, 'transfer_enable' => $transfer_enable, 'transfer_monthly' => $transfer_monthly]);
+        }
         /**
         $goods = Goods::all();
         foreach ($goods as $good) {
@@ -61,13 +80,83 @@ class Test extends Command
         }
         
 **/
-        $users = User::query()->get();
-        foreach ($users as $user) {
-            $group = $user->id % 2 +1 ;
-            User::query()->where('id', $user->id)->update(['group' => $group]);
-            echo $user->id.'|';
+/**
+        $orderList = Order::query()->where('is_expire', 0)->where('expire_at', '<', '2015-12-31 08:00:00')->get();
+        if (!$orderList->isEmpty()) {
+            foreach ($orderList as $order) {
+                $a_time = strtotime($order->created_at) + $order->goods->days * 86400;
+                $order->expire_at = date("Y-m-d H:i:s", $a_time);
+                $order->save();
+                echo $order->expire_at.' ';
+            }
         }
+        **/
         
+/**
+        // 清空 余额为负数， 邀请人 !=0 的用户的 返利，并disable这个用户
+        //删除过期x月，且余额低于x元的用户。
+        $userNoMoneyDels = User::query()->where('balance', '<', 0)->where('referral_uid', '!=', 0)->get();
+        if (!$userNoMoneyDels->isEmpty()) {
+            # code...
+            foreach ($userNoMoneyDels as $user) {
+                //song 这里查看一下此用户是否有邀请人，然后扣除邀请人的相关的余额。
+                //如果邀请人ID 不是0 就是说存在邀请人 ； 同时该用户不是 bad user
+                if ( $user->referral_uid != 0 ) {
+                    # 取出此用户注册邀请奖励值
+                    $referral = ReferralLog::where('user_id','=',$user->id)->where('ref_user_id','=',$user->referral_uid)->where('order_id','=',0)->first();
+                    $pays     = ReferralLog::where('user_id','=',$user->id)->where('ref_user_id','=',$user->referral_uid)->where('order_id','=',-1)->where('status','=',2)->count();
+                    ##如果存在这个邀请ID 那么就扣除这个用户相应的邀请ID，并写入返利日志 直接扣除，直接写入
+                    if (!empty($referral->ref_amount) && $pays < 1) {
+                        #扣除邀请人相应的余额
+                        User::query()->where('id', $user->referral_uid)->decrement('balance', $referral->ref_amount*100);
+                        //扣除流量
+                        $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
+                        User::query()->where('id', $user->referral_uid)->decrement('transfer_enable', $transfer_enable);
+
+                        #写入用户余额变动日志
+                        //$this->addUserBalanceLog($user->referral_uid, 0, $user->balance, $user->balance - $referral->ref_amount, -$referral->ref_amount, '邀请用户被删除扣除余额');
+                        ## 写入用户邀请返利日志
+                        $referrallog = new ReferralLog();
+                        # 用户ID 就是被删除用户ID
+                        $referrallog->user_id = $user->id;
+                        # 这个用户谁邀请的
+                        $referrallog->ref_user_id = $user->referral_uid;
+                        #订单ID 自然是0 
+                        $referrallog->order_id = -1;
+                        $referrallog->amount = 0;
+                        #这里是负值，就是已经扣除了相关的余额
+                        $referrallog->ref_amount = -$referral->ref_amount;
+                        #这里设定为2 就是已打款的意思。就是说这个款已经自动扣除了
+                        $referrallog->status = 2;
+                        $referrallog->save();
+                    }
+                }
+                User::query()->where('id',$user->id)->update(['referral_uid' => 0, 'status' => -1]);
+                echo $user->id . ' ';
+            }
+        }
+        **/
+/**
+        $users = User::query()->where('node_group',1)->where('traffic_reset_day','!=',0)->get();
+        foreach ($users as $user) {
+            $orders = Order::where('user_id','=',$user->id)->where('is_expire','=','0')->get();
+            $transfer_monthly = 0;
+            foreach ($orders as $order) {
+                // 选取流量 
+                if ($order->goods->type == 2) {
+                    $transfer_monthly += $order->goods->traffic * 1048576;
+                }
+                //echo $transfer_monthly;
+            }
+            
+            $ret = User::where('id',$user->id)->update(['transfer_monthly' => $transfer_monthly]);
+            if (!$ret) {
+                echo '--W>'.$user->id;
+            }else{
+                echo '--R>'.$user->id;
+            }
+        }
+   **/     
 
 /**
         $date_check = date('Y-m-d H:i:s',strtotime('-1 month'));

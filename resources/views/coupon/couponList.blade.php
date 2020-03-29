@@ -41,6 +41,7 @@
                                     <th> 优惠 </th>
                                     <th> 有效期 </th>
                                     <th> 状态 </th>
+                                    <th> 用户 </th>
                                     <th> 操作 </th>
                                 </tr>
                                 </thead>
@@ -84,6 +85,9 @@
                                                         <span class="label label-success"> 未使用 </span>
                                                     @endif
                                                 @endif
+                                            </td>
+                                            <td>
+                                                <span class="label label-default"> {{$coupon->user_id}}</span>
                                             </td>
                                             <td>
                                                 @if($coupon->status != '1')

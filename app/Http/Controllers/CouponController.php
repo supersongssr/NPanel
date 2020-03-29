@@ -24,7 +24,12 @@ class CouponController extends Controller
     // 优惠券列表
     public function couponList(Request $request)
     {
-        $view['couponList'] = Coupon::query()->orderBy('status', 'asc')->orderBy('id', 'desc')->paginate(10);
+
+        if ($request->sn) {
+            $view['couponList'] = Coupon::query()->where('sn',$request->sn)->orderBy('status', 'asc')->orderBy('id', 'desc')->paginate(10);
+        }else{
+            $view['couponList'] = Coupon::query()->orderBy('status', 'asc')->orderBy('id', 'desc')->paginate(10);
+        }
 
         return Response::view('coupon.couponList', $view);
     }

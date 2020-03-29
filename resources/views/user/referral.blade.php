@@ -91,7 +91,7 @@
                         </div>
                         <div class="actions">
                             <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 提取余额 </button>
-                            <button type="submit" class="btn green" onclick="extractMoney()"> 银行卡提现 </button>
+                            <!-- <button type="submit" class="btn green" onclick="extractMoney()"> 银行卡提现 </button> -->
                         </div>
                     </div>
                     <div class="portlet-body">  

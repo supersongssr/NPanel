@@ -140,14 +140,15 @@ class AutoStatisticsNodeDailyTraffic extends Command
         // 这个主要是用来证明节点是否可以正常使用的！
         if ($total < 10737418240) {
             # code...
-            $node->ipv6 .= '*';
             $node->status = 0;
+            $node->sort += 1;
         }
         //节点描述里，加上每日节点流量表现数值 
         $node->desc = floor($total / 1073741824) . ' ' . $node->desc;
         $node->desc = substr($node->desc, 0, 32);
         // 保留1位小数
-        $node->traffic_rate = round( ($total * 64 / 1073741824 / $node->bandwidth) , 1);
+        //$node->traffic_rate = round( ($total / 17179869184 * $node->node_cost / 5) , 1);
+        $node->sort = round( ($total / 17179869184 * $node->node_cost / 5) , 1);
         // $node->traffic_rate < 0.1 && $node->traffic_rate = 0.1;
 
         // 
@@ -159,6 +160,6 @@ class AutoStatisticsNodeDailyTraffic extends Command
         }
         **/
 
-        SsNode::query()->where('id',$node_id)->update(['status'=>$node->status, 'ipv6'=>$node->ipv6 , 'desc'=>$node->desc ,'traffic_rate'=>$node->traffic_rate ]);
+        SsNode::query()->where('id',$node_id)->update(['status'=>$node->status, 'ipv6'=>$node->ipv6 , 'desc'=>$node->desc ,'sort'=>$node->sort ]);
     }
 }

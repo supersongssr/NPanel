@@ -24,8 +24,8 @@ class autoBanUserNoMoney extends Command
         foreach ($userList as $user) {
 
             # stauts 会封禁用户登录，同时后端也会封禁用户
-            @$times = $user->ban_times + 1;
-            if ($times > 7) {
+            @$times = $user->ban_times + $user->level;
+            if ($times > 8) {
                 # code...
                 User::query()->where('id', $user->id)->update(['status' => '0','ban_times' => '0']);
             }else{

@@ -102,6 +102,13 @@
                                                 </div>
                                             </div>
                                             <div class="form-group">
+                                                    <label for="node_group" class="col-md-3 control-label">用户分组</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="node_group" value="{{$user->node_group}}" id="node_group" placeholder="">
+                                                        <span class="help-block"> 用户分组 </span>
+                                                    </div>
+                                                </div>
+                                            <div class="form-group">
                                                 <label for="balance" class="col-md-3 control-label">余额</label>
                                                 <div class="col-md-5">
                                                     <p class="form-control-static"> {{$user->balance}} </p>
@@ -459,6 +466,7 @@
             var wechat = $('#wechat').val();
             var qq = $('#qq').val();
             var group = $('#group').val();
+            var node_group = $('#node_group').val();
             var is_admin = $("input:radio[name='is_admin']:checked").val();
             var remark = $('#remark').val();
             var level = $("#level option:selected").val();
@@ -504,6 +512,7 @@
                     wechat:wechat,
                     qq:qq,
                     group:group,
+                    node_group:node_group,
                     is_admin:is_admin,
                     remark:remark,
                     level:level,

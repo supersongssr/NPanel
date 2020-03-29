@@ -13,7 +13,7 @@ return [
     'download'                        => '下载',
 
     // 菜单
-    'home'                            => '个人中心',
+    'home'                            => '公告中心',
     'services'                        => '购买服务',
     'traffic_log'                     => '流量记录',
     'help'                            => '帮助中心',
@@ -151,7 +151,7 @@ return [
     'ticket_table_status_reply'       => '已回复',
     'ticket_table_status_close'       => '已关闭',
     'ticket_table_new_button'         => '发起服务单',
-    'ticket_table_new_desc'           => '在这里填写您的情况，图片可以在服务单提交后上传',
+    'ticket_table_new_desc'           => '已阅读网站公告？-- 错误的提示是？-- 您期待的正确表现是？-- 请附带截图',
     'ticket_table_new_cancel'         => '取消',
     'ticket_table_new_yes'            => '提交',
     'ticket_reply_me'                 => '我',

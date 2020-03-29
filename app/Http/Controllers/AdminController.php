@@ -142,19 +142,63 @@ class AdminController extends Controller
         $view['uservip9'] = User::where("enable",1)->where("status",1)->where("level",9)->count();
         $view['uservip10'] = User::where("enable",1)->where("status",1)->where("level",10)->count();
 
-        $view['nodeall'] = SsNode::where("status",1)->count();
-        $view['nodelv0'] = SsNode::where("status",1)->where("sort",0)->count();
-        $view['nodelv1'] = SsNode::where("status",1)->where("sort",1)->count();
-        $view['nodelv2'] = SsNode::where("status",1)->where("sort",2)->count();
-        $view['nodelv3'] = SsNode::where("status",1)->where("sort",3)->count();
-        $view['nodelv4'] = SsNode::where("status",1)->where("sort",4)->count();
-        $view['nodelv5'] = SsNode::where("status",1)->where("sort",5)->count();
-        $view['nodelv6'] = SsNode::where("status",1)->where("sort",6)->count();
-        $view['nodelv7'] = SsNode::where("status",1)->where("sort",7)->count();
-        $view['nodelv8'] = SsNode::where("status",1)->where("sort",8)->count();
-        $view['nodelv9'] = SsNode::where("status",1)->where("sort",9)->count();
-        $view['nodelv10'] = SsNode::where("status",1)->where("sort",10)->count();
+        $view['usergroup1'] = User::where("enable",1)->where("status",1)->where('level','>',0)->where('node_group',1)->count();
+        $view['usergroup2'] = User::where("enable",1)->where("status",1)->where('level','>',0)->where('node_group',2)->count();
+        $view['usergroup3'] = User::where("enable",1)->where("status",1)->where('level','>',0)->where('node_group',3)->count();
 
+        $view['userliveallgroup1'] = User::where("enable",1)->where("status",1)->where("level",'>',0)->where('node_group',1)->where('t','>',time()-600)->count();
+        $view['userlivevip0group1'] = User::where("enable",1)->where("status",1)->where("level",0)->where('node_group',1)->where('t','>',time()-600)->count();
+        $view['userlivevip1group1'] = User::where("enable",1)->where("status",1)->where("level",1)->where('node_group',1)->where('t','>',time()-600)->count();
+        $view['userlivevip2group1'] = User::where("enable",1)->where("status",1)->where("level",2)->where('node_group',1)->where('t','>',time()-600)->count();
+        $view['userlivevip3group1'] = User::where("enable",1)->where("status",1)->where("level",3)->where('node_group',1)->where('t','>',time()-600)->count();
+        $view['userlivevip4group1'] = User::where("enable",1)->where("status",1)->where("level",4)->where('node_group',1)->where('t','>',time()-600)->count();
+        $view['userlivevip5group1'] = User::where("enable",1)->where("status",1)->where("level",5)->where('node_group',1)->where('t','>',time()-600)->count();
+        $view['userlivevip6group1'] = User::where("enable",1)->where("status",1)->where("level",6)->where('node_group',1)->where('t','>',time()-600)->count();
+
+        $view['userliveallgroup2'] = User::where("enable",1)->where("status",1)->where("level",'>',0)->where('node_group',2)->where('t','>',time()-600)->count();
+        $view['userlivevip0group2'] = User::where("enable",1)->where("status",1)->where("level",0)->where('node_group',2)->where('t','>',time()-600)->count();
+        $view['userlivevip1group2'] = User::where("enable",1)->where("status",1)->where("level",1)->where('node_group',2)->where('t','>',time()-600)->count();
+        $view['userlivevip2group2'] = User::where("enable",1)->where("status",1)->where("level",2)->where('node_group',2)->where('t','>',time()-600)->count();
+        $view['userlivevip3group2'] = User::where("enable",1)->where("status",1)->where("level",3)->where('node_group',2)->where('t','>',time()-600)->count();
+        $view['userlivevip4group2'] = User::where("enable",1)->where("status",1)->where("level",4)->where('node_group',2)->where('t','>',time()-600)->count();
+        $view['userlivevip5group2'] = User::where("enable",1)->where("status",1)->where("level",5)->where('node_group',2)->where('t','>',time()-600)->count();
+        $view['userlivevip6group2'] = User::where("enable",1)->where("status",1)->where("level",6)->where('node_group',2)->where('t','>',time()-600)->count();
+
+        $view['userliveallgroup3'] = User::where("enable",1)->where("status",1)->where("level",'>',0)->where('node_group',3)->where('t','>',time()-600)->count();
+        $view['userlivevip0group3'] = User::where("enable",1)->where("status",1)->where("level",0)->where('node_group',3)->where('t','>',time()-600)->count();
+        $view['userlivevip1group3'] = User::where("enable",1)->where("status",1)->where("level",1)->where('node_group',3)->where('t','>',time()-600)->count();
+        $view['userlivevip2group3'] = User::where("enable",1)->where("status",1)->where("level",2)->where('node_group',3)->where('t','>',time()-600)->count();
+        $view['userlivevip3group3'] = User::where("enable",1)->where("status",1)->where("level",3)->where('node_group',3)->where('t','>',time()-600)->count();
+        $view['userlivevip4group3'] = User::where("enable",1)->where("status",1)->where("level",4)->where('node_group',3)->where('t','>',time()-600)->count();
+        $view['userlivevip5group3'] = User::where("enable",1)->where("status",1)->where("level",5)->where('node_group',3)->where('t','>',time()-600)->count();
+        $view['userlivevip6group3'] = User::where("enable",1)->where("status",1)->where("level",6)->where('node_group',3)->where('t','>',time()-600)->count();
+
+        $view['nodeallgroup1'] = SsNode::where("status",1)->where('node_group',1)->sum('node_cost');
+        $view['nodelv0group1'] = SsNode::where("status",1)->where("level",0)->where('node_group',1)->sum('node_cost');
+        $view['nodelv1group1'] = SsNode::where("status",1)->where("level",1)->where('node_group',1)->sum('node_cost');
+        $view['nodelv2group1'] = SsNode::where("status",1)->where("level",2)->where('node_group',1)->sum('node_cost');
+        $view['nodelv3group1'] = SsNode::where("status",1)->where("level",3)->where('node_group',1)->sum('node_cost');
+        $view['nodelv4group1'] = SsNode::where("status",1)->where("level",4)->where('node_group',1)->sum('node_cost');
+        $view['nodelv5group1'] = SsNode::where("status",1)->where("level",5)->where('node_group',1)->sum('node_cost');
+        $view['nodelv6group1'] = SsNode::where("status",1)->where("level",6)->where('node_group',1)->sum('node_cost');
+
+        $view['nodeallgroup2'] = SsNode::where("status",1)->where('node_group',2)->sum('node_cost');
+        $view['nodelv0group2'] = SsNode::where("status",1)->where("level",0)->where('node_group',2)->sum('node_cost');
+        $view['nodelv1group2'] = SsNode::where("status",1)->where("level",1)->where('node_group',2)->sum('node_cost');
+        $view['nodelv2group2'] = SsNode::where("status",1)->where("level",2)->where('node_group',2)->sum('node_cost');
+        $view['nodelv3group2'] = SsNode::where("status",1)->where("level",3)->where('node_group',2)->sum('node_cost');
+        $view['nodelv4group2'] = SsNode::where("status",1)->where("level",4)->where('node_group',2)->sum('node_cost');
+        $view['nodelv5group2'] = SsNode::where("status",1)->where("level",5)->where('node_group',2)->sum('node_cost');
+        $view['nodelv6group2'] = SsNode::where("status",1)->where("level",6)->where('node_group',2)->sum('node_cost');
+
+        $view['nodeallgroup3'] = SsNode::where("status",1)->where('node_group',3)->sum('node_cost');
+        $view['nodelv0group3'] = SsNode::where("status",1)->where("level",0)->where('node_group',3)->sum('node_cost');
+        $view['nodelv1group3'] = SsNode::where("status",1)->where("level",1)->where('node_group',3)->sum('node_cost');
+        $view['nodelv2group3'] = SsNode::where("status",1)->where("level",2)->where('node_group',3)->sum('node_cost');
+        $view['nodelv3group3'] = SsNode::where("status",1)->where("level",3)->where('node_group',3)->sum('node_cost');
+        $view['nodelv4group3'] = SsNode::where("status",1)->where("level",4)->where('node_group',3)->sum('node_cost');
+        $view['nodelv5group3'] = SsNode::where("status",1)->where("level",5)->where('node_group',3)->sum('node_cost');
+        $view['nodelv6group3'] = SsNode::where("status",1)->where("level",6)->where('node_group',3)->sum('node_cost');
 
         return Response::view('admin.index', $view);
     }
@@ -303,7 +347,7 @@ class AdminController extends Controller
             $user->gender = intval($request->get('gender'));
             $user->wechat = $request->get('wechat') ? $request->get('wechat') : '';
             $user->qq = $request->get('qq') ? $request->get('qq') : '';
-            $user->group = $request->get('group') ? $request->get('group') : '';
+            $user->node_group = $request->get('node_group') ? $request->get('node_group') : '';
             $user->usage = $request->get('usage');
             $user->pay_way = $request->get('pay_way');
             $user->balance = 0;
@@ -434,7 +478,7 @@ class AdminController extends Controller
             $gender = intval($request->get('gender'));
             $wechat = $request->get('wechat');
             $qq = $request->get('qq');
-            $group = $request->get('group');
+            $node_group = $request->get('node_group');
             $usage = $request->get('usage');
             $pay_way = $request->get('pay_way');
             $status = $request->get('status');
@@ -488,7 +532,7 @@ class AdminController extends Controller
                     'gender'               => $gender,
                     'wechat'               => $wechat,
                     'qq'                   => $qq,
-                    'group'                => $group,
+                    'node_group'           => $node_group,
                     'usage'                => $usage,
                     'pay_way'              => $pay_way,
                     'status'               => $status,
@@ -620,13 +664,16 @@ class AdminController extends Controller
         $id = intval($request->get('id'));
         $nodename = trim($request->get('nodename'));
         $ipv6 = trim($request->get('ipv6'));
+        $node_group = $request->get('node_group');
+        $level = trim($request->get('level'));
         $type = $request->get('type');
         $sort = $request->get('sort');
+        $level_sort = $request->get('level_sort');
         $status = $request->get('status');
         $traffic_rate = $request->get('traffic_rate');
         $traffic = $request->get('traffic');
 
-        $query = SsNode::query();
+        $query = SsNode::query()->orderBy('status','desc');
 
         /** if ($status != '') {
             $query->where('status', intval($status));
@@ -644,6 +691,13 @@ class AdminController extends Controller
             $query->where('ipv6', 'like', '%' . $ipv6 . '%');
         }
 
+        if (!empty($node_group)) {
+            $query->where('node_group', $node_group);
+        }
+        if (!empty($level)) {
+            $query->where('level',$level);
+        }
+
         if (!empty($type)) {
             $query->where('type', $type);
         }
@@ -654,13 +708,19 @@ class AdminController extends Controller
             $query->orderBy('sort', 'asc');
         }
 
+        if ($level_sort == '-1') {
+            $query->orderBy('level', 'desc');
+        }elseif ($level_sort == '1') {
+            $query->orderBy('level', 'asc');
+        }
+
         if ( isset($status)) {
             $query->where('status', intval($status));
         }
 
         if ($traffic_rate == '-1') {
             $query->orderBy('traffic_rate', 'desc');
-        }else{
+        }elseif($traffic_rate == '1'){
             $query->orderBy('traffic_rate', 'asc');
         }
 
@@ -787,8 +847,9 @@ class AdminController extends Controller
                 $ssNode->single_protocol = intval($request->get('single')) ? $request->get('single_protocol') : '';
                 $ssNode->single_obfs = intval($request->get('single')) ? $request->get('single_obfs') : '';
                 $ssNode->sort = $request->get('sort') ? intval($request->get('sort')) : 0;
+                $ssNode->node_cost= $request->get('node_cost') ? intval($request->get('node_cost')) : 0;
                 $ssNode->level = $request->get('level') ? intval($request->get('level')) : 0;
-                $ssNode->group = $request->get('group') ? intval($request->get('group')) : 0;
+                $ssNode->node_group = $request->get('node_group') ? intval($request->get('node_group')) : 0;
                 $ssNode->status = $request->get('status') ? intval($request->get('status')) : 1;
                 $ssNode->v2_alter_id = $request->get('v2_alter_id') ? intval($request->get('v2_alter_id')) : 16;
                 $ssNode->v2_port = $request->get('v2_port') ? intval($request->get('v2_port')) : 10087;
@@ -895,6 +956,7 @@ class AdminController extends Controller
                     'obfs'             => $request->get('obfs'),
                     'obfs_param'       => $request->get('obfs_param'),
                     'traffic_rate'     => $request->get('traffic_rate'),
+                    'node_cost'     => $request->get('node_cost'),
                     'bandwidth'        => $request->get('bandwidth') ? $request->get('bandwidth') : 1000,
                     'traffic'          => $request->get('traffic') ? $request->get('traffic') : 1000,
                     'monitor_url'      => $request->get('monitor_url') ? $request->get('monitor_url') : '',
@@ -914,7 +976,7 @@ class AdminController extends Controller
                     'single_obfs'      => intval($request->get('single')) ? $request->get('single_obfs') : '',
                     'sort'             => intval($request->get('sort')),
                     'level'            => intval($request->get('level')),
-                    'group'            => intval($request->get('group')),
+                    'node_group'       => intval($request->get('node_group')),
                     'status'           => intval($request->get('status')),
                     'v2_alter_id'      => $request->get('v2_alter_id') ? intval($request->get('v2_alter_id')) : 16,
                     'v2_port'          => $request->get('v2_port') ? intval($request->get('v2_port')) : 10087,

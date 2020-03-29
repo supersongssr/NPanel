@@ -64,19 +64,26 @@
                                     <ol>
                                         <li>① 充值余额</li>
                                         <li>② 购买商品</li>
-                                        <li>③ 等级越高，节点越多、带宽越大</li>
-                                        <li>④ 商品可叠加。</li>
+                                        <li>③ 流量扣除顺序： 按时间买的流量 -> 按流量买的流量 -> 系统赠送流量(签到、返利等)</li>
+                                        <li>④ 购买多个商品可叠加</li>
                                     </ol>
                                     <h4>按时间买：</h4>
                                     <ol>
-                                        <li>每月赠送相应流量</li>
+                                        <li>流量每月重置</li>
                                         <li>等级越高，流量越多、带宽越大</li>
                                     </ol>
                                     <h4>按流量买：</h4>
                                     <ol>
-                                        <li>一次性赠送流量</li>
+                                        <li>一次性流量</li>
                                         <li>等级越高，节点越多、带宽越大</li>
                                     </ol>
+                                    <h4>商品叠加说明：</h4>
+                                    <ol>
+                                        <li>购买多个商品，会同时生效</li>
+                                        <li>等级、限速取现有商品中的最大值</li>
+                                        <li>账号有效期取所有商品中的最大值</li>
+                                    </ol>
+                                    
 
                                 </div>
                                 <div class="tab-pane" id="services2">
@@ -105,7 +112,7 @@
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-bar-chart"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">流量：{{$goods->traffic_label}}每月</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">每月：{{$goods->traffic_label}}</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
@@ -117,7 +124,7 @@
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-rocket"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">VIP{{$goods->level}}:中转、奈飞</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">节点：{{$goods->level}}级</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">
@@ -175,7 +182,7 @@
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-rocket"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">节点: 0-{{$goods->level}}级</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding">节点: {{$goods->level}}级</div>
                                                                 </div>
                                                                 <div class="row mobile-padding">
                                                                     <div class="col-xs-3 text-right mobile-padding">

@@ -25,7 +25,7 @@
                                     <th style="width: 20%;"> 账号 </th>
                                     <th style="width: 60%;"> 标题 </th>
                                     <th style="width: 15%; text-align: center;"> 状态 </th>
-                                    <th style="width: 5%; text-align: center;"> 公开 </th>
+                                    <th style="width: 5%; text-align: center;"> 排序 </th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -55,9 +55,9 @@
                                             </td>
                                             <td style="text-align: center;">
                                                 @if ($ticket->open == 0)
-                                                    <span class="label label-info"> N </span>
+                                                    <span class="label label-info"> {{$ticket->sort}} </span>
                                                 @elseif ($ticket->open == 1)
-                                                    <span class="label label-danger"> 公开 </span>
+                                                    <span class="label label-danger"> Open </span>
                                                 @else
                                                     <span class="label label-default"> ? </span>
                                                 @endif

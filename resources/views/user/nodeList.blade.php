@@ -19,11 +19,18 @@
                                 <h4>
                                     <span class="font-blue">状态：</span>
                                     @if ( Auth::user()->status == 0  )
-                                        <span class="label label-danger">状态异常 请退出重新登陆</span>
+                                        <span class="label label-danger">账号状态异常 请重新登陆</span>
                                     @elseif ( Auth::user()->status == 1 )
-                                        <span class="label label-success">正常</span>
+                                        <span class="label label-success">账号正常</span>
                                     @else
-                                        <span class="label label-info">异常</span>
+                                        <span class="label label-info">账号异常,请重新登录</span>
+                                    @endif
+                                    @if ( Auth::user()->enable == 0  )
+                                        <span class="label label-danger">!请检查流量 和 等级</span>
+                                    @elseif ( Auth::user()->enable == 1 )
+                                        <span class="label label-success">节点正常</span>
+                                    @else
+                                        <span class="label label-info">!请检查流量 和 等级</span>
                                     @endif
                                 </h4>
                             </li>
@@ -39,16 +46,22 @@
                                     <span class="font-red">Lv.{{Auth::user()->level}}</span>
                                 </h4>
                             </li>
-                            <li>
-                                <h4>
-                                    <span class="font-blue">{{trans('home.account_bandwidth_usage')}}：</span>
-                                    <span class="font-red">{{flowAutoShow(Auth::user()->u + Auth::user()->d)}}（{{flowAutoShow(Auth::user()->transfer_enable)}}）</span>
-                                </h4>
-                            </li>
+                            
                             @if(Auth::user()->traffic_reset_day)
                             <li>
                                 <h4>
-                                    <span class="font-blue"> {{trans('home.account_reset_notice', ['reset_day' => Auth::user()->traffic_reset_day])}} </span>
+                                    <span class="font-red">总流量：</span>
+                                    <span class="font-red">{{ flowAutoShow(Auth::user()->u + Auth::user()->d)}} /{{flowAutoShow(Auth::user()->transfer_enable)}}</span>
+                                    <span class="font-blue">( {{flowAutoShow(Auth::user()->u)}}/{{flowAutoShow(Auth::user()->transfer_enable - Auth::user()->transfer_monthly)}}流量包 +</span>
+                                    <span class="font-blue">{{flowAutoShow(Auth::user()->d)}}/{{flowAutoShow(Auth::user()->transfer_monthly)}}每月流量 {{Auth::user()->traffic_reset_day}}号重置)</span>
+                                    
+                                </h4>
+                            </li>
+                            @else
+                            <li>
+                                <h4>
+                                    <span class="font-blue">流量：</span>
+                                    <span class="font-blue"> {{flowAutoShow(Auth::user()->u + Auth::user()->d)}} /{{flowAutoShow(Auth::user()->transfer_enable)}} </span>
                                 </h4>
                             </li>
                             @endif

@@ -274,10 +274,11 @@ class AuthController extends Controller
             $user->password = Hash::make($request->password);
             $user->port = $port;
             $user->passwd = makeRandStr();
-            #$user->vmess_id = createGuid();
+            $user->vmess_id = createGuid();
             $user->transfer_enable = $transfer_enable;
             $user->method = Helpers::getDefaultMethod();
             $user->protocol = Helpers::getDefaultProtocol();
+            $user->node_group = 2;
             $user->obfs = Helpers::getDefaultObfs();
             $user->enable_time = date('Y-m-d H:i:s');
             $user->expire_time = date('Y-m-d H:i:s', strtotime("+" . self::$systemConfig['default_days'] . " days"));
