@@ -29,8 +29,8 @@
                                     <option value="-1" @if(Request::get('status') == '-1') selected @endif>驳回</option>
                                     <option value="0" @if(Request::get('status') == '0') selected @endif>待审核</option>
                                     <option value="1" @if(Request::get('status') == '1') selected @endif>审核通过待打款</option>
-                                    <option value="2" @if(Request::get('status') == '2') selected @endif>已提额</option>
-                                    <option value="3" @if(Request::get('status') == '3') selected @endif>已提现</option>
+                                    <option value="2" @if(Request::get('status') == '2') selected @endif>已提现</option>
+                                    <option value="3" @if(Request::get('status') == '3') selected @endif>已代金券</option>
                                 </select>
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
@@ -67,7 +67,7 @@
                                                         <a href="{{url('admin/editUser?id=' . $apply->user_id)}}" target="_blank">{{$apply->user->username}}</a>
                                                     @endif
                                                 </td>
-                                                <td> {{$apply->amount}} </td>
+                                                <td> {{$apply->amount / 100}} </td>
                                                 <td> {{$apply->created_at}} </td>
                                                 <td>
                                                     @if($apply->status == -1)

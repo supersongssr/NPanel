@@ -25,7 +25,7 @@ class Coupon extends Model
     {
         return $query->where('type', $type);
     }
-
+/**
     function getAmountAttribute($value)
     {
         return $value / 100;
@@ -35,7 +35,7 @@ class Coupon extends Model
     {
         $this->attributes['amount'] = $value * 100;
     }
-
+**/
     function getDiscountAttribute($value)
     {
         return $value * 10;

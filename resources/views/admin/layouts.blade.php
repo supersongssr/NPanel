@@ -106,13 +106,14 @@
                         <span class="selected"></span>
                     </a>
                 </li>
+                <!-- 
                 <li class="nav-item {{in_array(Request::path(), ['admin/nodeList', 'admin/addNode', 'admin/editNode', 'admin/groupList', 'admin/addGroup', 'admin/editGroup', 'admin/nodeMonitor']) ? 'active open' : ''}}">
                     <a href="javascript:;" class="nav-link nav-toggle">
                         <i class="fa fa-list-alt"></i>
                         <span class="title">节点管理</span>
                         <span class="arrow"></span>
                     </a>
-                    <ul class="sub-menu">
+                    <ul class="sub-menu"> -->
                         <li class="nav-item {{in_array(Request::path(), ['admin/nodeList', 'admin/addNode', 'admin/editNode', 'admin/nodeMonitor']) ? 'active open' : ''}}">
                             <a href="/admin/nodeList" class="nav-link ">
                                 <i class="fa fa-list"></i>
@@ -125,8 +126,8 @@
                                 <span class="title">节点分组</span>
                             </a>
                         </li>
-                    </ul>
-                </li>
+                <!--     </ul>
+                </li> -->
                 <li class="nav-item {{in_array(Request::path(), ['admin/articleList', 'admin/addArticle', 'admin/editArticle']) ? 'active open' : ''}}">
                     <a href="/admin/articleList" class="nav-link">
                         <i class="fa fa-file-word-o"></i>
@@ -140,7 +141,7 @@
                     </a>
                 </li>
                 <li class="nav-item {{in_array(Request::path(), ['admin/applyList', 'admin/applyDetail']) ? 'active open' : ''}}">
-                    <a href="/admin/applyList" class="nav-link nav-toggle">
+                    <a href="/admin/applyList?status=0" class="nav-link nav-toggle">
                         <i class="fa fa-credit-card"></i>
                         <span class="title">提现管理</span>
                     </a>

@@ -16,9 +16,9 @@
                             @if($info->status == -1)
                                 <span class="label label-default label-danger"> 已驳回 </span>
                             @elseif($info->status == 2)
-                                <span class="label label-default label-success"> 已提额 </span>
+                                <span class="label label-default label-success"> 已提现 </span>
                             @elseif($info->status == 3)
-                            <span class="label label-default label-success"> 已提现 </span>
+                            <span class="label label-default label-success"> 已代金券 </span>
                             @else
                                 <div class="btn-group">
                                     <a class="btn btn-sm blue dropdown-toggle" href="javascript:;" data-toggle="dropdown"> 审核
@@ -30,18 +30,22 @@
                                             <a href="javascript:setStatus('-1');"> <i class="fa fa-remove"></i> 驳回 </a>
                                         </li>
                                         <li>
-                                            <a href="javascript:setStatus('1');"> <i class="fa fa-check"></i> 审核通过 </a>
+                                            <a href="javascript:setStatus('1');"> <i class="fa fa-circle-o"></i> 审核通过 </a>
                                         </li>
+
                                         <li>
-                                            <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> 审核通过+余额 </a>
+                                            <a href="javascript:setStatus('2');"> <i class="fa fa-check"></i> 审核通过+现金打款 </a>
                                         </li>
+
                                         @endif
                                         @if($info->status == 1)
+                                        <!-- 
                                         <li>
                                             <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> +余额 </a>
                                         </li>
+                                    -->
                                         <li>
-                                            <a href="javascript:setStatus('3');"> <i class="fa fa-circle-o"></i> +现金打款 </a>
+                                            <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> +现金打款 </a>
                                         </li>
                                         @endif
                                     </ul>
@@ -54,7 +58,10 @@
                             <table class="table table-striped table-hover table-checkable">
                                 <thead>
                                     <tr class="uppercase">
-                                        <th colspan="6">ID：{{$info->id}} | 申请人：{{$info->user->username}} | 提现金额：{{$info->amount}} | 申请时间：{{$info->created_at}}</th>
+                                        <th colspan="6">ID：{{$info->id}} | 申请人：{{$info->user->username}} | 提现金额：{{$info->amount /100}} | 申请时间：{{$info->created_at}}</th>
+                                    </tr>
+                                    <tr class="uppercase">
+                                        <th colspan="6"> 姓名： <code>{{$info->user->wechat}}</code>  银行卡号： <code>{{$info->user->qq}} </code></th>
                                     </tr>
                                     <tr class="uppercase">
                                         <th> # </th>
@@ -76,8 +83,8 @@
                                                 <td> {{$vo->id}} </td>
                                                 <td> {{empty($vo->user) ? '【账号已删除】' : $vo->user->username}} </td>
                                                 <td> {{empty($vo->order) ? '注册返利' : $vo->order->goods->name}}</td>
-                                                <td> {{$vo->amount}} </td>
-                                                <td> {{$vo->ref_amount}} </td>
+                                                <td> {{$vo->amount / 100}} </td>
+                                                <td> {{$vo->ref_amount / 100}} </td>
                                                 <td> {{$vo->created_at}} </td>
                                             </tr>
                                         @endforeach

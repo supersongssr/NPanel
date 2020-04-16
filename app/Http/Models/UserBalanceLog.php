@@ -21,7 +21,7 @@ class UserBalanceLog extends Model
     {
         return $this->hasOne(User::class, 'id', 'user_id');
     }
-
+/**
     function getBeforeAttribute($value)
     {
         return $value / 100;
@@ -51,4 +51,5 @@ class UserBalanceLog extends Model
     {
         return $this->attributes['amount'] = $value * 100;
     }
+**/
 }

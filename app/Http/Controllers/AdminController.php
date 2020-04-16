@@ -467,6 +467,8 @@ class AdminController extends Controller
             $passwd = $request->get('passwd');
             $vmess_id = $request->get('vmess_id') ? trim($request->get('vmess_id')) : createGuid();
             $transfer_enable = $request->get('transfer_enable');
+            $u = $request->get('transfer_u');
+            $d = $request->get('transfer_d');
             $enable = intval($request->get('enable'));
             $method = $request->get('method');
             $protocol = $request->get('protocol');
@@ -521,6 +523,8 @@ class AdminController extends Controller
                     'passwd'               => $passwd,
                     'vmess_id'             => $vmess_id,
                     'transfer_enable'      => toGB($transfer_enable),
+                    'u'      => toGB($u),
+                    'd'      => toGB($d),
                     'enable'               => $status < 0 ? 0 : $enable, // 如果禁止登陆则同时禁用代理
                     'method'               => $method,
                     'protocol'             => $protocol,
@@ -576,6 +580,8 @@ class AdminController extends Controller
             $user = User::query()->with(['label', 'referral'])->where('id', $id)->first();
             if ($user) {
                 $user->transfer_enable = flowToGB($user->transfer_enable);
+                $user->u = flowToGB($user->u);
+                $user->d = flowToGB($user->d);
 
                 // 处理标签
                 $label = [];
@@ -609,6 +615,7 @@ class AdminController extends Controller
         }
         $user = User::query()->where('id', $id)->first();
         if ($user->referral_uid != 0 ) {
+            /**
             # 取出此用户注册邀请奖励值
             $referral = ReferralLog::where('user_id','=',$id)->where('ref_user_id','=',$user->referral_uid)->where('order_id','=',0)->first();
             ##如果存在这个邀请ID 那么就扣除这个用户相应的邀请ID，并写入返利日志 直接扣除，直接写入
@@ -632,8 +639,24 @@ class AdminController extends Controller
                 #这里设定为2 就是已打款的意思。就是说这个款已经自动扣除了
                 $referrallog->status = 2;
                 $referrallog->save();
+            }**/
+            # 取出此用户注册时候的奖励值
+            $referral = ReferralLog::where('user_id','=',$id)->where('ref_user_id','=',$user->referral_uid)->where('order_id','=',0)->first();
+            ##如果存在这个邀请ID 那么就扣除这个用户相应的邀请ID，并写入返利日志 直接扣除，直接写入
+            if (!empty($referral->ref_amount)) {
+                #扣除邀请人相应的余额
+                $ref_user = User::where('id', $user->referral_uid)->first();
+                $ref_user->credit -= $referral->ref_amount;
+                if ($ref_user->credit < 0 ) {
+                    $ref_user->balance += $ref_user->credit;  // 如果 credit 不足以抵扣余额
+                    $ref_user->credit = 0;
+                }
+                $ref_user->save();
+                #写入用户余额变动日志
+                $this->addUserBalanceLog($user->referral_uid, 0, $user->balance, $user->balance - $referral->ref_amount, -$referral->ref_amount, 0,'邀请用户被删除扣除信用卡');
             }
         }
+        
 
         DB::beginTransaction();
         try {
@@ -702,10 +725,10 @@ class AdminController extends Controller
             $query->where('type', $type);
         }
 
-        if ($sort == '-1') {
-            $query->orderBy('sort', 'desc');
-        }elseif ($sort == '1') {
+        if ($sort == '1') {
             $query->orderBy('sort', 'asc');
+        }else{
+            $query->orderBy('sort', 'desc');
         }
 
         if ($level_sort == '-1') {
@@ -2488,12 +2511,16 @@ EOF;
             $referralApply = ReferralApply::query()->where('id', $id)->first();
             $log_ids = explode(',', $referralApply->link_logs);
             if ($referralApply && $status == 1) {
-                // 审核通过
+                // 1 审核通过
                 ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 1]);
-            } elseif ($referralApply && $status == 3) {
-                // 3 现金提现
-                ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 3]);
             } elseif ($referralApply && $status == 2) {
+                // 2 现金提现
+                ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 2]);
+            }elseif ($referralApply && $status == -1) {
+                # 驳回
+                ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 0]);
+            }
+            /**elseif ($referralApply && $status == 2) {
                 // 2 打款到余额
                 ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 2]);
                 //Song 审核并自动打款到余额
@@ -2516,6 +2543,7 @@ EOF;
                     DB::rollBack();
                 }
             }
+            **/
         }
 
         return Response::json(['status' => 'success', 'data' => '', 'message' => '操作成功']);

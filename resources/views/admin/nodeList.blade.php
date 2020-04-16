@@ -25,66 +25,7 @@
                         </div>
                     </div>
                     <div class="portlet-body">
-                        <div class="row">
-                            <div class="col-md-3 col-sm-4 col-xs-12">
-                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="id" value="{{Request::get('id')}}" id="id" placeholder="节点ID" onkeydown="if(event.keyCode==13){doSearch();}">
-                            </div>
-                            <div class="col-md-3 col-sm-4 col-xs-12">
-                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="nodename" value="{{Request::get('nodename')}}" id="nodename" placeholder="节点名" onkeydown="if(event.keyCode==13){doSearch();}">
-                            </div>
-                            <div class="col-md-3 col-sm-4 col-xs-12">
-                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="ipv6" value="{{Request::get('ipv6')}}" id="ipv6" placeholder="ipv6" onkeydown="if(event.keyCode==13){doSearch();}">
-                            </div>
-                            <div class="col-md-3 col-sm-4 col-xs-12">
-                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="node_group" value="{{Request::get('node_group')}}" id="node_group" placeholder="分组" onkeydown="if(event.keyCode==13){doSearch();}">
-                            </div>
-                            <div class="col-md-3 col-sm-4 col-xs-12">
-                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="level" value="{{Request::get('level')}}" id="level" placeholder="等级" onkeydown="if(event.keyCode==13){doSearch();}">
-                            </div>
-                            <div class="col-md-3 col-sm-4 col-xs-12">
-                                <select class="form-control" name="type" id="type" onChange="doSearch()">
-                                    <option value="" @if(Request::get('type') == '') selected @endif>类型</option>
-                                    <option value="1" @if(Request::get('type') == '1') selected @endif>S1</option>
-                                    <option value="2" @if(Request::get('type') == '2') selected @endif>V2</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-4 col-xs-12">
-                                <select class="form-control" name="sort" id="sort" onChange="doSearch()">
-                                    <option value="" @if(Request::get('sort') == '') selected @endif>维护排序</option>
-                                    <option value="-1" @if(Request::get('sort') == '-1') selected @endif>高->低</option>
-                                    <option value="1" @if(Request::get('sort') == '1') selected @endif>低->高</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-4 col-xs-12">
-                                <select class="form-control" name="level_sort" id="level_sort" onChange="doSearch()">
-                                    <option value="" @if(Request::get('level_sort') == '') selected @endif>等级排序</option>
-                                    <option value="-1" @if(Request::get('level_sort') == '-1') selected @endif>高->低</option>
-                                    <option value="1" @if(Request::get('level_sort') == '1') selected @endif>低->高</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-4 col-xs-12">
-                                <select class="form-control" name="status" id="status" onChange="doSearch()">
-                                    <option value="" @if(Request::get('status') == '') selected @endif>状态</option>
-                                    <option value="1" @if(Request::get('status') == '1') selected @endif>正常</option>
-                                    <option value="0" @if(Request::get('status') == '0') selected @endif>维护</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-4 col-xs-12">
-                                <select class="form-control" name="traffic_rate" id="traffic_rate" onChange="doSearch()">
-                                    <option value="" @if(Request::get('traffic_rate') == '') selected @endif>倍率排序</option>
-                                    <option value="-1" @if(Request::get('traffic_rate') == '-1') selected @endif>高->低</option>
-                                    <option value="1" @if(Request::get('traffic_rate') == '1') selected @endif>低->高</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-4 col-xs-12">
-                                <select class="form-control" name="traffic" id="traffic" onChange="doSearch()">
-                                    <option value="" @if(Request::get('traffic') == '') selected @endif>流量排序</option>
-                                    <option value="-1" @if(Request::get('traffic') == '-1') selected @endif>高->低</option>
-                                    <option value="1" @if(Request::get('traffic') == '1') selected @endif>低->高</option>
-                                </select>
-                            </div>
-                            
-                        </div>
+                        
                         <div class="row">
                             <div class="col-md-8 col-sm-8">
                                 <div class="dataTables_paginate paging_bootstrap_full_number pull-right">
@@ -187,6 +128,66 @@
                                     {{ $nodeList->links() }}
                                 </div>
                             </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="id" value="{{Request::get('id')}}" id="id" placeholder="节点ID" onkeydown="if(event.keyCode==13){doSearch();}">
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="nodename" value="{{Request::get('nodename')}}" id="nodename" placeholder="节点名" onkeydown="if(event.keyCode==13){doSearch();}">
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="ipv6" value="{{Request::get('ipv6')}}" id="ipv6" placeholder="ipv6" onkeydown="if(event.keyCode==13){doSearch();}">
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="node_group" value="{{Request::get('node_group')}}" id="node_group" placeholder="分组" onkeydown="if(event.keyCode==13){doSearch();}">
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="level" value="{{Request::get('level')}}" id="level" placeholder="等级" onkeydown="if(event.keyCode==13){doSearch();}">
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="type" id="type" onChange="doSearch()">
+                                    <option value="" @if(Request::get('type') == '') selected @endif>类型</option>
+                                    <option value="1" @if(Request::get('type') == '1') selected @endif>S1</option>
+                                    <option value="2" @if(Request::get('type') == '2') selected @endif>V2</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="sort" id="sort" onChange="doSearch()">
+                                    <option value="" @if(Request::get('sort') == '') selected @endif>维护排序</option>
+                                    <option value="-1" @if(Request::get('sort') == '-1') selected @endif>高->低</option>
+                                    <option value="1" @if(Request::get('sort') == '1') selected @endif>低->高</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="level_sort" id="level_sort" onChange="doSearch()">
+                                    <option value="" @if(Request::get('level_sort') == '') selected @endif>等级排序</option>
+                                    <option value="-1" @if(Request::get('level_sort') == '-1') selected @endif>高->低</option>
+                                    <option value="1" @if(Request::get('level_sort') == '1') selected @endif>低->高</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="status" id="status" onChange="doSearch()">
+                                    <option value="" @if(Request::get('status') == '') selected @endif>状态</option>
+                                    <option value="1" @if(Request::get('status') == '1') selected @endif>正常</option>
+                                    <option value="0" @if(Request::get('status') == '0') selected @endif>维护</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="traffic_rate" id="traffic_rate" onChange="doSearch()">
+                                    <option value="" @if(Request::get('traffic_rate') == '') selected @endif>倍率排序</option>
+                                    <option value="-1" @if(Request::get('traffic_rate') == '-1') selected @endif>高->低</option>
+                                    <option value="1" @if(Request::get('traffic_rate') == '1') selected @endif>低->高</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="traffic" id="traffic" onChange="doSearch()">
+                                    <option value="" @if(Request::get('traffic') == '') selected @endif>流量排序</option>
+                                    <option value="-1" @if(Request::get('traffic') == '-1') selected @endif>高->低</option>
+                                    <option value="1" @if(Request::get('traffic') == '1') selected @endif>低->高</option>
+                                </select>
+                            </div>
+                            
                         </div>
                     </div>
                 </div>

@@ -39,6 +39,13 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
+                                    <label class="control-label col-md-3">卡券前缀 sn </label>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" name="sn" value="{{Request::old('sn')}}" id="sn" autocomplete="off">
+                                        <input type="hidden" name="_token" value="{{csrf_token()}}" />
+                                    </div>
+                                </div>
+                                <div class="form-group">
                                     <label class="control-label col-md-3">LOGO</label>
                                     <div class="col-md-4">
                                         <div class="fileinput fileinput-new" data-provides="fileinput">
@@ -122,9 +129,9 @@
                                     <label class="control-label col-md-3">有效期</label>
                                     <div class="col-md-4">
                                         <div class="input-group input-large input-daterange">
-                                            <input type="text" class="form-control" name="available_start" value="{{Request::old('available_start')}}" id="available_start" autocomplete="off" required>
+                                            <input type="text" class="form-control" name="available_start" value="{{date('Y-m-d')}}" id="available_start" autocomplete="off" required>
                                             <span class="input-group-addon"> 至 </span>
-                                            <input type="text" class="form-control" name="available_end" value="{{Request::old('available_end')}}" id="available_end" autocomplete="off" required>
+                                            <input type="text" class="form-control" name="available_end" value="{{date('Y-m-d',strtotime ( '+10 year' ) )}}" id="available_end" autocomplete="off" required>
                                         </div>
                                     </div>
                                 </div>

@@ -8,14 +8,9 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="note note-info">
-                    <p>通过您的推广链接/邀请码注册返利5$/用户,你们双方都将获得 5GB 流量奖励；当他们消费时，您将获得他们消费金额的 20% 作为奖励，奖励可提现。</p>
-                    <p>推广返利：（ 5$余额 + 5G流量 ）* 邀请人数 + （ 20%消费返利 * 用户消费 ）；</p>
+                    <p>通过您的推广链接/邀请码注册您将获得如下奖励：</p>
+                    <p><code>A：赠送 1G 流量 <br>B：赠送 5元 信用卡，可用于购买商品 <br>C：赠送 5元 奖励（设置收款信息，可提现）<br>D：用户消费时，奖励25%消费返利（设置收款信息，可提现）循环奖励，消费多少次奖励多少次 <br>E：将奖励 C 生成代金券 <br>F：将奖励 D 生成代金券</code><br><small>* AB+C/D 2+1奖励模式<br>* 具体提现标准请参考：<a href="">网站提现详细规则</a><br>* 简易规则：AB必返，CD 2选1，C提现条件： 所有邀请人消费金额 * 50% > 提现金额 ，D 提现条件：满{{$referral_money}}元可提现，EF与CD互斥</small></p>
                 </div>
-                @if(Auth::user()->level == 0)
-                <div class="note note-info">
-                    <p>您可以申请信用额度<button type="submit" class="btn blue" onclick="CreditMoney()"> 信用花呗 </button></p>
-                </div>
-                @endif
             </div>
         </div>
         <div class="row">
@@ -34,7 +29,8 @@
                                 <i class="icon-note"></i> {{trans('home.referral_button')}}
                             </a>
                             <br>
-                            <p>推广返利：（ 5$余额 + 5G流量 ）* 邀请人数 + 20%消费返利(可提现);
+                            <p>邀请用户注册奖励： 5元 信用卡 + 5元现金（用于提现） + 25%消费返利（用于提现）<br>
+                                我的收款信息： 收款姓名： <code>{{Auth::user()->wechat}}</code> 收款银行卡号：<code>{{Auth::user()->qq}}</code> <br>请确保输入正常的收款信息，信息错误会导致收不到款！<a href="/profile#tab_2">点此设置我的收款信息</a></p>
                         </div>
                     </div>
                 </div>
@@ -90,8 +86,10 @@
                             <span class="caption-subject bold"> {{trans('home.referral_title')}} </span>
                         </div>
                         <div class="actions">
-                            <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 提取余额 </button>
-                            <!-- <button type="submit" class="btn green" onclick="extractMoney()"> 银行卡提现 </button> -->
+                            <!-- <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 提取余额 </button>
+                            <button type="submit" class="btn green" onclick="extractMoney()"> 银行卡提现 </button> -->
+                            <button type="submit" class="btn blue" onclick="ExtractAffMoney()"> 邀请奖励提现 </button>
+                            <button type="submit" class="btn green" onclick="ExtractRefMoney()"> 消费返利提现 </button>
                         </div>
                     </div>
                     <div class="portlet-body">  
@@ -120,17 +118,17 @@
                                             <td> {{$referralLog->created_at}} </td>
                                             <td> @if($referralLog->order_id == 0) 邀请 @elseif($referralLog->order_id == -1) 注销 @else {{$referralLog->order_id}}@endif</td>
                                             <td> {{empty($referralLog->user) ? '【账号已删除】' : $referralLog->user->username}} </td>
-                                            <td> ￥{{$referralLog->amount}} </td>
-                                            <td> ￥{{$referralLog->ref_amount}} </td>
+                                            <td> ￥{{$referralLog->amount / 100}} </td>
+                                            <td> ￥{{$referralLog->ref_amount / 100}} </td>
                                             <td>
                                                 @if ($referralLog->status == 1)
                                                     <span class="label label-sm label-danger">申请中</span>
                                                 @elseif($referralLog->status == 2)
-                                                    <span class="label label-sm label-default">已提额</span>
-                                                @elseif($referralLog->status == 3)
                                                     <span class="label label-sm label-default">已提现</span>
+                                                @elseif($referralLog->status == 3)
+                                                    <span class="label label-sm label-default">代金券</span>
                                                 @else
-                                                    <span class="label label-sm label-info">未提现</span>
+                                                    <span class="label label-sm label-info">未提取</span>
                                                 @endif
                                             </td>
                                         </tr>
@@ -141,8 +139,14 @@
                         </div>
                         <div class="row">
                             <div class="col-md-5 col-sm-5">
-                                <div class="dataTables_info" role="status" aria-live="polite">{{trans('home.referral_summary', ['total' => $referralLogList->total(), 'amount' => $canAmount, 'money' => $referral_money])}}<br>银行卡提现请先<a href="/profile#tab_2">设置收款信息</a>，每笔提现手续费1￥。</div>
+                                <div class="dataTables_info" role="status" aria-live="polite">{{trans('home.referral_summary', ['total' => $referralLogList->total(), 'amount' => $canAmount/100, 'money' => $referral_money])}}<br>银行卡提现请先<a href="/profile#tab_2">设置收款信息</a>，每笔提现手续费1￥。</div>
+                            <br>
+                            * 为保护用户隐私，如果您不愿意提现您的邀请返利，您可以才选择将可提现的返利生成代金券，在网站购买商品时可抵扣相应的金额
+                            <br>
+                            <button type="submit" class="btn blue" onclick="autoExtractAffMoney()"> 邀请奖励生成代金券 </button>
+                            <button type="submit" class="btn green" onclick="autoExtractRefMoney()"> 消费返利生成代金券 </button>
                             </div>
+
                             <div class="col-md-7 col-sm-7">
                                 <div class="dataTables_paginate paging_bootstrap_full_number pull-right">
                                     {{ $referralLogList->links() }}
@@ -180,20 +184,82 @@
                                         <tr class="odd gradeX">
                                             <td> {{$key + 1}} </td>
                                             <td> {{$vo->created_at}} </td>
-                                            <td> {{$vo->amount}} </td>
+                                            <td> {{$vo->amount / 100}} </td>
                                             <td>
                                                 @if ($vo->status == 0)
                                                     <span class="label label-sm label-danger">待审核</span>
                                                 @elseif($vo->status == 1)
                                                     <span class="label label-sm label-default">审核通过待打款</span>
                                                 @elseif($vo->status == 2)
-                                                    <span class="label label-sm label-default">已提额</span>
-                                                @elseif($vo->status >= 2)
                                                     <span class="label label-sm label-default">已提现</span>
-                                                @else
+                                                @elseif($vo->status == 3)
+                                                    <span class="label label-sm label-default">代金券</span>
+                                                @elseif($vo->status == -1)
                                                     <span class="label label-sm label-info">驳回</span>
+                                                @else
+                                                    <span class="label label-sm label-info">未知状态，请联系管理</span>
                                                 @endif
                                             </td>
+                                        </tr>
+                                    @endforeach
+                                @endif
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 col-sm-12">
+                                <div class="dataTables_paginate paging_bootstrap_full_number pull-right">
+                                    {{ $referralLogList->links() }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 代金券记录 -->
+                <div class="portlet light bordered">
+                    <div class="portlet-title">
+                        <div class="caption font-dark">
+                            <span class="caption-subject bold"> 代金券列表 </span>
+                        </div>
+                    </div>
+                    <div class="portlet-body">
+                        <div class="table-scrollable">
+                            <table class="table table-striped table-bordered table-hover table-checkable order-column">
+                                <thead>
+                                <tr>
+                                    <th> # </th>
+                                    <th> 代金券 </th>
+                                    <th> 金额 </th>
+                                    <th> 状态 </th>
+                                    <th> 使用者 </th>
+                                    <th> 生成时间 </th>
+                                    <th> 有效期 </th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @if($couponList->isEmpty())
+                                    <tr>
+                                        <td colspan="6" style="text-align: center;"> {{trans('home.referral_table_none')}} </td>
+                                    </tr>
+                                @else
+                                    @foreach($couponList as $key => $vo)
+                                        <tr class="odd gradeX">
+                                            <td> {{$key + 1}} </td>
+                                            <td> {{$vo->sn}} </td>
+                                            <td> ￥{{$vo->amount / 100}} </td>
+                                            <td>
+                                                @if ($vo->status == 0)
+                                                    <span class="label label-sm label-danger">未使用</span>
+                                                @elseif($vo->status == 1)
+                                                    <span class="label label-sm label-default">已使用</span>
+                                                @elseif($vo->status == 2)
+                                                    <span class="label label-sm label-default">已过期</span>
+                                                @endif
+                                            </td>
+                                            <td>#{{$vo->user_id}}</td>
+                                            <td>{{$vo->created_at}}</td>
+                                            <td>{{date('Y-m-d H:i:s',$vo->available_end )}}</td>
                                         </tr>
                                     @endforeach
                                 @endif
@@ -243,9 +309,9 @@
             });
         }
 
-        // 信用额度
-        function CreditMoney() {
-            $.post("/CreditMoney", {_token:'{{csrf_token()}}'}, function (ret) {
+        // 申请邀请返利提现
+        function ExtractAffMoney() {
+            $.post("/ExtractAffMoney", {_token:'{{csrf_token()}}'}, function (ret) {
                 layer.msg(ret.message, {time: 1000}, function () {
                     if (ret.status == 'success') {
                         window.location.reload();
@@ -253,5 +319,39 @@
                 });
             });
         }
+
+        // 申请 消费返利提现
+        function ExtractRefMoney() {
+            $.post("/ExtractRefMoney", {_token:'{{csrf_token()}}'}, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'success') {
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+
+        // 自动提现生成 代金券
+        function autoExtractAffMoney() {
+            $.post("/autoExtractAffMoney", {_token:'{{csrf_token()}}'}, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'success') {
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+
+        // 自动 消费返利生成代金券
+        function autoExtractRefMoney() {
+            $.post("/autoExtractRefMoney", {_token:'{{csrf_token()}}'}, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'success') {
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+
     </script>
 @endsection

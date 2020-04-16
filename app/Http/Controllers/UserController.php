@@ -323,6 +323,7 @@ class UserController extends Controller
     public function invoices(Request $request)
     {
         $view['orderList'] = Order::uid()->with(['user', 'goods', 'coupon', 'payment'])->orderBy('oid', 'desc')->paginate(10)->appends($request->except('page'));
+        $view['couponList'] = Coupon::where('user_id',Auth::user()->id)->orderBy('updated_at', 'desc')->paginate(10)->appends($request->except('page'));
 
         return Response::view('user.invoices', $view);
     }
@@ -354,6 +355,9 @@ class UserController extends Controller
         $obj->status = 0;
         $obj->open = 0;
         $obj->save();
+
+        //每个工单扣除 0.33元
+        User::query()->where('id', Auth::user()->id)->decrement('balance', 33);
 
         if ($obj->id) {
             $emailTitle = "新工单提醒";
@@ -398,6 +402,9 @@ class UserController extends Controller
             $obj->user_id = Auth::user()->id;
             $obj->content = $content;
             $obj->save();
+
+            // 每个工单扣除 0.33元 
+            User::query()->where('id', Auth::user()->id)->decrement('balance', 33);
 
             if ($obj->id) {
                 // 重新打开工单
@@ -502,7 +509,13 @@ class UserController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '优惠券不能为空']);
         }
 
-        $coupon = Coupon::query()->where('sn', $coupon_sn)->whereIn('type', [1, 2])->first();
+        if (strrchr($coupon_sn, 'edu.cn') == 'edu.cn') {  // coupon 以 edu.cn结尾的话，
+            if (strrchr(Auth::user()->username, 'edu.cn') != 'edu.cn') {  // 但是用户不是 edu用户的话，不能用这个 优惠券
+                return Response::json(['status' => 'fail', 'data' => '', 'message' => '此优惠券为EDU用户专用优惠券']);
+            }
+        }
+
+        $coupon = Coupon::query()->where('sn', $coupon_sn)->whereIn('type', [1, 2])->orderBy('id','desc')->first();
         if (!$coupon) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '该优惠券不存在']);
         } elseif ($coupon->status == 1) {
@@ -512,7 +525,6 @@ class UserController extends Controller
         } elseif ($coupon->available_end < time()) {
             $coupon->status = 2;
             $coupon->save();
-
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '该优惠券已失效，请换一个试试']);
         } elseif ($coupon->available_start > time()) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '该优惠券尚不可用，请换一个试试']);
@@ -566,9 +578,16 @@ class UserController extends Controller
 
             // 使用优惠券
             if (!empty($coupon_sn)) {
-                $coupon = Coupon::query()->where('status', 0)->whereIn('type', [1, 2])->where('sn', $coupon_sn)->first();
+                $coupon = Coupon::query()->where('status', 0)->whereIn('type', [1, 2])->where('sn', $coupon_sn)->orderBy('id','desc')->first();
                 if (empty($coupon)) {
                     return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：优惠券不存在']);
+                }
+
+                // EDU 专用优惠券
+                if (strrchr($coupon_sn, 'edu.cn') == 'edu.cn') {  // coupon 以 edu.cn结尾的话，
+                    if (strrchr(Auth::user()->username, 'edu.cn') != 'edu.cn') {  // 但是用户不是 edu用户的话，不能用这个 优惠券
+                        return Response::json(['status' => 'fail', 'data' => '', 'message' => '此优惠券为EDU用户专用优惠券']);
+                    }
                 }
 
                 // 计算实际应支付总价
@@ -582,10 +601,9 @@ class UserController extends Controller
             if ($amount < 0) {
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：订单总价异常']);
             }
-
             // 验证账号余额是否充足
             $user = User::uid()->first();
-
+/**
             // song 统计所有用户 充值金额 
             $user_coupons = Coupon::type(3)->where('user_id', $user->id)->where('status', 1)->sum('amount');
             
@@ -595,14 +613,13 @@ class UserController extends Controller
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '累计充值满'.$amount /10 .'就能购买本套餐:)']);
 
             }
-            
+**/            
 
-            /**
-            if ($user->balance < $amount) {
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：您的余额不足，请先充值']);
+            // 余额 + 信用额度  > 支付的商品价格才允许购买
+            if ($user->balance + $user->credit < $amount) {
+                return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：您的额度不足，充值或邀请好友试试？']);
             }
 
-            **/
 
 /**
             // 验证账号是否存在有效期更长的套餐
@@ -641,7 +658,7 @@ class UserController extends Controller
                 $order->save();
 
                 // 扣余额
-                User::query()->where('id', $user->id)->decrement('balance', $amount * 100);
+                User::query()->where('id', $user->id)->decrement('balance', $amount);
 
                 // 记录余额操作日志
                 $this->addUserBalanceLog($user->id, $order->oid, $user->balance, $user->balance - $amount, -1 * $amount, '购买服务：' . $goods->name);
@@ -693,22 +710,22 @@ class UserController extends Controller
                     }
                 }
 **/
-                // 写入用户流量变动记录
-                $user = User::query()->where('id', $user->id)->first(); // 重新取出user信息
-                Helpers::addUserTrafficModifyLog($user->id, $order->oid, $user->transfer_enable, ($user->transfer_enable + $goods->traffic * 1048576), '[余额支付]用户购买商品，加上流量');
 
+                $user = User::query()->where('id', $user->id)->first(); // 重新取出user信息
+                // 写入用户流量变动记录
+                Helpers::addUserTrafficModifyLog($user->id, $order->oid, $user->transfer_enable, ($user->transfer_enable + $goods->traffic * 1048576), '[余额支付]用户购买商品，加上流量');
                 // 把商品的流量加到账号上
                 User::query()->where('id', $user->id)->increment('transfer_enable', $goods->traffic * 1048576);
 
                 // 计算账号过期时间
-                /**
                 if ($user->expire_time < date('Y-m-d', strtotime("+" . $goods->days . " days"))) {
                     $expireTime = date('Y-m-d', strtotime("+" . $goods->days . " days"));
                 } else {
                     $expireTime = $user->expire_time;
                 }
-                **/
-                $expireTime  = date('Y-m-d', strtotime($user->expire_time ."+" . $goods->days . " days" ));
+
+                //这个是不管怎样都把账号的过期时间加到账号上。我觉的也无可厚非
+                //$expireTime  = date('Y-m-d', strtotime($user->expire_time ."+" . $goods->days . " days" ));
 
                 // 套餐的话，就要改流量重置日，同时把流量写入到transfer_montly 
                 if ($goods->type == 2) {
@@ -725,6 +742,7 @@ class UserController extends Controller
                     User::query()->where('id', $order->user_id)->update(['expire_time' => $expireTime, 'enable' => 1]);
                 }
 
+                /** 这里不再需要标签功能
                 // 写入用户标签
                 if ($goods->label) {
                     // 用户默认标签
@@ -751,6 +769,7 @@ class UserController extends Controller
                         $obj->save();
                     }
                 }
+                **/
 
                 // 更新用户等级  商品等级 > 用户等级，则更新用户等级
                 if ($goods->level > $user->level) {
@@ -758,42 +777,15 @@ class UserController extends Controller
                     User::query()->where('id', $order->user_id)->update(['level' => $goods->level]);
                 }
 
-                /** 如果是edu.cn结尾的用户， 直接把用户设置为 status=0 需要重新激活一下账号
-                if ($goods->sort > 3 && strrchr($user->username, 'edu.cn') ) {
-                    User::query()->where('id', $user->id)->update(['status' => 0]);
-                }
-                **/
-
-                /**
-                //song 注册返利
-                //64天内，邀请用户购买套餐 给6.99元的返利
-                if ($user->referral_uid && $goods->type == 2 && $user->created_at > date('Y-m-d',strtotime("-64 day"))) {
-                    # code...
-                    $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $amount, 6.99);
-                }
-                **/
-                
-                // 这里还要考虑一下 payment里面的充值的数据，这个可能需要到时候再考虑吧
-                // 写入返利日志
-                if (  ($user_coupons - $user->balance_used) >= $amount * 100 && $user->referral_uid) {
-                    # code...
+                // 写入邀请返利， 用户购买商品后 balance >= 0 才给返利  同时 只有 124805这个编号以上的用户才给返利 也就是新用户才返利
+                if ( $user->id > 124804 && $user->referral_uid && $user->balance >= 0) {
                     $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $amount, $amount * self::$systemConfig['referral_percent']);
-                    // 这个 balance_used 记录的就是 已使用的余额。
-                    $user->balance_used += $amount * 100;
-                    $user->save();
                 }
+
                 // 取消重复返利  Song 允许重复返利
                 //User::query()->where('id', $order->user_id)->update(['referral_uid' => 0]);
 
                 DB::commit();
-/**
-                // 如果是edu.cn结尾的用户， 直接把用户设置为 status=0 需要重新激活一下账号
-                if ($goods->sort > 3 && strrchr($user->username, 'edu.cn') ) {
-                    Auth::logout();
-                }
-                **/
-
-                //return Response::json(['status' => 'success', 'data' => '', 'message' => '支付成功']);
                 return Response::json(['status' => 'success', 'data' => '', 'message' => '支付成功']);
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -826,6 +818,7 @@ class UserController extends Controller
         $view['referralLogList'] = ReferralLog::uid()->with('user')->orderBy('id', 'desc')->paginate(10);
         $view['referralApplyList'] = ReferralApply::uid()->with('user')->orderBy('id', 'desc')->paginate(10);
         $view['referralUserList'] = User::query()->select(['username', 'created_at'])->where('referral_uid', Auth::user()->id)->orderBy('id', 'desc')->paginate(10);
+        $view['couponList'] = Coupon::query()->where('name',Auth::user()->id)->where('creat_user',Auth::user()->id)->orderBy('id','desc')->paginate(10);
 
         return Response::view('user.referral', $view);
     }
@@ -943,6 +936,196 @@ class UserController extends Controller
         }
     }
 
+    // 注册返利申请提现
+    public function ExtractAffMoney(Request $request)
+    {
+        // 判断账户是否过期
+        if (Auth::user()->expire_time < date('Y-m-d')) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：账号已过期，请先购买服务吧']);
+        }
+
+        // 校验可以提现金额是否超过系统设置的阀值
+        $aff_amount = ReferralLog::uid()->where('status', 0)->where('order_id',0)->where('amount',0)->sum('ref_amount');
+        if ($aff_amount < self::$systemConfig['referral_money'] * 100) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：不满' . self::$systemConfig['referral_money'] . '元，继续努力吧']);
+        }
+
+        // 检验注册返利， 消费返利那里要高于 要提取的注册返利的2倍才行
+        $ref_amount = ReferralLog::uid()->where('status', 0)->where('order_id','>',0)->where('amount','>',0)->sum('amount'); // 计算总消费金额
+        if (empty($ref_amount) || ($ref_amount < ($aff_amount * 2) ) ) {   // 注册返利金额 不能低于 消费总额的一半！ 很重要
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：不满' . ($aff_amount * 2 / 100) . '元，继续努力吧']);
+        }
+
+        // 取出所有的返利日志，这样可以有
+        $link_logs = '';
+        $referralLog = ReferralLog::uid()->where('status', 0)->get();
+        foreach ($referralLog as $log) {
+            $link_logs .= $log->id . ',';
+            #这里自动将 返利的那个 已返利变为1 就是已申请
+            ReferralLog::query()->where('id', $log->id)->update(['status' => 1]);
+            #song 这里直接将提现记录变成1 就是已申请
+        }
+        $link_logs = rtrim($link_logs, ',');
+
+        $obj = new ReferralApply();
+        $obj->user_id = Auth::user()->id;
+        $obj->before = $aff_amount;
+        $obj->after = 0;
+        $obj->amount = $aff_amount;
+        $obj->link_logs = $link_logs;
+        $obj->status = 0;
+        $obj->save();
+
+        return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，记得在个人设置中添加收款信息呦']);
+    }
+
+    // 注册返利生成 代金券
+    public function autoExtractAffMoney(Request $request)
+    {
+        // 判断账户是否过期
+        if (Auth::user()->expire_time < date('Y-m-d')) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：账号已过期，请先购买服务吧']);
+        }
+
+        // 校验可以提现金额是否超过系统设置的阀值
+        $aff_amount = ReferralLog::uid()->where('status', 0)->where('order_id',0)->where('amount',0)->sum('ref_amount');
+        if ($aff_amount < self::$systemConfig['referral_money'] * 100) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：不满' . self::$systemConfig['referral_money'] . '元，继续努力吧']);
+        }
+
+        // 检验注册返利， 消费返利那里要高于 要提取的注册返利的2倍才行
+        $ref_amount = ReferralLog::uid()->where('status', 0)->where('order_id','>',0)->where('amount','>',0)->sum('amount'); // 计算总消费金额
+        if (empty($ref_amount) || ($ref_amount < ($aff_amount * 2) ) ) {   // 注册返利金额 不能低于 消费总额的一半！ 很重要
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：不满' . ($aff_amount * 2 / 100) . '元，继续努力吧']);
+        }
+
+        // 取出所有的返利日志，这样可以有
+        $link_logs = '';
+        $referralLog = ReferralLog::uid()->where('status', 0)->get();
+        foreach ($referralLog as $log) {
+            $link_logs .= $log->id . ',';
+            #这里自动将 返利的那个 已返利变为1 就是已申请
+            ReferralLog::query()->where('id', $log->id)->update(['status' => 3]);
+            #song 这里直接将提现记录变成1 就是已申请
+        }
+        $link_logs = rtrim($link_logs, ',');
+
+        $obj = new ReferralApply();
+        $obj->user_id = Auth::user()->id;
+        $obj->before = $aff_amount;
+        $obj->after = 0;
+        $obj->amount = $aff_amount;
+        $obj->link_logs = $link_logs;
+        $obj->status = 3;
+        $obj->save();
+
+        //生成代金券 
+        $coupon = new Coupon();
+        $coupon->name = Auth::user()->id;
+        $coupon->sn = Auth::user()->username.time();
+        $coupon->logo = '';
+        $coupon->type = 1; // 1是抵扣券
+        $coupon->usage = 1; //1次性使用
+        $coupon->amount = $aff_amount;
+        $coupon->discount = 0;
+        $coupon->available_start = time();
+        $coupon->available_end = time() + 31536000;  // 一年有效期
+        $coupon->status = 0;
+        $coupon->creat_user = Auth::user()->id;
+        $coupon->save();
+
+        return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，在邀请返利页面查看生成的代金券']);
+    }
+
+    // 消费返利申请提现
+    public function ExtractRefMoney(Request $request)
+    {
+        // 判断账户是否过期
+        if (Auth::user()->expire_time < date('Y-m-d')) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：账号已过期，请先购买服务吧']);
+        }
+
+        // 校验可以提现金额是否超过系统设置的阀值
+        $ref_amount = ReferralLog::uid()->where('status', 0)->where('order_id','>',0)->where('amount','!=',0)->sum('ref_amount');
+        if ($ref_amount < self::$systemConfig['referral_money'] * 100) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：不满' . self::$systemConfig['referral_money'] . '元，继续努力吧']);
+        }
+
+        // 取出所有的返利日志，这样可以有
+        $link_logs = '';
+        $referralLog = ReferralLog::uid()->where('status', 0)->get();
+        foreach ($referralLog as $log) {
+            $link_logs .= $log->id . ',';
+            #这里自动将 返利的那个 已返利变为1 就是已申请
+            ReferralLog::query()->where('id', $log->id)->update(['status' => 1]);
+            #song 这里直接将提现记录变成1 就是已申请
+        }
+        $link_logs = rtrim($link_logs, ',');
+
+        $obj = new ReferralApply();
+        $obj->user_id = Auth::user()->id;
+        $obj->before = $ref_amount;
+        $obj->after = 0;
+        $obj->amount = $ref_amount;
+        $obj->link_logs = $link_logs;
+        $obj->status = 0;
+        $obj->save();
+
+        return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，记得在个人设置中添加收款信息呦']);
+    }
+
+    // 消费返利申请提现
+    public function autoExtractRefMoney(Request $request)
+    {
+        // 判断账户是否过期
+        if (Auth::user()->expire_time < date('Y-m-d')) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：账号已过期，请先购买服务吧']);
+        }
+
+        // 校验可以提现金额是否超过系统设置的阀值
+        $ref_amount = ReferralLog::uid()->where('status', 0)->where('order_id','>',0)->where('amount','!=',0)->sum('ref_amount');
+        if ($ref_amount < self::$systemConfig['referral_money'] * 100) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：不满' . self::$systemConfig['referral_money'] . '元，继续努力吧']);
+        }
+
+        // 取出所有的返利日志，这样可以有
+        $link_logs = '';
+        $referralLog = ReferralLog::uid()->where('status', 0)->get();
+        foreach ($referralLog as $log) {
+            $link_logs .= $log->id . ',';
+            #这里自动将 返利的那个 已返利变为1 就是已申请
+            ReferralLog::query()->where('id', $log->id)->update(['status' => 3]);
+            #song 这里直接将提现记录变成1 就是已申请
+        }
+        $link_logs = rtrim($link_logs, ',');
+
+        $obj = new ReferralApply();
+        $obj->user_id = Auth::user()->id;
+        $obj->before = $ref_amount;
+        $obj->after = 0;
+        $obj->amount = $ref_amount;
+        $obj->link_logs = $link_logs;
+        $obj->status = 3;
+        $obj->save();
+
+        $coupon = new Coupon();
+        $coupon->name = Auth::user()->id;
+        $coupon->sn = Auth::user()->username.time();
+        $coupon->logo = '';
+        $coupon->type = 1; // 1是抵扣券
+        $coupon->usage = 1; //1次性使用
+        $coupon->amount = $ref_amount;
+        $coupon->discount = 0;
+        $coupon->available_start = time();
+        $coupon->available_end = time()+31536000;  // 一年有效期
+        $coupon->status = 0;   // 这里保障 是 没有被使用的
+        $coupon->creat_user = Auth::user()->id;
+        $coupon->save();
+
+        return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，记得在邀请返利页面查看生成的代金券呦']);
+    }
+
+
     // 帮助中心
     public function help(Request $request)
     {
@@ -1023,13 +1206,8 @@ class UserController extends Controller
             // 写入卡券日志
             Helpers::addCouponLog($coupon->id, 0, 0, Auth::user()->id, '账户余额充值使用');
 
-            if ( strrchr(Auth::user()->username, 'edu.cn') == 'edu.cn' ) {
-                #  教育用户 这里 * 200可以呦 
-                User::uid()->increment('balance', $coupon->amount * 200);
-            }else{
-                // 余额充值 不知道为啥要*100
-                User::uid()->increment('balance', $coupon->amount * 100);
-            }
+            // 余额充值  
+            User::uid()->increment('balance', $coupon->amount);
 
             DB::commit();
 

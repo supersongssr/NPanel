@@ -25,7 +25,7 @@ class OrderGoods extends Model
     {
         return $this->hasOne(Goods::class, 'id', 'goods_id');
     }
-
+/**
     function getOriginPriceAttribute($value)
     {
         return $value / 100;
@@ -45,4 +45,5 @@ class OrderGoods extends Model
     {
         return $this->attributes['price'] = $value * 100;
     }
+**/
 }

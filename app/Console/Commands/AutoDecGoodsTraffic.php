@@ -68,19 +68,8 @@ class AutoDecGoodsTraffic extends Command
                         continue;
                     }
 
-                    // 处理如果是套餐的情况。 剪掉 transfer_monthly内的流量
-                    if ($goods->type == 2) {
-                        // 如果记录的月流量 > 当前套餐流量 就减去
-                        if ($user->transfer_monthly > $goods->traffic * 1048576) {
-                            User::query()->where('id', $order->user_id)->decrement('transfer_monthly', $goods->traffic * 1048576);
-                            echo ' 2 ';
-                        }else{
-                            User::query()->where('id', $order->user_id)->update(['transfer_monthly' => 0]);
-
-                        }
-                    }
-
-                    // 再检查该订单对应用户是否还有套餐（非流量包）存在
+                    // -- 处理用户 等级 - 和 流量重置日 - 
+                    // 检查该订单对应用户是否还有套餐（非流量包）存在
                     $haveOrders = Order::query()
                         ->where('is_expire', 0)
                         ->where('user_id', $order->user_id)
@@ -102,7 +91,6 @@ class AutoDecGoodsTraffic extends Command
                             }
                         }
                     }
-
                     // 如果存在有效的套餐，就不重置流量重置日 
                     if ($user_reset_day > 0 ) {
                         User::query()->where('id', $order->user_id)->update(['level' => $user_level]);
@@ -110,31 +98,32 @@ class AutoDecGoodsTraffic extends Command
                         User::query()->where('id', $order->user_id)->update(['traffic_reset_day' => 0, 'level' => $user_level]);
                     }
 
-                    // 如果 目前流量 小于等于套餐流量 ，说明
-                    if ($user->transfer_enable < $goods->traffic * 1048576 ) {
-                        // 写入用户流量变动记录
-                        Helpers::addUserTrafficModifyLog($order->user_id, $order->oid, $user->transfer_enable, 0, '[定时任务]用户所购商品到期，扣减商品对应的流量(扣完并重置)');
-
-                        User::query()->where('id', $order->user_id)->update(['d' => 0, 'transfer_enable' => 0]);
-                    } else {
-                        // 写入用户流量变动记录
-                        Helpers::addUserTrafficModifyLog($order->user_id, $order->oid, $user->transfer_enable, ($user->transfer_enable - $goods->traffic * 1048576), '[定时任务]用户所购商品到期，扣减商品对应的流量(没扣完)');
-
-                        User::query()->where('id', $order->user_id)->decrement('transfer_enable', $goods->traffic * 1048576);
-
-                        // 处理已用流量
-                        // 如果 d 大于套餐流量 
-                        if ($user->d > $goods->traffic * 1048576) {
-                            User::query()->where('id', $order->user_id)->decrement('d', $user->d - $goods->traffic * 1048576);
-                        } else {
-                            User::query()->where('id', $order->user_id)->update(['d' => 0]);
+                    // ----------- 扣除 用户总流量 
+                    $user->transfer_enable -= $goods->traffic * 1048576;
+                    // 扣除之后 < 0 的话，就 = 0 
+                    $user->transfer_enable < 0 && $user->transfer_enable = 0;
+                    User::query()->where('id', $order->user_id)->update(['transfer_enable' => $user->transfer_enable]);
+                    // --------处理用户使用流量 
+                    if ($goods->type == 2) {  // 每月流量套餐 
+                        // ----- 处理 monthly 每月重置的流量
+                        $user->transfer_monthly -= $goods->traffic * 1048576;
+                        $user->transfer_monthly < 0 && $user->transfer_monthly = 0 ;
+                        // ----- 处理已用流量
+                        $user->d -= $goods->traffic * 1048576;
+                        $user->d < 0 && $user->d = 0;
+                        User::query()->where('id', $order->user_id)->update(['d' => $user->d, 'transfer_monthly' => $user->transfer_monthly]);
+                    }elseif ($goods->type == 1) {  // 流量包
+                        //只处理已用流量
+                        $user->u -= $goods->traffic * 1048576;
+                        if ( $user->u < 0 ) {
+                            $user->d += $user->u;
+                            $user->u = 0;
+                            $user->d < 0 && $user->d = 0;
                         }
-
+                        User::query()->where('id', $order->user_id)->update(['u' => $user->u,'d' => $user->d]);
                     }
-
+                    Helpers::addUserTrafficModifyLog($order->user_id, $order->oid, $user->transfer_enable, 0, '[定时任务]用户所购商品到期，扣减商品对应的流量');
                     Helpers::addUserTrafficModifyLog($order->user_id, $order->oid, $user->transfer_enable, ($user->transfer_enable - $goods->traffic * 1048576), '[定时任务]用户所购商品到期，扣减商品对应的流量');
-
-
 
 /**
                     // 删除该商品对应用户的所有标签

@@ -86,7 +86,7 @@ class ShopController extends Controller
                 $goods->desc = $request->desc;
                 $goods->logo = $logo;
                 $goods->traffic = $request->traffic;
-                $goods->price = round($request->price, 2);
+                $goods->price = round($request->price, 2) * 100; // 这才需要 * 100 才是正常的金额 因为计算的是 一分钱单位 
                 $goods->type = $request->type;
                 $goods->days = $request->days;
                 $goods->color = $request->color;

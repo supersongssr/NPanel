@@ -109,27 +109,27 @@
                                                 <div class="form-group">
                                                     <label for="sort" class="col-md-3 control-label">节点排序</label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="sort" value="{{$node->sort}}" id="sort" placeholder="">
+                                                        <input type="text" class="form-control" name="sort" id="sort" placeholder="">
                                                         <span class="help-block"> sort节点排序 </span>
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="node_cost" class="col-md-3 control-label">成本</label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="node_cost" value="{{$node->node_cost}}" id="node_cost" placeholder="">
+                                                        <input type="text" class="form-control" name="node_cost" id="node_cost" placeholder="">
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="level" class="col-md-3 control-label">节点等级</label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="level" value="{{$node->level}}" id="level" placeholder="">
+                                                        <input type="text" class="form-control" name="level" id="level" placeholder="">
                                                         <span class="help-block"> 节点level等级 </span>
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="node_group" class="col-md-3 control-label">分组</label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="node_group" value="{{$node->node_group}}" id="node_group" placeholder="">
+                                                        <input type="text" class="form-control" name="node_group" id="node_group" placeholder="">
                                                         <span class="help-block"> 节点分组 </span>
                                                     </div>
                                                 </div>

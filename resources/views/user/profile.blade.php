@@ -81,6 +81,7 @@
                                                     <label class="control-label"> 银行卡号 </label>
                                                     <input type="text" class="form-control" name="qq" value="{{Auth::user()->qq}}" id="qq" required />
                                                 </div>
+                                                <p><code>*请务必检查填写信息是否正确，如果由于您填写的账号的信息错误导致无法受到打款，只能自己承担呦</code></p>
                                                 <div class="form-actions">
                                                     <div class="row">
                                                         <div class="col-md-12">

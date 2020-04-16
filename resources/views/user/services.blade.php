@@ -25,8 +25,14 @@
                             </li>
                             <li>
                                 <h4>
-                                    <span class="font-blue">账户余额：</span>
-                                    <span class="font-red">{{Auth::user()->balance}}</span>
+                                    <span class="font-blue">余额：</span>
+                                    <span class="font-red">{{Auth::user()->balance / 100}}</span>
+                                </h4>
+                            </li>
+                            <li>
+                                <h4>
+                                    <span class="font-blue">信用卡：</span>
+                                    <span class="font-red">{{Auth::user()->credit / 100}}</span>
                                 </h4>
                             </li>
                             <li>
@@ -36,7 +42,7 @@
                                 <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">发卡平台获取充值卡券（请关闭代理访问）</a> <!-- song -->
                             </li>
                         </ul>
-                        <p><small>*等级越高，节点越多，带宽越大</small></p>
+                        <p><small>*等级越高，节点越多，带宽越大<br>*购买套餐时，您可以透支信用卡额度去购买套餐，每邀请一个用户注册，赠送5元信用卡余额。 如果您邀请的用户被系统删除，这个5元的信用额度会被扣掉。 邀请的人越多信用额度也越多。 请注意，这个信用额度可以透支，但是欠的钱要记得还啊</small></p>
                     </div>
                 </div>
             </div>
@@ -64,8 +70,7 @@
                                     <ol>
                                         <li>① 充值余额</li>
                                         <li>② 购买商品</li>
-                                        <li>③ 流量扣除顺序： 按时间买的流量 -> 按流量买的流量 -> 系统赠送流量(签到、返利等)</li>
-                                        <li>④ 购买多个商品可叠加</li>
+                                        <li>③ 购买多个商品可叠加</li>
                                     </ol>
                                     <h4>按时间买：</h4>
                                     <ol>
@@ -77,11 +82,14 @@
                                         <li>一次性流量</li>
                                         <li>等级越高，节点越多、带宽越大</li>
                                     </ol>
-                                    <h4>商品叠加说明：</h4>
+                                    <h4>商品说明：</h4>
                                     <ol>
                                         <li>购买多个商品，会同时生效</li>
                                         <li>等级、限速取现有商品中的最大值</li>
                                         <li>账号有效期取所有商品中的最大值</li>
+                                        <li>流量扣除顺序：按时间买的流量 -> 按流量买的流量 -> 系统赠送流量(签到、返利等)</li>
+                                        <li><code>*Bt、P2P、网盘流量会优先扣除 按流量买的流量 -> 系统赠送的流量</code></li>
+                                        <li><code>*大流量下载？强制使用低倍率节点！</code></li>
                                     </ol>
                                     
 
@@ -102,7 +110,7 @@
                                                             </div>
                                                             <div class="arrow-down border-top-{{$goods->color}}"></div>
                                                             <div class="price-table-pricing">
-                                                                <h3><sup class="price-sign">￥</sup>{{$goods->price}}</h3>
+                                                                <h3><sup class="price-sign">￥</sup>{{$goods->price / 100}}</h3>
                                                                 @if($goods->is_hot)
                                                                     <div class="price-ribbon">热销</div>
                                                                 @endif
@@ -160,7 +168,7 @@
                                                             </div>
                                                             <div class="arrow-down border-top-{{$goods->color}}"></div>
                                                             <div class="price-table-pricing">
-                                                                <h3><sup class="price-sign">￥</sup>{{$goods->price}}</h3>
+                                                                <h3><sup class="price-sign">￥</sup>{{$goods->price / 100}}</h3>
                                                                 @if($goods->is_hot)
                                                                     <div class="price-ribbon">热销</div>
                                                                 @endif

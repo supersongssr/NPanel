@@ -28,7 +28,7 @@ class Goods extends Model
     {
         return $this->hasMany(GoodsLabel::class, 'goods_id', 'id');
     }
-
+/** 
     function getPriceAttribute($value)
     {
         return $value / 100;
@@ -38,7 +38,7 @@ class Goods extends Model
     {
         $this->attributes['price'] = $value * 100;
     }
-
+**/ 
     function getTrafficLabelAttribute()
     {
         $traffic_label = flowAutoShow($this->attributes['traffic'] * 1048576);

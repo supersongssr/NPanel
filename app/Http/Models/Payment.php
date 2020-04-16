@@ -32,7 +32,7 @@ class Payment extends Model
     {
         return $this->belongsTo(Order::class, 'oid', 'oid');
     }
-
+/**
     function getAmountAttribute($value)
     {
         return $value / 100;
@@ -42,7 +42,7 @@ class Payment extends Model
     {
         return $this->attributes['amount'] = $value * 100;
     }
-
+**/
     // 订单状态
     function getStatusLabelAttribute()
     {

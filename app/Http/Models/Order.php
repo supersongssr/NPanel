@@ -42,7 +42,7 @@ class Order extends Model
     {
         return $this->hasOne(Payment::class, 'oid', 'oid');
     }
-
+/**
     function getOriginAmountAttribute($value)
     {
         return $value / 100;
@@ -62,7 +62,7 @@ class Order extends Model
     {
         return $this->attributes['amount'] = $value * 100;
     }
-
+**/
     function getStatusLabelAttribute()
     {
         switch ($this->attributes['status']) {

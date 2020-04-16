@@ -529,7 +529,7 @@ CREATE TABLE `coupon` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '优惠券名称',
   `logo` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '优惠券LOGO',
-  `sn` char(8) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '优惠券码',
+  `sn` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '优惠券码',
   `type` tinyint(4) NOT NULL DEFAULT '1' COMMENT '类型：1-现金券、2-折扣券、3-充值券',
   `usage` tinyint(4) NOT NULL DEFAULT '1' COMMENT '用途：1-仅限一次性使用、2-可重复使用',
   `amount` bigint(20) NOT NULL DEFAULT '0' COMMENT '金额，单位分',
@@ -672,7 +672,7 @@ CREATE TABLE `referral_apply` (
   `after` int(11) NOT NULL DEFAULT '0' COMMENT '操作后可提现金额，单位分',
   `amount` int(11) NOT NULL DEFAULT '0' COMMENT '本次提现金额，单位分',
   `link_logs` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '关联返利日志ID，例如：1,3,4',
-  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '状态：-1-驳回、0-待审核、1-审核通过待打款、2-已打款',
+  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '状态：-1-驳回、0-待审核、1-审核通过待打款、2-已打款、3-已代金券',
   `created_at` datetime DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime DEFAULT NULL COMMENT '最后更新时间',
   PRIMARY KEY (`id`)
@@ -689,7 +689,7 @@ CREATE TABLE `referral_log` (
   `order_id` int(11) NOT NULL DEFAULT '0' COMMENT '关联订单ID',
   `amount` int(11) NOT NULL DEFAULT '0' COMMENT '消费金额，单位分',
   `ref_amount` int(11) NOT NULL DEFAULT '0' COMMENT '返利金额',
-  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '状态：0-未提现、1-审核中、2-已提现',
+  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '状态：0-未提现、1-审核中、2-已提现、3-已代金券',
   `created_at` datetime DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime DEFAULT NULL COMMENT '最后更新时间',
   PRIMARY KEY (`id`)
@@ -1348,8 +1348,14 @@ ALTER TABLE `user` ADD `transfer_monthly` BIGINT(20) DEFAULT '0' COMMENT '每月
 # 工单加入等级功能
 ALTER TABLE `ticket` ADD `sort` BIGINT(20) DEFAULT '0' COMMENT '等级排序' AFTER `user_id`;
 
-
-
+# 用户增加 信用卡字段 credit card 
+ALTER TABLE `user`
+  ADD COLUMN `credit` INT(11) Default 0 COMMENT '信用额度' AFTER `balance`;
+-- ----------------------------
+-- 新增生成者ID`
+-- ----------------------------
+ALTER TABLE `coupon`
+  ADD COLUMN `creat_user` INT(11) Default 0 COMMENT '生成者用户' AFTER `user_id`;
 
 
 

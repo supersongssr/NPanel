@@ -62,9 +62,9 @@
                                                     @endif
                                                 </td>
                                                 <td> {{$vo->order_id}} </td>
-                                                <td> {{$vo->before}} </td>
-                                                <td> {{$vo->amount}} </td>
-                                                <td> {{$vo->after}} </td>
+                                                <td> {{$vo->before /100}} </td>
+                                                <td> {{$vo->amount /100}} </td>
+                                                <td> {{$vo->after / 100}} </td>
                                                 <td> {{$vo->desc}} </td>
                                                 <td> {{$vo->created_at}} </td>
                                             </tr>

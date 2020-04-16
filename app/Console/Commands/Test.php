@@ -48,23 +48,21 @@ class Test extends Command
     private function aTest()
     {
 
-        $users = User::query()->where('node_group',2)->get();
-        foreach ($users as $user) {
-            $orders = Order::where('user_id','=',$user->id)->where('is_expire','=','0')->where('status',2)->where('expire_at','>',date('Y-m-d H:i:s'))->get();
-            $level = 0;
-            $transfer_enable = 0;
-            $transfer_monthly = 0;
-            foreach ($orders as $order) {
-                // 选取流量 
-                $order->goods->level > $level && $level = $order->goods->level;
-                $transfer_enable += $order->goods->traffic * 1048576;
-                if ($order->goods->type == 2) {
-                    $transfer_monthly += $order->goods->traffic * 1048576;
-                }
+        $ref_logs = ReferralLog::where('status',0)->get();
+        foreach ($ref_logs as $ref_log) {
+            # 将所有的ref_log强制提现
+            $ref_log->status = 2;
+            echo $ref_log->ref_amount . ' ';
+            $ref_log->save();
+            $user = User::where('id',$ref_log->ref_user_id)->first();
+            if (!empty($user->id)) {
+                echo $user->balance.' ';
+                $user->balance += $ref_log->ref_amount;
+                echo $user->balance .' | ';
+                $user->save();
             }
-            echo $user->id .' ';
-            User::query()->where('id',$user->id)->update(['level' => $level, 'transfer_enable' => $transfer_enable, 'transfer_monthly' => $transfer_monthly]);
         }
+
         /**
         $goods = Goods::all();
         foreach ($goods as $good) {

@@ -22,7 +22,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
     public function handle()
     {
         $jobStartTime = microtime(true);
-        $nodeList = SsNode::query()->where('status', 1)->where('id','>',9)->orderBy('id', 'asc')->get();  //只获取在线的节点
+        $nodeList = SsNode::query()->where('status', 1)->where('id','>',9)->orderBy('id', 'desc')->get();  //只获取在线的节点
         // 1 2 3 节点是 用来发广告的节点，嘎嘎 可以有，哈哈 嘿嘿 嘎嘎 喜喜
         foreach ($nodeList as $node) {
             $this->statisticsByNode($node->id);
@@ -136,30 +136,17 @@ class AutoStatisticsNodeDailyTraffic extends Command
             $obj->save();
         }
         
-        // 在线节点少于 16G流量的隐藏 且节点名称加 - 
+        // 在线节点少于 10G流量的隐藏 且节点名称加 - 
         // 这个主要是用来证明节点是否可以正常使用的！
         if ($total < 10737418240) {
-            # code...
             $node->status = 0;
             $node->sort += 1;
         }
         //节点描述里，加上每日节点流量表现数值 
         $node->desc = floor($total / 1073741824) . ' ' . $node->desc;
         $node->desc = substr($node->desc, 0, 32);
-        // 保留1位小数
-        //$node->traffic_rate = round( ($total / 17179869184 * $node->node_cost / 5) , 1);
-        $node->sort = round( ($total / 17179869184 * $node->node_cost / 5) , 1);
-        // $node->traffic_rate < 0.1 && $node->traffic_rate = 0.1;
 
-        // 
-        /**
-        if ($node->traffic_rate <= 1) {
-            # code...
-            $node->ipv6 .= '*';
-            $node->status = 0;
-        }
-        **/
-
-        SsNode::query()->where('id',$node_id)->update(['status'=>$node->status, 'ipv6'=>$node->ipv6 , 'desc'=>$node->desc ,'sort'=>$node->sort ]);
+        $node->save();
+        //SsNode::query()->where('id',$node_id)->update(['status'=>$node->status, 'ipv6'=>$node->ipv6 , 'desc'=>$node->desc ,'sort'=>$node->sort ]);
     }
 }

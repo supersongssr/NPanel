@@ -266,6 +266,24 @@
                                                 </div>
                                             </div>
                                             <div class="form-group">
+                                                <label for="transfer_u" class="col-md-3 control-label">U已用流量</label>
+                                                <div class="col-md-8">
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" name="transfer_u" value="{{$user->u}}" id="transfer_u" autocomplete="off" required>
+                                                        <span class="input-group-addon">GB</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="transfer_d" class="col-md-3 control-label">D下行流量</label>
+                                                <div class="col-md-8">
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" name="transfer_d" value="{{$user->d}}" id="transfer_d" autocomplete="off" required>
+                                                        <span class="input-group-addon">GB</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
                                                 <label for="transfer_enable" class="col-md-3 control-label">可用流量</label>
                                                 <div class="col-md-8">
                                                     <div class="input-group">
@@ -474,6 +492,8 @@
             var passwd = $('#passwd').val();
             var method = $('#method').val();
             var transfer_enable = $('#transfer_enable').val();
+            var transfer_u = $('#transfer_u').val();
+            var transfer_d = $('#transfer_d').val();
             var enable = $("input:radio[name='enable']:checked").val();
             var protocol = $('#protocol').val();
             var protocol_param = $('#protocol_param').val();
@@ -520,6 +540,8 @@
                     passwd:passwd,
                     method:method,
                     transfer_enable:transfer_enable,
+                    transfer_u:transfer_u,
+                    transfer_d:transfer_d,
                     enable:enable,
                     protocol:protocol,
                     protocol_param:protocol_param,

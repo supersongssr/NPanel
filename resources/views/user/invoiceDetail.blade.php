@@ -65,7 +65,7 @@
                                     <br/>
                                     {{trans('home.service_days')}} {{$order->goods->days}} {{trans('home.day')}}
                                 </td>
-                                <td class="text-center"> ￥{{$order->goods->price}} </td>
+                                <td class="text-center"> ￥{{$order->goods->price / 100}} </td>
                                 <td class="text-center"> x 1 </td>
                             </tr>
                         </tbody>
@@ -75,7 +75,7 @@
             <div class="row invoice-subtotal">
                 <div class="col-xs-3">
                     <h2 class="invoice-title"> {{trans('home.service_subtotal_price')}} </h2>
-                    <p class="invoice-desc"> ￥{{$order->goods->price}} </p>
+                    <p class="invoice-desc"> ￥{{$order->goods->price / 100}} </p>
                 </div>
                 <div class="col-xs-3">
                     <h2 class="invoice-title">{{trans('home.coupon')}}</h2>
@@ -83,7 +83,7 @@
                 </div>
                 <div class="col-xs-3">
                     <h2 class="invoice-title"> {{trans('home.service_total_price')}} </h2>
-                    <p class="invoice-desc grand-total"> ￥{{$order->amount}} </p>
+                    <p class="invoice-desc grand-total"> ￥{{$order->amount / 100}} </p>
                 </div>
             </div>
             <div class="row">

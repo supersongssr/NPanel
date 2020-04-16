@@ -39,12 +39,13 @@ class AutoResetUserTraffic extends Command
     // 重置用户流量
     private function resetUserTraffic()
     {
-        $userList = User::query()->where('status', '>=', 0)->where('traffic_reset_day','!=',0)->where('expire_time', '>=', date('Y-m-d'))->get();
+        $today = date('d');
+        $userList = User::query()->where('status', '>=', 0)->where('traffic_reset_day','=',$today)->where('expire_time', '>=', date('Y-m-d'))->get();
+        if (date('m') == 2 && date('d') == 28) {   // 2月 28号就重置，然后 30号 和 31号的用户无法重置 
+            $userList = User::query()->where('status', '>=', 0)->where('traffic_reset_day','>=',$today)->where('expire_time', '>=', date('Y-m-d'))->get();
+        }
         if (!$userList->isEmpty()) {
             foreach ($userList as $user) {
-                if (!$user->traffic_reset_day) {
-                    continue;
-                }
 /**
                 // 取出用户最后购买的有效套餐
                 $orders = Order::query()
@@ -83,7 +84,6 @@ class AutoResetUserTraffic extends Command
                     }
                 }
 **/
-
 /**
                 // 获取该用户的所有 存在的套餐订单
                 $orders = Order::query()->where('user_id', $user->id)->where('is_expire', 0)->get();
@@ -95,20 +95,13 @@ class AutoResetUserTraffic extends Command
                     # code...
                 }
     // song 备注 还是按照用户的 购买时间来写比较好，然后，每30天重置一次套餐流量。这个可以有。
-                
 **/
-
                 // 套餐重置日，会把套餐流量重置一下 ，可以有
-                //$month = abs(date('m'));
-                $today = abs(date('d'));
-                if ($user->traffic_reset_day == $today) {
-                    if ($user->d - $user->traffic_monthly > 0) {
-                        $used = $user->u + $user->d - $user->traffic_monthly;
-                    }else{
-                        $used = $user->u;
-                    }
-                    User::query()->where('id', $user->id)->update(['u' => $used, 'd' => 0]);
+                if ($user->d > $user->transfer_monthly ) {
+                    $user->u += $user->d - $user->transfer_monthly;
                 }
+                $user->d = 0;
+                $user->save();
             }
         }
     }

@@ -90,20 +90,36 @@ class CouponController extends Controller
 
             DB::beginTransaction();
             try {
-                for ($i = 0; $i < $request->num; $i++) {
+                if ($request->num == 1 && $request->sn) {
                     $obj = new Coupon();
                     $obj->name = $request->name;
-                    $obj->sn = strtoupper(makeRandStr(7));
+                    $obj->sn =  $request->sn;
                     $obj->logo = $logo;
                     $obj->type = $request->type;
                     $obj->usage = $request->usage;
-                    $obj->amount = empty($request->amount) ? 0 : $request->amount;
+                    $obj->amount = empty($request->amount) ? 0 : $request->amount * 100;
                     $obj->discount = empty($request->discount) ? 0 : $request->discount;
                     $obj->available_start = strtotime(date('Y-m-d 00:00:00', strtotime($request->available_start)));
                     $obj->available_end = strtotime(date('Y-m-d 23:59:59', strtotime($request->available_end)));
                     $obj->status = 0;
                     $obj->save();
+                }else{
+                    for ($i = 0; $i < $request->num; $i++) {
+                        $obj = new Coupon();
+                        $obj->name = $request->name;
+                        $obj->sn =  strtoupper(makeRandStr(7)) . $request->sn;
+                        $obj->logo = $logo;
+                        $obj->type = $request->type;
+                        $obj->usage = $request->usage;
+                        $obj->amount = empty($request->amount) ? 0 : $request->amount * 100;
+                        $obj->discount = empty($request->discount) ? 0 : $request->discount;
+                        $obj->available_start = strtotime(date('Y-m-d 00:00:00', strtotime($request->available_start)));
+                        $obj->available_end = strtotime(date('Y-m-d 23:59:59', strtotime($request->available_end)));
+                        $obj->status = 0;
+                        $obj->save();
+                    }
                 }
+                
 
                 DB::commit();
 

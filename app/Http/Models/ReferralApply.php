@@ -26,7 +26,7 @@ class ReferralApply extends Model
     {
         return $this->hasOne(User::class, 'id', 'user_id');
     }
-
+/**
     function getBeforeAttribute($value)
     {
         return $value / 100;
@@ -56,4 +56,5 @@ class ReferralApply extends Model
     {
         $this->attributes['amount'] = $value * 100;
     }
+**/
 }

@@ -36,7 +36,7 @@ class ReferralLog extends Model
     {
         return $this->hasOne(Order::class, 'oid', 'order_id');
     }
-
+/**
     function getAmountAttribute($value)
     {
         return $value / 100;
@@ -56,4 +56,5 @@ class ReferralLog extends Model
     {
         $this->attributes['ref_amount'] = $value * 100;
     }
+**/
 }

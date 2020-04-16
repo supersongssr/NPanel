@@ -346,19 +346,33 @@ class AuthController extends Controller
             //song 不管是否开启验证，都直接给 奖励啥的
             if ($referral_uid) {
                 $ref_user=User::query()->where('id', $referral_uid)->first();
+                // 赠送流量
+                $ref_user->transfer_enable += self::$systemConfig['referral_traffic'] * 1048576;
+                // 写入信用额度 5元  所有金额全部用 分来表示。 这个很重要！
+                $ref_user->credit += 500;
+                $ref_user->save();
+                // 写入邀请返利 5元，可提现
+                $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 500);
+
+                /**
                 //判断邀请用户id是否是EDU邮箱结尾的，来判断注册是否可用！
                 if (strrchr($ref_user->username, 'edu.cn') == 'edu.cn') {
                     # code...
                     $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
                     User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
+                    // 邀请注册赠送 6 信用额度
+                    User::query()->where('id', $referral_uid)->increment('credit', 6);
                     //返利日志写入 学生给 8元
-                    $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 8);
+                    
                 } else {
                     $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
                     User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
+                    // 邀请注册赠送 6 信用额度 
+                    User::query()->where('id', $referral_uid)->increment('credit', 6);
                     //返利日志写入
-                    $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 4);
+                    $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 5);
                 }
+                **/
             }
 
             User::query()->where('id', $user->id)->update(['status' => 1, 'enable' => 1]);

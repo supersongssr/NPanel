@@ -131,8 +131,12 @@ Route::group(['middleware' => ['isLogin']], function () {
     Route::any('profile', 'UserController@profile'); // 修改个人信息
     Route::any('cnupdate', 'UserController@cnUpdate'); // 升级到 cn+套餐 重置用户的流量
     Route::get('referral', 'UserController@referral'); // 推广返利
-    Route::post('extractMoney', 'UserController@extractMoney'); // 申请提现
-    Route::post('autoExtractMoney', 'UserController@autoExtractMoney'); // 申请提现，自动打入余额。
+    //Route::post('extractMoney', 'UserController@extractMoney'); // 申请提现
+    //Route::post('autoExtractMoney', 'UserController@autoExtractMoney'); // 申请提现，自动打入余额。
+    Route::post('ExtractAffMoney', 'UserController@ExtractAffMoney'); // 注册返利提取现金
+    Route::post('autoExtractAffMoney', 'UserController@autoExtractAffMoney'); // 邀请返利 生成 代金券
+    Route::post('ExtractRefMoney', 'UserController@ExtractRefMoney'); // 消费返利提取现金
+    Route::post('autoExtractRefMoney', 'UserController@autoExtractRefMoney'); // 自动消费返利生成 代金券
     Route::post("switchToAdmin", "UserController@switchToAdmin"); // 转换成管理员的身份
     Route::post("charge", "UserController@charge"); // 卡券余额充值
     Route::get("help", "UserController@help"); // 帮助中心

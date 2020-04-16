@@ -99,7 +99,7 @@
                                     <label class="control-label col-md-3">售价</label>
                                     <div class="col-md-6">
                                         <div class="input-group">
-                                            <input type="text" class="form-control" name="price" value="{{$goods->price}}" id="price" placeholder="" required>
+                                            <input type="text" class="form-control" name="price" value="{{$goods->price /100 }}" id="price" placeholder="" required>
                                             <span class="input-group-addon">元</span>
                                         </div>
                                     </div>

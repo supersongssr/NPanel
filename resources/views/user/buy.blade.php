@@ -19,7 +19,13 @@
                             <li>
                                 <h4>
                                     <span class="font-blue">账户余额：</span>
-                                    <span class="font-red">{{Auth::user()->balance}}</span>
+                                    <span class="font-red">{{Auth::user()->balance / 100}}</span>
+                                </h4>
+                            </li>
+                            <li>
+                                <h4>
+                                    <span class="font-blue">信用卡：</span>
+                                    <span class="font-red">{{Auth::user()->credit / 100}}</span>
                                 </h4>
                             </li>
                             <li>
@@ -52,7 +58,7 @@
                                         <h2>{{$goods->name}}</h2>
                                         充值金额：{{$goods->price}}元
                                         </td>
-                                    <td class="text-center"> ￥{{$goods->price}} </td>
+                                    <td class="text-center"> ￥{{$goods->price / 100}} </td>
                                 </tr>
                             </tbody>
                         @else
@@ -71,7 +77,7 @@
                                         <br/>
                                         {{trans('home.service_days')}} {{$goods->days}} {{trans('home.day')}}
                                     </td>
-                                    <td class="text-center"> ￥{{$goods->price}} </td>
+                                    <td class="text-center"> ￥{{$goods->price / 100}} </td>
                                     <td class="text-center"> x 1 </td>
                                 </tr>
                             </tbody>
@@ -83,11 +89,11 @@
                 <div class="row invoice-subtotal">
                     <div class="col-xs-3">
                         <h2 class="invoice-title"> {{trans('home.service_subtotal_price')}} </h2>
-                        <p class="invoice-desc"> ￥{{$goods->price}} </p>
+                        <p class="invoice-desc"> ￥{{$goods->price / 100}} </p>
                     </div>
                     <div class="col-xs-3">
                         <h2 class="invoice-title"> {{trans('home.service_total_price')}} </h2>
-                        <p class="invoice-desc grand-total"> ￥{{$goods->price}} </p>
+                        <p class="invoice-desc grand-total"> ￥{{$goods->price / 100}} </p>
                     </div>
                     <div class="col-xs-6">
                         <h2 class="invoice-title"> {{trans('home.coupon')}} </h2>
@@ -168,7 +174,7 @@
         // 校验优惠券是否可用
         function redeemCoupon() {
             var coupon_sn = $('#coupon_sn').val();
-            var goods_price = '{{$goods->price}}';
+            var goods_price = '{{$goods->price / 100}}';
 
             $.ajax({
                 type: "POST",
@@ -196,7 +202,7 @@
                         if (ret.data.type == '2') {
                             total_price = goods_price * ret.data.discount / 10;
                         } else {
-                            total_price = goods_price - ret.data.amount;
+                            total_price = goods_price - ret.data.amount/100; // 分转换为 元
                             total_price = total_price > 0 ? total_price : 0;
                         }
 

@@ -48,7 +48,7 @@ class User extends Authenticatable
     {
         return $this->hasOne(User::class, 'id', 'referral_uid');
     }
-
+/**
     function getBalanceAttribute($value)
     {
         return $value / 100;
@@ -58,4 +58,5 @@ class User extends Authenticatable
     {
         return $this->attributes['balance'] = $value * 100;
     }
+    **/
 }

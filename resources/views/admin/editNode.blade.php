@@ -156,10 +156,10 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="sort" class="col-md-3 control-label">节点排序</label>
+                                                    <label for="sort" class="col-md-3 control-label">故障排序</label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" name="sort" value="{{$node->sort}}" id="sort" placeholder="">
-                                                        <span class="help-block"> sort节点排序 </span>
+                                                        <span class="help-block"> sort故障值排序 </span>
                                                     </div>
                                                 </div>
                                                 <div class="form-group">

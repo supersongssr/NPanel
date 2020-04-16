@@ -69,7 +69,7 @@
                                             <td> {{$coupon->usage == '1' ? '一次性' : '可重复'}} </td>
                                             <td>
                                                 @if($coupon->type == '1' || $coupon->type == '3')
-                                                    {{$coupon->amount}}元
+                                                    {{$coupon->amount /100 }}元
                                                 @else
                                                     {{$coupon->discount}}折
                                                 @endif

@@ -121,7 +121,7 @@
                                                 </ol>
                                                 <hr>
                                                 <ol>【Vmess- Clash 教程】
-                                                    <li> 订阅地址 <code>https://api.lovess.top/sub?target=clash&url={{$link}}?v2ray=64&ss=64"</code> </li>
+                                                    <li> 订阅地址 <code>https://api.lovess.top/sub?target=clash&url={{$link}}?v2ray=64&ss=64</code> </li>
                                                 </ol>
                                                 <hr>
                                                 <ol>【SS-R 教程】
@@ -145,7 +145,7 @@
                                                 </ol>
                                                 <hr>
                                                 <ol>【Vmess- Clash 教程】
-                                                    <li> 订阅地址 <code>https://api.lovess.top/sub?target=clash&url={{$link}}?v2ray=64&ss=64&scv=true"</code> </li>
+                                                    <li> 订阅地址 <code>https://api.lovess.top/sub?target=clash&url={{$link}}?v2ray=64&ss=64&scv=true</code> </li>
                                                 </ol>
                                                 <hr>
                                                 <ol>【SS-R 教程】
