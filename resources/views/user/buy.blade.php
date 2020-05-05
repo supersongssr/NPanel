@@ -12,13 +12,13 @@
                         <ul class="list-inline">
                             <li>
                                 <h4>
-                                     song<span class="font-blue">账户等级：</span>
+                                    <span class="font-blue">账户等级：</span>
                                     <span class="font-red">{{Auth::user()->levelList->level_name}}</span> 
                                 </h4>
                             </li>
                             <li>
                                 <h4>
-                                    <span class="font-blue">账户余额：</span>
+                                    <span class="font-blue">余额：</span>
                                     <span class="font-red">{{Auth::user()->balance / 100}}</span>
                                 </h4>
                             </li>
@@ -32,10 +32,10 @@
                                 <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">点我{{trans('home.recharge')}}</a>
                             </li>
                             <li>
-                                <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">获取充值卡券</a> <!-- song -->
+                                <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">发卡平台获取充值卡券（请关闭代理访问）</a> <!-- song -->
                             </li>
                         </ul>
-                        <p><small>*如果您余额 < 0 ，请在推广返利页面 提取返利金额 试试？</small></p>
+                        <p><small>*等级越高，节点越多，带宽越大<br>*购买套餐时，您可以透支信用卡额度去购买套餐，每邀请一个用户注册，赠送5元信用卡余额。 如果您邀请的用户被系统删除，这个5元的信用额度会被扣掉。 邀请的人越多信用额度也越多。 请注意，这个信用额度可以透支，但是欠的钱要记得还啊</small></p>
                     </div>
                 </div>
             </div>

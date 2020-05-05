@@ -24,7 +24,27 @@ class AutoStatisticsNodeHourlyTraffic extends Command
 
         $nodeList = SsNode::query()->where('status', 1)->orderBy('id', 'asc')->get();
         foreach ($nodeList as $node) {
-            $this->statisticsByNode($node->id);
+            //$this->statisticsByNode($node->id);
+            # 按照之前的算法来计算。不错的选择。
+            #获取节点
+            #计算 差值
+            #记录每日流量
+            #写入新的记录值
+            #如果为负，就写入0
+            $traffic_hour = $node->traffic - $node->traffic_lasthour;
+            $traffic_hour < 0 && $traffic_hour =0;
+
+            $obj = new SsNodeTrafficHourly();
+            $obj->node_id = $node->id;
+            $obj->u = 0;
+            $obj->d = 0;
+            $obj->total = $traffic_hour ;
+            $obj->traffic = flowAutoShow($traffic_hour);
+            $obj->save();
+
+            #记录当前流量值
+            $node->traffic_lasthour = $node->traffic;
+            $node->save();
         }
 
         $jobEndTime = microtime(true);

@@ -122,3 +122,6 @@ alert("家: ssvss.xyz 保存书签呦 \nQQ：2107254004 \nQQ群： \nTG群：dos
         }
     </script>
 @endsection
+<script>
+alert("50off    5折优惠码 \n全网独家中转加速节点 1Gbps带宽");  
+</script>

@@ -9,7 +9,7 @@
             <div class="col-md-12">
                 <div class="note note-info">
                     <p>通过您的推广链接/邀请码注册您将获得如下奖励：</p>
-                    <p><code>A：赠送 1G 流量 <br>B：赠送 5元 信用卡，可用于购买商品 <br>C：赠送 5元 奖励（设置收款信息，可提现）<br>D：用户消费时，奖励25%消费返利（设置收款信息，可提现）循环奖励，消费多少次奖励多少次 <br>E：将奖励 C 生成代金券 <br>F：将奖励 D 生成代金券</code><br><small>* AB+C/D 2+1奖励模式<br>* 具体提现标准请参考：<a href="">网站提现详细规则</a><br>* 简易规则：AB必返，CD 2选1，C提现条件： 所有邀请人消费金额 * 50% > 提现金额 ，D 提现条件：满{{$referral_money}}元可提现，EF与CD互斥</small></p>
+                    <p><code>A：赠送 1G 流量 <br>B：赠送 5元 信用卡，可用于购买商品 <br>C：赠送 5元 奖励（设置收款信息，可提现）<br>D：用户消费时，奖励25%消费返利（设置收款信息，可提现）循环奖励，消费多少次奖励多少次 <br>E：将奖励 C 生成代金券 <br>F：将奖励 D 生成代金券</code><br><small>* AB+C/D 2+1奖励模式<br>* 具体提现标准请参考：<a href="/article?id=40" target="_blank">网站提现详细规则</a><br>* 简易规则：AB必返，CD 2选1，C提现条件： 所有邀请人消费金额 * 50% > 提现金额 ，D 提现条件：满{{$referral_money}}元可提现，EF与CD互斥</small></p>
                 </div>
             </div>
         </div>
@@ -29,8 +29,8 @@
                                 <i class="icon-note"></i> {{trans('home.referral_button')}}
                             </a>
                             <br>
-                            <p>邀请用户注册奖励： 5元 信用卡 + 5元现金（用于提现） + 25%消费返利（用于提现）<br>
-                                我的收款信息： 收款姓名： <code>{{Auth::user()->wechat}}</code> 收款银行卡号：<code>{{Auth::user()->qq}}</code> <br>请确保输入正常的收款信息，信息错误会导致收不到款！<a href="/profile#tab_2">点此设置我的收款信息</a></p>
+                            <p><code>邀请用户注册奖励： 5元 信用卡 + 5元现金（用于提现） + 25%消费返利（用于提现）<br>
+                                请确保输入正常的收款信息，信息错误会导致收不到款！<a href="/profile#tab_2">点此设置我的收款信息</a></code><br><img src="{{Auth::user()->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 300px; max-height: 300px;"><br><a href="/profile#tab_2">点此设置我的收款信息</a></p>
                         </div>
                     </div>
                 </div>
@@ -139,7 +139,7 @@
                         </div>
                         <div class="row">
                             <div class="col-md-5 col-sm-5">
-                                <div class="dataTables_info" role="status" aria-live="polite">{{trans('home.referral_summary', ['total' => $referralLogList->total(), 'amount' => $canAmount/100, 'money' => $referral_money])}}<br>银行卡提现请先<a href="/profile#tab_2">设置收款信息</a>，每笔提现手续费1￥。</div>
+                                <div class="dataTables_info" role="status" aria-live="polite">{{trans('home.referral_summary', ['total' => $referralLogList->total(), 'amount' => $canAmount, 'money' => $referral_money])}}<br>银行卡提现请先<a href="/profile#tab_2">设置收款信息</a>，每笔提现手续费1￥。</div>
                             <br>
                             * 为保护用户隐私，如果您不愿意提现您的邀请返利，您可以才选择将可提现的返利生成代金券，在网站购买商品时可抵扣相应的金额
                             <br>

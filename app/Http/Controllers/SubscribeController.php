@@ -220,7 +220,7 @@ class SubscribeController extends Controller
                         $ssr_str .= ':' . ($node['single'] ? $node['single_obfs'] : $user->obfs) . ':' . ($node['single'] ? base64url_encode($node['single_passwd']) : base64url_encode($user->passwd));
                         $ssr_str .= '/?obfsparam=' . base64url_encode($obfs_param);
                         $ssr_str .= '&protoparam=' . ($node['single'] ? base64url_encode($user->port . ':' . $user->passwd) : base64url_encode($protocol_param));
-                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
+                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm);
                         $ssr_str .= '&group=' . base64url_encode($group);
                         $ssr_str .= '&udpport=0';
                         $ssr_str .= '&uot=0';
@@ -236,7 +236,7 @@ class SubscribeController extends Controller
                         $ssr_str .= ':plain' . ':' . base64url_encode($node['monitor_url']);
                         $ssr_str .= '/?obfsparam=';
                         $ssr_str .= '&protoparam=';
-                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
+                        $ssr_str .= '&remarks=' . base64url_encode($node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm);
                         $ssr_str .= '&group=' . base64url_encode($group);
                         $ssr_str .= '&udpport=0';
                         $ssr_str .= '&uot=0';
@@ -259,11 +259,15 @@ class SubscribeController extends Controller
 
                 //控制显示 cncdn 自定义
                 $node_server = $node['server'];
-                if ($user->cncdn != '0') {
-                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$node['server'])->where('areaid','=',$user->cncdn)->first();
-                    if (!empty($cncdn->cdnip)) {
-                        $node_server = $cncdn->cdnip;
+                if ($user->cncdn && $node['is_transit'] ) {   //如果用户设置了 cncdn 而且设置了 中转
+                    $cdn_server = strstr($node_server, '.');
+                    $cdn_server = substr($cdn_server, 1);
+                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$user->cncdn)->orderBy('id','desc')->first();
+                    if (!empty($cncdn->ipmd5)) {
+                        $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
                     }
+                }elseif ($user->cfcdn) {
+                    $node_server = $user->cfcdn;
                 }
 
                 //
@@ -274,7 +278,7 @@ class SubscribeController extends Controller
                     // 生成v2ray scheme
                     $v2_json = [
                         "v"    => "2",
-                        "ps"   => $node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm,
+                        "ps"   => $node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm,
                         "add"  => $node['server'] ? $node_server : $node['ip'],
                         "port" => $node['v2_port'],
                         "id"   => $node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id'],
@@ -305,13 +309,13 @@ class SubscribeController extends Controller
                     if ( $node['compatible'] ) {
                     $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
                     $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
-                    $ss_str = base64_encode($ss_str) . '#' . $node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm;
+                    $ss_str = base64_encode($ss_str) . '#' . $node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm;
                     $scheme .= 'ss://' . $ss_str . "\n";
                     }
                 }else{
                     $ss_str = $node['method'] . ':' . $node['monitor_url'] . '@';
                     $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['ssh_port'];
-                    $ss_str = base64_encode($ss_str) . '#' . $node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm;
+                    $ss_str = base64_encode($ss_str) . '#' . $node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm;
                     $scheme .= 'ss://' . $ss_str . "\n";
                 }
             }
@@ -330,17 +334,21 @@ class SubscribeController extends Controller
 
                 //控制显示 cncdn 自定义
                 $node_server = $node['server'];
-                if ($user->cncdn != '0') {
-                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$node['server'])->where('areaid','=',$user->cncdn)->first();
-                    if (!empty($cncdn->cdnip)) {
-                        $node_server = $cncdn->cdnip;
+                if ($user->cncdn && $node['is_transit'] ) {   //如果用户设置了 cncdn 而且设置了 中转
+                    $cdn_server = strstr($node_server, '.');
+                    $cdn_server = substr($cdn_server, 1);
+                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$user->cncdn)->orderBy('id','desc')->first();
+                    if (!empty($cncdn->ipmd5)) {
+                        $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
                     }
+                }elseif ($user->cfcdn) {
+                    $node_server = $user->cfcdn;
                 }
                 //
                 if ($node['type'] == 2 && $node['v2_net'] != 'kcp') {
                     $v2_str = $node['v2_method'] . ':' . ($node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id']) . '@';
                     $v2_str .= ($node['server'] ? $node_server : $node['ip']) . ':' . $node['v2_port'];  
-                    $v2_str = base64url_encode($v2_str) . '?remarks=' . urlencode($node['name'].'·'.$node['level'].'#'.$node['id'].'·'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm) ;
+                    $v2_str = base64url_encode($v2_str) . '?remarks=' . urlencode($node['name'].'·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm) ;
                     $v2_str .= '&obfsParam=' . $node['v2_host'] . '&path=' . $node['v2_path'] . '&obfs=' . ($node['v2_net'] == 'ws' ? 'websocket' : $node['v2_net']) . '&tls=' . ($node['v2_tls'] == 1 ? "1" : "").'&peer='.$node['v2_host'].'&allowInsecure=1';
                     $scheme .= 'vmess://' . $v2_str . "\n";
                 }else{
@@ -349,13 +357,13 @@ class SubscribeController extends Controller
                         if ( $node['compatible'] ) {
                         $ss_str = $user['method'] . ':' . $user['passwd'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $user['port'];
-                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'·'.$node['level'].'#'.$node['id'].'·'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
+                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm);
                         $scheme .= 'ss://' . $ss_str . "\n";
                         }
                     }else{
                         $ss_str = $node['method'] . ':' . $node['monitor_url'] . '@';
                         $ss_str .= ($node['server'] ? $node['server'] : $node['ip']) . ':' . $node['ssh_port'];
-                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'·'.$node['level'].'#'.$node['id'].'·'.$node['traffic_rate'].'|'.$node['node_online'].$node_warm);
+                        $ss_str = base64_encode($ss_str) . '#' . urlencode($node['name'].'·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm);
                         $scheme .= 'ss://' . $ss_str . "\n";
                     }
                 }

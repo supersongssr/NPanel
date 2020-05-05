@@ -4,7 +4,7 @@
 @section('content')
     <!-- BEGIN CONTENT BODY -->
     <div class="page-content" style="padding-top:0;">
-        <div class="row">
+  <!--       <div class="row">
             <div class="col-md-12">
                 <div class="portlet light">
                     <div class="portlet-body">
@@ -42,8 +42,8 @@
                             </li>
                             <li>
                                 <h4>
-                                    <span class="font-blue">等级：</span>
-                                    <span class="font-red">Lv.{{Auth::user()->level}}</span>
+                                    <span class="font-blue">学历：</span>
+                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span>
                                 </h4>
                             </li>
                             
@@ -69,7 +69,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
 
         <div class="row">
             <div class="col-md-12">
@@ -90,7 +90,7 @@
                                 <div class="tab-pane active">
                                     <!-- -->
                                     <div class="alert alert-danger">
-                                        <p> 【提示】：请通过订阅获取节点;免费用户不提供技术支持;如需更快网速,欢迎使用VIP节点; </p>
+                                        <p> 【提示】：请通过订阅获取所有节点。 </p>
                                     </div>
                                     <!-- -->
                                     <div class="mt-comments">
@@ -109,12 +109,12 @@
                                                 </div>
                                                 <div class="mt-comment-body">
                                                     <div class="mt-comment-info">
-                                                        <span class="mt-comment-author">{{$node->name}} -等级Lv.{{$node->sort}}</span>
-                                                        <!-- <span class="mt-comment-date">
-                                                                <span class="badge badge-danger">Lv.{{$node->sort}}</span>
-                                                            </span>  -->
+                                                        <span class="mt-comment-author">{{$node->name}} ·{{$node->sort}}#{{$node->id}}</span>
+                                                        <span class="mt-comment-date">
+                                                            <span class="badge badge-danger">{{$node->node_onload * 10}}%</span>
+                                                        </span>
                                                     </div>
-                                                    <div class="mt-comment-text"> {{$node->desc}} </div>
+                                                    <div class="mt-comment-text"> Class:{{$node->sort}},No.{{$node->id}},Rate:{{$node->traffic_rate}},TopRate:{{$node->node_cost/5}},Bandwidth:{{$node->bandwidth}}M,Traffic:{{floor($node->traffic /100000000)}}G,Online:{{$node->node_online}},Onload:{{$node->node_onload * 10}}%</div>
                                                     <div class="mt-comment-details">
                                                             <span class="mt-comment-status mt-comment-status-pending">
                                                                 @if($node->labels)
@@ -122,20 +122,20 @@
                                                                         <span class="badge badge-info">{{$vo->labelInfo->name}}</span>
                                                                     @endforeach
                                                                 @endif
-                                                                <span class="badge badge-success">{{$node->traffic_rate}} 倍率</span>
-                                                                <span class="badge badge-inverse">编号#{{$node->id}}</span>
+                                                                <!-- <span class="badge badge-success">{{$node->traffic_rate}} Rate</span>
+                                                                <span class="badge badge-inverse">No.#{{$node->id}}</span> -->
                                                             </span>
-                                                        <!-- <ul class="mt-comment-actions" style="display: block;">
+                                                        <ul class="mt-comment-actions" style="display: block;">
                                                             <li>
                                                                 <a class="btn btn-sm green btn-outline" data-toggle="modal" href="#txt_{{$node->id}}" > <i class="fa fa-reorder"></i> </a>
                                                             </li>
                                                             <li>
-                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="#link_{{$node->id}}"> @if($node->type == 1) <i class="fa fa-paper-plane"></i> @else <i class="fa fa-vimeo"></i> @endif </a>
+                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="/nodeMonitor?id={{$node->id}}"> @if($node->type == 1) <i class="fa fa-paper-plane"></i> @else <i class="fa fa-vimeo"></i> @endif </a>
                                                             </li>
                                                             <li>
-                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="#qrcode_{{$node->id}}"> <i class="fa fa-qrcode"></i> </a>
+                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="/nodeMonitor?id={{$node->id}}"> <i class="fa fa-qrcode"></i> </a>
                                                             </li>
-                                                        </ul> -->
+                                                        </ul>
                                                     </div>
                                                 </div>
                                             </div>
@@ -149,6 +149,56 @@
             </div>
         </div>
         <!-- END PAGE BASE CONTENT -->
+
+        @foreach($nodeList as $node)
+        <!-- 配置文本 -->
+            <div class="modal fade draggable-modal" id="txt_{{$node->id}}" tabindex="-1" role="basic" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                            <h4 class="modal-title">{{trans('home.setting_info')}}</h4>
+                        </div>
+                        <div class="modal-body">
+                            @if ($node->type == 2)
+                            <textarea class="form-control" rows="10" readonly="readonly">Vmess V2ray Config：
+address: {{$node->server}}
+port: {{$node->v2_port}}
+id: {{Auth::user()->vmess_id}}
+alterId： {{$node->v2_alter_id}}
+security： {{$node->v2_method}}
+network： {{$node->v2_net}}
+remarks： {{$node->name}}#{{$node->id}}
+type： {{$node->v2_type}}
+host： {{$node->v2_host}}
+path： {{$node->v2_path}}
+TLS： {{$node->v2_tls}}
+allowInsecure: true
+MAC:tls servername： {{$node->v2_host}}
+IOS:peer： {{$node->v2_host}}         </textarea>
+                            @else
+                            <textarea class="form-control" rows="10" readonly="readonly">SS SSR Config：
+address: {{$node->server}}
+port: {{$node->v2_port}}
+id: {{Auth::user()->vmess_id}}
+alterId： {{$node->v2_alter_id}}
+security： {{$node->v2_method}}
+network： {{$node->v2_net}}
+remarks： {{$node->name}}#{{$node->id}}
+type： {{$node->v2_type}}
+host： {{$node->v2_host}}
+MAC:tls servername： {{$node->v2_host}}
+IOS:peer： {{$node->v2_host}}
+path： {{$node->v2_path}}
+TLS： {{$node->v2_tls}}
+allowInsecure: true         </textarea>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        @endforeach
     </div>
     <!-- END CONTENT BODY -->
 @endsection

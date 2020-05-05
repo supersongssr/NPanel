@@ -25,7 +25,41 @@ class AutoStatisticsNodeDailyTraffic extends Command
         $nodeList = SsNode::query()->where('status', 1)->where('id','>',9)->orderBy('id', 'desc')->get();  //只获取在线的节点
         // 1 2 3 节点是 用来发广告的节点，嘎嘎 可以有，哈哈 嘿嘿 嘎嘎 喜喜
         foreach ($nodeList as $node) {
-            $this->statisticsByNode($node->id);
+            //$this->statisticsByNode($node->id);
+            # 按照之前的算法来计算。不错的选择。
+            #获取节点
+            #计算 差值
+            #记录每日流量
+            #写入新的记录值
+            #如果为负，就写入0
+            $traffic_today = $node->traffic - $node->traffic_lastday;
+            $traffic_today < 0 && $traffic_today =0;
+
+            $obj = new SsNodeTrafficDaily();
+            $obj->node_id = $node->id;
+            $obj->u = 0;
+            $obj->d = 0;
+            $obj->total = $traffic_today ;
+            $obj->traffic = flowAutoShow($traffic_today);
+            $obj->save();
+
+            #记录当前流量值
+            $node->traffic_lastday = $node->traffic;
+            # 写入每天流量差值记录 
+            $node->desc = floor($traffic_today / 1073741824) . ' ' . $node->desc;
+            $node->desc = substr($node->desc, 0, 32);
+            # 计算每个节点的倍率 昨日流量 / 总体的流量 
+            if ($node->traffic_limit > 0) {
+                $node->traffic_rate = round($traffic_today * 32 / $node->traffic_limit,1) ;
+            }
+            $node->traffic_rate > ($node->node_cost/5) && $node->traffic_rate = ($node->node_cost/5);
+            
+            # 若今天流量少于 16G，就写入禁用一次。
+            if ($traffic_today < 8*1024*1024*1024) {
+                $node->status = 0;
+                $node->sort += 1;
+            }
+            $node->save();
         }
 
         $jobEndTime = microtime(true);
@@ -107,7 +141,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
 
     private function statisticsByNode($node_id)
     {
-        $start_time = strtotime(date('Y-m-d 00:00:00', strtotime("-1 day")));
+        /*$start_time = strtotime(date('Y-m-d 00:00:00', strtotime("-1 day")));
         $end_time = strtotime(date('Y-m-d 23:59:59', strtotime("-1 day")));
 
         $query = UserTrafficLog::query()->where('node_id', $node_id)->whereBetween('log_time', [$start_time, $end_time]);
@@ -148,5 +182,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
 
         $node->save();
         //SsNode::query()->where('id',$node_id)->update(['status'=>$node->status, 'ipv6'=>$node->ipv6 , 'desc'=>$node->desc ,'sort'=>$node->sort ]);
+*/
+
     }
 }

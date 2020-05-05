@@ -67,7 +67,7 @@
                                                 <td> {{$node->id}} </td>
                                                 <td>
                                                     @if($node->is_transit)
-                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">{{$node->is_transit ? '中转' : ''}}</span>
+                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">{{$node->is_transit ? 'CN+' : ''}}</span>
                                                     @else
                                                         <span class="label {{$node->status ? 'label-info' : 'label-default'}}">{{$node->type == 2 ? 'V2' : 'SR'}}</span>
                                                     @endif

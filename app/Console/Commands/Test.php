@@ -48,20 +48,13 @@ class Test extends Command
     private function aTest()
     {
 
-        $ref_logs = ReferralLog::where('status',0)->get();
-        foreach ($ref_logs as $ref_log) {
-            # 将所有的ref_log强制提现
-            $ref_log->status = 2;
-            echo $ref_log->ref_amount . ' ';
-            $ref_log->save();
-            $user = User::where('id',$ref_log->ref_user_id)->first();
-            if (!empty($user->id)) {
-                echo $user->balance.' ';
-                $user->balance += $ref_log->ref_amount;
-                echo $user->balance .' | ';
-                $user->save();
-            }
-        }
+       $cncdns = Cncdn::all();
+       foreach ($cncdns as $cncdn) {
+           $cncdn->areaid = md5($cncdn->area);
+           $cncdn->ipmd5 = md5($cncdn->cdnip);
+           $cncdn->save();
+       }
+
 
         /**
         $goods = Goods::all();

@@ -199,7 +199,9 @@ class AutoJob extends Command
                         // 获取 邀请人
                         $referral_user = User::query()->where('id', $user->referral_uid)->first();
                         // 扣除信用额度
-                        $referral_user->credit -= $referral->ref_amount*100;
+                        $referral_user->credit -= $referral->ref_amount;
+                        // 扣除延迟还款的额度  如果这个还款日 > 1，那么就减1 .防止出现，刷账号的情况发生。
+                        $referral_user->credit_days > 1 &&  $referral_user->credit_days -= 1;
                         //扣除流量
                         $referral_user->transfer_enable -= self::$systemConfig['referral_traffic'] * 1048576;
                         // 老用户没有信用额度，直接扣除余额 

@@ -350,6 +350,7 @@ class AuthController extends Controller
                 $ref_user->transfer_enable += self::$systemConfig['referral_traffic'] * 1048576;
                 // 写入信用额度 5元  所有金额全部用 分来表示。 这个很重要！
                 $ref_user->credit += 500;
+                $ref_user->credit_days += 1;  //信用卡还款期限 + 1
                 $ref_user->save();
                 // 写入邀请返利 5元，可提现
                 $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 500);

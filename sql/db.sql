@@ -137,7 +137,7 @@ CREATE TABLE `user` (
   `speed_limit_per_con` bigint(20) NOT NULL DEFAULT '10737418240' COMMENT '单连接限速，默认10G，为0表示不限速，单位Byte',
   `speed_limit_per_user` bigint(20) NOT NULL DEFAULT '10737418240' COMMENT '单用户限速，默认10G，为0表示不限速，单位Byte',
   `gender` tinyint(4) NOT NULL DEFAULT '1' COMMENT '性别：0-女、1-男',
-  `wechat` varchar(30) DEFAULT '' COMMENT '微信',
+  `wechat` varchar(128) DEFAULT '' COMMENT '微信',
   `qq` varchar(20) DEFAULT '' COMMENT 'QQ',
   `usage` VARCHAR(10) NOT NULL DEFAULT '4' COMMENT '用途：1-手机、2-电脑、3-路由器、4-其他',
   `pay_way` tinyint(4) NOT NULL DEFAULT '0' COMMENT '付费方式：0-免费、1-季付、2-月付、3-半年付、4-年付',
@@ -671,7 +671,7 @@ CREATE TABLE `referral_apply` (
   `before` int(11) NOT NULL DEFAULT '0' COMMENT '操作前可提现金额，单位分',
   `after` int(11) NOT NULL DEFAULT '0' COMMENT '操作后可提现金额，单位分',
   `amount` int(11) NOT NULL DEFAULT '0' COMMENT '本次提现金额，单位分',
-  `link_logs` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '关联返利日志ID，例如：1,3,4',
+  `link_logs` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '关联返利日志ID，例如：1,3,4',
   `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '状态：-1-驳回、0-待审核、1-审核通过待打款、2-已打款、3-已代金券',
   `created_at` datetime DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime DEFAULT NULL COMMENT '最后更新时间',
@@ -1293,10 +1293,7 @@ ALTER TABLE `user_balance_log`
 -- ----------------------------
 ALTER TABLE `user`
   ADD COLUMN `ban_times` INT(11) Default 0 COMMENT '封禁次数' AFTER `updated_at`;
--- user字段新增用户已用余额数据`
--- ----------------------------
-ALTER TABLE `user`
-  ADD COLUMN `balance_used` INT(11) Default 0 COMMENT '已用余额' AFTER `balance`;
+
 
 -- ----------------------------
 ALTER TABLE `ticket`
@@ -1328,7 +1325,9 @@ CREATE TABLE IF NOT EXISTS `cncdn` (
   `area` varchar(128) NOT NULL COMMENT '地区',
   `areaid` varchar(128) NOT NULL COMMENT '地区的编号',
   `server` varchar(64) NOT NULL COMMENT '域名',
-  `cdnip` varchar(128) NOT NULL COMMENT 'CDN地区的ip',
+  `cdnip` varchar(64) NOT NULL COMMENT 'CDN的ip',
+  `ipmd5` varchar(64) NOT NULL COMMENT 'ip的md5值',
+  `host` varchar(64) NOT NULL COMMENT '解析域名',
   `show` int(11) NOT NULL Default '1' COMMENT '是否用户页面展示',
   `status` int(11) NOT NULL Default '1' COMMENT '是否启用 1为启用 0为不启用',
   primary key (id)
@@ -1351,14 +1350,43 @@ ALTER TABLE `ticket` ADD `sort` BIGINT(20) DEFAULT '0' COMMENT '等级排序' AF
 # 用户增加 信用卡字段 credit card 
 ALTER TABLE `user`
   ADD COLUMN `credit` INT(11) Default 0 COMMENT '信用额度' AFTER `balance`;
+
+-- user字段新增用户还款限期`
+-- ----------------------------
+ALTER TABLE `user`
+  ADD COLUMN `credit_days` TINYINT(4) Default 0 COMMENT '延迟还款' AFTER `credit_days`;
 -- ----------------------------
 -- 新增生成者ID`
 -- ----------------------------
 ALTER TABLE `coupon`
   ADD COLUMN `creat_user` INT(11) Default 0 COMMENT '生成者用户' AFTER `user_id`;
 
+-- ----------------------------
+-- 记录提现人的姓名和银行卡号`
+-- ----------------------------
+ALTER TABLE `referral_apply`
+  ADD COLUMN `card_name` VARCHAR(64) COMMENT '银行卡姓名' AFTER `status`;
+
+ALTER TABLE `referral_apply`
+  ADD COLUMN `card_num` VARCHAR(64) COMMENT '银行卡账号' AFTER `card_name`;
+
+# 节点的昨日流量
+ALTER TABLE `ss_node`
+ADD COLUMN `traffic_limit` BIGINT(20) Default 1099511627776 COMMENT '流量限制' AFTER `traffic`;
+# 前一小时流量
+ALTER TABLE `ss_node`
+ADD COLUMN `traffic_lasthour` BIGINT(20) Default 0 COMMENT '1H流量mark' AFTER `traffic_limit`;
+# 前一天流量mark
+ALTER TABLE `ss_node`
+ADD COLUMN `traffic_lastday` BIGINT(20) Default 0 COMMENT '1D流量mark' AFTER `traffic_lasthour`;
 
 
+# 增加用户前一小时流量统计
+ALTER TABLE `user`
+  ADD COLUMN `traffic_lasthour` BIGINT(20) Default 0 COMMENT '前一小时流量' AFTER `t`;
+ALTER TABLE `user`
+  ADD COLUMN `traffic_lastday` BIGINT(20) Default 0 COMMENT '前一天流量' AFTER `traffic_lasthour`;
+# 增加用户前一天流量统计
 
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

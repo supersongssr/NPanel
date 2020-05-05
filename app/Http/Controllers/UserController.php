@@ -178,12 +178,13 @@ class UserController extends Controller
         // 获取当前用户可用节点
         $nodeList = DB::table('ss_node')
             ->selectRaw('ss_node.*')
-            ->leftJoin('ss_node_label', 'ss_node.id', '=', 'ss_node_label.node_id')
+            //->leftJoin('ss_node_label', 'ss_node.id', '=', 'ss_node_label.node_id')
             //->whereIn('ss_node_label.label_id', $userLabelIds)
             ->where('ss_node.status', 1)
+            ->where('ss_node.node_group',Auth::user()->node_group)
             //->groupBy('ss_node.id')
             //->orderBy('ss_node.sort', 'desc')
-            ->orderBy('ss_node.level', 'desc')
+            ->orderBy('ss_node.node_onload', 'asc')
             //->orderBy('ss_node.id', 'asc')
             //->limit(21) //Song 
             ->get();
@@ -198,13 +199,13 @@ class UserController extends Controller
         $view['allNodes'] = '';
         $view['nodeList'] = $nodeList;
 
-        // 使用教程
+        /*// 使用教程
         $view['tutorial1'] = Article::type(4)->where('sort', 1)->orderBy('id', 'desc')->first();
         $view['tutorial2'] = Article::type(4)->where('sort', 2)->orderBy('id', 'desc')->first();
         $view['tutorial3'] = Article::type(4)->where('sort', 3)->orderBy('id', 'desc')->first();
         $view['tutorial4'] = Article::type(4)->where('sort', 4)->orderBy('id', 'desc')->first();
         $view['tutorial5'] = Article::type(4)->where('sort', 5)->orderBy('id', 'desc')->first();
-        $view['tutorial6'] = Article::type(4)->where('sort', 6)->orderBy('id', 'desc')->first();
+        $view['tutorial6'] = Article::type(4)->where('sort', 6)->orderBy('id', 'desc')->first();*/
 
         return Response::view('user.nodeList', $view);
     }
@@ -228,6 +229,7 @@ class UserController extends Controller
             $passwd = trim($request->get('passwd'));
             $vmess_id = trim($request->get('vmess_id'));
             $cncdn = trim($request->get('cncdn'));
+            $cfcdn = trim($request->get('cfcdn'));
             //$cn_update = trim($request->get('cn_update'));
 
             // 修改密码
@@ -276,12 +278,25 @@ class UserController extends Controller
             }
 
             //修改 cncdn
-            if (isset($cncdn)) {
+            if ($cncdn) {
                 $ret = User::uid()->update(['cncdn' => $cncdn]);
                 if (!$ret) {
                     return Redirect::to('profile#tab_4')->withErrors('修改失败');
                 } else {
                     return Redirect::to('profile#tab_4')->with('successMsg', '修改成功,请客户端更新节点');
+                }
+            }
+
+            //修改 cfcdn
+            if ($cfcdn) {
+                if (!filter_var($cfcdn, FILTER_VALIDATE_IP)) {
+                    $cfcdn='';
+                }
+                $ret = User::uid()->update(['cfcdn' => $cfcdn]);
+                if (!$ret) {
+                    return Redirect::to('profile#tab_6')->withErrors('修改失败');
+                } else {
+                    return Redirect::to('profile#tab_6')->with('successMsg', '修改成功,请客户端更新节点');
                 }
             }
 
@@ -509,12 +524,6 @@ class UserController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '优惠券不能为空']);
         }
 
-        if (strrchr($coupon_sn, 'edu.cn') == 'edu.cn') {  // coupon 以 edu.cn结尾的话，
-            if (strrchr(Auth::user()->username, 'edu.cn') != 'edu.cn') {  // 但是用户不是 edu用户的话，不能用这个 优惠券
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '此优惠券为EDU用户专用优惠券']);
-            }
-        }
-
         $coupon = Coupon::query()->where('sn', $coupon_sn)->whereIn('type', [1, 2])->orderBy('id','desc')->first();
         if (!$coupon) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '该优惠券不存在']);
@@ -528,6 +537,12 @@ class UserController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '该优惠券已失效，请换一个试试']);
         } elseif ($coupon->available_start > time()) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '该优惠券尚不可用，请换一个试试']);
+        }
+
+        if (strrchr($coupon_sn, 'edu.cn') == 'edu.cn') {  // coupon 以 edu.cn结尾的话，
+            if (strrchr(Auth::user()->username, $coupon_sn) != $coupon_sn) {  // 但是用户不是 edu用户的话，不能用这个 优惠券
+                return Response::json(['status' => 'fail', 'data' => '', 'message' => '此优惠券为 '.$coupon->name.' 专享优惠券']);
+            }
         }
 
         $data = [
@@ -585,8 +600,8 @@ class UserController extends Controller
 
                 // EDU 专用优惠券
                 if (strrchr($coupon_sn, 'edu.cn') == 'edu.cn') {  // coupon 以 edu.cn结尾的话，
-                    if (strrchr(Auth::user()->username, 'edu.cn') != 'edu.cn') {  // 但是用户不是 edu用户的话，不能用这个 优惠券
-                        return Response::json(['status' => 'fail', 'data' => '', 'message' => '此优惠券为EDU用户专用优惠券']);
+                    if (strrchr(Auth::user()->username, $coupon_sn) != $coupon_sn) {  // 但是用户不是 edu用户的话，不能用这个 优惠券
+                        return Response::json(['status' => 'fail', 'data' => '', 'message' => '此优惠券为 '.$coupon->name.' 专享优惠券']);
                     }
                 }
 
@@ -953,7 +968,7 @@ class UserController extends Controller
         // 检验注册返利， 消费返利那里要高于 要提取的注册返利的2倍才行
         $ref_amount = ReferralLog::uid()->where('status', 0)->where('order_id','>',0)->where('amount','>',0)->sum('amount'); // 计算总消费金额
         if (empty($ref_amount) || ($ref_amount < ($aff_amount * 2) ) ) {   // 注册返利金额 不能低于 消费总额的一半！ 很重要
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：不满' . ($aff_amount * 2 / 100) . '元，继续努力吧']);
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：您申请提现 '.($aff_amount/100).'￥，需要被邀请用户消费满' . ($aff_amount * 2 / 100) . '元，继续努力吧']);
         }
 
         // 取出所有的返利日志，这样可以有
@@ -1048,7 +1063,7 @@ class UserController extends Controller
         // 校验可以提现金额是否超过系统设置的阀值
         $ref_amount = ReferralLog::uid()->where('status', 0)->where('order_id','>',0)->where('amount','!=',0)->sum('ref_amount');
         if ($ref_amount < self::$systemConfig['referral_money'] * 100) {
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：不满' . self::$systemConfig['referral_money'] . '元，继续努力吧']);
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：邀请用户累计消费返利不满' . self::$systemConfig['referral_money'] . '元，继续努力吧']);
         }
 
         // 取出所有的返利日志，这样可以有
@@ -1277,6 +1292,96 @@ class UserController extends Controller
         $view['nodeName'] = $node->name . ' #' . $node->id;
         $view['nodeDesc'] = $node->desc;
         //$view['monthDays'] = "'" . implode("','", $monthDays) . "'";
+
+        //展示节点信息
+        // 订阅连接
+        $view['link'] = (self::$systemConfig['subscribe_domain'] ? self::$systemConfig['subscribe_domain'] : self::$systemConfig['website_url']) . '/s/' . Auth::user()->subscribe->code;
+        // 订阅连接二维码
+        $view['link_qrcode'] = 'sub://' . base64url_encode($view['link']) . '#' . base64url_encode(self::$systemConfig['website_name']);
+        if ($node->type == 1) {
+            // 生成ssr scheme
+            $obfs_param = Auth::user()->obfs_param ? Auth::user()->obfs_param : $node->obfs_param;
+            $protocol_param = $node->single ? Auth::user()->port . ':' . Auth::user()->passwd : Auth::user()->protocol_param;
+
+            $ssr_str = ($node->server ? $node->server : $node->ip) . ':' . ($node->single ? $node->single_port : Auth::user()->port);
+            $ssr_str .= ':' . ($node->single ? $node->single_protocol : Auth::user()->protocol) . ':' . ($node->single ? $node->single_method : Auth::user()->method);
+            $ssr_str .= ':' . ($node->single ? $node->single_obfs : Auth::user()->obfs) . ':' . ($node->single ? base64url_encode($node->single_passwd) : base64url_encode(Auth::user()->passwd));
+            $ssr_str .= '/?obfsparam=' . base64url_encode($obfs_param);
+            $ssr_str .= '&protoparam=' . ($node->single ? base64url_encode(Auth::user()->port . ':' . Auth::user()->passwd) : base64url_encode($protocol_param));
+            $ssr_str .= '&remarks=' . base64url_encode($node->name);
+            $ssr_str .= '&group=' . base64url_encode(empty($group) ? '' : $group->name);
+            $ssr_str .= '&udpport=0';
+            $ssr_str .= '&uot=0';
+            $ssr_str = base64url_encode($ssr_str);
+            $ssr_scheme = 'ssr://' . $ssr_str;
+
+            // 生成ss scheme
+            $ss_str = Auth::user()->method . ':' . Auth::user()->passwd . '@';
+            $ss_str .= ($node->server ? $node->server : $node->ip) . ':' . Auth::user()->port;
+            $ss_str = base64url_encode($ss_str) . '#' . 'VPN';
+            $ss_scheme = 'ss://' . $ss_str;
+
+            // 生成文本配置信息
+            $txt = "服务器：" . ($node->server ? $node->server : $node->ip) . PHP_EOL;
+            $txt .= "远程端口：" . ($node->single ? $node->single_port : Auth::user()->port) . PHP_EOL;
+            $txt .= "密码：" . ($node->single ? $node->single_passwd : Auth::user()->passwd) . PHP_EOL;
+            $txt .= "加密方法：" . ($node->single ? $node->single_method : Auth::user()->method) . PHP_EOL;
+            $txt .= "路由：绕过局域网及中国大陆地址" . PHP_EOL . PHP_EOL;
+            $txt .= "协议：" . ($node->single ? $node->single_protocol : Auth::user()->protocol) . PHP_EOL;
+            $txt .= "协议参数：" . ($node->single ? Auth::user()->port . ':' . Auth::user()->passwd : Auth::user()->protocol_param) . PHP_EOL;
+            $txt .= "混淆方式：" . ($node->single ? $node->single_obfs : Auth::user()->obfs) . PHP_EOL;
+            $txt .= "混淆参数：" . (Auth::user()->obfs_param ? Auth::user()->obfs_param : $node->obfs_param) . PHP_EOL;
+            $txt .= "本地端口：1080" . PHP_EOL;
+
+            $node->txt = $txt;
+            $node->ssr_scheme = $ssr_scheme;
+            $node->ss_scheme = $node->compatible ? $ss_scheme : ''; // 节点兼容原版才显示
+
+            $allNodes .= $ssr_scheme . '|';
+        } else {
+            // 生成v2ray scheme
+            $v2_json = [
+                "v"    => "2",
+                "ps"   => $node->name,
+                "add"  => $node->server ? $node->server : $node->ip,
+                "port" => $node->v2_port,
+                "id"   => Auth::user()->vmess_id,
+                "aid"  => $node->v2_alter_id,
+                "net"  => $node->v2_net,
+                "type" => $node->v2_type,
+                "host" => $node->v2_host,
+                "path" => $node->v2_path,
+                "tls"  => $node->v2_tls == 1 ? "tls" : ""
+            ];
+            $v2_scheme = 'vmess://' . base64url_encode(json_encode($v2_json, JSON_PRETTY_PRINT));
+
+            // 生成文本配置信息
+            $txt = "服务器：" . ($node->server ? $node->server : $node->ip) . PHP_EOL;
+            $txt .= "端口：" . $node->v2_port . PHP_EOL;
+            $txt .= "加密方式：" . $node->v2_method . PHP_EOL;
+            $txt .= "用户ID：" . Auth::user()->vmess_id . PHP_EOL;
+            $txt .= "额外ID：" . $node->v2_alter_id . PHP_EOL;
+            $txt .= "传输协议：" . $node->v2_net . PHP_EOL;
+            $txt .= "伪装类型：" . $node->v2_type . PHP_EOL;
+            $txt .= $node->v2_host ? "伪装域名：" . $node->v2_host . PHP_EOL : "";
+            $txt .= $node->v2_path ? "路径：" . $node->v2_path . PHP_EOL : "";
+            $txt .= $node->v2_tls ? "TLS：tls" . PHP_EOL : "";
+            $txt .= "allowInsecure：true" . PHP_EOL;
+            $txt .= $node->v2_host ? "MAC,tls servername：" . $node->v2_host . PHP_EOL : "";
+            $txt .= $node->v2_host ? "IOS,Peer：" . $node->v2_host . PHP_EOL : "";
+
+            $node->txt = $txt;
+            $node->v2_scheme = $v2_scheme;
+        }
+
+        // 节点在线状态
+        $nodeInfo = SsNodeInfo::query()->where('node_id', $node->id)->where('log_time', '>=', strtotime("-10 minutes"))->orderBy('id', 'desc')->first();
+        $node->online_status = empty($nodeInfo) || empty($nodeInfo->load) ? 0 : 1;
+
+        // 节点标签
+        $node->labels = SsNodeLabel::query()->with('labelInfo')->where('node_id', $node->id)->get();
+
+        $view['node'] = $node;
 
         return Response::view('user.nodeMonitor', $view);
     }

@@ -42,34 +42,38 @@
     <!-- BEGIN LOGIN -->
     <div class="content " >
         <nav style="padding-bottom: 20px;text-align: center;">
-            <a>★公益站点<br>★全协议SR SS Vmess支持<br>★阿里云 微软云 亚马逊云网络支持<br>★解锁:NetFlix<br>★解锁:提供超值的流量和VIP服务</a>
-            <!-- @if(app()->getLocale() == 'zh-CN')
+            @if(app()->getLocale() == 'zh-CN')
                 <a href="{{url('lang', ['locale' => 'zh-tw'])}}">繁體中文</a>
                 <a href="{{url('lang', ['locale' => 'en'])}}">English</a>
                 <a href="{{url('lang', ['locale' => 'ja'])}}">日本語</a>
                 <a href="{{url('lang', ['locale' => 'ko'])}}">한국어</a>
+                <br><code>★公益站点★全协议SR SS Vmess支持★阿里云 微软云 亚马逊云网络支持★解锁:NetFlix</code>
             @elseif(app()->getLocale() == 'zh-tw')
                 <a href="{{url('lang', ['locale' => 'zh-CN'])}}">简体中文</a>
                 <a href="{{url('lang', ['locale' => 'en'])}}">English</a>
                 <a href="{{url('lang', ['locale' => 'ja'])}}">日本語</a>
                 <a href="{{url('lang', ['locale' => 'ko'])}}">한국어</a>
+                <br><code>★公益站點★全協議SR SS Vmess支持★阿里雲 微軟雲 亞馬遜云網絡支持★解鎖:NetFlix</code>
             @elseif(app()->getLocale() == 'en')
                 <a href="{{url('lang', ['locale' => 'zh-CN'])}}">简体中文</a>
                 <a href="{{url('lang', ['locale' => 'zh-tw'])}}">繁體中文</a>
                 <a href="{{url('lang', ['locale' => 'ja'])}}">日本語</a>
                 <a href="{{url('lang', ['locale' => 'ko'])}}">한국어</a>
+                <br><code>Public welfare site ★ Full agreement SR SS Vmess support ★ Alibaba Cloud Microsoft Cloud Amazon Cloud Network Support ★ Unlock: NetFlix</code>
             @elseif(app()->getLocale() == 'ko')
                 <a href="{{url('lang', ['locale' => 'zh-CN'])}}">简体中文</a>
                 <a href="{{url('lang', ['locale' => 'zh-tw'])}}">繁體中文</a>
                 <a href="{{url('lang', ['locale' => 'en'])}}">English</a>
                 <a href="{{url('lang', ['locale' => 'ja'])}}">日本語</a>
+                <br><code>★공공 복지 사이트 ★ 전체 계약 SR SS Vmess 지원 ★ Alibaba Cloud Microsoft 클라우드 Amazon 클라우드 네트워크 지원 ★ 잠금 해제 : NetFlix</code>
             @elseif(app()->getLocale() == 'ja')
                 <a href="{{url('lang', ['locale' => 'zh-CN'])}}">简体中文</a>
                 <a href="{{url('lang', ['locale' => 'zh-tw'])}}">繁體中文</a>
                 <a href="{{url('lang', ['locale' => 'en'])}}">English</a>
                 <a href="{{url('lang', ['locale' => 'ko'])}}">한국어</a>
+                <br><code>★公共福祉サイト★完全合意SR SS Vmessサポート★Alibaba Cloud Microsoft Cloud Amazon Cloudネットワークサポート★ロック解除：NetFlix</code>
             @else
-            @endif-->
+            @endif
         </nav>
         @yield('content')
     </div>

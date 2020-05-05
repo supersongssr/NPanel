@@ -44,11 +44,37 @@
                             </li>
                             <li>
                                 <h4>
-                                    <span class="font-blue">等级：</span>
-                                    <span class="font-red">Lv.{{Auth::user()->level}}</span>
+                                    <span class="font-blue">学历：</span>
+                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span>
                                 </h4>
                             </li>
-                            
+                            @if (Auth::user()->balance < 0)
+                            <li>
+                                <h4>
+                                    <span class="font-blue">信用卡：</span>
+                                    <span class="font-red">{{ (Auth::user()->balance + Auth::user()->credit) / 100}} / {{Auth::user()->credit / 100}}</span>
+                                </h4>
+                            </li>
+                            <li>
+                                <h4>
+                                    <span class="font-blue">本期账单：</span>
+                                    <span class="font-red">{{Auth::user()->balance / 100}}(请在{{Auth::user()->credit_days}}日内还款)</span>
+                                </h4>
+                            </li>
+                            @else
+                            <li>
+                                <h4>
+                                    <span class="font-blue">余额：</span>
+                                    <span class="font-red">{{ (Auth::user()->balance + Auth::user()->credit) / 100}}</span>
+                                </h4>
+                            </li>
+                            <li>
+                                <h4>
+                                    <span class="font-blue">信用卡：</span>
+                                    <span class="font-red">{{Auth::user()->credit / 100}}</span>
+                                </h4>
+                            </li>
+                            @endif
                             @if(Auth::user()->traffic_reset_day)
                             <li>
                                 <h4>
@@ -131,7 +157,6 @@
 @endsection
 @section('script')
     <script src="/assets/global/plugins/echarts/echarts.min.js" type="text/javascript"></script>
-
     <script type="text/javascript">
         // 签到
         function checkIn() {
@@ -237,4 +262,6 @@
 
         myChart.setOption(option);
     </script>
+
 @endsection
+

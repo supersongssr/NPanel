@@ -168,10 +168,19 @@
                                                 
                                                 
                                                 <div class="form-group">
-                                                    <label for="bandwidth" class="col-md-3 control-label">每月流量</label>
+                                                    <label for="bandwidth" class="col-md-3 control-label">带宽</label>
                                                     <div class="col-md-8">
                                                         <div class="input-group">
                                                             <input type="text" class="form-control" name="bandwidth" value="1000" id="bandwidth" placeholder="" required>
+                                                            <span class="input-group-addon">M</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="traffic_limit" class="col-md-3 control-label">每月流量</label>
+                                                    <div class="col-md-8">
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control right" name="traffic_limit" value="{{floor($node->traffic_limit / 1024/1024/1024)}}" id="traffic_limit" placeholder="" required>
                                                             <span class="input-group-addon">G</span>
                                                         </div>
                                                     </div>
@@ -555,6 +564,7 @@
             var obfs_param = $('#obfs_param').val();
             var bandwidth = $('#bandwidth').val();
             var traffic = $('#traffic').val();
+            var traffic_limit = $('#traffic_limit').val();
             var monitor_url = $('#monitor_url').val();
             var is_subscribe = $("input:radio[name='is_subscribe']:checked").val();
             var is_nat = $("input:radio[name='is_nat']:checked").val();
@@ -609,6 +619,7 @@
                     obfs_param: obfs_param,
                     bandwidth: bandwidth,
                     traffic: traffic,
+                    traffic_limit: traffic_limit,
                     monitor_url: monitor_url,
                     is_subscribe: is_subscribe,
                     is_nat: is_nat,

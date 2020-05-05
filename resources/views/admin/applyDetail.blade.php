@@ -61,7 +61,7 @@
                                         <th colspan="6">ID：{{$info->id}} | 申请人：{{$info->user->username}} | 提现金额：{{$info->amount /100}} | 申请时间：{{$info->created_at}}</th>
                                     </tr>
                                     <tr class="uppercase">
-                                        <th colspan="6"> 姓名： <code>{{$info->user->wechat}}</code>  银行卡号： <code>{{$info->user->qq}} </code></th>
+                                        <th colspan="6"><img src="{{$info->user->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 500px; max-height: 500px;"></th>
                                     </tr>
                                     <tr class="uppercase">
                                         <th> # </th>
@@ -81,7 +81,11 @@
                                         @foreach($list as $vo)
                                             <tr>
                                                 <td> {{$vo->id}} </td>
-                                                <td> {{empty($vo->user) ? '【账号已删除】' : $vo->user->username}} </td>
+                                                @if(empty($vo->user))
+                                                <td> 【账号已删除】 </td>
+                                                @else
+                                                <td> <a href="{{'/admin/userBalanceLogList?username='.$vo->user->username}}" target="_blank">{{$vo->user->username}}</a>  </td>
+                                                @endif
                                                 <td> {{empty($vo->order) ? '注册返利' : $vo->order->goods->name}}</td>
                                                 <td> {{$vo->amount / 100}} </td>
                                                 <td> {{$vo->ref_amount / 100}} </td>

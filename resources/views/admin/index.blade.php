@@ -33,36 +33,36 @@
                         </tr>
                         <tr>
                             <td>G1</td>
-                            <td>{{$nodeallgroup1 - $userliveallgroup1}}</td>
-                            <td>{{$nodelv6group1 - $userlivevip6group1}}</td>
-                            <td>{{$nodelv5group1 - $userlivevip5group1}}</td>
-                            <td>{{$nodelv4group1 - $userlivevip4group1}}</td>
-                            <td>{{$nodelv3group1 - $userlivevip3group1}}</td>
-                            <td>{{$nodelv2group1 - $userlivevip2group1}}</td>
-                            <td>{{$nodelv1group1 - $userlivevip1group1}}</td>
-                            <td>{{$nodelv0group1 - $userlivevip0group1}}</td>
+                            <td>{{$nodeallgroup1}}|{{$userliveallgroup1}}</td>
+                            <td>{{$nodelv6group1}}|{{$userlivevip6group1}}</td>
+                            <td>{{$nodelv5group1}}|{{$userlivevip5group1}}</td>
+                            <td>{{$nodelv4group1}}|{{$userlivevip4group1}}</td>
+                            <td>{{$nodelv3group1}}|{{$userlivevip3group1}}</td>
+                            <td>{{$nodelv2group1}}|{{$userlivevip2group1}}</td>
+                            <td>{{$nodelv1group1}}|{{$userlivevip1group1}}</td>
+                            <td>{{$nodelv0group1}}|{{$userlivevip0group1}}</td>
                         </tr>
                         <tr>
                             <td>G2</td>
-                            <td>{{$nodeallgroup2 - $userliveallgroup2}}</td>
-                            <td>{{$nodelv6group2 - $userlivevip6group2}}</td>
-                            <td>{{$nodelv5group2 - $userlivevip5group2}}</td>
-                            <td>{{$nodelv4group2 - $userlivevip4group2}}</td>
-                            <td>{{$nodelv3group2 - $userlivevip3group2}}</td>
-                            <td>{{$nodelv2group2 - $userlivevip2group2}}</td>
-                            <td>{{$nodelv1group2 - $userlivevip1group2}}</td>
-                            <td>{{$nodelv0group2 - $userlivevip0group2}}</td>
+                            <td>{{$nodeallgroup2}}|{{$userliveallgroup2}}</td>
+                            <td>{{$nodelv6group2}}|{{$userlivevip6group2}}</td>
+                            <td>{{$nodelv5group2}}|{{$userlivevip5group2}}</td>
+                            <td>{{$nodelv4group2}}|{{$userlivevip4group2}}</td>
+                            <td>{{$nodelv3group2}}|{{$userlivevip3group2}}</td>
+                            <td>{{$nodelv2group2}}|{{$userlivevip2group2}}</td>
+                            <td>{{$nodelv1group2}}|{{$userlivevip1group2}}</td>
+                            <td>{{$nodelv0group2}}|{{$userlivevip0group2}}</td>
                         </tr>
                         <tr>
                             <td>G3</td>
-                            <td>{{$nodeallgroup3 - $userliveallgroup3}}</td>
-                            <td>{{$nodelv6group3 - $userlivevip6group3}}</td>
-                            <td>{{$nodelv5group3 - $userlivevip5group3}}</td>
-                            <td>{{$nodelv4group3 - $userlivevip4group3}}</td>
-                            <td>{{$nodelv3group3 - $userlivevip3group3}}</td>
-                            <td>{{$nodelv2group3 - $userlivevip2group3}}</td>
-                            <td>{{$nodelv1group3 - $userlivevip1group3}}</td>
-                            <td>{{$nodelv0group3 - $userlivevip0group3}}</td>
+                            <td>{{$nodeallgroup3}}|{{$userliveallgroup3}}</td>
+                            <td>{{$nodelv6group3}}|{{$userlivevip6group3}}</td>
+                            <td>{{$nodelv5group3}}|{{$userlivevip5group3}}</td>
+                            <td>{{$nodelv4group3}}|{{$userlivevip4group3}}</td>
+                            <td>{{$nodelv3group3}}|{{$userlivevip3group3}}</td>
+                            <td>{{$nodelv2group3}}|{{$userlivevip2group3}}</td>
+                            <td>{{$nodelv1group3}}|{{$userlivevip1group3}}</td>
+                            <td>{{$nodelv0group3}}|{{$userlivevip0group3}}</td>
                         </tr>
                     </table>
                     <table class="table table-hover table-light">

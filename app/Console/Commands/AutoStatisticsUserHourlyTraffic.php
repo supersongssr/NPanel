@@ -25,14 +25,29 @@ class AutoStatisticsUserHourlyTraffic extends Command
 
         $userList = User::query()->where('status', '>=', 0)->where('enable', 1)->get();
         foreach ($userList as $user) {
-            // 统计一次所有节点的总和
+            /*// 统计一次所有节点的总和
             $this->statisticsByNode($user->id);
 
             // 统计每个节点产生的流量
             $nodeList = SsNode::query()->where('status', 1)->orderBy('id', 'asc')->get();
             foreach ($nodeList as $node) {
                 $this->statisticsByNode($user->id, $node->id);
-            }
+            }*/
+
+            $traffic_hour = $user->u + $user->d - $user->traffic_lasthour;
+            $traffic_hour < 0 && $traffic_hour = 0;
+
+            $obj = new UserTrafficHourly();
+            $obj->user_id = $user->id;
+            $obj->node_id = 0;
+            $obj->u = $user->u;
+            $obj->d = $user->d;
+            $obj->total = $traffic_hour;
+            $obj->traffic = flowAutoShow($traffic_hour);
+            $obj->save();
+
+            $user->traffic_lasthour = $user->u + $user->d;
+            $user->save();
         }
 
         $jobEndTime = microtime(true);

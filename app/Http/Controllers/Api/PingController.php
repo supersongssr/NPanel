@@ -104,7 +104,7 @@ class PingController extends Controller
         $node_onload = round(($online / $node->node_cost),2);
         //写入node数据 status
         SsNode::query()->where('id',$id)->update(['status'=>$status,'traffic'=>$traffic,'node_online'=>$online,'node_onload'=>$node_onload]);
-        empty($node['monitor_url']) && exit;  //如果ssn关键数据为空，剩下的流量就不写了。 正常节点有正常写入流量的
+        /*empty($node['monitor_url']) && exit;  //如果ssn关键数据为空，剩下的流量就不写了。 正常节点有正常写入流量的
         //写入每小时节点流量
         //直接写入用户流量数据
         $obj = new UserTrafficLog();
@@ -117,7 +117,7 @@ class PingController extends Controller
         $obj->rate = 1;
         $obj->traffic = floor($traffic_now / 1048576) . 'MB';
         $obj->log_time = time();
-        $obj->save();
+        $obj->save();*/
         /**
         $obj = new SsNodeTrafficHourly();
         $traffic_now = $traffic - $traffic_mark;
@@ -139,46 +139,43 @@ class PingController extends Controller
 
     public function ssn_v2(Request $request, $id)
     {
-        //$id < 32 && exit;   #id 小于32的没有需求 直接退出
+        //$id < 9 && exit;   #id 小于32的没有需求 直接退出
         $node = SsNode::query()->where('id', $id)->first();
-        $s1 = $request->get('s1');
-        $v2 = $request->get('v2');
-        //写入节点数据
-        if ($node['type'] == 1 && !empty($s1)) {
-            # code...
-            //empty($node['monitor_url']) && exit; #如果关键数据为空，直接退出
-            //empty($node['monitor_url']) && exit;
-            $addn = explode('#',$s1);
-            $data = [
-                'ip'=>$addn['0'] , 
-                'ssh_port'=>$addn['1'], 
-                'monitor_url'=>$addn['2'], 
-                'method'=>$addn['3']
-            ];
-            SsNode::query()->where('id',$id)->update($data);
-        }
-        if ($node['type'] == 2 && !empty($v2)) {
-            # code...
+       
+        !empty($request->get('type')) && $node->type = $request->get('type');
+        !empty($request->get('name')) && $node->name = $request->get('name');
+        !empty($request->get('country_code')) && $node->country_code = $request->get('country_code');
+        !empty($request->get('server')) && $node->server = $request->get('server');
+        !empty($request->get('ipv6')) && $node->ipv6 = $request->get('ipv6');
+        !empty($request->get('traffic_rate')) && $node->traffic_rate = $request->get('traffic_rate');
+        !empty($request->get('node_cost')) && $node->node_cost = $request->get('node_cost');
+        !empty($request->get('bandwidth')) && $node->bandwidth = $request->get('bandwidth');
+        !empty($request->get('traffic_limit')) && $node->traffic_limit = $request->get('traffic_limit')*1024*1024*1024;
+        !empty($request->get('is_transit')) && $node->is_transit = 1;
+        $node->sort = 0;
+        
+        if ($request->get('v2')) {
+            $v2 = $request->get('v2');
             $addn = explode('#',$v2);
-            $data = [
-                'ip'=>$addn['0'], 
-                'v2_port'=>$addn['1'],
-                'monitor_url'=>$addn['2'],
-                'v2_alter_id'=>$addn['3'], 
-                'v2_net'=>$addn['4'], 
-                'v2_type'=>$addn['5'],
-                'v2_host'=>'',
-                'v2_path'=>'',
-                'v2_tls'=>'0'
-            ];
+
+            $node->ip = $addn['0'];
+            $node->v2_port = $addn['1'];
+            $node->monitor_url = $addn['2'];
+            $node->v2_alter_id = $addn['3'];
+            $node->v2_net = $addn['4'];
+            $node->v2_type = $addn['5'];
+            $node->v2_host = '';
+            $node->v2_path = '';
+            $node->v2_tls = '0';
+
             if (count($addn) > 8) {
                 # code...
-                $data['v2_host'] = $addn['6'];
-                $data['v2_path'] = '/'.$addn['7'];
-                $data['v2_tls'] = empty($addn['8']) ? '0': '1';
+                $node->v2_host = $addn['6'];
+                $node->v2_path = '/'.$addn['7'];
+                $node->v2_tls = empty($addn['8']) ? '0': '1';
             }
-
-            SsNode::query()->where('id',$id)->update($data);
         }
+
+        $node->save();
     }
 }

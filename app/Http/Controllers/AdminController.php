@@ -853,11 +853,12 @@ class AdminController extends Controller
                 $ssNode->obfs_param = $request->get('obfs_param') ? $request->get('obfs_param') : '';
                 $ssNode->traffic_rate = $request->get('traffic_rate') ? $request->get('traffic_rate') : 1;
                 $ssNode->bandwidth = $request->get('bandwidth') ? $request->get('bandwidth') : 1000;
-                $ssNode->traffic = $request->get('traffic') ? $request->get('traffic') : 1000;
+                $ssNode->traffic = $request->get('traffic') ? $request->get('traffic')*1024*1024*1024 : 0;
+                $ssNode->traffic_limit = $request->get('traffic_limit') ? $request->get('traffic_limit')*1024*1024*1024 : 1000*1024*1024*1024;
                 $ssNode->monitor_url = $request->get('monitor_url') ? $request->get('monitor_url') : '';
                 $ssNode->is_subscribe = intval($request->get('is_subscribe'));
                 $ssNode->is_nat = intval($request->get('is_nat'));
-                //$ssNode->is_transit = intval($request->get('is_transit'));
+                $ssNode->is_transit = intval($request->get('is_transit'));
                 $ssNode->ssh_port = $request->get('ssh_port') ? intval($request->get('ssh_port')) : 22;
                 $ssNode->is_tcp_check = intval($request->get('is_tcp_check'));
                 //$ssNode->compatible = intval($request->get('type')) == 2 ? 0 : (intval($request->get('is_nat')) ? 0 : intval($request->get('compatible')));
@@ -981,11 +982,12 @@ class AdminController extends Controller
                     'traffic_rate'     => $request->get('traffic_rate'),
                     'node_cost'     => $request->get('node_cost'),
                     'bandwidth'        => $request->get('bandwidth') ? $request->get('bandwidth') : 1000,
-                    'traffic'          => $request->get('traffic') ? $request->get('traffic') : 1000,
+                    'traffic'          => $request->get('traffic') ? $request->get('traffic')*1024*1024*1024 : 0,
+                    'traffic_limit'    => $request->get('traffic_limit') ? $request->get('traffic_limit')*1024*1024*1024 : 1000*1024*1024*1024,
                     'monitor_url'      => $request->get('monitor_url') ? $request->get('monitor_url') : '',
                     'is_subscribe'     => intval($request->get('is_subscribe')),
                     'is_nat'           => intval($request->get('is_nat')),
-                    //'is_transit'       => intval($request->get('is_transit')),
+                    'is_transit'       => intval($request->get('is_transit')),
                     'ssh_port'         => intval($request->get('ssh_port')),
                     'is_tcp_check'     => intval($request->get('is_tcp_check')),
                     //'compatible'       => intval($request->get('type')) == 2 ? 0 : (intval($request->get('is_nat')) ? 0 : intval($request->get('compatible'))),
@@ -1001,7 +1003,7 @@ class AdminController extends Controller
                     'level'            => intval($request->get('level')),
                     'node_group'       => intval($request->get('node_group')),
                     'status'           => intval($request->get('status')),
-                    'v2_alter_id'      => $request->get('v2_alter_id') ? intval($request->get('v2_alter_id')) : 16,
+                    'v2_alter_id'      => $request->get('v2_alter_id') ? intval($request->get('v2_alter_id')) : 0,
                     'v2_port'          => $request->get('v2_port') ? intval($request->get('v2_port')) : 10087,
                     'v2_method'        => $request->get('v2_method') ? $request->get('v2_method') : 'aes-128-gcm',
                     'v2_net'           => $request->get('v2_net'),
@@ -2505,6 +2507,7 @@ EOF;
     {
         $id = $request->get('id');
         $status = $request->get('status');
+        //
         $ret = ReferralApply::query()->where('id', $id)->update(['status' => $status]);
         if ($ret) {
             // 审核申请的时候将关联的
@@ -2544,6 +2547,13 @@ EOF;
                 }
             }
             **/
+        }
+
+        // 主要是更新 银行卡信息 记录到提现里面
+        $referral_apply = ReferralApply::query()->where('id', $id)->first();
+        $user = User::where('id',$referral_apply->user_id)->first();
+        if (!empty($user->id)) {
+            ReferralApply::query()->where('id', $id)->update(['card_name' => $user->wechat,'card_num' => $user->qq]);
         }
 
         return Response::json(['status' => 'success', 'data' => '', 'message' => '操作成功']);
@@ -2740,7 +2750,7 @@ EOF;
     // 标签列表
     public function labelList(Request $request)
     {
-        $labelList = Label::query()->paginate(15)->appends($request->except('page'));
+        $labelList = Label::query()->orderBy('sort','desc')->paginate(15)->appends($request->except('page'));
         foreach ($labelList as $label) {
             $label->userCount = UserLabel::query()->where('label_id', $label->id)->groupBy('label_id')->count();
             $label->nodeCount = SsNodeLabel::query()->where('label_id', $label->id)->groupBy('label_id')->count();

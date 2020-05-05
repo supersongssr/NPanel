@@ -25,14 +25,30 @@ class AutoStatisticsUserDailyTraffic extends Command
 
         $userList = User::query()->where('status', '>=', 0)->where('enable', 1)->get();
         foreach ($userList as $user) {
-            // 统计一次所有节点的总和
+            /*// 统计一次所有节点的总和
             $this->statisticsByNode($user->id);
 
             // 统计每个节点产生的流量
             $nodeList = SsNode::query()->where('status', 1)->orderBy('id', 'asc')->get();
             foreach ($nodeList as $node) {
                 $this->statisticsByNode($user->id, $node->id);
-            }
+            }*/
+
+            $traffic_today = $user->u + $user->d - $user->traffic_lastday;
+            $traffic_today < 0 && $traffic_today = 0;
+
+            $obj = new UserTrafficDaily();
+            $obj->user_id = $user->id;
+            $obj->node_id = 0;
+            $obj->u = $user->u;
+            $obj->d = $user->d;
+            $obj->total = $traffic_today;
+            $obj->traffic = flowAutoShow($traffic_today);
+            $obj->save();
+
+            $user->traffic_lastday = $user->u + $user->d;
+            $user->save();
+
         }
 
         $jobEndTime = microtime(true);

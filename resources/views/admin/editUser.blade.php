@@ -109,9 +109,9 @@
                                                     </div>
                                                 </div>
                                             <div class="form-group">
-                                                <label for="balance" class="col-md-3 control-label">余额</label>
+                                                <label for="balance" class="col-md-3 control-label">余额元</label>
                                                 <div class="col-md-5">
-                                                    <p class="form-control-static"> {{$user->balance}} </p>
+                                                    <p class="form-control-static"> {{$user->balance /100}} </p>
                                                 </div>
                                                 <div class="col-md-3">
                                                     <div style="float:right;">
@@ -405,7 +405,7 @@
                             <form action="#" method="post" class="form-horizontal">
                                 <div class="form-body">
                                     <div class="form-group">
-                                        <label for="amount" class="col-md-4 control-label"> 充值金额 </label>
+                                        <label for="amount" class="col-md-4 control-label"> 充值金额 元</label>
                                         <div class="col-md-8">
                                             <input type="text" class="form-control" name="amount" id="amount" placeholder="填入负值则会扣余额" onkeydown="if(event.keyCode==13){return false;}">
                                         </div>

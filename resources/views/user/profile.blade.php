@@ -31,10 +31,11 @@
                                     </div>
                                     <ul class="nav nav-tabs">
                                         <li class="active">
-                                            <a href="#tab_4" data-toggle="tab">CN+入口选择</a>
+                                            <a href="#tab_4" data-toggle="tab">CN+中转入口</a>
                                         </li>
+                                        
                                         <li >
-                                            <a href="#tab_5" data-toggle="tab">CN+节点申请</a>
+                                            <a href="#tab_6" data-toggle="tab">CF+网络优化</a>
                                         </li>
                                         <li >
                                             <a href="#tab_1" data-toggle="tab">账号密码</a>
@@ -45,7 +46,9 @@
                                         <li>
                                             <a href="#tab_3" data-toggle="tab">节点密码</a>
                                         </li>
-                                        
+                                        <li >
+                                            <a href="#tab_5" data-toggle="tab">申请CN+中转</a>
+                                        </li>
                                     </ul>
                                 </div>
                                 <div class="portlet-body">
@@ -73,15 +76,16 @@
                                         <div class="tab-pane" id="tab_2">
                                             <form action="profile" method="post" enctype="multipart/form-data" class="form-bordered">
                                                 <div class="form-group">
-                                                    <label class="control-label">姓名</label>
+                                                    <label class="control-label"> 紧急联系方式：QQ / Wechat / Tg / Phone / Email / Facebook 等</label>
+                                                    <input type="text" class="form-control" name="qq" value="{{Auth::user()->qq}}" id="qq" required />
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="control-label">微信收款二维码 *<a href="https://imgurl.org/" target="_blank">免费图床</a></label>
                                                     <input type="text" class="form-control" name="wechat" value="{{Auth::user()->wechat}}" id="wechat" required />
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
-                                                <div class="form-group">
-                                                    <label class="control-label"> 银行卡号 </label>
-                                                    <input type="text" class="form-control" name="qq" value="{{Auth::user()->qq}}" id="qq" required />
-                                                </div>
-                                                <p><code>*请务必检查填写信息是否正确，如果由于您填写的账号的信息错误导致无法受到打款，只能自己承担呦</code></p>
+                                                <p>请使用 <a href="https://imgurl.org/" target="_blank">免费图床</a>上传收款码，复制 URL 地址到上面。<br><code>*请务必检查您的收款二维码是否正确，如果由于您错误的二维码无法收到打款，只能自己承担呦</code></p>
+                                                <p><code>您的收款二维码为：<br></code><img src="{{Auth::user()->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 300px; max-height: 300px;"> </p> 
                                                 <div class="form-actions">
                                                     <div class="row">
                                                         <div class="col-md-12">
@@ -122,13 +126,18 @@
                                                 <div class="form-group">
                                                     {{ csrf_field() }}
                                                     <select class="form-control" name="cncdn" id="cncdn">
-                                                        <option value="0">CN+ 节点 中转入口 选择</option>
+                                                        @if (Auth::user()->cncdn)
+                                                        <option value="{{Auth::user()->cncdn}}">{{Auth::user()->cncdn}}</option>
+                                                        @else
+                                                        <option value="">默认稳定</option>
+                                                        @endif
                                                         @foreach($cncdns as $cncdn)
-                                                            <option value="{{$cncdn->areaid}}" {{ $cncdn->areaid == Auth::user()->cncdn ? 'selected' : ''}} >{{$cncdn->area}}</option>
+                                                            <option value="{{$cncdn->area}}" >{{$cncdn->area}}</option>
                                                         @endforeach
                                                     </select>
                                                 </div>
-                                                <p><code>*修改后，请软件中更新节点<br>*不会选？就选联通入口<br>*这是对 CN+ 节点有效的呦</code></p>
+                                                <p>什么条件下使用它： 当您使用CN+节点网速不佳的时候。表现在移动、电信的网络被运营商Qos严重的情况下。
+                                                    <br>技术原理：用户自身网络不佳时，通过中转服务器，来加速用户的上网速度。<br><code>*修改后，请软件中更新节点<br>*不会选？就选联通入口<br>*这是对 CN+ 节点有效的呦</code></p>
                                                 <div class="form-actions">
                                                     <div class="row">
                                                         <div class="col-md-12">
@@ -150,6 +159,30 @@
                                                     <div class="row">
                                                         <div class="col-md-12">
                                                             <button type="submit" class="btn green"> {{trans('home.submit')}} </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="tab-pane" id="tab_6">
+                                            <form action="profile" method="post" enctype="multipart/form-data" class="form-bordered">
+                                                <div class="form-group">
+                                                    <label class="control-label">CF+ 选择下面延迟最低的IP，填写到这里</label>
+                                                    <input type="text" class="form-control" name="cfcdn" value="{{Auth::user()->cfcdn}}" id="cfcdn" required />
+                                                    <input type="hidden" name="_token" value="{{csrf_token()}}" />
+                                                </div>
+                                                <p>什么条件下使用它： 直连网速不佳的时候。尤其是移动/电信。<br>
+                                                原理：某些用户的网络IP被运营商给限制，无法使用国际带宽，或者国际带宽被限制在500K左右。 设置CF+ 的IP优化，可以避开运营商的IP限制和限速。</p>
+                                                <p>
+                                                    您只能在如下IP段里选择IP：否则可能没有网络<br>
+                                                    <code>移动：172.64.32.0-255, 104.20.48.2, 104.24.96.2, 104.20.48.2, 104.17.32.0, 104.17.40.2, 104.24.240.2, 104.28.144.2, 104.25.192.2, 104.31.87.112
+                                                    <br>电信：162.159.208.4-103, 162.159.209.4-103, 162.159.210.4-103, 162.159.211.4-103
+                                                <br>联通：162.159.208.4-103, 162.159.209.4-103, 162.159.210.4-103, 162.159.211.4-103, 173.245.48.0-255, 108.162.192.0-255</code>
+                                                </p>
+                                                <div class="form-actions">
+                                                    <div class="row">
+                                                        <div class="col-md-12">
+                                                            <button type="submit" class="btn green">{{trans('home.submit')}}</button>
                                                         </div>
                                                     </div>
                                                 </div>
