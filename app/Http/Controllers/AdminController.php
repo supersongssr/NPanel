@@ -146,32 +146,32 @@ class AdminController extends Controller
         $view['usergroup2'] = User::where("enable",1)->where("status",1)->where('level','>',0)->where('node_group',2)->count();
         $view['usergroup3'] = User::where("enable",1)->where("status",1)->where('level','>',0)->where('node_group',3)->count();
 
-        $view['userliveallgroup1'] = User::where("enable",1)->where("status",1)->where("level",'>',0)->where('node_group',1)->where('t','>',time()-600)->count();
-        $view['userlivevip0group1'] = User::where("enable",1)->where("status",1)->where("level",0)->where('node_group',1)->where('t','>',time()-600)->count();
-        $view['userlivevip1group1'] = User::where("enable",1)->where("status",1)->where("level",1)->where('node_group',1)->where('t','>',time()-600)->count();
-        $view['userlivevip2group1'] = User::where("enable",1)->where("status",1)->where("level",2)->where('node_group',1)->where('t','>',time()-600)->count();
-        $view['userlivevip3group1'] = User::where("enable",1)->where("status",1)->where("level",3)->where('node_group',1)->where('t','>',time()-600)->count();
-        $view['userlivevip4group1'] = User::where("enable",1)->where("status",1)->where("level",4)->where('node_group',1)->where('t','>',time()-600)->count();
-        $view['userlivevip5group1'] = User::where("enable",1)->where("status",1)->where("level",5)->where('node_group',1)->where('t','>',time()-600)->count();
-        $view['userlivevip6group1'] = User::where("enable",1)->where("status",1)->where("level",6)->where('node_group',1)->where('t','>',time()-600)->count();
+        $view['userliveallgroup1'] = User::where("enable",1)->where("status",1)->where("level",'>',0)->where('node_group',1)->where('t','>',time()-3600)->count();
+        $view['userlivevip0group1'] = User::where("enable",1)->where("status",1)->where("level",0)->where('node_group',1)->where('t','>',time()-3600)->count();
+        $view['userlivevip1group1'] = User::where("enable",1)->where("status",1)->where("level",1)->where('node_group',1)->where('t','>',time()-3600)->count();
+        $view['userlivevip2group1'] = User::where("enable",1)->where("status",1)->where("level",2)->where('node_group',1)->where('t','>',time()-3600)->count();
+        $view['userlivevip3group1'] = User::where("enable",1)->where("status",1)->where("level",3)->where('node_group',1)->where('t','>',time()-3600)->count();
+        $view['userlivevip4group1'] = User::where("enable",1)->where("status",1)->where("level",4)->where('node_group',1)->where('t','>',time()-3600)->count();
+        $view['userlivevip5group1'] = User::where("enable",1)->where("status",1)->where("level",5)->where('node_group',1)->where('t','>',time()-3600)->count();
+        $view['userlivevip6group1'] = User::where("enable",1)->where("status",1)->where("level",6)->where('node_group',1)->where('t','>',time()-3600)->count();
 
-        $view['userliveallgroup2'] = User::where("enable",1)->where("status",1)->where("level",'>',0)->where('node_group',2)->where('t','>',time()-600)->count();
-        $view['userlivevip0group2'] = User::where("enable",1)->where("status",1)->where("level",0)->where('node_group',2)->where('t','>',time()-600)->count();
-        $view['userlivevip1group2'] = User::where("enable",1)->where("status",1)->where("level",1)->where('node_group',2)->where('t','>',time()-600)->count();
-        $view['userlivevip2group2'] = User::where("enable",1)->where("status",1)->where("level",2)->where('node_group',2)->where('t','>',time()-600)->count();
-        $view['userlivevip3group2'] = User::where("enable",1)->where("status",1)->where("level",3)->where('node_group',2)->where('t','>',time()-600)->count();
-        $view['userlivevip4group2'] = User::where("enable",1)->where("status",1)->where("level",4)->where('node_group',2)->where('t','>',time()-600)->count();
-        $view['userlivevip5group2'] = User::where("enable",1)->where("status",1)->where("level",5)->where('node_group',2)->where('t','>',time()-600)->count();
-        $view['userlivevip6group2'] = User::where("enable",1)->where("status",1)->where("level",6)->where('node_group',2)->where('t','>',time()-600)->count();
+        $view['userliveallgroup2'] = User::where("enable",1)->where("status",1)->where("level",'>',0)->where('node_group',2)->where('t','>',time()-3600)->count();
+        $view['userlivevip0group2'] = User::where("enable",1)->where("status",1)->where("level",0)->where('node_group',2)->where('t','>',time()-3600)->count();
+        $view['userlivevip1group2'] = User::where("enable",1)->where("status",1)->where("level",1)->where('node_group',2)->where('t','>',time()-3600)->count();
+        $view['userlivevip2group2'] = User::where("enable",1)->where("status",1)->where("level",2)->where('node_group',2)->where('t','>',time()-3600)->count();
+        $view['userlivevip3group2'] = User::where("enable",1)->where("status",1)->where("level",3)->where('node_group',2)->where('t','>',time()-3600)->count();
+        $view['userlivevip4group2'] = User::where("enable",1)->where("status",1)->where("level",4)->where('node_group',2)->where('t','>',time()-3600)->count();
+        $view['userlivevip5group2'] = User::where("enable",1)->where("status",1)->where("level",5)->where('node_group',2)->where('t','>',time()-3600)->count();
+        $view['userlivevip6group2'] = User::where("enable",1)->where("status",1)->where("level",6)->where('node_group',2)->where('t','>',time()-3600)->count();
 
-        $view['userliveallgroup3'] = User::where("enable",1)->where("status",1)->where("level",'>',0)->where('node_group',3)->where('t','>',time()-600)->count();
-        $view['userlivevip0group3'] = User::where("enable",1)->where("status",1)->where("level",0)->where('node_group',3)->where('t','>',time()-600)->count();
-        $view['userlivevip1group3'] = User::where("enable",1)->where("status",1)->where("level",1)->where('node_group',3)->where('t','>',time()-600)->count();
-        $view['userlivevip2group3'] = User::where("enable",1)->where("status",1)->where("level",2)->where('node_group',3)->where('t','>',time()-600)->count();
-        $view['userlivevip3group3'] = User::where("enable",1)->where("status",1)->where("level",3)->where('node_group',3)->where('t','>',time()-600)->count();
-        $view['userlivevip4group3'] = User::where("enable",1)->where("status",1)->where("level",4)->where('node_group',3)->where('t','>',time()-600)->count();
-        $view['userlivevip5group3'] = User::where("enable",1)->where("status",1)->where("level",5)->where('node_group',3)->where('t','>',time()-600)->count();
-        $view['userlivevip6group3'] = User::where("enable",1)->where("status",1)->where("level",6)->where('node_group',3)->where('t','>',time()-600)->count();
+        $view['userliveallgroup3'] = User::where("enable",1)->where("status",1)->where("level",'>',0)->where('node_group',3)->where('t','>',time()-3600)->count();
+        $view['userlivevip0group3'] = User::where("enable",1)->where("status",1)->where("level",0)->where('node_group',3)->where('t','>',time()-3600)->count();
+        $view['userlivevip1group3'] = User::where("enable",1)->where("status",1)->where("level",1)->where('node_group',3)->where('t','>',time()-3600)->count();
+        $view['userlivevip2group3'] = User::where("enable",1)->where("status",1)->where("level",2)->where('node_group',3)->where('t','>',time()-3600)->count();
+        $view['userlivevip3group3'] = User::where("enable",1)->where("status",1)->where("level",3)->where('node_group',3)->where('t','>',time()-3600)->count();
+        $view['userlivevip4group3'] = User::where("enable",1)->where("status",1)->where("level",4)->where('node_group',3)->where('t','>',time()-3600)->count();
+        $view['userlivevip5group3'] = User::where("enable",1)->where("status",1)->where("level",5)->where('node_group',3)->where('t','>',time()-3600)->count();
+        $view['userlivevip6group3'] = User::where("enable",1)->where("status",1)->where("level",6)->where('node_group',3)->where('t','>',time()-3600)->count();
 
         $view['nodeallgroup1'] = SsNode::where("status",1)->where('node_group',1)->sum('node_cost');
         $view['nodelv0group1'] = SsNode::where("status",1)->where("level",0)->where('node_group',1)->sum('node_cost');

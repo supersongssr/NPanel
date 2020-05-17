@@ -89,7 +89,7 @@ class TicketController extends Controller
         } else {
             $view['ticket'] = Ticket::query()->where('id', $id)->with('user')->first();
             $view['replyList'] = TicketReply::query()->where('ticket_id', $id)->with('user')->orderBy('id', 'asc')->get();
-            $nexticket = Ticket::query()->where('id','!=', $id)->orderBy('sort','desc')->orderBy('updated_at', 'desc')->first();
+            $nexticket = Ticket::query()->where('id','!=', $id)->where('status',0)->orderBy('sort','desc')->orderBy('updated_at', 'desc')->first();
             $view['nextid'] = $nexticket->id;
             return Response::view('ticket.replyTicket', $view);
         }

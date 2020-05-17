@@ -132,10 +132,16 @@
                                     </div>
                                 </div>
                                 <div class="form-group package-money">
-                                    <label for="sort" class="control-label col-md-3">等级</label>
+                                    <label for="sort" class="control-label col-md-3">排序</label>
                                     <div class="col-md-6">
                                         <input type="text" class="form-control" name="sort" value="{{Request::old('sort')}}" id="sort" placeholder="">
-                                        <span class="help-block"> 优先高等级排序 </span>
+                                    </div>
+                                </div>
+                                <div class="form-group package-money">
+                                    <label for="level" class="control-label col-md-3">等级</label>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="level" value="{{Request::old('level')}}" id="level" placeholder="">
+                                        <span class="help-block"> 等级 </span>
                                     </div>
                                 </div>
                                 <div class="form-group package-money">

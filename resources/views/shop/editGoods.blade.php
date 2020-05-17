@@ -136,10 +136,16 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="sort" class="col-md-3 control-label">等级</label>
+                                    <label for="sort" class="col-md-3 control-label">排序</label>
                                     <div class="col-md-6">
                                         <input type="text" class="form-control" name="sort" value="{{$goods->sort}}" id="sort" placeholder="">
-                                        <span class="help-block"> 高等级排在前 </span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="level" class="col-md-3 control-label">等级</label>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="level" value="{{$goods->level}}" id="level" placeholder="">
+                                        <span class="help-block"> 等级 </span>
                                     </div>
                                 </div>
                                 <div class="form-group">

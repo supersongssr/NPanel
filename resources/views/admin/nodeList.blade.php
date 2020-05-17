@@ -47,7 +47,7 @@
                                     <th> R </th>
                                     <th> G </th>
                                     <th> L </th>
-                                    <th> 统计 </th>
+                                    <th> 描述 </th>
                                     <th> <span class="node-flow"><a href="javascript:showFlowTips();">流量</a></span> </th>
                                     <th> 监控 </th>
                                     <th> 存活 </th>

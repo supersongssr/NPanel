@@ -49,7 +49,7 @@
                         <div class="row">
                             <div class="col-md-12 col-sm-12">
                                 <div class="dataTables_paginate paging_bootstrap_full_number pull-right">
-                                    {{ $ticketList->links() }}
+                                    {{ $openTicket->links() }}
                                 </div>
                             </div>
                         </div>

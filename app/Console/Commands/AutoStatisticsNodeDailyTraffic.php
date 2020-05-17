@@ -46,8 +46,8 @@ class AutoStatisticsNodeDailyTraffic extends Command
             #记录当前流量值
             $node->traffic_lastday = $node->traffic;
             # 写入每天流量差值记录 
-            $node->desc = floor($traffic_today / 1073741824) . ' ' . $node->desc;
-            $node->desc = substr($node->desc, 0, 32);
+            $node->ipv6 = floor($traffic_today / 1073741824) . '.' . $node->ipv6;
+            $node->ipv6 = substr($node->ipv6, 0, 20);
             # 计算每个节点的倍率 昨日流量 / 总体的流量 
             if ($node->traffic_limit > 0) {
                 $node->traffic_rate = round($traffic_today * 32 / $node->traffic_limit,1) ;

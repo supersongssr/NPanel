@@ -182,6 +182,7 @@ class UserController extends Controller
             //->whereIn('ss_node_label.label_id', $userLabelIds)
             ->where('ss_node.status', 1)
             ->where('ss_node.node_group',Auth::user()->node_group)
+            ->where('ss_node.level','<=',Auth::user()->level)
             //->groupBy('ss_node.id')
             //->orderBy('ss_node.sort', 'desc')
             ->orderBy('ss_node.node_onload', 'asc')
@@ -328,8 +329,8 @@ class UserController extends Controller
     // 工单
     public function ticketList(Request $request)
     {
-        $view['ticketList'] = Ticket::uid()->orderBy('id', 'desc')->paginate(3)->appends($request->except('page'));
-        $view['openTicket'] = Ticket::where('open',1)->orderBy('updated_at', 'desc')->paginate(10)->appends($request->except('page'));
+        $view['ticketList'] = Ticket::uid()->orderBy('id', 'desc')->paginate(16)->appends($request->except('page'));
+        $view['openTicket'] = Ticket::where('open',1)->orderBy('updated_at', 'desc')->paginate(32)->appends($request->except('page'));
 
         return Response::view('user.ticketList', $view);
     }
@@ -358,13 +359,17 @@ class UserController extends Controller
         $content = clean($request->get('content'));
         $content = str_replace("eval", "", str_replace("atob", "", $content));
 
+        if (Auth::user()->level < 1) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '请先购买商品升级您的等级']);
+        }
+
         if (empty($title) || empty($content)) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '请输入标题和内容']);
         }
 
         $obj = new Ticket();
         $obj->user_id = Auth::user()->id;
-        $obj->sort += Auth::user()->level;
+        $obj->sort += Auth::user()->level +100;
         $obj->title = $title;
         $obj->content = $content;
         $obj->status = 0;
@@ -426,7 +431,7 @@ class UserController extends Controller
                 $ticket->status = 0;
                 // 工单设置为 不展示
                 $ticket->open = 0;
-                $ticket->sort += Auth::user()->level;
+                $ticket->sort += Auth::user()->level + 100;
                 //$ticket->created_at = time();
                 $ticket->updated_at = time();
                 $ticket->save();
@@ -539,8 +544,8 @@ class UserController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '该优惠券尚不可用，请换一个试试']);
         }
 
-        if (strrchr($coupon_sn, 'edu.cn') == 'edu.cn') {  // coupon 以 edu.cn结尾的话，
-            if (strrchr(Auth::user()->username, $coupon_sn) != $coupon_sn) {  // 但是用户不是 edu用户的话，不能用这个 优惠券
+        if (strstr($coupon_sn, 'edu.cn') == 'edu.cn') {  // coupon 以 edu.cn结尾的话，
+            if (strstr(Auth::user()->username, $coupon_sn) != $coupon_sn) {  // 但是用户不是 edu用户的话，不能用这个 优惠券
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '此优惠券为 '.$coupon->name.' 专享优惠券']);
             }
         }
@@ -599,8 +604,8 @@ class UserController extends Controller
                 }
 
                 // EDU 专用优惠券
-                if (strrchr($coupon_sn, 'edu.cn') == 'edu.cn') {  // coupon 以 edu.cn结尾的话，
-                    if (strrchr(Auth::user()->username, $coupon_sn) != $coupon_sn) {  // 但是用户不是 edu用户的话，不能用这个 优惠券
+                if (strstr($coupon_sn, 'edu.cn') == 'edu.cn') {  // coupon 以 edu.cn结尾的话，
+                    if (strstr(Auth::user()->username, $coupon_sn) != $coupon_sn) {  // 但是用户不是 edu用户的话，不能用这个 优惠券
                         return Response::json(['status' => 'fail', 'data' => '', 'message' => '此优惠券为 '.$coupon->name.' 专享优惠券']);
                     }
                 }

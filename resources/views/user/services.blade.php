@@ -17,12 +17,6 @@
                 <div class="portlet light">
                     <div class="portlet-body">
                         <ul class="list-inline">
-                            <li>
-                                <h4>
-                                    <span class="font-blue">账户等级：</span>
-                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span> 
-                                </h4>
-                            </li>
                             @if (Auth::user()->balance < 0)
                             <li>
                                 <h4>
@@ -51,13 +45,19 @@
                             </li>
                             @endif
                             <li>
-                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">点我{{trans('home.recharge')}}</a>
+                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">余额{{trans('home.recharge')}} -></a>
                             </li>
                             <li>
-                                <a href="https://www.510ka.com/liebiao/3163CA017733309A" target="_blank" class="btn green btn-sm">发卡平台获取充值卡券（请关闭代理访问）</a> <!-- song -->
+                                <a href="https://www.910fk.com/liebiao/E22E331D89AA7657" target="_blank" class="btn green btn-sm">购买充值卡券</a> <!-- song -->
                             </li>
+                           <!--  <li>
+                                <h4>
+                                    <span class="font-blue">账户等级：</span>
+                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span> 
+                                </h4>
+                            </li> -->
                         </ul>
-                        <p><small>*等级越高，节点越多，带宽越大<br>*购买套餐时，您可以透支信用卡额度去购买套餐，每邀请一个用户注册，赠送5元信用卡余额。 如果您邀请的用户被系统删除，这个5元的信用额度会被扣掉。 邀请的人越多信用额度也越多。 请注意，这个信用额度可以透支，但是欠的钱要记得还啊</small></p>
+                        <p><small>*等级高，节点多，带宽大，流量足。 <a href="/profile#tab_4">移动、电信用户请设置CN+中转入口为联通。</a>  <br>*<code>CF+</code>:网络优化技术(直连网络不佳网络优化用它) <code>CN+</code>:中转技术(移动电信强力推荐) <code>NetFLix+</code>:支持网飞视频 <code>Azure+</code>:微软强力G口带宽 <code>BGP+</code>:三网混合加速 </small></p>
                     </div>
                 </div>
             </div>
@@ -85,26 +85,25 @@
                                     <ol>
                                         <li>① 充值余额</li>
                                         <li>② 购买商品</li>
-                                        <li>③ 购买多个商品可叠加</li>
                                     </ol>
                                     <h4>按时间买：</h4>
                                     <ol>
                                         <li>流量每月重置</li>
-                                        <li>等级越高，流量越多、带宽越大</li>
+                                        <li>等级越高，流量越多、带宽越大、特权越多</li>
                                     </ol>
                                     <h4>按流量买：</h4>
                                     <ol>
                                         <li>一次性流量</li>
-                                        <li>等级越高，节点越多、带宽越大</li>
+                                        <li>等级越高，节点越多、带宽越大、特权越多</li>
                                     </ol>
                                     <h4>商品说明：</h4>
                                     <ol>
-                                        <li>购买多个商品，会同时生效</li>
-                                        <li>等级、限速取现有商品中的最大值</li>
-                                        <li>账号有效期取所有商品中的最大值</li>
+                                        <li>购买多个商品时:</li>
+                                        <li>流量叠加、特权叠加、节点叠加</li>
+                                        <li>等级、带宽取现有商品中最大值</li>
+                                        <li>账号有效期取现有商品中最大值</li>
                                         <li>流量扣除顺序：按时间买的流量 -> 按流量买的流量 -> 系统赠送流量(签到、返利等)</li>
-                                        <li><code>*Bt、P2P、网盘流量会优先扣除 按流量买的流量 -> 系统赠送的流量</code></li>
-                                        <li><code>*大流量下载？强制使用低倍率节点！</code></li>
+                                        <li><code>*Bt、P2P、网盘上载流量优先扣除 按流量买的流量 -> 系统赠送的流量</code></li>
                                     </ol>
                                     
 
@@ -153,7 +152,7 @@
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-tag"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">{{$goods->desc}}</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding"><code>{{$goods->desc}}</code></div>
                                                                 </div>
                                                             </div>
                                                             <div class="arrow-down arrow-grey"></div>
@@ -211,7 +210,7 @@
                                                                     <div class="col-xs-3 text-right mobile-padding">
                                                                         <i class="icon-tag"></i>
                                                                     </div>
-                                                                    <div class="col-xs-9 text-left mobile-padding">{{$goods->desc}}</div>
+                                                                    <div class="col-xs-9 text-left mobile-padding"><code>{{$goods->desc}}</code></div>
                                                                 </div>
                                                             </div>
                                                             <div class="arrow-down arrow-grey"></div>

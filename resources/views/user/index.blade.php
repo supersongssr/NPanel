@@ -75,6 +75,12 @@
                                 </h4>
                             </li>
                             @endif
+                            <li>
+                                <h4>
+                                    <span class="font-red">中转入口：</span>
+                                    <span class="font-red"> <a href="/profile#tab_4">{{Auth::user()->cncdn}} 点击切换</a> </span>
+                                </h4>
+                            </li>
                             @if(Auth::user()->traffic_reset_day)
                             <li>
                                 <h4>
@@ -93,6 +99,7 @@
                                 </h4>
                             </li>
                             @endif
+                            
                         </ul>
                     </div>
                 </div>

@@ -146,9 +146,11 @@ class PingController extends Controller
         !empty($request->get('name')) && $node->name = $request->get('name');
         !empty($request->get('country_code')) && $node->country_code = $request->get('country_code');
         !empty($request->get('server')) && $node->server = $request->get('server');
-        !empty($request->get('ipv6')) && $node->ipv6 = $request->get('ipv6');
+        !empty($request->get('desc')) && $node->desc = $request->get('desc');
         !empty($request->get('traffic_rate')) && $node->traffic_rate = $request->get('traffic_rate');
         !empty($request->get('node_cost')) && $node->node_cost = $request->get('node_cost');
+        !empty($request->get('level')) && $node->level = $request->get('level');
+        !empty($request->get('node_group')) && $node->node_group = $request->get('node_group');
         !empty($request->get('bandwidth')) && $node->bandwidth = $request->get('bandwidth');
         !empty($request->get('traffic_limit')) && $node->traffic_limit = $request->get('traffic_limit')*1024*1024*1024;
         !empty($request->get('is_transit')) && $node->is_transit = 1;

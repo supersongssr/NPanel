@@ -140,7 +140,8 @@ class SubscribeController extends Controller
         $sr_sub = $request->get('ssr');
         $v2ray_sub = $request->get('v2ray');
         $rocket_sub = $request->get('rocket');
-
+        $cn_sub = $request->get('cn');
+        $cf_sub = $request->get('cf');
 #end
         // 校验合法性
         $subscribe = UserSubscribe::query()->with('user')->where('status', 1)->where('code', $code)->first();
@@ -259,15 +260,17 @@ class SubscribeController extends Controller
 
                 //控制显示 cncdn 自定义
                 $node_server = $node['server'];
-                if ($user->cncdn && $node['is_transit'] ) {   //如果用户设置了 cncdn 而且设置了 中转
+                if ($node['is_transit'] && ($user->cncdn || $cn_sub) ) {   //如果用户设置了 cncdn 而且设置了 中转
                     $cdn_server = strstr($node_server, '.');
                     $cdn_server = substr($cdn_server, 1);
-                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$user->cncdn)->orderBy('id','desc')->first();
+                    empty($cn_sub) && $cn_sub = $user->cncdn;
+                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cn_sub)->orderBy('id','desc')->first();
                     if (!empty($cncdn->ipmd5)) {
                         $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
                     }
-                }elseif ($user->cfcdn) {
+                }elseif ($user->cfcdn || $cf_sub) {
                     $node_server = $user->cfcdn;
+                    !empty($cf_sub) && $node_server = $cf_sub;
                 }
 
                 //
@@ -334,16 +337,19 @@ class SubscribeController extends Controller
 
                 //控制显示 cncdn 自定义
                 $node_server = $node['server'];
-                if ($user->cncdn && $node['is_transit'] ) {   //如果用户设置了 cncdn 而且设置了 中转
+                if ($node['is_transit'] && ($user->cncdn || $cn_sub) ) {   //如果用户设置了 cncdn 而且设置了 中转
                     $cdn_server = strstr($node_server, '.');
                     $cdn_server = substr($cdn_server, 1);
-                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$user->cncdn)->orderBy('id','desc')->first();
+                    empty($cn_sub) && $cn_sub = $user->cncdn;
+                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cn_sub)->orderBy('id','desc')->first();
                     if (!empty($cncdn->ipmd5)) {
                         $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
                     }
-                }elseif ($user->cfcdn) {
+                }elseif ($user->cfcdn || $cf_sub) {
                     $node_server = $user->cfcdn;
+                    !empty($cf_sub) && $node_server = $cf_sub;
                 }
+                
                 //
                 if ($node['type'] == 2 && $node['v2_net'] != 'kcp') {
                     $v2_str = $node['v2_method'] . ':' . ($node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id']) . '@';
@@ -417,5 +423,19 @@ class SubscribeController extends Controller
         $text = '剩余流量：' . flowAutoShow($user->transfer_enable - $user->u - $user->d);
 
         return 'ssr://' . base64url_encode('0.0.0.2:1:origin:none:plain:' . base64url_encode('0000') . '/?obfsparam=&protoparam=&remarks=' . base64url_encode($text) . '&group=' . base64url_encode(Helpers::systemConfig()['website_name']) . '&udpport=0&uot=0') . "\n";
+    }
+
+    /**
+     * 用户信息 v2ray
+     *
+     * @param object $user
+     * 
+     * @return string
+     */
+    private function userInfoV2ray($user)
+    {
+        $text = '到期时间：' . $user->expire_time;
+
+        return 'ssr://' . base64url_encode('0.0.0.1:1:origin:none:plain:' . base64url_encode('0000') . '/?obfsparam=&protoparam=&remarks=' . base64url_encode($text) . '&group=' . base64url_encode(Helpers::systemConfig()['website_name']) . '&udpport=0&uot=0') . "\n";
     }
 }

@@ -316,7 +316,6 @@ class AutoJob extends Command
                         //'d'                 => 0,
                         //song 
                         //'transfer_enable'   => 0,
-                        'status'            => 0,
                         'enable'            => 0,
                         'traffic_reset_day' => 0,
                         'ban_time'          => 0,

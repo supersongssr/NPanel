@@ -109,7 +109,7 @@
                                                 </div>
                                                 <div class="mt-comment-body">
                                                     <div class="mt-comment-info">
-                                                        <span class="mt-comment-author">{{$node->name}} ·{{$node->sort}}#{{$node->id}}</span>
+                                                        <span class="mt-comment-author">{{$node->name}} ·{{$node->level}}#{{$node->id}}</span>
                                                         <span class="mt-comment-date">
                                                             <span class="badge badge-danger">{{$node->node_onload * 10}}%</span>
                                                         </span>

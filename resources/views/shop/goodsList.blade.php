@@ -68,7 +68,7 @@
                                             <!-- <td> @if($goods->logo) <a href="{{$goods->logo}}" class="fancybox"><img src="{{$goods->logo}}"/></a> @endif </td> -->
                                             <td> {{$goods->type == 3 ? '' : $goods->traffic_label}} </td>
                                             <td> {{$goods->price /100}}元 </td>
-                                            <td> {{$goods->sort}} </td>
+                                            <td> {{$goods->level}} </td>
                                             <td>
                                                 @if($goods->is_hot)
                                                     <span class="label label-danger">是</span>

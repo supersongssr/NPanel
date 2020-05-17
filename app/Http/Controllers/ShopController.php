@@ -91,6 +91,7 @@ class ShopController extends Controller
                 $goods->days = $request->days;
                 $goods->color = $request->color;
                 $goods->sort = intval($request->sort);
+                $goods->level = intval($request->level);
                 $goods->is_hot = intval($request->is_hot);
                 $goods->is_limit = intval($request->is_limit);
                 $goods->status = $request->status;
@@ -139,6 +140,7 @@ class ShopController extends Controller
             $labels = $request->get('labels');
             $color = trim($request->get('color', 0));
             $sort = intval($request->get('sort', 0));
+            $level = intval($request->get('level', 0));
             $is_hot = intval($request->get('is_hot', 0));
             $is_limit = intval($request->get('is_limit', 0));
             $status = $request->get('status');
@@ -188,6 +190,7 @@ class ShopController extends Controller
                     'desc'     => $desc,
                     'price'    => $price * 100,
                     'sort'     => $sort,
+                    'level'     => $level,
                     'color'    => $color,
                     'is_hot'   => $is_hot,
                     'is_limit' => $is_limit,

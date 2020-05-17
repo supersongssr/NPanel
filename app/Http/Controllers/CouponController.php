@@ -107,7 +107,7 @@ class CouponController extends Controller
                     for ($i = 0; $i < $request->num; $i++) {
                         $obj = new Coupon();
                         $obj->name = $request->name;
-                        $obj->sn =  strtoupper(makeRandStr(7)) . $request->sn;
+                        $obj->sn =  $request->sn . strtoupper(makeRandStr(7)) ;
                         $obj->logo = $logo;
                         $obj->type = $request->type;
                         $obj->usage = $request->usage;
