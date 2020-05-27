@@ -16,10 +16,24 @@
                                     <span class="font-red">{{Auth::user()->levelList->level_name}}</span> 
                                 </h4>
                             </li>
+                            @if (Auth::user()->balance < 0)
+                            <li>
+                                <h4>
+                                    <span class="font-blue">信用卡：</span>
+                                    <span class="font-red">{{ (Auth::user()->balance + Auth::user()->credit) / 100}} / {{Auth::user()->credit / 100}}</span>
+                                </h4>
+                            </li>
+                            <li>
+                                <h4>
+                                    <span class="font-blue">本期账单：</span>
+                                    <span class="font-red">{{Auth::user()->balance / 100}}(请在{{Auth::user()->credit_days}}日内还款)</span>
+                                </h4>
+                            </li>
+                            @else
                             <li>
                                 <h4>
                                     <span class="font-blue">余额：</span>
-                                    <span class="font-red">{{Auth::user()->balance / 100}}</span>
+                                    <span class="font-red">{{ (Auth::user()->balance + Auth::user()->credit) / 100}}</span>
                                 </h4>
                             </li>
                             <li>
@@ -28,6 +42,7 @@
                                     <span class="font-red">{{Auth::user()->credit / 100}}</span>
                                 </h4>
                             </li>
+                            @endif
                             <li>
                                 <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">余额{{trans('home.recharge')}} -></a>
                             </li>
