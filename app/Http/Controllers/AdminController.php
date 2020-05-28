@@ -624,14 +624,14 @@ class AdminController extends Controller
                 User::query()->where('id', $user->referral_uid)->decrement('balance', $referral->ref_amount*100);
                 #写入用户余额变动日志
                 $this->addUserBalanceLog($user->referral_uid, 0, $user->balance, $user->balance - $referral->ref_amount, -$referral->ref_amount, 0,'邀请用户被删除扣除余额');
-                
+
                 ## 写入用户邀请返利日志
                 $referrallog = new ReferralLog();
                 # 用户ID 就是被删除用户ID
                 $referrallog->user_id = $user->id;
                 # 这个用户谁邀请的
                 $referrallog->ref_user_id = $user->referral_uid;
-                #订单ID 自然是0 
+                #订单ID 自然是0
                 $referrallog->order_id = -1;
                 $referrallog->amount = 0;
                 #这里是负值，就是已经扣除了相关的余额
@@ -656,7 +656,7 @@ class AdminController extends Controller
                 $this->addUserBalanceLog($user->referral_uid, 0, $user->balance, $user->balance - $referral->ref_amount, -$referral->ref_amount, 0,'邀请用户被删除扣除信用卡');
             }
         }
-        
+
 
         DB::beginTransaction();
         try {
@@ -2275,80 +2275,80 @@ EOF;
             }
         }
 
-        // 演示环境禁止修改特定配置项
-        if (env('APP_DEMO')) {
-            $denyConfig = [
-                'website_url',
-                'min_rand_traffic',
-                'max_rand_traffic',
-                'push_bear_send_key',
-                'push_bear_qrcode',
-                'youzan_client_id',
-                'youzan_client_secret',
-                'kdt_id',
-                'is_forbid_china',
-                'alipay_partner',
-                'alipay_key',
-                'alipay_transport',
-                'alipay_sign_type',
-                'alipay_private_key',
-                'alipay_public_key',
-                'website_security_code'
-            ];
+        // // 演示环境禁止修改特定配置项
+        // if (env('APP_DEMO')) {
+        //     $denyConfig = [
+        //         'website_url',
+        //         'min_rand_traffic',
+        //         'max_rand_traffic',
+        //         'push_bear_send_key',
+        //         'push_bear_qrcode',
+        //         'youzan_client_id',
+        //         'youzan_client_secret',
+        //         'kdt_id',
+        //         'is_forbid_china',
+        //         'alipay_partner',
+        //         'alipay_key',
+        //         'alipay_transport',
+        //         'alipay_sign_type',
+        //         'alipay_private_key',
+        //         'alipay_public_key',
+        //         'website_security_code'
+        //     ];
+        //
+        //     if (in_array($name, $denyConfig)) {
+        //         return Response::json(['status' => 'fail', 'data' => '', 'message' => '演示环境禁止修改该配置']);
+        //     }
+        // }
 
-            if (in_array($name, $denyConfig)) {
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '演示环境禁止修改该配置']);
-            }
-        }
-
-        // 如果更改了有赞云任何一个配置，则删除有赞云的授权缓存，防止出现client_id错误
-        if (in_array($name, ['youzan_client_id', 'youzan_client_secret', 'kdt_id'])) {
-            \Cache::forget('YZY_TOKEN');
-        }
+        // // 如果更改了有赞云任何一个配置，则删除有赞云的授权缓存，防止出现client_id错误
+        // if (in_array($name, ['youzan_client_id', 'youzan_client_secret', 'kdt_id'])) {
+        //     \Cache::forget('YZY_TOKEN');
+        // }
 
         // 如果是返利比例，则需要除100
         if (in_array($name, ['referral_percent'])) {
             $value = intval($value) / 100;
         }
 
-        // 用有赞云支付则不可用支付宝国际和支付宝当面付
-        if (in_array($name, ['is_youzan'])) {
-            $is_alipay = Config::query()->where('name', 'is_alipay')->first();
-            if ($is_alipay->value) {
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【支付宝国际支付】']);
-            }
+        // // 用有赞云支付则不可用支付宝国际和支付宝当面付
+        // if (in_array($name, ['is_youzan'])) {
+        //     $is_alipay = Config::query()->where('name', 'is_alipay')->first();
+        //     if ($is_alipay->value) {
+        //         return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【支付宝国际支付】']);
+        //     }
+        //
+        //     $is_f2fpay = Config::query()->where('name', 'is_f2fpay')->first();
+        //     if ($is_f2fpay->value) {
+        //         return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【支付宝当面付】']);
+        //     }
+        // }
 
-            $is_f2fpay = Config::query()->where('name', 'is_f2fpay')->first();
-            if ($is_f2fpay->value) {
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【支付宝当面付】']);
-            }
-        }
-
-        // 用支付国际则不可用有赞云支付和支付宝当面付
-        if (in_array($name, ['is_alipay'])) {
-            $is_youzan = Config::query()->where('name', 'is_youzan')->first();
-            if ($is_youzan->value) {
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【有赞云支付】']);
-            }
-
-            $is_f2fpay = Config::query()->where('name', 'is_f2fpay')->first();
-            if ($is_f2fpay->value) {
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【支付宝当面付】']);
-            }
-        }
-
-        // 用支付宝当面则不可用有赞云支付和支付宝国际
-        if (in_array($name, ['is_f2fpay'])) {
-            $is_youzan = Config::query()->where('name', 'is_youzan')->first();
-            if ($is_youzan->value) {
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【有赞云支付】']);
-            }
-
-            $is_alipay = Config::query()->where('name', 'is_alipay')->first();
-            if ($is_alipay->value) {
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【支付宝国际支付】']);
-            }
-        }
+        // // 用支付国际则不可用有赞云支付和支付宝当面付
+        // if (in_array($name, ['is_alipay'])) {
+        //     $is_youzan = Config::query()->where('name', 'is_youzan')->first();
+        //     if ($is_youzan->value) {
+        //         return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【有赞云支付】']);
+        //     }
+        //
+        //     $is_f2fpay = Config::query()->where('name', 'is_f2fpay')->first();
+        //     if ($is_f2fpay->value) {
+        //         return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【支付宝当面付】']);
+        //     }
+        // }
+        //
+        // // 用支付宝当面则不可用有赞云支付和支付宝国际
+        // if (in_array($name, ['is_f2fpay'])) {
+        //     $is_youzan = Config::query()->where('name', 'is_youzan')->first();
+        //     if ($is_youzan->value) {
+        //         return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【有赞云支付】']);
+        //     }
+        //
+        //     $is_alipay = Config::query()->where('name', 'is_alipay')->first();
+        //     if ($is_alipay->value) {
+        //         return Response::json(['status' => 'fail', 'data' => '', 'message' => '已经在使用【支付宝国际支付】']);
+        //     }
+        // }
 
         // 更新配置
         Config::query()->where('name', $name)->update(['value' => $value]);
@@ -2527,7 +2527,7 @@ EOF;
                 // 2 打款到余额
                 ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 2]);
                 //Song 审核并自动打款到余额
-                //这里通过申请ID，获取到用户id，和提现的金额。 
+                //这里通过申请ID，获取到用户id，和提现的金额。
                 $apply = ReferralApply::query()->where('id', $id)->first();
                 $user = User::query()->where('id', $apply->user_id)->first();
                 if (empty($user)) {

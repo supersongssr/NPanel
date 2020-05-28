@@ -1399,3 +1399,4 @@ ALTER TABLE `user`
 INSERT INTO config values ('96', 'is_trimepay', 0);
 INSERT INTO config VALUES ('97', 'trimepay_appid', '');
 INSERT INTO config VALUES ('98', 'trimepay_appsecret', '');
+INSERT INTO config VALUES ('99', 'pay_notify_url', '');

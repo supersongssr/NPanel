@@ -157,8 +157,8 @@ class PaymentController extends Controller
             // 生成支付单
             if ($pay_type == '3' && self::$systemConfig['is_trimepay']) {
                 $trimepay = new Trimepay(self::$systemConfig['trimepay_appid'], self::$systemConfig['trimepay_appsecret']);
-                $notifyUrl = 'https://srp-dev.freessr.bid' . '/api/trimepay';
-                $returnUrl = 'https://srp-dev.freessr.bid' . '/invoices' ;
+                $notifyUrl = self::$systemConfig['pay_notify_url'] . '/api/trimepay';
+                $returnUrl = self::$systemConfig['website_url'] . '/invoices' ;
                 $result = $trimepay->pay($orderSn, $amount, $notifyUrl, $returnUrl);
                 // if ($result['code'] !== 0) {
                 //     Log::error('【Trimepay】创建二维码失败：' . $result['msg']);

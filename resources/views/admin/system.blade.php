@@ -2766,7 +2766,7 @@
 
         // 支付专用回调地址
         function setPayNotifyUrl() {
-            var website_url = $("#pay_notify_url").val();
+            var pay_notify_url = $("#pay_notify_url").val();
 
             $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
