@@ -90,6 +90,18 @@
                                                                 <span class="help-block"> 生成重置密码、在线支付必备，示例：https://www.ssrpanel.com </span>
                                                             </div>
                                                         </div>
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="website_url" class="col-md-3 control-label">支付回调域名</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" name="pay_notify_url" value="{{$pay_notify_url}}" id="pay_notify_url" />
+                                                                    <span class="input-group-btn">
+                                                                        <button class="btn btn-success" type="button" onclick="setPayNotifyUrl()">修改</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> 生成重置密码、在线支付必备，示例：https://www.ssrpanel.com </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                     <div class="form-group">
                                                         <div class="col-md-6 col-sm-6 col-xs-12">
@@ -1825,7 +1837,7 @@
             }
         });
 
-        //启用 禁用 trimepay 
+        //启用 禁用 trimepay
         $('#is_trimepay').on({
             'switchChange.bootstrapSwitch': function(event, state) {
                 var is_trimepay = state ? 1 : 0;
@@ -2752,6 +2764,23 @@
             });
         }
 
+        // 支付专用回调地址
+        function setPayNotifyUrl() {
+            var website_url = $("#pay_notify_url").val();
+
+            $.post("/admin/setConfig", {
+                _token: '{{csrf_token()}}',
+                name: 'pay_notify_url',
+                value: pay_notify_url
+            }, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'fail') {
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+
         // 生成网站安全码
         function makeWebsiteSecurityCode() {
             $.get("/makeSecurityCode",  function(ret) {
@@ -2868,6 +2897,6 @@
                 });
             });
         }
-        
+
     </script>
 @endsection

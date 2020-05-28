@@ -63,12 +63,15 @@ class Trimepay
      */
     public function verify($data, $signature)
     {
-        $mySign = $this->sign($data);
-        if ($mySign === $signature) {
-            return true;
-        } else {
-            return false;
-        }
+        // $mySign = $this->sign($data);
+        // if ($mySign === $signature) {
+        //     return true;
+        // } else {
+        //     return false;
+        // }
+        unset($data['sign']);
+        $mySign = $this->sign($this->prepareSign($data));
+        return $mySign === $signature;
     }
     public function post($data)
     {

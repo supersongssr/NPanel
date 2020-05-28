@@ -564,7 +564,7 @@ CREATE TABLE `coupon_log` (
 -- ----------------------------
 CREATE TABLE `order` (
   `oid` int(11) NOT NULL AUTO_INCREMENT,
-  `order_sn` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '订单编号',
+  `order_sn` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '订单编号',
   `user_id` int(11) NOT NULL DEFAULT '0' COMMENT '操作人',
   `goods_id` int(11) NOT NULL DEFAULT '0' COMMENT '商品ID',
   `coupon_id` int(11) NOT NULL DEFAULT '0' COMMENT '优惠券ID',
@@ -1347,7 +1347,7 @@ ALTER TABLE `user` ADD `transfer_monthly` BIGINT(20) DEFAULT '0' COMMENT '每月
 # 工单加入等级功能
 ALTER TABLE `ticket` ADD `sort` BIGINT(20) DEFAULT '0' COMMENT '等级排序' AFTER `user_id`;
 
-# 用户增加 信用卡字段 credit card 
+# 用户增加 信用卡字段 credit card
 ALTER TABLE `user`
   ADD COLUMN `credit` INT(11) Default 0 COMMENT '信用额度' AFTER `balance`;
 
@@ -1395,9 +1395,7 @@ ALTER TABLE `user`
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 
-#增加 trimepay 
+#增加 trimepay
 INSERT INTO config values ('96', 'is_trimepay', 0);
 INSERT INTO config VALUES ('97', 'trimepay_appid', '');
 INSERT INTO config VALUES ('98', 'trimepay_appsecret', '');
-
-

@@ -88,9 +88,9 @@ class UserController extends Controller
         }
         for ($x = ($hourlyTotal - $hourlyCount); $x < $hourlyTotal; $x++) {
             $hourlyData[$x] = round($userTrafficHourly[$x - ($hourlyTotal - $hourlyCount)] / (1024 * 1024 * 1024), 3);
-        } 
+        }
 
-        /**  // 本月天数数据 
+        /**  // 本月天数数据
         $monthDays = [];
         $monthHasDays = date("t");
         for ($i = 1; $i <= $monthHasDays; $i++) {
@@ -187,7 +187,7 @@ class UserController extends Controller
             //->orderBy('ss_node.sort', 'desc')
             ->orderBy('ss_node.node_onload', 'asc')
             //->orderBy('ss_node.id', 'asc')
-            //->limit(21) //Song 
+            //->limit(21) //Song
             ->get();
 
         //$allNodes = ''; // 全部节点SSR链接，用于一键复制所有节点
@@ -423,7 +423,7 @@ class UserController extends Controller
             $obj->content = $content;
             $obj->save();
 
-            // 每个工单扣除 0.33元 
+            // 每个工单扣除 0.33元
             User::query()->where('id', Auth::user()->id)->decrement('balance', 33);
 
             if ($obj->id) {
@@ -571,13 +571,13 @@ class UserController extends Controller
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：商品或服务已下架']);
             }
 
-/**
+/*
             // 如果商品等级 不允许购买比自己等级低的商品
             if ($goods->sort < Auth::user()->level) {
                 # code...
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '购买失败，商品等级小于用户等级']);
             }
-**/
+*/
 
             // 限购控制：all-所有商品限购, free-价格为0的商品限购, none-不限购（默认）
             $strategy = self::$systemConfig['goods_purchase_limit_strategy'];
@@ -623,17 +623,17 @@ class UserController extends Controller
             }
             // 验证账号余额是否充足
             $user = User::uid()->first();
-/**
-            // song 统计所有用户 充值金额 
+/*
+            // song 统计所有用户 充值金额
             $user_coupons = Coupon::type(3)->where('user_id', $user->id)->where('status', 1)->sum('amount');
-            
+
             //检测 商品金额不能低于用户充值总金额的 10%;
             if ($amount > $user_coupons / 10 ) {
                 # code...
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '累计充值满'.$amount /10 .'就能购买本套餐:)']);
 
             }
-**/            
+*/
 
             // 余额 + 信用额度  > 支付的商品价格才允许购买
             if ($user->balance + $user->credit < $amount) {
@@ -641,7 +641,7 @@ class UserController extends Controller
             }
 
 
-/**
+/*
             // 验证账号是否存在有效期更长的套餐
             if ($goods->type == 2) {
                 $existOrderList = Order::uid()
@@ -659,7 +659,7 @@ class UserController extends Controller
                     }
                 }
             }
-            **/
+            */
 
             DB::beginTransaction();
             try {
@@ -696,7 +696,7 @@ class UserController extends Controller
                     Helpers::addCouponLog($coupon->id, $goods_id, $order->oid, $user->id,'余额支付订单使用');
                 }
 
-/**
+/*
                 // 如果买的是套餐，则先将之前购买的所有套餐置都无效，并扣掉之前所有套餐的流量，重置用户已用流量为0
                 if ($goods->type == 2) {
                     $existOrderList = Order::query()
@@ -729,7 +729,7 @@ class UserController extends Controller
                         }
                     }
                 }
-**/
+*/
 
                 $user = User::query()->where('id', $user->id)->first(); // 重新取出user信息
                 // 写入用户流量变动记录
@@ -747,12 +747,12 @@ class UserController extends Controller
                 //这个是不管怎样都把账号的过期时间加到账号上。我觉的也无可厚非
                 //$expireTime  = date('Y-m-d', strtotime($user->expire_time ."+" . $goods->days . " days" ));
 
-                // 套餐的话，就要改流量重置日，同时把流量写入到transfer_montly 
+                // 套餐的话，就要改流量重置日，同时把流量写入到transfer_montly
                 if ($goods->type == 2) {
                     if (date('m') == 2 && date('d') == 29) {
                         $traffic_reset_day = 28;
                     } else {
-                        // 更改套餐重置日 
+                        // 更改套餐重置日
                         $traffic_reset_day = date('d') == 31 ? 30 : abs(date('d'));
                     }
                     User::query()->where('id', $order->user_id)->update(['traffic_reset_day' => $traffic_reset_day, 'expire_time' => $expireTime, 'enable' => 1]);
@@ -762,7 +762,7 @@ class UserController extends Controller
                     User::query()->where('id', $order->user_id)->update(['expire_time' => $expireTime, 'enable' => 1]);
                 }
 
-                /** 这里不再需要标签功能
+                /* 这里不再需要标签功能
                 // 写入用户标签
                 if ($goods->label) {
                     // 用户默认标签
@@ -789,7 +789,7 @@ class UserController extends Controller
                         $obj->save();
                     }
                 }
-                **/
+                */
 
                 // 更新用户等级  商品等级 > 用户等级，则更新用户等级
                 if ($goods->level > $user->level) {
@@ -869,7 +869,7 @@ class UserController extends Controller
 /**
         //加一个功能 song 如果消费返利 < 注册返利，那么就无法申请提现 判定订单中 订单为0 的 比例
         $reg_money = ReferralLog::uid()->where('status', 0)->where('order_id',0)->sum('ref_amount');
-        // 这里取 邀请注册返利占比不能大于 1/2 
+        // 这里取 邀请注册返利占比不能大于 1/2
         if ($reg_money > 0) {  //*50 = *100 /2
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：包含注册返利！']);
         }
@@ -926,7 +926,7 @@ class UserController extends Controller
             $link_logs .= $log->id . ',';
             #这里自动将 返利的那个 已返利变为2 就是已返利
             ReferralLog::query()->where('id', $log->id)->update(['status' => 2]);
-            #song 这里直接将所有的返利记录变为2 
+            #song 这里直接将所有的返利记录变为2
         }
         $link_logs = rtrim($link_logs, ',');
 
@@ -1039,7 +1039,7 @@ class UserController extends Controller
         $obj->status = 3;
         $obj->save();
 
-        //生成代金券 
+        //生成代金券
         $coupon = new Coupon();
         $coupon->name = Auth::user()->id;
         $coupon->sn = Auth::user()->username.time();
@@ -1165,7 +1165,7 @@ class UserController extends Controller
             // 更换sr 连接密码
             User::uid()->update(['passwd' => makeRandStr()]);
 
-            // 更换 uuid 
+            // 更换 uuid
             $uuid = createGuid();
             User::uid()->update(['vmess_id' => $uuid]);
 
@@ -1226,7 +1226,7 @@ class UserController extends Controller
             // 写入卡券日志
             Helpers::addCouponLog($coupon->id, 0, 0, Auth::user()->id, '账户余额充值使用');
 
-            // 余额充值  
+            // 余额充值
             User::uid()->increment('balance', $coupon->amount);
 
             DB::commit();
@@ -1407,8 +1407,8 @@ class UserController extends Controller
 
         $goodsIds = Order::query()->where('user_id', Auth::user()->id)->where('status', 2)->where('is_expire', 0)->where('expire_at', '>', date('Y-m-d H:i:s'))->groupBy('goods_id')->pluck('goods_id')->toArray();
         // song 获取 用户商品最大 等级
-        $maxLevel = Goods::query()->whereIn('id', $goodsIds)->orderBy('level','desc')->pluck('level')->first();  
-        empty($maxLevel) && $maxLevel = 0;  // 如果为空 就算 0 
+        $maxLevel = Goods::query()->whereIn('id', $goodsIds)->orderBy('level','desc')->pluck('level')->first();
+        empty($maxLevel) && $maxLevel = 0;  // 如果为空 就算 0
         // 将最新的等级写入到用户 中
         User::uid()->update(['level' => $maxLevel]);
         return Response::json(['status' => 'success', 'data' => '', 'message' => '等级校正成功']);
@@ -1439,13 +1439,13 @@ class UserController extends Controller
         }elseif ($user->balance < 0 ) {
             return Redirect::to('profile#tab_5')->withErrors('您的余额 < 0');
         }elseif ($cn_update == $user->username) {
-            
+
             $orders = Order::where('user_id','=',$user->id)->where('is_expire','=','0')->where('status',2)->where('expire_at','>',date('Y-m-d H:i:s'))->get();
             $level = 0;
             $transfer_enable = 0;
             $transfer_monthly = 0;
             foreach ($orders as $order) {
-                // 选取流量 
+                // 选取流量
                 $order->goods->level > $level && $level = $order->goods->level;
                 $transfer_enable += $order->goods->traffic * 1048576;
                 if ($order->goods->type == 2) {

@@ -13,7 +13,7 @@
                             <li>
                                 <h4>
                                     <span class="font-blue">账户等级：</span>
-                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span> 
+                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span>
                                 </h4>
                             </li>
                             @if (Auth::user()->balance < 0)
@@ -125,15 +125,15 @@
             @endif
             <div class="row">
                 <div class="col-xs-12" style="text-align: right;">
-                    
+
                     @if(\App\Components\Helpers::systemConfig()['is_youzan'])
-                        <a class="btn btn-lg red hidden-print" onclick="onlinePay(youzan)"> {{trans('home.online_pay')}} </a>
+                        <a class="btn btn-lg red hidden-print" onclick="onlinePay(2)"> {{trans('home.online_pay')}} </a>
                     @elseif(\App\Components\Helpers::systemConfig()['is_trimepay'])
-                        <a class="btn btn-lg green hidden-print" onclick="onlinePay(trimepay)"> 在线支付(测试中 勿用) </a>
+                        <a class="btn btn-lg green hidden-print" onclick="onlinePay(3)"> 在线支付(测试中 勿用) </a>
                     @elseif(\App\Components\Helpers::systemConfig()['is_alipay'])
-                        <a class="btn btn-lg green hidden-print" onclick="onlinePay(alipay)"> 支付宝扫码 </a>
+                        <a class="btn btn-lg green hidden-print" onclick="onlinePay(4)"> 支付宝扫码 </a>
                     @elseif(\App\Components\Helpers::systemConfig()['is_f2fpay'])
-                        <a class="btn btn-lg green hidden-print" onclick="onlinePay(f2fpay)"> 支付宝扫码 </a>
+                        <a class="btn btn-lg green hidden-print" onclick="onlinePay(5)"> 支付宝扫码 </a>
                     @endif
                     @if($goods->type <= 2)
                         <a class="btn btn-lg blue hidden-print uppercase" onclick="pay()"> {{trans('home.service_pay_button')}} </a>
@@ -159,11 +159,11 @@
                                     <div class="col-md-6">
                                         <select class="form-control" name="charge_type" id="charge_type">
                                             <option value="1" selected>{{trans('home.coupon_code')}}</option>
-                                            
+
                                         </select>
                                     </div>
                                 </div>
-                                
+
                                 <div class="form-group" id="charge_coupon_code">
                                     <label for="charge_coupon" class="col-md-4 control-label"> {{trans('home.coupon_code')}} </label>
                                     <div class="col-md-6">
@@ -260,13 +260,13 @@
                 success: function (ret) {
                     layer.msg(ret.message, {time:1300}, function() {
                         if (ret.status == 'success') {
-                            if (pay_type==4) {
-                                // 如果是Alipay支付写入Alipay的支付页面
-                                document.body.innerHTML += ret.data;
-                                document.forms['alipaysubmit'].submit();
-                            } else {
-                                window.location.href = '/payment' + "/" + ret.data;
-                            }
+                            // if (pay_type==4) {
+                            //     // 如果是Alipay支付写入Alipay的支付页面
+                            //     document.body.innerHTML += ret.data;
+                            //     document.forms['alipaysubmit'].submit();
+                            // } else {
+                                window.location.href = ret.url;
+                            // }
                         } else {
                             window.location.href = '/invoices';
                         }

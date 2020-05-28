@@ -52,11 +52,11 @@ class PaymentController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '创建支付单失败：系统并未开启在线支付功能']);
         }
 
-        // 判断是否存在同个商品的未支付订单
-        $existsOrder = Order::uid()->where('status', 0)->where('user_id', Auth::user()->id)->where('goods_id', $goods_id)->exists();
-        if ($existsOrder) {
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '创建支付单失败：尚有未支付的订单，请先去支付']);
-        }
+        // // 判断是否存在同个商品的未支付订单
+        // $existsOrder = Order::uid()->where('status', 0)->where('user_id', Auth::user()->id)->where('goods_id', $goods_id)->exists();
+        // if ($existsOrder) {
+        //     return Response::json(['status' => 'fail', 'data' => '', 'message' => '创建支付单失败：尚有未支付的订单，请先去支付']);
+        // }
 
         // 限购控制
         $strategy = self::$systemConfig['goods_purchase_limit_strategy'];
@@ -129,15 +129,16 @@ class PaymentController extends Controller
             $orderSn = 'n' .time(). $sn;  // 支付方式+时间号的方式来计算？ 如果同一时间怎么办？
 
             // 支付方式
-            if ($pay_type == 'trimepay' self::$systemConfig['is_trimepay']) {
-                $pay_way = 3;
-            } elseif (self::$systemConfig['is_youzan']) {
-                $pay_way = 2;
-            } elseif (self::$systemConfig['is_alipay']) {
-                $pay_way = 4;
-            } elseif (self::$systemConfig['is_f2fpay']) {
-                $pay_way = 5;
-            }
+            // if ($pay_type == 'trimepay' && self::$systemConfig['is_trimepay']) {
+            //     $pay_way = 3;
+            // } elseif (self::$systemConfig['is_youzan']) {
+            //     $pay_way = 2;
+            // } elseif (self::$systemConfig['is_alipay']) {
+            //     $pay_way = 4;
+            // } elseif (self::$systemConfig['is_f2fpay']) {
+            //     $pay_way = 5;
+            // }
+            $pay_way = $pay_type;
 
             // 生成订单
             $order = new Order();
@@ -154,16 +155,19 @@ class PaymentController extends Controller
             $order->save();
 
             // 生成支付单
-            if ($pay_type == 'trimepay' && self::$systemConfig['is_trimepay']) {
+            if ($pay_type == '3' && self::$systemConfig['is_trimepay']) {
                 $trimepay = new Trimepay(self::$systemConfig['trimepay_appid'], self::$systemConfig['trimepay_appsecret']);
-                $notifyUrl = 'https://srp-ssn.freessr.bid' . '/api/trimepay';
-                $returnUrl = 'https://srp-ssn.freessr.bid' ;
+                $notifyUrl = 'https://srp-dev.freessr.bid' . '/api/trimepay';
+                $returnUrl = 'https://srp-dev.freessr.bid' . '/invoices' ;
                 $result = $trimepay->pay($orderSn, $amount, $notifyUrl, $returnUrl);
-                if ($result['code'] !== 0) {
-                    Log::error('【Trimepay】创建二维码失败：' . $result['msg']);
-                    throw new \Exception($result['msg']);
+                // if ($result['code'] !== 0) {
+                //     Log::error('【Trimepay】创建二维码失败：' . $result['msg']);
+                //     throw new \Exception($result['msg']);
+                // }
+                if (!isset($result['data'])) {
+                  return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付网关处理失败：']);
                 }
-            } elseif ($pay_type == 'youzan' && self::$systemConfig['is_youzan']) {
+            } elseif ($pay_type == '2' && self::$systemConfig['is_youzan']) {
                 $yzy = new Yzy();
                 $result = $yzy->createQrCode($goods->name, $amount * 100, $orderSn);
                 if (isset($result['error_response'])) {
@@ -171,7 +175,7 @@ class PaymentController extends Controller
 
                     throw new \Exception($result['error_response']['msg']);
                 }
-            } elseif ($pay_type == 'alipay' && self::$systemConfig['is_alipay']) {
+            } elseif ($pay_type == '4' && self::$systemConfig['is_alipay']) {
                 $parameter = [
                     "service"        => "create_forex_trade", // WAP:create_forex_trade_wap ,即时到帐:create_forex_trade
                     "partner"        => self::$systemConfig['alipay_partner'],
@@ -190,7 +194,7 @@ class PaymentController extends Controller
                 // 建立请求
                 $alipaySubmit = new AlipaySubmit(self::$systemConfig['alipay_sign_type'], self::$systemConfig['alipay_partner'], self::$systemConfig['alipay_key'], self::$systemConfig['alipay_private_key']);
                 $result = $alipaySubmit->buildRequestForm($parameter, "post", "确认");
-            } elseif ($pay_type == 'f2fpay' && self::$systemConfig['is_f2fpay']) {
+            } elseif ($pay_type == '5' && self::$systemConfig['is_f2fpay']) {
                 // TODO：goods表里增加一个字段用于自定义商品付款时展示的商品名称，
                 // TODO：这里增加一个随机商品列表，根据goods的价格随机取值
                 $result = Charge::run("ali_qr", [
@@ -216,20 +220,20 @@ class PaymentController extends Controller
             $payment->user_id = Auth::user()->id;
             $payment->oid = $order->oid;
             $payment->order_sn = $orderSn;
-            $payment->pay_way = 1;
+            $payment->pay_way = $pay_way;
             $payment->amount = $amount;
-            if (self::$systemConfig['is_trimepay']) {
-                $payment->qr_url = $result['data'];
-                $payment->qr_code = 'https://www.zhihu.com/qrcode?url=' . $result['data'];
-                $payment->qr_local_url = 'https://www.zhihu.com/qrcode?url=' . $result['data'];
-            } elseif (self::$systemConfig['is_youzan']) {
+            if ($pay_type == '3' && self::$systemConfig['is_trimepay']) {
+                $payment->qr_url = $result['data']['pay_url'];
+                $payment->qr_code = '';
+                $payment->qr_local_url = '';
+            } elseif ($pay_type == '2' && self::$systemConfig['is_youzan']) {
                 $payment->qr_id = $result['response']['qr_id'];
                 $payment->qr_url = $result['response']['qr_url'];
                 $payment->qr_code = $result['response']['qr_code'];
                 $payment->qr_local_url = $this->base64ImageSaver($result['response']['qr_code']);
-            } elseif (self::$systemConfig['is_alipay']) {
+            } elseif ($pay_type == '4' && self::$systemConfig['is_alipay']) {
                 $payment->qr_code = $result;
-            } elseif (self::$systemConfig['is_f2fpay']) {
+            } elseif ($pay_type == '5' && self::$systemConfig['is_f2fpay']) {
                 $payment->qr_code = $result;
                 $payment->qr_url = 'http://qr.topscan.com/api.php?text=' . $result . '&bg=ffffff&fg=000000&pt=1c73bd&m=10&w=400&el=1&inpt=1eabfc&logo=https://t.alipayobjects.com/tfscom/T1Z5XfXdxmXXXXXXXX.png';
                 $payment->qr_local_url = $payment->qr_url;
@@ -249,11 +253,11 @@ class PaymentController extends Controller
 
             DB::commit();
 
-            if (self::$systemConfig['is_alipay']) { // Alipay返回支付信息
-                return Response::json(['status' => 'success', 'data' => $result, 'message' => '创建订单成功，正在转到付款页面，请稍后']);
-            } else {
-                return Response::json(['status' => 'success', 'data' => $sn, 'message' => '创建订单成功，正在转到付款页面，请稍后']);
-            }
+            // if (self::$systemConfig['is_alipay']) { // Alipay返回支付信息
+            //     return Response::json(['status' => 'success', 'data' => $result, 'message' => '创建订单成功，正在转到付款页面，请稍后']);
+            // } else {
+                return Response::json(['status' => 'success', 'data' => $result['data'], 'url' =>$result['data']['pay_url'], 'message' => '创建订单成功，正在转到付款页面，请稍后' ]);
+            // }
         } catch (\Exception $e) {
             DB::rollBack();
 
