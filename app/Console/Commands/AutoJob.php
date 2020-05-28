@@ -187,17 +187,14 @@ class AutoJob extends Command
                 if ( $user->referral_uid != 0 ) {
                     # 取出此用户注册邀请奖励值
                     $referral = ReferralLog::where('user_id','=',$user->id)->where('ref_user_id','=',$user->referral_uid)->where('order_id','=',0)->first();
+                    $referral_user = User::query()->where('id', $user->referral_uid)->first();
                     ##如果存在这个邀请ID 那么就扣除这个用户相应的邀请ID，并写入返利日志 直接扣除，直接写入
-                    if (!empty($referral->ref_amount)) {
-
+                    if (!empty($referral->ref_amount) && !empty($referral_user->id)) {
                         //扣除邀请人的信用额度 当然，在考虑是否直接扣除余额！
                         //User::query()->where('id', $user->referral_uid)->decrement('credit', $referral->ref_amount*100);
                         //扣除流量
                         //$transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
                         //User::query()->where('id', $user->referral_uid)->decrement('transfer_enable', $transfer_enable);
-
-                        // 获取 邀请人
-                        $referral_user = User::query()->where('id', $user->referral_uid)->first();
                         // 扣除信用额度
                         $referral_user->credit -= $referral->ref_amount;
                         // 扣除延迟还款的额度  如果这个还款日 > 1，那么就减1 .防止出现，刷账号的情况发生。
@@ -261,15 +258,17 @@ class AutoJob extends Command
                     // 去除此用户的注册返利被 删除时候的记录，如果没有的话
                     //$pays     = ReferralLog::where('user_id','=',$user->id)->where('ref_user_id','=',$user->referral_uid)->where('order_id','=',-1)->where('status','=',2)->count();
                     ##如果存在这个邀请ID 那么就扣除这个用户相应的邀请ID，并写入返利日志 直接扣除，直接写入
-                    if ( !empty($referral->ref_amount) ) {
+                    // 获取 邀请人
+                    $referral_user = User::query()->where('id', $user->referral_uid)->first();
+
+                    if ( !empty($referral->ref_amount) && !empty($referral_user->id)) {
                         #扣除邀请人相应的余额
                         //User::query()->where('id', $user->referral_uid)->decrement('balance', $referral->ref_amount*100);
                         //扣除流量
                         //$transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
                         //User::query()->where('id', $user->referral_uid)->decrement('transfer_enable', $transfer_enable);
 
-                        // 获取 邀请人
-                        $referral_user = User::query()->where('id', $user->referral_uid)->first();
+                        
                         // 扣除信用额度
                         $referral_user->credit -= $referral->ref_amount;
                         //扣除流量

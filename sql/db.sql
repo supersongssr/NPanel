@@ -1395,4 +1395,9 @@ ALTER TABLE `user`
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 
+#增加 trimepay 
+INSERT INTO config values ('96', 'is_trimepay', 0);
+INSERT INTO config VALUES ('97', 'trimepay_appid', '');
+INSERT INTO config VALUES ('98', 'trimepay_appsecret', '');
+
 

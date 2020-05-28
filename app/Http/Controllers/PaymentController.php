@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Components\Helpers;
 use App\Components\Yzy;
+use App\Components\Trimepay;
 use App\Components\AlipaySubmit;
 use App\Http\Models\Coupon;
 use App\Http\Models\Goods;
@@ -39,19 +40,20 @@ class PaymentController extends Controller
     {
         $goods_id = intval($request->get('goods_id'));
         $coupon_sn = $request->get('coupon_sn');
+        $pay_type = $request->get('pay_type');
 
         $goods = Goods::query()->where('status', 1)->where('id', $goods_id)->first();
         if (!$goods) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '创建支付单失败：商品或服务已下架']);
         }
 
-        // 判断是否开启有赞云支付
-        if (!self::$systemConfig['is_youzan'] && !self::$systemConfig['is_alipay'] && !self::$systemConfig['is_f2fpay']) {
+        // 判断是否开在线支付
+        if ( !self::$systemConfig['is_trimepay'] && !self::$systemConfig['is_youzan'] && !self::$systemConfig['is_alipay'] && !self::$systemConfig['is_f2fpay']) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '创建支付单失败：系统并未开启在线支付功能']);
         }
 
         // 判断是否存在同个商品的未支付订单
-        $existsOrder = Order::uid()->where('status', 0)->where('goods_id', $goods_id)->exists();
+        $existsOrder = Order::uid()->where('status', 0)->where('user_id', Auth::user()->id)->where('goods_id', $goods_id)->exists();
         if ($existsOrder) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '创建支付单失败：尚有未支付的订单，请先去支付']);
         }
@@ -74,18 +76,25 @@ class PaymentController extends Controller
         }
 
         // 使用优惠券
-        if ($coupon_sn) {
-            $coupon = Coupon::query()->where('status', 0)->whereIn('type', [1, 2])->where('sn', $coupon_sn)->first();
-            if (!$coupon) {
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '创建支付单失败：优惠券不存在']);
-            }
+            if (!empty($coupon_sn)) {
+                $coupon = Coupon::query()->where('status', 0)->whereIn('type', [1, 2])->where('sn', $coupon_sn)->orderBy('id','desc')->first();
+                if (empty($coupon)) {
+                    return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：优惠券不存在']);
+                }
 
-            // 计算实际应支付总价
-            $amount = $coupon->type == 2 ? $goods->price * $coupon->discount / 10 : $goods->price - $coupon->amount;
-            $amount = $amount > 0 ? round($amount, 2) : 0; // 四舍五入保留2位小数，避免无法正常创建订单
-        } else {
-            $amount = $goods->price;
-        }
+                // EDU 专用优惠券
+                if (strstr($coupon_sn, 'edu.cn') == 'edu.cn') {  // coupon 以 edu.cn结尾的话，
+                    if (strstr(Auth::user()->username, $coupon_sn) != $coupon_sn) {  // 但是用户不是 edu用户的话，不能用这个 优惠券
+                        return Response::json(['status' => 'fail', 'data' => '', 'message' => '此优惠券为 '.$coupon->name.' 专享优惠券']);
+                    }
+                }
+
+                // 计算实际应支付总价
+                $amount = $coupon->type == 2 ? $goods->price * $coupon->discount / 10 : $goods->price - $coupon->amount;
+                $amount = $amount > 0 ? $amount : 0;
+            } else {
+                $amount = $goods->price;
+            }
 
         // 价格异常判断
         if ($amount < 0) {
@@ -94,7 +103,7 @@ class PaymentController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '创建支付单失败：订单总价为0，无需使用在线支付']);
         }
 
-        // 验证账号是否存在有效期更长的套餐
+        /*// 验证账号是否存在有效期更长的套餐
         if ($goods->type == 2) {
             $existOrderList = Order::uid()
                 ->with(['goods'])
@@ -110,15 +119,19 @@ class PaymentController extends Controller
                     return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：您已存在有效期更长的套餐，只能购买流量包']);
                 }
             }
-        }
+        }*/
 
         DB::beginTransaction();
         try {
-            $orderSn = date('ymdHis') . mt_rand(100000, 999999);
+
             $sn = makeRandStr(12);
+            //$orderSn = date('ymdHis') . mt_rand(100000, 999999);
+            $orderSn = 'n' .time(). $sn;  // 支付方式+时间号的方式来计算？ 如果同一时间怎么办？
 
             // 支付方式
-            if (self::$systemConfig['is_youzan']) {
+            if ($pay_type == 'trimepay' self::$systemConfig['is_trimepay']) {
+                $pay_way = 3;
+            } elseif (self::$systemConfig['is_youzan']) {
                 $pay_way = 2;
             } elseif (self::$systemConfig['is_alipay']) {
                 $pay_way = 4;
@@ -141,7 +154,16 @@ class PaymentController extends Controller
             $order->save();
 
             // 生成支付单
-            if (self::$systemConfig['is_youzan']) {
+            if ($pay_type == 'trimepay' && self::$systemConfig['is_trimepay']) {
+                $trimepay = new Trimepay(self::$systemConfig['trimepay_appid'], self::$systemConfig['trimepay_appsecret']);
+                $notifyUrl = 'https://srp-ssn.freessr.bid' . '/api/trimepay';
+                $returnUrl = 'https://srp-ssn.freessr.bid' ;
+                $result = $trimepay->pay($orderSn, $amount, $notifyUrl, $returnUrl);
+                if ($result['code'] !== 0) {
+                    Log::error('【Trimepay】创建二维码失败：' . $result['msg']);
+                    throw new \Exception($result['msg']);
+                }
+            } elseif ($pay_type == 'youzan' && self::$systemConfig['is_youzan']) {
                 $yzy = new Yzy();
                 $result = $yzy->createQrCode($goods->name, $amount * 100, $orderSn);
                 if (isset($result['error_response'])) {
@@ -149,7 +171,7 @@ class PaymentController extends Controller
 
                     throw new \Exception($result['error_response']['msg']);
                 }
-            } elseif (self::$systemConfig['is_alipay']) {
+            } elseif ($pay_type == 'alipay' && self::$systemConfig['is_alipay']) {
                 $parameter = [
                     "service"        => "create_forex_trade", // WAP:create_forex_trade_wap ,即时到帐:create_forex_trade
                     "partner"        => self::$systemConfig['alipay_partner'],
@@ -168,7 +190,7 @@ class PaymentController extends Controller
                 // 建立请求
                 $alipaySubmit = new AlipaySubmit(self::$systemConfig['alipay_sign_type'], self::$systemConfig['alipay_partner'], self::$systemConfig['alipay_key'], self::$systemConfig['alipay_private_key']);
                 $result = $alipaySubmit->buildRequestForm($parameter, "post", "确认");
-            } elseif (self::$systemConfig['is_f2fpay']) {
+            } elseif ($pay_type == 'f2fpay' && self::$systemConfig['is_f2fpay']) {
                 // TODO：goods表里增加一个字段用于自定义商品付款时展示的商品名称，
                 // TODO：这里增加一个随机商品列表，根据goods的价格随机取值
                 $result = Charge::run("ali_qr", [
@@ -196,7 +218,11 @@ class PaymentController extends Controller
             $payment->order_sn = $orderSn;
             $payment->pay_way = 1;
             $payment->amount = $amount;
-            if (self::$systemConfig['is_youzan']) {
+            if (self::$systemConfig['is_trimepay']) {
+                $payment->qr_url = $result['data'];
+                $payment->qr_code = 'https://www.zhihu.com/qrcode?url=' . $result['data'];
+                $payment->qr_local_url = 'https://www.zhihu.com/qrcode?url=' . $result['data'];
+            } elseif (self::$systemConfig['is_youzan']) {
                 $payment->qr_id = $result['response']['qr_id'];
                 $payment->qr_url = $result['response']['qr_url'];
                 $payment->qr_code = $result['response']['qr_code'];
