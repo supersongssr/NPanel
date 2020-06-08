@@ -37,18 +37,17 @@
                                 </h4>
                             </li>
                             <li>
+                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
+                            </li>
+                            <li>
                                 <h4>
                                     <span class="font-blue">信用卡：</span>
                                     <span class="font-red">{{Auth::user()->credit / 100}}</span>
                                 </h4>
                             </li>
                             @endif
-                            <li>
-                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">余额{{trans('home.recharge')}} -></a>
-                            </li>
-                            <li>
-                                <a href="https://www.910fk.com/liebiao/E22E331D89AA7657" target="_blank" class="btn green btn-sm">购买充值卡券</a> <!-- song -->
-                            </li>
+
+
                         </ul>
                         <p><small>*等级越高，节点越多，带宽越大<br>*购买套餐时，您可以透支信用卡额度去购买套餐，每邀请一个用户注册，赠送5元信用卡余额。 如果您邀请的用户被系统删除，这个5元的信用额度会被扣掉。 邀请的人越多信用额度也越多。 请注意，这个信用额度可以透支，但是欠的钱要记得还啊</small></p>
                     </div>
@@ -129,7 +128,7 @@
                     @if(\App\Components\Helpers::systemConfig()['is_youzan'])
                         <a class="btn btn-lg red hidden-print" onclick="onlinePay(2)"> {{trans('home.online_pay')}} </a>
                     @elseif(\App\Components\Helpers::systemConfig()['is_trimepay'])
-                        <a class="btn btn-lg green hidden-print" onclick="onlinePay(3)"> 在线支付(测试中 勿用) </a>
+                        <a class="btn btn-lg green hidden-print" onclick="onlinePay(3)"> {{trans('home.online_pay')}} </a>
                     @elseif(\App\Components\Helpers::systemConfig()['is_alipay'])
                         <a class="btn btn-lg green hidden-print" onclick="onlinePay(4)"> 支付宝扫码 </a>
                     @elseif(\App\Components\Helpers::systemConfig()['is_f2fpay'])
@@ -168,6 +167,12 @@
                                     <label for="charge_coupon" class="col-md-4 control-label"> {{trans('home.coupon_code')}} </label>
                                     <div class="col-md-6">
                                         <input type="text" class="form-control" name="charge_coupon" id="charge_coupon" placeholder="{{trans('home.please_input_coupon')}}">
+                                    </div>
+                                </div>
+                                <div class="form-group" id="charge_coupon_code">
+                                    <label for="charge_coupon" class="col-md-4 control-label"> {{trans('home.coupon_code')}} </label>
+                                    <div class="col-md-6">
+                                        <a href="#" type="button" target="_blank" class="btn green btn-sm">购买充值卡券</a>
                                     </div>
                                 </div>
                             </div>

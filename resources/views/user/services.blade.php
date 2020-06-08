@@ -38,22 +38,21 @@
                                 </h4>
                             </li>
                             <li>
+                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
+                            </li>
+                            <li>
                                 <h4>
                                     <span class="font-blue">信用卡：</span>
                                     <span class="font-red">{{Auth::user()->credit / 100}}</span>
                                 </h4>
                             </li>
                             @endif
-                            <li>
-                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">余额{{trans('home.recharge')}} -></a>
-                            </li>
-                            <li>
-                                <a href="https://www.910fk.com/liebiao/E22E331D89AA7657" target="_blank" class="btn green btn-sm">购买充值卡券</a> <!-- song -->
-                            </li>
+
+
                            <!--  <li>
                                 <h4>
                                     <span class="font-blue">账户等级：</span>
-                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span> 
+                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span>
                                 </h4>
                             </li> -->
                         </ul>
@@ -105,7 +104,7 @@
                                         <li>流量扣除顺序：按时间买的流量 -> 按流量买的流量 -> 系统赠送流量(签到、返利等)</li>
                                         <li><code>*Bt、P2P、网盘上载流量优先扣除 按流量买的流量 -> 系统赠送的流量</code></li>
                                     </ol>
-                                    
+
 
                                 </div>
                                 <div class="tab-pane" id="services2">
@@ -269,6 +268,12 @@
                                     <label for="charge_coupon" class="col-md-4 control-label"> {{trans('home.coupon_code')}} </label>
                                     <div class="col-md-6">
                                         <input type="text" class="form-control" name="charge_coupon" id="charge_coupon" placeholder="{{trans('home.please_input_coupon')}}">
+                                    </div>
+                                </div>
+                                <div class="form-group" id="charge_coupon_code">
+                                    <label for="charge_coupon" class="col-md-4 control-label"> {{trans('home.coupon_code')}} </label>
+                                    <div class="col-md-6">
+                                        <a href="#" type="button" target="_blank" class="btn green btn-sm">购买充值卡券</a>
                                     </div>
                                 </div>
                             </div>

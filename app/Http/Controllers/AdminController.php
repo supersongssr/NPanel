@@ -88,7 +88,7 @@ class AdminController extends Controller
         $view['totalOnlinePayOrder'] = Order::query()->where('pay_way', 2)->count();
         $view['totalSuccessOrder'] = Order::query()->where('status', 2)->count();
         $view['todaySuccessOrder'] = Order::query()->where('status', 2)->where('created_at', '>=', date('Y-m-d 00:00:00'))->where('created_at', '<=', date('Y-m-d 23:59:59'))->count();
-/** Song
+/* Song
         $view['expireDays'] = self::$systemConfig['expire_days'];
         $view['totalUserCount'] = User::query()->count(); // 总用户数
         $view['enableUserCount'] = User::query()->where('enable', 1)->count(); // 有效用户数
@@ -127,7 +127,7 @@ class AdminController extends Controller
         $view['totalOnlinePayOrder'] = Order::query()->where('pay_way', 2)->count();
         $view['totalSuccessOrder'] = Order::query()->where('status', 2)->count();
         $view['todaySuccessOrder'] = Order::query()->where('status', 2)->where('created_at', '>=', date('Y-m-d 00:00:00'))->where('created_at', '<=', date('Y-m-d 23:59:59'))->count();
-**/
+*/
 
         $view['userall'] = User::where("enable",1)->where("status",1)->count();
         $view['uservip0'] = User::where("enable",1)->where("status",1)->where("level",0)->count();

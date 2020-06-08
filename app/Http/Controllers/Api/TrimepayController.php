@@ -31,7 +31,7 @@ class TrimepayController extends Controller
     public function index(Request $request)
     {
         \Log::info("【TrimePay】回调接口[GET]：" . var_export($request->all(), true) . '[' . getClientIp() . ']');
-         //exit("【TrimePay】接口正常");
+         //exit("【paytaro】接口正常");
         die('SUCCESS');
     }
     // 接收POST请求
@@ -63,8 +63,9 @@ class TrimepayController extends Controller
             //exit();
             die('FAIL');
         } else {
-            echo('SUCCESS');
+
             $this->tradePaid($data);
+            echo('SUCCESS');
         }
         /*switch ($data['payStatus']) {
             case 'SUCCESS':
@@ -88,7 +89,8 @@ class TrimepayController extends Controller
         }
         if ($payment->status != '0') {
             Log::info('【Trimepay】回调订单状态不正确');
-            exit();
+            //exit();
+            die('SUCCESS');
         }
         // 处理订单
         DB::beginTransaction();
@@ -283,7 +285,7 @@ class TrimepayController extends Controller
 
             // 写入邀请返利， 用户购买商品后 balance >= 0 才给返利  同时 只有 124805这个编号以上的用户才给返利 也就是新用户才返利
             if ( $user->id > 124804 && $user->referral_uid && $user->balance >= 0) {
-                $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $amount, $amount * self::$systemConfig['referral_percent']);
+                $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $order->amount, $order->amount * self::$systemConfig['referral_percent']);
             }
 
             DB::commit();
