@@ -258,7 +258,7 @@
                                         <div class="col-md-6">
                                             <select class="form-control" name="online_pay" id="online_pay">
                                                 @foreach($chargeGoodsList as $key => $goods)
-                                                    <option value="{{$goods->id}}">充值{{$goods->price}}元</option>
+                                                    <option value="{{$goods->id}}">充值{{$goods->price /100}}元</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -270,10 +270,10 @@
                                         <input type="text" class="form-control" name="charge_coupon" id="charge_coupon" placeholder="{{trans('home.please_input_coupon')}}">
                                     </div>
                                 </div>
-                                <div class="form-group" id="charge_coupon_code">
+                                <div class="form-group" id="charge_coupon_code_url">
                                     <label for="charge_coupon" class="col-md-4 control-label"> {{trans('home.coupon_code')}} </label>
                                     <div class="col-md-6">
-                                        <a href="#" type="button" target="_blank" class="btn green btn-sm">购买充值卡券</a>
+                                        <a href="#" type="button" target="_blank" class="btn green btn-sm">点击购买充值卡券</a>
                                     </div>
                                 </div>
                             </div>
@@ -311,9 +311,11 @@
             if ($(this).val() == 2) {
                 $("#charge_balance").show();
                 $("#charge_coupon_code").hide();
+                $("#charge_coupon_code_url").hide();
             } else {
                 $("#charge_balance").hide();
                 $("#charge_coupon_code").show();
+                $("#charge_coupon_code_url").show();
             }
         });
 

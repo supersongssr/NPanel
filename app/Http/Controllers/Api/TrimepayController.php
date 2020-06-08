@@ -251,42 +251,52 @@ class TrimepayController extends Controller
 
             $goods = Goods::query()->where('id', $order->goods_id)->first();
             $user = User::query()->where('id', $order->user_id)->first(); // 重新取出user信息
-            // 写入用户流量变动记录
-            Helpers::addUserTrafficModifyLog($user->id, $order->oid, $user->transfer_enable, ($user->transfer_enable + $goods->traffic * 1048576), '[余额支付]用户购买商品，加上流量');
-            // 把商品的流量加到账号上
-            User::query()->where('id', $user->id)->increment('transfer_enable', $goods->traffic * 1048576);
+            if ( $goods->type <= 2 ) {
+              // 写入用户流量变动记录
+              Helpers::addUserTrafficModifyLog($user->id, $order->oid, $user->transfer_enable, ($user->transfer_enable + $goods->traffic * 1048576), '[余额支付]用户购买商品，加上流量');
+              // 把商品的流量加到账号上
+              User::query()->where('id', $user->id)->increment('transfer_enable', $goods->traffic * 1048576);
 
-            // 计算账号过期时间
-            if ($user->expire_time < date('Y-m-d', strtotime("+" . $goods->days . " days"))) {
-                $expireTime = date('Y-m-d', strtotime("+" . $goods->days . " days"));
-            } else {
-                $expireTime = $user->expire_time;
+              // 计算账号过期时间
+              if ($user->expire_time < date('Y-m-d', strtotime("+" . $goods->days . " days"))) {
+                  $expireTime = date('Y-m-d', strtotime("+" . $goods->days . " days"));
+              } else {
+                  $expireTime = $user->expire_time;
+              }
+
+              // 套餐的话，就要改流量重置日，同时把流量写入到transfer_montly
+              if ($goods->type == 2) {
+                  if (date('m') == 2 && date('d') == 29) {
+                      $traffic_reset_day = 28;
+                  } else {
+                      // 更改套餐重置日
+                      $traffic_reset_day = date('d') == 31 ? 30 : abs(date('d'));
+                  }
+                  User::query()->where('id', $order->user_id)->update(['traffic_reset_day' => $traffic_reset_day, 'expire_time' => $expireTime, 'enable' => 1]);
+                  //是按时间买套餐 的话， 流量写入到 transfer_monthly 表中
+                  User::query()->where('id', $user->id)->increment('transfer_monthly', $goods->traffic * 1048576);
+              } else {
+                  User::query()->where('id', $order->user_id)->update(['expire_time' => $expireTime, 'enable' => 1]);
+              }
+
+              // 更新用户等级  商品等级 > 用户等级，则更新用户等级
+              if ($goods->level > $user->level) {
+                  User::query()->where('id', $order->user_id)->update(['level' => $goods->level]);
+                  // 写入用户余额变动记录
+                  $this->addUserBalanceLog(Auth::user()->id, 0, Auth::user()->balance, Auth::user()->balance + $coupon->amount, $coupon->amount, $coupon->id, '用户在线充值 - [充值券：' . $request->coupon_sn . ']');
+              }
+
+              // 写入邀请返利， 用户购买商品后 balance >= 0 才给返利  同时 只有 124805这个编号以上的用户才给返利 也就是新用户才返利
+              if ( $user->id > 124804 && $user->referral_uid && $user->balance >= 0) {
+                  $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $order->amount, $order->amount * self::$systemConfig['referral_percent']);
+              }
+            }elseif($goods->type == 3){
+              User::query()->where('id', $order->user_id)->increment('balance', $goods->price);
+
+              // 余额变动记录日志
+              $this->addUserBalanceLog($order->user_id, $order->oid, $order->user->balance, $order->user->balance + $goods->price, $goods->price, '用户在线充值');
             }
 
-            // 套餐的话，就要改流量重置日，同时把流量写入到transfer_montly
-            if ($goods->type == 2) {
-                if (date('m') == 2 && date('d') == 29) {
-                    $traffic_reset_day = 28;
-                } else {
-                    // 更改套餐重置日
-                    $traffic_reset_day = date('d') == 31 ? 30 : abs(date('d'));
-                }
-                User::query()->where('id', $order->user_id)->update(['traffic_reset_day' => $traffic_reset_day, 'expire_time' => $expireTime, 'enable' => 1]);
-                //是按时间买套餐 的话， 流量写入到 transfer_monthly 表中
-                User::query()->where('id', $user->id)->increment('transfer_monthly', $goods->traffic * 1048576);
-            } else {
-                User::query()->where('id', $order->user_id)->update(['expire_time' => $expireTime, 'enable' => 1]);
-            }
-
-            // 更新用户等级  商品等级 > 用户等级，则更新用户等级
-            if ($goods->level > $user->level) {
-                User::query()->where('id', $order->user_id)->update(['level' => $goods->level]);
-            }
-
-            // 写入邀请返利， 用户购买商品后 balance >= 0 才给返利  同时 只有 124805这个编号以上的用户才给返利 也就是新用户才返利
-            if ( $user->id > 124804 && $user->referral_uid && $user->balance >= 0) {
-                $this->addReferralLog($user->id, $user->referral_uid, $order->oid, $order->amount, $order->amount * self::$systemConfig['referral_percent']);
-            }
 
             DB::commit();
         } catch (\Exception $e) {

@@ -70,7 +70,7 @@
                                 <tr>
                                     <td style="padding: 10px;">
                                         <h2>{{$goods->name}}</h2>
-                                        充值金额：{{$goods->price}}元
+                                        充值金额：{{$goods->price/100}}元
                                         </td>
                                     <td class="text-center"> ￥{{$goods->price / 100}} </td>
                                 </tr>
