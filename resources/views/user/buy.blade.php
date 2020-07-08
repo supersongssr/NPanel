@@ -37,15 +37,15 @@
                                 </h4>
                             </li>
                             <li>
-                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
-                            </li>
-                            <li>
                                 <h4>
                                     <span class="font-blue">信用卡：</span>
                                     <span class="font-red">{{Auth::user()->credit / 100}}</span>
                                 </h4>
                             </li>
                             @endif
+                            <li>
+                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
+                            </li>
 
 
                         </ul>
@@ -157,22 +157,36 @@
                                     <label for="charge_type" class="col-md-4 control-label">{{trans('home.payment_method')}}</label>
                                     <div class="col-md-6">
                                         <select class="form-control" name="charge_type" id="charge_type">
-                                            <option value="1" selected>{{trans('home.coupon_code')}}</option>
-
+                                            <option value="1">{{trans('home.coupon_code')}}</option>
+                                            @if(!$chargeGoodsList->isEmpty())
+                                                <option value="2"  selected>{{trans('home.online_pay')}}</option>
+                                            @endif
                                         </select>
+                                        {{trans('home.coupon_code')}} - {{trans('home.online_pay')}}
                                     </div>
                                 </div>
-
-                                <div class="form-group" id="charge_coupon_code">
+                                @if(!$chargeGoodsList->isEmpty())
+                                    <div class="form-group" id="charge_balance" >
+                                        <label for="online_pay" class="col-md-4 control-label">充值金额</label>
+                                        <div class="col-md-6">
+                                            <select class="form-control" name="online_pay" id="online_pay">
+                                                @foreach($chargeGoodsList as $key => $chargeGoods)
+                                                    <option value="{{$chargeGoods->id}}">充值{{$chargeGoods->price /100}}元</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                @endif
+                                <div class="form-group" id="charge_coupon_code" style="display: none;">
                                     <label for="charge_coupon" class="col-md-4 control-label"> {{trans('home.coupon_code')}} </label>
                                     <div class="col-md-6">
                                         <input type="text" class="form-control" name="charge_coupon" id="charge_coupon" placeholder="{{trans('home.please_input_coupon')}}">
                                     </div>
                                 </div>
-                                <div class="form-group" id="charge_coupon_code">
+                                <div class="form-group" id="charge_coupon_code_url" style="display: none;">
                                     <label for="charge_coupon" class="col-md-4 control-label"> {{trans('home.coupon_code')}} </label>
                                     <div class="col-md-6">
-                                        <a href="#" type="button" target="_blank" class="btn green btn-sm">购买充值卡券</a>
+                                        <a href="#" type="button" target="_blank" class="btn green btn-sm">点击购买充值卡券</a>
                                     </div>
                                 </div>
                             </div>

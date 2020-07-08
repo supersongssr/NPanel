@@ -282,8 +282,8 @@ class TrimepayController extends Controller
               // 更新用户等级  商品等级 > 用户等级，则更新用户等级
               if ($goods->level > $user->level) {
                   User::query()->where('id', $order->user_id)->update(['level' => $goods->level]);
-                  // 写入用户余额变动记录
-                  $this->addUserBalanceLog(Auth::user()->id, 0, Auth::user()->balance, Auth::user()->balance + $coupon->amount, $coupon->amount, $coupon->id, '用户在线充值 - [充值券：' . $request->coupon_sn . ']');
+                  // // 写入用户余额变动记录
+                  // $this->addUserBalanceLog(Auth::user()->id, 0, Auth::user()->balance, Auth::user()->balance + $coupon->amount, $coupon->amount, $coupon->id, '用户在线充值 - [充值券：' . $request->coupon_sn . ']');
               }
 
               // 写入邀请返利， 用户购买商品后 balance >= 0 才给返利  同时 只有 124805这个编号以上的用户才给返利 也就是新用户才返利

@@ -820,6 +820,9 @@ class UserController extends Controller
                 return Redirect::to('services');
             }
 
+            // 余额充值商品，只取10个
+            $view['chargeGoodsList'] = Goods::type(3)->orderBy('price', 'asc')->limit(10)->get();
+
             $view['goods'] = $goods;
 
             return Response::view('user.buy', $view);
