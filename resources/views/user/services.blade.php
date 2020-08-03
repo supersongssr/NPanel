@@ -45,7 +45,7 @@
                             </li>
                             @endif
                             <li>
-                                <a class="btn btn-sm blue" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
+                                <a class="btn btn-sm red" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
                             </li>
 
 
@@ -245,15 +245,15 @@
                                     <label for="charge_type" class="col-md-4 control-label">{{trans('home.payment_method')}}</label>
                                     <div class="col-md-6">
                                         <select class="form-control" name="charge_type" id="charge_type">
-                                            <option value="1">{{trans('home.coupon_code')}}</option>
+                                            <option value="1" selected>{{trans('home.coupon_code')}}</option>
                                             @if(!$chargeGoodsList->isEmpty())
-                                                <option value="2"  selected>{{trans('home.online_pay')}}</option>
+                                                <option value="2" >{{trans('home.online_pay')}}</option>
                                             @endif
                                         </select>
                                     </div>
                                 </div>
                                 @if(!$chargeGoodsList->isEmpty())
-                                    <div class="form-group" id="charge_balance" >
+                                    <div class="form-group" id="charge_balance" style="display: none;">
                                         <label for="online_pay" class="col-md-4 control-label">充值金额</label>
                                         <div class="col-md-6">
                                             <select class="form-control" name="online_pay" id="online_pay">
@@ -264,18 +264,20 @@
                                         </div>
                                     </div>
                                 @endif
-                                <div class="form-group" id="charge_coupon_code" style="display: none;">
-                                    <label for="charge_coupon" class="col-md-4 control-label"> {{trans('home.coupon_code')}} </label>
+                                <div class="form-group" id="charge_coupon_code_url" >
+                                    <label for="charge_coupon" class="col-md-4 control-label"> 购买{{trans('home.coupon_code')}} </label>
+                                    <div class="col-md-6">
+                                        <a href="https://ka.1ka123.com/goods-133036.html" type="button" target="_blank" class="btn green btn-sm">点击购买 10￥ 充值卡券（购买多个可叠加）</a>
+                                        <br>* 所购买商品为充值卡券，用于在本站充值余额。充值更多金额可以叠加充值，如充值50，可以购买5个10￥充值卡券。如有疑问，请联系发卡平台卖家QQ。
+                                    </div>
+                                </div>
+                                <div class="form-group" id="charge_coupon_code" >
+                                    <label for="charge_coupon" class="col-md-4 control-label"> 输入{{trans('home.coupon_code')}} </label>
                                     <div class="col-md-6">
                                         <input type="text" class="form-control" name="charge_coupon" id="charge_coupon" placeholder="{{trans('home.please_input_coupon')}}">
                                     </div>
                                 </div>
-                                <div class="form-group" id="charge_coupon_code_url" style="display: none;">
-                                    <label for="charge_coupon" class="col-md-4 control-label"> {{trans('home.coupon_code')}} </label>
-                                    <div class="col-md-6">
-                                        <a href="#" type="button" target="_blank" class="btn green btn-sm">点击购买充值卡券</a>
-                                    </div>
-                                </div>
+
                             </div>
                         </form>
                     </div>
