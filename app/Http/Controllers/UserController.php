@@ -280,6 +280,7 @@ class UserController extends Controller
 
             //修改 cncdn
             if ($cncdn) {
+                $cncdn == 666 && $cncdn = '';
                 $ret = User::uid()->update(['cncdn' => $cncdn]);
                 if (!$ret) {
                     return Redirect::to('profile#tab_4')->withErrors('修改失败');

@@ -45,20 +45,24 @@ class AutoStatisticsNodeDailyTraffic extends Command
 
             #记录当前流量值
             $node->traffic_lastday = $node->traffic;
-            # 写入每天流量差值记录 
+            # 写入每天流量差值记录
             $node->ipv6 = floor($traffic_today / 1073741824) . '.' . $node->ipv6;
             $node->ipv6 = substr($node->ipv6, 0, 20);
-            # 计算每个节点的倍率 昨日流量 / 总体的流量 
+            # 计算每个节点的倍率 昨日流量 / 总体的流量
             if ($node->traffic_limit > 0) {
                 $node->traffic_rate = round($traffic_today * 32 / $node->traffic_limit,1) ;
             }
             $node->traffic_rate > ($node->node_cost/5) && $node->traffic_rate = ($node->node_cost/5);
-            
+
             # 若今天流量少于 16G，就写入禁用一次。
-            if ($traffic_today < 8*1024*1024*1024) {
+            if ($traffic_today < 16*1024*1024*1024) {
                 $node->status = 0;
+                $node->sort -= 1;
+            }elseif ($traffic_today > 32*1024*1024*1024) {
+              // code...
                 $node->sort += 1;
             }
+
             $node->save();
         }
 
@@ -66,7 +70,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
         $jobUsedTime = round(($jobEndTime - $jobStartTime), 4);
 
         Log::info('执行定时任务【' . $this->description . '】，耗时' . $jobUsedTime . '秒');
-/**
+/*
         //自动判断节点的状态
         $nodes_vnstat = SsNode::query()->get();
         $file = "public/".date("md");
@@ -112,9 +116,9 @@ class AutoStatisticsNodeDailyTraffic extends Command
                     # code...
                     $addn = explode('#',$s1);
                     $data = [
-                        'ip'=>$addn['0'] , 
-                        'ssh_port'=>$addn['1'], 
-                        'monitor_url'=>$addn['2'], 
+                        'ip'=>$addn['0'] ,
+                        'ssh_port'=>$addn['1'],
+                        'monitor_url'=>$addn['2'],
                         'method'=>$addn['3']
                     ];
                     SsNode::query()->where('id',$node['id'])->update($data);
@@ -124,19 +128,19 @@ class AutoStatisticsNodeDailyTraffic extends Command
                     # code...
                     $addn = explode('#',$v2);
                     $data = [
-                        'ip'=>$addn['0'], 
-                        'v2_port'=>$addn['1'], 
-                        'v2_alter_id'=>$addn['2'], 
-                        'v2_net'=>$addn['3'], 
-                        'v2_type'=>$addn['4'], 
+                        'ip'=>$addn['0'],
+                        'v2_port'=>$addn['1'],
+                        'v2_alter_id'=>$addn['2'],
+                        'v2_net'=>$addn['3'],
+                        'v2_type'=>$addn['4'],
                         'monitor_url'=>$addn['5']
                     ];
                     SsNode::query()->where('id',$node['id'])->update($data);
                 }
             }
-        }  
-        Log::info('执行定时任务【检查节点status状态】完成，结果已写入文件'); 
-        **/
+        }
+        Log::info('执行定时任务【检查节点status状态】完成，结果已写入文件');
+        */
     }
 
     private function statisticsByNode($node_id)
@@ -169,14 +173,14 @@ class AutoStatisticsNodeDailyTraffic extends Command
             $obj->traffic = $traffic;
             $obj->save();
         }
-        
-        // 在线节点少于 10G流量的隐藏 且节点名称加 - 
+
+        // 在线节点少于 10G流量的隐藏 且节点名称加 -
         // 这个主要是用来证明节点是否可以正常使用的！
         if ($total < 10737418240) {
             $node->status = 0;
             $node->sort += 1;
         }
-        //节点描述里，加上每日节点流量表现数值 
+        //节点描述里，加上每日节点流量表现数值
         $node->desc = floor($total / 1073741824) . ' ' . $node->desc;
         $node->desc = substr($node->desc, 0, 32);
 

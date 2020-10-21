@@ -698,9 +698,9 @@ class AdminController extends Controller
 
         $query = SsNode::query()->orderBy('status','desc');
 
-        /** if ($status != '') {
+        /* if ($status != '') {
             $query->where('status', intval($status));
-        }**/
+        }*/
 
         if (!empty($id)) {
             $query->where('id', $id);
@@ -711,7 +711,7 @@ class AdminController extends Controller
         }
 
         if (!empty($ipv6)) {
-            $query->where('ipv6', 'like', '%' . $ipv6 . '%');
+            $query->where('desc', 'like', '%' . $ipv6 . '%');
         }
 
         if (!empty($node_group)) {
@@ -725,10 +725,10 @@ class AdminController extends Controller
             $query->where('type', $type);
         }
 
-        if ($sort == '1') {
-            $query->orderBy('sort', 'asc');
-        }else{
+        if ($sort == '-1') {
             $query->orderBy('sort', 'desc');
+        }else{
+            $query->orderBy('sort', 'asc');
         }
 
         if ($level_sort == '-1') {

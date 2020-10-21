@@ -12,7 +12,7 @@ use App\Http\Models\UserSubscribe;
 use App\Http\Models\UserSubscribeLog;
 use Illuminate\Http\Request;
 
-// cncdn 
+// cncdn
 use App\Http\Models\Cncdn;
 
 use Redirect;
@@ -155,28 +155,28 @@ class SubscribeController extends Controller
         }
 
         // 更新访问次数
-        $subscribe->increment('times', 1); 
+        $subscribe->increment('times', 1);
 
         // 记录每次请求
         $this->log($subscribe->id, getClientIp(), $request->headers);
 
         // 这里已被 level 等级代替，无需获取标签了
-        /**
+        /*
         // 获取这个账号可用节点
         $userLabelIds = UserLabel::query()->where('user_id', $user->id)->pluck('label_id');
         if (empty($userLabelIds)) {
             exit($this->noneNode());
         }
-        **/
+        */
 
         $query = SsNode::query()->selectRaw('ss_node.*')->leftjoin("ss_node_label", "ss_node.id", "=", "ss_node_label.node_id");
-/** song
+/* song
         // 启用混合订阅时，加入V2Ray节点，未启用时仅下发SSR节点信息
         if (!self::$systemConfig['mix_subscribe']) {
             $query->where('ss_node.type', 1);
         }
 
-**/     // 这里 等级 level 和 分组 group 获取节点
+*/     // 这里 等级 level 和 分组 group 获取节点
         $nodeList = $query->where('ss_node.status', 1)->where('level', '<=' ,$user->level)->where('node_group',$user->node_group)->where('ss_node.is_subscribe', 1)->groupBy('ss_node.id')->orderBy('ss_node.level', 'desc')->orderBy('ss_node.node_onload', 'desc')->take(self::$systemConfig['subscribe_max'])->get()->toArray();
         if (empty($nodeList)) {
             exit($this->noneNode());
@@ -260,14 +260,29 @@ class SubscribeController extends Controller
 
                 //控制显示 cncdn 自定义
                 $node_server = $node['server'];
-                if ($node['is_transit'] && ($user->cncdn || $cn_sub) ) {   //如果用户设置了 cncdn 而且设置了 中转
-                    $cdn_server = strstr($node_server, '.');
-                    $cdn_server = substr($cdn_server, 1);
-                    empty($cn_sub) && $cn_sub = $user->cncdn;
-                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cn_sub)->orderBy('id','desc')->first();
-                    if (!empty($cncdn->ipmd5)) {
-                        $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
+                $cdn_area = '';
+                if ($node['is_transit'] ) {   //如果用户设置了 cncdn 而且设置了 中转
+                    if ($user->cncdn || $cn_sub) {
+                      $cdn_server = strstr($node_server, '.');
+                      $cdn_server = substr($cdn_server, 1);
+                      empty($cn_sub) && $cn_sub = $user->cncdn;
+                      $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cn_sub)->orderBy('id','desc')->first();
+                      if (!empty($cncdn->ipmd5)) {
+                          $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
+                          $cdn_area = $cncdn->area;
+                      }
+                    }else{
+                      $cdn_server = strstr($node_server, '.');
+                      $cdn_server = substr($cdn_server, 1);
+                      $cdn_area_array = array("武汉联通","郑州联通","天津联通","重庆联通","济南联通","广州联通","石家庄联通","天津移动","广州移动","无锡移动");
+                      $cdn_area_choice = $cdn_area_array[array_rand($cdn_area_array,1)];
+                      $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cdn_area_choice)->orderBy('id','desc')->first();
+                      if (!empty($cncdn->ipmd5)) {
+                          $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
+                          $cdn_area = $cncdn->area;
+                      }
                     }
+
                 }elseif ($user->cfcdn || $cf_sub) {
                     $node_server = $user->cfcdn;
                     !empty($cf_sub) && $node_server = $cf_sub;
@@ -281,7 +296,7 @@ class SubscribeController extends Controller
                     // 生成v2ray scheme
                     $v2_json = [
                         "v"    => "2",
-                        "ps"   => $node['name'].' ·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm,
+                        "ps"   => $node['name'].$cdn_area.'·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm,
                         "add"  => $node['server'] ? $node_server : $node['ip'],
                         "port" => $node['v2_port'],
                         "id"   => $node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id'],
@@ -326,7 +341,7 @@ class SubscribeController extends Controller
         }
 
         if ($ver == "3" || !empty($rocket_sub) ) { //
-            # 这个是小火箭的订阅规则 嘎嘎 
+            # 这个是小火箭的订阅规则 嘎嘎
             foreach ($nodeList as $key => $node) {
                 $node_warm = '';
                 $node['traffic_rate'] < 0.3 && $node_warm = '' ;
@@ -337,24 +352,38 @@ class SubscribeController extends Controller
 
                 //控制显示 cncdn 自定义
                 $node_server = $node['server'];
-                if ($node['is_transit'] && ($user->cncdn || $cn_sub) ) {   //如果用户设置了 cncdn 而且设置了 中转
-                    $cdn_server = strstr($node_server, '.');
-                    $cdn_server = substr($cdn_server, 1);
-                    empty($cn_sub) && $cn_sub = $user->cncdn;
-                    $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cn_sub)->orderBy('id','desc')->first();
-                    if (!empty($cncdn->ipmd5)) {
-                        $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
+                $cdn_area = '';
+                if ($node['is_transit'] ) {   //如果用户设置了 cncdn 而且设置了 中转
+                    if ($user->cncdn || $cn_sub) {
+                      $cdn_server = strstr($node_server, '.');
+                      $cdn_server = substr($cdn_server, 1);
+                      empty($cn_sub) && $cn_sub = $user->cncdn;
+                      $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cn_sub)->orderBy('id','desc')->first();
+                      if (!empty($cncdn->ipmd5)) {
+                          $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
+                          $cdn_area = $cncdn->area;
+                      }
+                    }else{
+                      $cdn_server = strstr($node_server, '.');
+                      $cdn_server = substr($cdn_server, 1);
+                      $cdn_area_array = array("武汉联通","郑州联通","天津联通","重庆联通","济南联通","广州联通","石家庄联通","天津移动","广州移动","无锡移动");
+                      $cdn_area_choice = $cdn_area_array[array_rand($cdn_area_array,1)];
+                      $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cdn_area_choice)->orderBy('id','desc')->first();
+                      if (!empty($cncdn->ipmd5)) {
+                          $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
+                          $cdn_area = $cncdn->area;
+                      }
                     }
                 }elseif ($user->cfcdn || $cf_sub) {
                     $node_server = $user->cfcdn;
                     !empty($cf_sub) && $node_server = $cf_sub;
                 }
-                
+
                 //
                 if ($node['type'] == 2 && $node['v2_net'] != 'kcp') {
                     $v2_str = $node['v2_method'] . ':' . ($node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id']) . '@';
-                    $v2_str .= ($node['server'] ? $node_server : $node['ip']) . ':' . $node['v2_port'];  
-                    $v2_str = base64url_encode($v2_str) . '?remarks=' . urlencode($node['name'].'·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm) ;
+                    $v2_str .= ($node['server'] ? $node_server : $node['ip']) . ':' . $node['v2_port'];
+                    $v2_str = base64url_encode($v2_str) . '?remarks=' . urlencode($node['name'].$cdn_area.'·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm) ;
                     $v2_str .= '&obfsParam=' . $node['v2_host'] . '&path=' . $node['v2_path'] . '&obfs=' . ($node['v2_net'] == 'ws' ? 'websocket' : $node['v2_net']) . '&tls=' . ($node['v2_tls'] == 1 ? "1" : "").'&peer='.$node['v2_host'].'&allowInsecure=1';
                     $scheme .= 'vmess://' . $v2_str . "\n";
                 }else{
@@ -374,7 +403,7 @@ class SubscribeController extends Controller
                     }
                 }
             }
-        } 
+        }
 
         exit(base64_encode($scheme));
 
@@ -429,7 +458,7 @@ class SubscribeController extends Controller
      * 用户信息 v2ray
      *
      * @param object $user
-     * 
+     *
      * @return string
      */
     private function userInfoV2ray($user)

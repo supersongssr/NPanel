@@ -33,7 +33,7 @@
                                         <li class="active">
                                             <a href="#tab_4" data-toggle="tab">CN+中转入口</a>
                                         </li>
-                                        
+
                                         <li >
                                             <a href="#tab_6" data-toggle="tab">CF+网络优化</a>
                                         </li>
@@ -85,7 +85,7 @@
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
                                                 <p>请使用 <a href="https://imgurl.org/" target="_blank">免费图床</a>上传收款码，复制 URL 地址到上面。<br><code>*请务必检查您的收款二维码是否正确，如果由于您错误的二维码无法收到打款，只能自己承担呦</code></p>
-                                                <p><code>您的收款二维码为：<br></code><img src="{{Auth::user()->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 300px; max-height: 300px;"> </p> 
+                                                <p><code>您的收款二维码为：<br></code><img src="{{Auth::user()->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 300px; max-height: 300px;"> </p>
                                                 <div class="form-actions">
                                                     <div class="row">
                                                         <div class="col-md-12">
@@ -129,8 +129,9 @@
                                                         @if (Auth::user()->cncdn)
                                                         <option value="{{Auth::user()->cncdn}}">{{Auth::user()->cncdn}}</option>
                                                         @else
-                                                        <option value="">默认稳定</option>
+                                                        <option value="666">默认随机</option>
                                                         @endif
+                                                        <option value="666">默认随机</option>
                                                         @foreach($cncdns as $cncdn)
                                                             <option value="{{$cncdn->area}}" >{{$cncdn->area}}</option>
                                                         @endforeach

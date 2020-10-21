@@ -7,7 +7,7 @@
     <!-- BEGIN CONTENT BODY -->
     <div class="page-content" style="padding-top:0;">
         <!-- BEGIN PAGE BASE CONTENT -->
-        
+
         <div class="row">
             <div class="col-md-12">
                 <!-- BEGIN EXAMPLE TABLE PORTLET-->
@@ -25,7 +25,7 @@
                         </div>
                     </div>
                     <div class="portlet-body">
-                        
+
                         <div class="row">
                             <div class="col-md-8 col-sm-8">
                                 <div class="dataTables_paginate paging_bootstrap_full_number pull-right">
@@ -76,12 +76,12 @@
                                                 <td> {{$node->ipv6}} </td>
                                                 <td> {{$node->name}} </td>
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->online_users}}</span> </td>
-                                                
+
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->traffic_rate}}</span> </td>
                                                 <td><span class="label label-info">{{$node->node_group}}</span></td>
                                                 <td><span class="label label-info">{{$node->level}}</span></td>
                                                 <td>
-                                                    <!-- 
+                                                    <!--
                                                     @if($node->is_nat)
                                                         <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">NAT</span>
                                                     @else
@@ -94,7 +94,7 @@
                                                 <td><a class="btn green" href="javascript:nodeMonitor('{{$node->id}}');"> 流量 </a>
                                                 </td>
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->uptime}}</span> </td>
-                                                
+
                                                 <td>
                                                     <div class="btn-group">
                                                         <a class="btn btn-default dropdown-toggle" data-toggle="dropdown" href="javascript:;" aria-expanded="false"> 操作
@@ -137,7 +137,7 @@
                                 <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="nodename" value="{{Request::get('nodename')}}" id="nodename" placeholder="节点名" onkeydown="if(event.keyCode==13){doSearch();}">
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
-                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="ipv6" value="{{Request::get('ipv6')}}" id="ipv6" placeholder="ipv6" onkeydown="if(event.keyCode==13){doSearch();}">
+                                <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="ipv6" value="{{Request::get('ipv6')}}" id="ipv6" placeholder="描述" onkeydown="if(event.keyCode==13){doSearch();}">
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
                                 <input type="text" class="col-md-4 col-sm-4 col-xs-12 form-control" name="node_group" value="{{Request::get('node_group')}}" id="node_group" placeholder="分组" onkeydown="if(event.keyCode==13){doSearch();}">
@@ -187,7 +187,7 @@
                                     <option value="1" @if(Request::get('traffic') == '1') selected @endif>低->高</option>
                                 </select>
                             </div>
-                            
+
                         </div>
                     </div>
                 </div>
@@ -195,7 +195,7 @@
             </div>
         </div>
         <!-- END PAGE BASE CONTENT -->
-        
+
     </div>
     <!-- END CONTENT BODY -->
 @endsection
