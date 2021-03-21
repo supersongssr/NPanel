@@ -672,7 +672,7 @@ CREATE TABLE `referral_apply` (
   `after` int(11) NOT NULL DEFAULT '0' COMMENT '操作后可提现金额，单位分',
   `amount` int(11) NOT NULL DEFAULT '0' COMMENT '本次提现金额，单位分',
   `link_logs` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '关联返利日志ID，例如：1,3,4',
-  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '状态：-1-驳回、0-待审核、1-审核通过待打款、2-已打款、3-已代金券',
+  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '状态：-2驳回且更换支付方式-1-驳回、0-待审核、1-审核通过待打款、2-已打款、3-已代金券 4微信 5 支付宝 6 usdt',
   `created_at` datetime DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime DEFAULT NULL COMMENT '最后更新时间',
   PRIMARY KEY (`id`)
@@ -689,7 +689,7 @@ CREATE TABLE `referral_log` (
   `order_id` int(11) NOT NULL DEFAULT '0' COMMENT '关联订单ID',
   `amount` int(11) NOT NULL DEFAULT '0' COMMENT '消费金额，单位分',
   `ref_amount` int(11) NOT NULL DEFAULT '0' COMMENT '返利金额',
-  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '状态：0-未提现、1-审核中、2-已提现、3-已代金券',
+  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '状态：0-未提现、1-审核中、2-已提现、3-已代金券 4微信5支付宝6usdt',
   `created_at` datetime DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime DEFAULT NULL COMMENT '最后更新时间',
   PRIMARY KEY (`id`)
@@ -1337,9 +1337,9 @@ CREATE TABLE IF NOT EXISTS `cncdn` (
 #用户列表增加cncdn cfcdn 自选ip的功能
 ALTER TABLE `user` ADD `rss_ip` VARCHAR(64) DEFAULT NULL COMMENT '订阅ip' AFTER `ban_times`;
 ALTER TABLE `user` ADD `cncdn` VARCHAR(64) DEFAULT '0' COMMENT 'CN自选入口' AFTER `rss_ip`;
-ALTER TABLE `user` ADD `cncdn_count` VARCHAR(64) DEFAULT '0' COMMENT 'CN次数统计' AFTER `cncdn`;
+ALTER TABLE `user` ADD `cncdn_count` INT(11) DEFAULT '0' COMMENT 'CN次数统计' AFTER `cncdn`;
 ALTER TABLE `user` ADD `cfcdn` VARCHAR(64) DEFAULT '0' COMMENT 'CF自选ip' AFTER `cncdn_count`;
-ALTER TABLE `user` ADD `cfcdn_count` VARCHAR(64) DEFAULT '0' COMMENT 'CF次数统计' AFTER `cfcdn`;
+ALTER TABLE `user` ADD `cfcdn_count` INT(11) DEFAULT '0' COMMENT 'CF次数统计' AFTER `cfcdn`;
 
 # 增加 月流量功能
 ALTER TABLE `user` ADD `transfer_monthly` BIGINT(20) DEFAULT '0' COMMENT '每月套餐流量' AFTER `transfer_enable`;
@@ -1361,14 +1361,7 @@ ALTER TABLE `user`
 ALTER TABLE `coupon`
   ADD COLUMN `creat_user` INT(11) Default 0 COMMENT '生成者用户' AFTER `user_id`;
 
--- ----------------------------
--- 记录提现人的姓名和银行卡号`
--- ----------------------------
-ALTER TABLE `referral_apply`
-  ADD COLUMN `card_name` VARCHAR(64) COMMENT '银行卡姓名' AFTER `status`;
 
-ALTER TABLE `referral_apply`
-  ADD COLUMN `card_num` VARCHAR(64) COMMENT '银行卡账号' AFTER `card_name`;
 
 # 节点的昨日流量
 ALTER TABLE `ss_node`
@@ -1400,3 +1393,25 @@ INSERT INTO config values ('96', 'is_trimepay', 0);
 INSERT INTO config VALUES ('97', 'trimepay_appid', '');
 INSERT INTO config VALUES ('98', 'trimepay_appsecret', '');
 INSERT INTO config VALUES ('99', 'pay_notify_url', '');
+
+# 增加 订阅
+ALTER TABLE `user_subscribe`
+  ADD COLUMN `times_today` INT(11) Default 0 COMMENT '今日订阅次数' AFTER `times`;
+
+# 增加 用户 支付宝 USDT,方便用户设置
+ALTER TABLE `user`
+  ADD COLUMN `alipay` varchar(128) Default 0 COMMENT '支付宝' AFTER `wechat`;
+ALTER TABLE `user`
+  ADD COLUMN `usdt` varchar(128) Default 0 COMMENT 'USDT钱包' AFTER `qq`;
+
+-- ----------------------------
+-- 记录提现人的姓名和银行卡号`
+-- ----------------------------
+ALTER TABLE `referral_apply`
+  ADD COLUMN `wechat` VARCHAR(128) COMMENT '微信' AFTER `status`;
+ALTER TABLE `referral_apply`
+  ADD COLUMN `alipay` VARCHAR(128) COMMENT '支付宝' AFTER `wechat`;
+ALTER TABLE `referral_apply`
+  ADD COLUMN `qq` VARCHAR(20) COMMENT 'QQ联系方式' AFTER `alipay`;
+ALTER TABLE `referral_apply`
+  ADD COLUMN `usdt` VARCHAR(128) COMMENT 'USDT' AFTER `qq`;

@@ -31,9 +31,9 @@ class AutoStatisticsNodeDailyTraffic extends Command
             #计算 差值
             #记录每日流量
             #写入新的记录值
-            #如果为负，就写入0
+            #如果为负，就写入0 这条取消，为啥要<0 好像没必要
             $traffic_today = $node->traffic - $node->traffic_lastday;
-            $traffic_today < 0 && $traffic_today =0;
+            // $traffic_today < 0 && $traffic_today =0;
 
             $obj = new SsNodeTrafficDaily();
             $obj->node_id = $node->id;
@@ -62,6 +62,9 @@ class AutoStatisticsNodeDailyTraffic extends Command
               // code...
                 $node->sort += 1;
             }
+
+            // 如果今日流量 < 0 说明重置了。就把正数的sort变为0
+            $traffic_today < 0 && $node->sort > 0 && $node->sort = 0;
 
             $node->save();
         }

@@ -226,7 +226,9 @@ class UserController extends Controller
             $old_password = trim($request->get('old_password'));
             $new_password = trim($request->get('new_password'));
             $wechat = $request->get('wechat');
+            $alipay = $request->get('alipay');
             $qq = $request->get('qq');
+            $usdt = $request->get('usdt');
             $passwd = trim($request->get('passwd'));
             $vmess_id = trim($request->get('vmess_id'));
             $cncdn = trim($request->get('cncdn'));
@@ -255,12 +257,12 @@ class UserController extends Controller
             }
 
             // 修改联系方式
-            if ($wechat || $qq) {
-                if (empty(clean($wechat)) && empty(clean($qq))) {
-                    return Redirect::to('profile#tab_2')->withErrors('修改失败');
-                }
+            if ($wechat || $qq || $alipay || $usdt) {
+                // if (empty(clean($wechat)) && empty(clean($qq))) {
+                //     return Redirect::to('profile#tab_2')->withErrors('修改失败');
+                // }
 
-                $ret = User::uid()->update(['wechat' => $wechat, 'qq' => $qq]);
+                $ret = User::uid()->update(['wechat' => $wechat,'alipay' => $alipay , 'qq' => $qq , 'usdt' => $usdt]);
                 if (!$ret) {
                     return Redirect::to('profile#tab_2')->withErrors('修改失败');
                 } else {
@@ -290,7 +292,7 @@ class UserController extends Controller
             }
 
             //修改 cfcdn
-            if ($cfcdn) {
+            if ( isset($cfcdn) ) {
                 if (!filter_var($cfcdn, FILTER_VALIDATE_IP)) {
                     $cfcdn='';
                 }
@@ -302,7 +304,7 @@ class UserController extends Controller
                 }
             }
 
-            return Redirect::to('profile#tab_1')->withErrors('非法请求');
+            return Redirect::to('profile')->withErrors('参数错误');
         } else {
             $view['cncdns'] = Cncdn::where('status',1)->where('show',1)->get();
             return Response::view('user.profile',$view);
@@ -848,6 +850,7 @@ class UserController extends Controller
     }
 
     // 申请提现
+    // 已经在路由那里禁用了
     public function extractMoney(Request $request)
     {
         // 判断账户是否过期
@@ -855,13 +858,13 @@ class UserController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：账号已过期，请先购买服务吧']);
         }
 
-/**
+/*
         // 判断是否已存在申请
         $referralApply = ReferralApply::uid()->whereIn('status', [0, 1])->first();
         if ($referralApply) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：已存在申请，请等待之前的申请处理完']);
         }
-**/
+*/
         // 校验可以提现金额是否超过系统设置的阀值
 // 之前这里有过bug，导致 用户在提现的时候，金额计算的是，用户邀请返利的所有金额。但是，却只把消费返利的 给 设置为1 了。
         $ref_amount = ReferralLog::uid()->where('status', 0)->where('order_id','>',0)->sum('ref_amount');
@@ -870,14 +873,14 @@ class UserController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：满' . self::$systemConfig['referral_money'] . '元才可以银行卡，继续努力吧']);
         }
 
-/**
+/*
         //加一个功能 song 如果消费返利 < 注册返利，那么就无法申请提现 判定订单中 订单为0 的 比例
         $reg_money = ReferralLog::uid()->where('status', 0)->where('order_id',0)->sum('ref_amount');
         // 这里取 邀请注册返利占比不能大于 1/2
         if ($reg_money > 0) {  //*50 = *100 /2
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：包含注册返利！']);
         }
-**/
+*/
         // 取出本次申请关联返利日志ID
         $link_logs = '';
         $referralLog = ReferralLog::uid()->where('status', 0)->where('order_id','>',0)->get();
@@ -901,7 +904,8 @@ class UserController extends Controller
         return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，记得在个人设置中添加收款信息呦']);
     }
 
-    // 申请提现并自动完成审核打款入账
+    // 申请提现并自动审核打款进余额！ 这个不用了
+    // 已经在路由那里禁用了
     public function autoExtractMoney(Request $request)
     {
         // 判断账户是否过期
@@ -909,13 +913,13 @@ class UserController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：账号已过期，请先购买服务吧']);
         }
 
-/**
+/*
         // 判断是否已存在申请
         $referralApply = ReferralApply::uid()->whereIn('status', [0, 1])->first();
         if ($referralApply) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '申请失败：已存在申请，请等待之前的申请处理完']);
         }
-**/
+*/
         // 校验可以提现金额是否超过系统设置的阀值
         $ref_amount = ReferralLog::uid()->where('status', 0)->sum('ref_amount');
         $ref_amount = $ref_amount / 100;
@@ -929,6 +933,7 @@ class UserController extends Controller
         foreach ($referralLog as $log) {
             $link_logs .= $log->id . ',';
             #这里自动将 返利的那个 已返利变为2 就是已返利
+            //referral_log  0未提现 1 审核中 2 已提现 3 代金券 4 微信 5 支付宝 6 usdt
             ReferralLog::query()->where('id', $log->id)->update(['status' => 2]);
             #song 这里直接将所有的返利记录变为2
         }
@@ -942,6 +947,7 @@ class UserController extends Controller
         $obj->amount = $ref_amount;
         $obj->link_logs = $link_logs;
         #song 这里直接将提现记录变成 已提现
+        //referral_apply -2 驳回请更换支付方式 -1 驳回 0 待审核 1 审核通过待打款 2 已打款 3 代金券 4 微信 5 支付宝 6 usdt
         $obj->status = 2;
         $obj->save();
 
@@ -986,11 +992,13 @@ class UserController extends Controller
         foreach ($referralLog as $log) {
             $link_logs .= $log->id . ',';
             #这里自动将 返利的那个 已返利变为1 就是已申请
+            //referral_log  0未提现 1 审核中 2 已提现 3 代金券 4 微信 5 支付宝 6 usdt
             ReferralLog::query()->where('id', $log->id)->update(['status' => 1]);
             #song 这里直接将提现记录变成1 就是已申请
         }
         $link_logs = rtrim($link_logs, ',');
 
+//referral_apply -2 驳回请更换支付方式 -1 驳回 0 待审核 1 审核通过待打款 2 已打款 3 代金券 4 微信 5 支付宝 6 usdt
         $obj = new ReferralApply();
         $obj->user_id = Auth::user()->id;
         $obj->before = $aff_amount;
@@ -1029,11 +1037,13 @@ class UserController extends Controller
         foreach ($referralLog as $log) {
             $link_logs .= $log->id . ',';
             #这里自动将 返利的那个 已返利变为1 就是已申请
+            //referral_log  0未提现 1 审核中 2 已提现 3 代金券 4 微信 5 支付宝 6 usdt
             ReferralLog::query()->where('id', $log->id)->update(['status' => 3]);
             #song 这里直接将提现记录变成1 就是已申请
         }
         $link_logs = rtrim($link_logs, ',');
 
+//referral_apply -2 驳回请更换支付方式 -1 驳回 0 待审核 1 审核通过待打款 2 已打款 3 代金券 4 微信 5 支付宝 6 usdt
         $obj = new ReferralApply();
         $obj->user_id = Auth::user()->id;
         $obj->before = $aff_amount;
@@ -1081,11 +1091,13 @@ class UserController extends Controller
         foreach ($referralLog as $log) {
             $link_logs .= $log->id . ',';
             #这里自动将 返利的那个 已返利变为1 就是已申请
+            //referral_log  0未提现 1 审核中 2 已提现 3 代金券 4 微信 5 支付宝 6 usdt
             ReferralLog::query()->where('id', $log->id)->update(['status' => 1]);
-            #song 这里直接将提现记录变成1 就是已申请
+            #song 这里直接将提现记录变成1 就是已申请审核中
         }
         $link_logs = rtrim($link_logs, ',');
 
+//referral_apply -2 驳回请更换支付方式 -1 驳回 0 待审核 1 审核通过待打款 2 已打款 3 代金券 4 微信 5 支付宝 6 usdt
         $obj = new ReferralApply();
         $obj->user_id = Auth::user()->id;
         $obj->before = $ref_amount;
@@ -1118,11 +1130,13 @@ class UserController extends Controller
         foreach ($referralLog as $log) {
             $link_logs .= $log->id . ',';
             #这里自动将 返利的那个 已返利变为1 就是已申请
+            //referral_log  0未提现 1 审核中 2 已提现 3 代金券 4 微信 5 支付宝 6 usdt
             ReferralLog::query()->where('id', $log->id)->update(['status' => 3]);
             #song 这里直接将提现记录变成1 就是已申请
         }
         $link_logs = rtrim($link_logs, ',');
 
+//referral_apply -2 驳回请更换支付方式 -1 驳回 0 待审核 1 审核通过待打款 2 已打款 3 代金券 4 微信 5 支付宝 6 usdt
         $obj = new ReferralApply();
         $obj->user_id = Auth::user()->id;
         $obj->before = $ref_amount;
@@ -1399,10 +1413,12 @@ class UserController extends Controller
     public function reActiveSubscribe(Request $request)
     {
 
-        UserSubscribe::query()->where('id', Auth::user()->id)->update(['status' => 1, 'ban_time' => 0, 'ban_desc' => '']);
-        User::uid()->update(['passwd' => time()]);
+        UserSubscribe::uid()->update(['status' => 1, 'ban_time' => 0, 'ban_desc' => '']);
+        // 重置用户的SS链接密码 UUID
+        User::uid()->update(['passwd' => makeRandStr()]);
+        User::uid()->update(['vmess_id' => createGuid()]);
 
-        return Response::json(['status' => 'success', 'data' => '', 'message' => '临时解封成功,请更新订阅']);
+        return Response::json(['status' => 'success', 'data' => '', 'message' => '解封成功,请使用最新订阅地址']);
     }
 
     // 矫正用户等级

@@ -36,7 +36,7 @@
                                             </div>
                                             <div class="portlet-body">
                                                 <div class="form-group">
-                                                    <label for="is_transit" class="col-md-3 control-label">CN+</label>
+                                                    <label for="is_transit" class="col-md-3 control-label">CF+</label>
                                                     <div class="col-md-8">
                                                         <div class="mt-radio-inline">
                                                             <label class="mt-radio">
@@ -168,8 +168,8 @@
                                                         <input type="text" class="form-control" name="desc" value="{{$node->desc}}" id="desc" placeholder="简单描述">
                                                     </div>
                                                 </div>
-                                                
-                                                 
+
+
                                                 <div class="form-group">
                                                     <label for="bandwidth" class="col-md-3 control-label">带宽</label>
                                                     <div class="col-md-8">
@@ -178,7 +178,7 @@
                                                             <span class="input-group-addon">M</span>
                                                         </div>
                                                     </div>
-                                                </div> 
+                                                </div>
                                                 <div class="form-group">
                                                     <label for="traffic_limit" class="col-md-3 control-label">每月流量</label>
                                                     <div class="col-md-8">
@@ -212,7 +212,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div class="form-group">
                                                     <label for="ssh_port" class="col-md-3 control-label"> SRS端口 </label>
                                                     <div class="col-md-8">

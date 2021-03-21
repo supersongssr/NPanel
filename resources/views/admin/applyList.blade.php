@@ -26,11 +26,16 @@
                             <div class="col-md-3 col-sm-4 col-xs-12">
                                 <select class="form-control" name="status" id="status" onChange="do_search()">
                                     <option value="" @if(Request::get('status') == '') selected @endif>状态</option>
+                                    <option value="-3" @if(Request::get('status') == '-3') selected @endif>驳回+收款错误</option>
+                                    <option value="-2" @if(Request::get('status') == '-2') selected @endif>驳回+修改支付</option>
                                     <option value="-1" @if(Request::get('status') == '-1') selected @endif>驳回</option>
                                     <option value="0" @if(Request::get('status') == '0') selected @endif>待审核</option>
                                     <option value="1" @if(Request::get('status') == '1') selected @endif>审核通过待打款</option>
                                     <option value="2" @if(Request::get('status') == '2') selected @endif>已提现</option>
                                     <option value="3" @if(Request::get('status') == '3') selected @endif>已代金券</option>
+                                    <option value="4" @if(Request::get('status') == '4') selected @endif>已微信</option>
+                                    <option value="5" @if(Request::get('status') == '5') selected @endif>已支付宝</option>
+                                    <option value="6" @if(Request::get('status') == '6') selected @endif>已USDT</option>
                                 </select>
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
@@ -70,8 +75,10 @@
                                                 <td> {{$apply->amount / 100}} </td>
                                                 <td> {{$apply->created_at}} </td>
                                                 <td>
-                                                    @if($apply->status == -1)
-                                                        <span class="label label-default label-default"> 驳回 </span>
+                                                  @if($apply->status == -1)
+                                                      <span class="label label-default label-default"> 驳回 </span>
+                                                    @elseif($apply->status == -2)
+                                                        <span class="label label-default label-default"> 驳回+更改提现方式 </span>
                                                     @elseif($apply->status == 0)
                                                         <span class="label label-default label-info"> 待审核 </span>
                                                     @elseif($apply->status == 1)
@@ -80,6 +87,12 @@
                                                         <span class="label label-default label-success"> 已提额 </span>
                                                     @elseif($apply->status == 3)
                                                         <span class="label label-default label-danger"> 已提现 </span>
+                                                    @elseif($apply->status == 4)
+                                                        <span class="label label-default label-danger"> 已微信 </span>
+                                                    @elseif($apply->status == 5)
+                                                        <span class="label label-default label-danger"> 已支付宝 </span>
+                                                    @elseif($apply->status == 6)
+                                                        <span class="label label-default label-danger"> 已USDT </span>
                                                     @else
                                                         <span class="label label-default label-default"> 未知状态 </span>
                                                     @endif

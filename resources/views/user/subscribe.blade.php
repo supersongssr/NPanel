@@ -32,6 +32,13 @@
                                     @else
                                         <span class="label label-info">!请检查流量 和 等级</span>
                                     @endif
+                                    @if ( Auth::user()->subscribe->status == 0  )
+                                        <span class="label label-danger">！请检查订阅地址</span>
+                                    @elseif ( Auth::user()->subscribe->status == 1 )
+                                        <span class="label label-success">订阅正常</span>
+                                    @else
+                                        <span class="label label-info">!请检查订阅地址</span>
+                                    @endif
                                 </h4>
                             </li>
                             <li>
@@ -46,7 +53,7 @@
                                     <span class="font-red">{{Auth::user()->levelList->level_name}}</span>
                                 </h4>
                             </li>
-                            
+
                             @if(Auth::user()->traffic_reset_day)
                             <li>
                                 <h4>
@@ -54,7 +61,7 @@
                                     <span class="font-red">{{ flowAutoShow(Auth::user()->u + Auth::user()->d)}} /{{flowAutoShow(Auth::user()->transfer_enable)}}</span>
                                     <span class="font-blue">( {{flowAutoShow(Auth::user()->u)}}/{{flowAutoShow(Auth::user()->transfer_enable - Auth::user()->transfer_monthly)}}流量包 +</span>
                                     <span class="font-blue">{{flowAutoShow(Auth::user()->d)}}/{{flowAutoShow(Auth::user()->transfer_monthly)}}每月流量 {{Auth::user()->traffic_reset_day}}号重置)</span>
-                                    
+
                                 </h4>
                             </li>
                             @else
@@ -67,8 +74,8 @@
                             @endif
                             <li>
                                 <h4>
-                                    <span class="font-red">中转入口：</span>
-                                    <span class="font-red"> <a href="/profile#tab_4">{{Auth::user()->cncdn}} 点击切换</a> </span>
+                                    <span class="font-red">CF+加速：</span>
+                                    <span class="font-red"> <a href="/profile#tab_6">{{Auth::user()->cfcdn}} 切换</a> </span>
                                 </h4>
                             </li>
                         </ul>
@@ -128,8 +135,8 @@
                                                 </ol>
                                                 <hr>
                                                 <ol>【Vmess- Clash 教程】
-                                                    <input type="text" id="mt-target-1" class="form-control" value="https://api.lovess.top/sub?target=clash&url={{$link}}?v2ray=64&ss=64" />
-                                                    <li> 订阅地址 <code>https://api.lovess.top/sub?target=clash&url={{$link}}?v2ray=64&ss=64</code> </li>
+                                                    <input type="text" id="mt-target-1" class="form-control" value="https://api.speeduprss.xyz/sub?target=clash&url={{$link}}?v2ray=64&ss=64" />
+                                                    <li> 订阅地址 <code>https://api.speeduprss.xyz/sub?target=clash&url={{$link}}?v2ray=64&ss=64</code> </li>
                                                 </ol>
                                                 <hr>
                                                 <!-- <ol>【SS-R 教程】
@@ -154,8 +161,8 @@
                                                 </ol>
                                                 <hr>
                                                 <ol>【Vmess- Clash 教程】
-                                                    <input type="text" id="mt-target-1" class="form-control" value="https://api.lovess.top/sub?target=clash&url={{$link}}?v2ray=64&ss=64&scv=true" />
-                                                    <li> 订阅地址 <code>https://api.lovess.top/sub?target=clash&url={{$link}}?v2ray=64&ss=64&scv=true</code> </li>
+                                                    <input type="text" id="mt-target-1" class="form-control" value="https://api.speeduprss.xyz/sub?target=clash&url={{$link}}?v2ray=64&ss=64&scv=true" />
+                                                    <li> 订阅地址 <code>https://api.speeduprss.xyz/sub?target=clash&url={{$link}}?v2ray=64&ss=64&scv=true</code> </li>
                                                 </ol>
                                                 <hr>
                                                 <!-- <ol>【SS-R 教程】
@@ -191,8 +198,8 @@
                                                 </ol>
                                                 <hr>
                                                 <ol>【Vmess Quan-X 教程】
-                                                    <input type="text" id="mt-target-1" class="form-control" value="https://api.lovess.top/sub?target=quanx&url={{$link}}?v2ray=64&ss=64&emoji=true&fdn=true&list=true" />
-                                                    <li> 订阅地址 <code>https://api.lovess.top/sub?target=quanx&url={{$link}}?v2ray=64&ss=64&emoji=true&fdn=true&list=true</code>
+                                                    <input type="text" id="mt-target-1" class="form-control" value="https://api.speeduprss.xyz/sub?target=quanx&url={{$link}}?v2ray=64&ss=64&emoji=true&fdn=true&list=true" />
+                                                    <li> 订阅地址 <code>https://api.speeduprss.xyz/sub?target=quanx&url={{$link}}?v2ray=64&ss=64&emoji=true&fdn=true&list=true</code>
                                                 </ol>
                                                 <hr>
                                                 <!-- <ol>【SS-R 教程】
@@ -239,11 +246,11 @@
                                     </p>
                                 </div>
                             </div>
-                        
+
                     @else
                         <div style="text-align: center;"><h3>{{trans('home.subscribe_baned')}}</h3>
-                        <br>您的订阅受到保护，直到24小时内不同请求IP少于32次；您可以临时解除保护，系统会分配新的节点给您。
-                        <br><br><button type="button" class="btn btn-big red btn-outline" onclick="reActiveSubscribe()">临时解除保护</button><br>*点击 临时解除保护 软件中的旧的节点会失效，请更新订阅获取新的节点使用。</div>
+                        <br>您的订阅受到保护，24小时内不同订阅请求IP>32次；旧的订阅链接已失效，请使用新的订阅链接！
+                        <br><br><button type="button" class="btn btn-big red btn-outline" onclick="reActiveSubscribe()">解除保护</button><br>*点击 解除保护 软件中的旧的节点会失效，请获取新的节点使用。</div>
                     @endif
                 </div>
             </div>

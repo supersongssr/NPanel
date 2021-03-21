@@ -94,7 +94,7 @@ class PingController extends Controller
         //获取NODE数据
         $node = SsNode::query()->where('id', $id)->first();
         $traffic_mark = $node['traffic'];
-        // 
+        //
         if (empty($node['monitor_url'])) {
             $nodeOnlineLog = SsNodeOnlineLog::query()->where('node_id', $id)->orderBy('id', 'desc')->first();
             if (!empty($nodeOnlineLog->online_user)) {
@@ -109,7 +109,7 @@ class PingController extends Controller
         //直接写入用户流量数据
         $obj = new UserTrafficLog();
         $traffic_now = $traffic - $traffic_mark;
-        $traffic_now < 0 && $traffic_now = 1;    //如果流量差<0 那么可能是重置了 设为1 
+        $traffic_now < 0 && $traffic_now = 1;    //如果流量差<0 那么可能是重置了 设为1
         $obj->user_id =  0; //用户为0的使用的流量就是上传的流量
         $obj->u = 0;
         $obj->d = $traffic_now;
@@ -118,17 +118,17 @@ class PingController extends Controller
         $obj->traffic = floor($traffic_now / 1048576) . 'MB';
         $obj->log_time = time();
         $obj->save();*/
-        /**
+        /*
         $obj = new SsNodeTrafficHourly();
         $traffic_now = $traffic - $traffic_mark;
-        $traffic_now < 0 && $traffic_now = 1;    //如果流量差<0 那么可能是重置了 设为1 
+        $traffic_now < 0 && $traffic_now = 1;    //如果流量差<0 那么可能是重置了 设为1
         $obj->node_id = $id;
         $obj->u = 0;
         $obj->d = $traffic_now;
         $obj->total = $traffic_now;
         $obj->traffic = floor($traffic_now / 1048576) . 'MB';
         $obj->save();
-        **/
+        */
         //写入节点在线人数
         $online_log = new SsNodeOnlineLog();
         $online_log->node_id = $id;
@@ -141,7 +141,7 @@ class PingController extends Controller
     {
         //$id < 9 && exit;   #id 小于32的没有需求 直接退出
         $node = SsNode::query()->where('id', $id)->first();
-       
+
         !empty($request->get('type')) && $node->type = $request->get('type');
         !empty($request->get('name')) && $node->name = $request->get('name');
         !empty($request->get('country_code')) && $node->country_code = $request->get('country_code');
@@ -153,9 +153,10 @@ class PingController extends Controller
         !empty($request->get('node_group')) && $node->node_group = $request->get('node_group');
         !empty($request->get('bandwidth')) && $node->bandwidth = $request->get('bandwidth');
         !empty($request->get('traffic_limit')) && $node->traffic_limit = $request->get('traffic_limit')*1024*1024*1024;
-        !empty($request->get('is_transit')) && $node->is_transit = 1;
+        $request->get('is_transit') == false && $node->is_transit = 0;
+        $request->get('is_transit') && $node->is_transit = 1;
         $node->sort = 0;
-        
+
         if ($request->get('v2')) {
             $v2 = $request->get('v2');
             $addn = explode('#',$v2);

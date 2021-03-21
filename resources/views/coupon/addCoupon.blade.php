@@ -131,7 +131,7 @@
                                         <div class="input-group input-large input-daterange">
                                             <input type="text" class="form-control" name="available_start" value="{{date('Y-m-d')}}" id="available_start" autocomplete="off" required>
                                             <span class="input-group-addon"> 至 </span>
-                                            <input type="text" class="form-control" name="available_end" value="{{date('Y-m-d',strtotime ( '+10 year' ) )}}" id="available_end" autocomplete="off" required>
+                                            <input type="text" class="form-control" name="available_end" value="{{date('Y-m-d',strtotime ( '+1 month' ) )}}" id="available_end" autocomplete="off" required>
                                         </div>
                                     </div>
                                 </div>

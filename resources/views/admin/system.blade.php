@@ -689,7 +689,7 @@
                                                             <label for="is_subscribe_ban" class="col-md-3 control-label">订阅异常自动封禁</label>
                                                             <div class="col-md-9">
                                                                 <input type="checkbox" class="make-switch" @if($is_subscribe_ban) checked @endif id="is_subscribe_ban" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
-                                                                <span class="help-block"> 启用后用户订阅链接请求超过设定阈值则自动封禁 </span>
+                                                                <span class="help-block"> 订阅异常的用户自动分组-1 </span>
                                                             </div>
                                                         </div>
                                                         <div class="col-md-6 col-sm-6 col-xs-12">
@@ -710,7 +710,7 @@
                                                             <label for="is_traffic_ban" class="col-md-3 control-label">异常自动封号</label>
                                                             <div class="col-md-9">
                                                                 <input type="checkbox" class="make-switch" @if($is_traffic_ban) checked @endif id="is_traffic_ban" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
-                                                                <span class="help-block"> 1小时内流量超过异常阈值则自动封号（仅禁用代理） </span>
+                                                                <span class="help-block"> 1小时内流量异常的用户分组-1 </span>
                                                             </div>
                                                         </div>
                                                         <div class="col-md-6 col-sm-6 col-xs-12">
@@ -723,7 +723,7 @@
                                                                         <button class="btn btn-success" type="button" onclick="setTrafficBanValue()">修改</button>
                                                                     </span>
                                                                 </div>
-                                                                <span class="help-block"> 1小时内超过该值，则触发自动封号 </span>
+                                                                <span class="help-block"> 1小时内流量限制 </span>
                                                             </div>
                                                         </div>
                                                     </div>

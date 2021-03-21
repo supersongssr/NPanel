@@ -364,11 +364,11 @@ class AuthController extends Controller
                     // 邀请注册赠送 6 信用额度
                     User::query()->where('id', $referral_uid)->increment('credit', 6);
                     //返利日志写入 学生给 8元
-                    
+
                 } else {
                     $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
                     User::query()->where('id', $referral_uid)->increment('transfer_enable', $transfer_enable);
-                    // 邀请注册赠送 6 信用额度 
+                    // 邀请注册赠送 6 信用额度
                     User::query()->where('id', $referral_uid)->increment('credit', 6);
                     //返利日志写入
                     $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 5);
@@ -377,7 +377,7 @@ class AuthController extends Controller
             }
 
             User::query()->where('id', $user->id)->update(['status' => 1, 'enable' => 1]);
-            
+
             Session::flash('regSuccessMsg', '注册成功');
 
             /**
@@ -397,7 +397,7 @@ class AuthController extends Controller
 
                 Session::flash('regSuccessMsg', '注册成功');
             } else {
-                
+
                 // 发送激活邮件
                 if (self::$systemConfig['is_active_register']) {
                     // 生成激活账号的地址
@@ -516,11 +516,13 @@ class AuthController extends Controller
                 return Redirect::to('login');
             } elseif ($verify->status == 1) {
                 return Redirect::back()->withErrors('该链接已失效');
-            } elseif ($verify->user->status < 0) {
-                return Redirect::back()->withErrors('账号已被禁用');
-            } elseif (Hash::check($request->password, $verify->user->password)) {
+            }elseif (Hash::check($request->password, $verify->user->password)) {
                 return Redirect::back()->withErrors('新旧密码一样，请重新输入');
             }
+
+           //  elseif ($verify->user->status < 0) {
+           //     return Redirect::back()->withErrors('账号已被禁用');
+           // }
 
             // 更新密码
             $ret = User::query()->where('id', $verify->user_id)->update(['password' => Hash::make($request->password)]);
@@ -804,7 +806,7 @@ class AuthController extends Controller
 
         // 没有用邀请码或者邀请码是管理员生成的，则检查cookie或者url链接
         // song 优先使用邀请码，然后是通过url或者 cookie判断，可以有，不错不错
-        
+
         if (!$referral_uid) {
             // 检查一下cookie里有没有aff
             $cookieAff = \Request::hasCookie('register_aff') ? \Request::cookie('register_aff') : 0;

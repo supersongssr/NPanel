@@ -30,7 +30,7 @@
                             </a>
                             <br>
                             <p><code>邀请用户注册奖励： 5元 信用卡 + 5元现金（用于提现） + 25%消费返利（用于提现）<br>
-                                请确保输入正常的收款信息，信息错误会导致收不到款！<a href="/profile#tab_2">点此设置我的收款信息</a></code><br><img src="{{Auth::user()->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 300px; max-height: 300px;"><br><a href="/profile#tab_2">点此设置我的收款信息</a></p>
+                                请确保输入正常的收款信息，信息错误会导致收不到款！<a href="/profile#tab_2">点此设置我的收款信息</a></code></p>
                         </div>
                     </div>
                 </div>
@@ -92,7 +92,7 @@
                             <button type="submit" class="btn green" onclick="ExtractRefMoney()"> 消费返利提现 </button>
                         </div>
                     </div>
-                    <div class="portlet-body">  
+                    <div class="portlet-body">
                         <div class="table-scrollable">
                             <table class="table table-striped table-bordered table-hover table-checkable order-column">
                                 <thead>
@@ -121,14 +121,28 @@
                                             <td> ￥{{$referralLog->amount / 100}} </td>
                                             <td> ￥{{$referralLog->ref_amount / 100}} </td>
                                             <td>
-                                                @if ($referralLog->status == 1)
+                                                @if($referralLog->status == -3)
+                                                    <span class="label label-sm label-default">可提现:检查收款地址</span>
+                                                @elseif($referralLog->status == -2)
+                                                    <span class="label label-sm label-default">可提现:更换收款方式</span>
+                                                @elseif($referralLog->status == -1)
+                                                    <span class="label label-sm label-default">可提现:重新申请提现</span>
+                                                @elseif($referralLog->status == 0)
+                                                    <span class="label label-sm label-default">未提现</span>
+                                                @elseif ($referralLog->status == 1)
                                                     <span class="label label-sm label-danger">申请中</span>
                                                 @elseif($referralLog->status == 2)
                                                     <span class="label label-sm label-default">已提现</span>
                                                 @elseif($referralLog->status == 3)
                                                     <span class="label label-sm label-default">代金券</span>
+                                                @elseif($referralLog->status == 4)
+                                                    <span class="label label-sm label-default">微信</span>
+                                                @elseif($referralLog->status == 5)
+                                                    <span class="label label-sm label-default">支付宝</span>
+                                                @elseif($referralLog->status == 6)
+                                                    <span class="label label-sm label-default">USDT</span>
                                                 @else
-                                                    <span class="label label-sm label-info">未提取</span>
+                                                    <span class="label label-sm label-info">状态异常请联系管理员</span>
                                                 @endif
                                             </td>
                                         </tr>
@@ -194,8 +208,18 @@
                                                     <span class="label label-sm label-default">已提现</span>
                                                 @elseif($vo->status == 3)
                                                     <span class="label label-sm label-default">代金券</span>
+                                                @elseif($vo->status == 4)
+                                                    <span class="label label-sm label-default">微信提现</span>
+                                                @elseif($vo->status == 5)
+                                                    <span class="label label-sm label-default">支付宝提现</span>
+                                                @elseif($vo->status == 6)
+                                                    <span class="label label-sm label-default">USDT提现</span>
                                                 @elseif($vo->status == -1)
-                                                    <span class="label label-sm label-info">驳回</span>
+                                                    <span class="label label-sm label-info">重新申请提现</span>
+                                                @elseif($vo->status == -2)
+                                                    <span class="label label-sm label-info">更换收款方式</span>
+                                                @elseif($vo->status == -3)
+                                                    <span class="label label-sm label-info">检查收款地址</span>
                                                 @else
                                                     <span class="label label-sm label-info">未知状态，请联系管理</span>
                                                 @endif

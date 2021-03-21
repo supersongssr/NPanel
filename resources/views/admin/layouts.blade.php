@@ -106,7 +106,7 @@
                         <span class="selected"></span>
                     </a>
                 </li>
-                <!-- 
+                <!--
                 <li class="nav-item {{in_array(Request::path(), ['admin/nodeList', 'admin/addNode', 'admin/editNode', 'admin/groupList', 'admin/addGroup', 'admin/editGroup', 'admin/nodeMonitor']) ? 'active open' : ''}}">
                     <a href="javascript:;" class="nav-link nav-toggle">
                         <i class="fa fa-list-alt"></i>
@@ -120,12 +120,7 @@
                                 <span class="title">节点列表</span>
                             </a>
                         </li>
-                        <li class="nav-item {{in_array(Request::path(), ['admin/groupList', 'admin/addGroup', 'admin/editGroup']) ? 'active open' : ''}}">
-                            <a href="/admin/groupList" class="nav-link ">
-                                <i class="fa fa-list-ul"></i>
-                                <span class="title">节点分组</span>
-                            </a>
-                        </li>
+
                 <!--     </ul>
                 </li> -->
                 <li class="nav-item {{in_array(Request::path(), ['admin/articleList', 'admin/addArticle', 'admin/editArticle']) ? 'active open' : ''}}">
@@ -134,24 +129,14 @@
                         <span class="title">文章管理</span>
                     </a>
                 </li>
-                <li class="nav-item {{in_array(Request::path(), ['admin/inviteList']) ? 'active open' : ''}}">
-                    <a href="/admin/inviteList" class="nav-link nav-toggle">
-                        <i class="fa fa-puzzle-piece"></i>
-                        <span class="title">邀请管理</span>
-                    </a>
-                </li>
+
                 <li class="nav-item {{in_array(Request::path(), ['admin/applyList', 'admin/applyDetail']) ? 'active open' : ''}}">
                     <a href="/admin/applyList?status=0" class="nav-link nav-toggle">
                         <i class="fa fa-credit-card"></i>
                         <span class="title">提现管理</span>
                     </a>
                 </li>
-                <li class="nav-item {{in_array(Request::path(), ['shop/goodsList', 'shop/addGoods', 'shop/editGoods']) ? 'active open' : ''}}">
-                    <a href="/shop/goodsList" class="nav-link nav-toggle">
-                        <i class="fa fa-shopping-cart"></i>
-                        <span class="title">商品管理</span>
-                    </a>
-                </li>
+
                 <li class="nav-item {{in_array(Request::path(), ['coupon/couponList', 'coupon/addCoupon']) ? 'active open' : ''}}">
                     <a href="/coupon/couponList" class="nav-link nav-toggle">
                         <i class="fa fa-ticket"></i>
@@ -164,12 +149,7 @@
                         <span class="title">工单管理</span>
                     </a>
                 </li>
-                <li class="nav-item {{in_array(Request::path(), ['admin/labelList', 'admin/addLabel', 'admin/editLabel']) ? 'active open' : ''}}">
-                    <a href="/admin/labelList" class="nav-link nav-toggle">
-                        <i class="fa fa-sticky-note-o"></i>
-                        <span class="title">标签管理</span>
-                    </a>
-                </li>
+
                 <li class="nav-item {{in_array(Request::path(), ['admin/orderList']) ? 'active open' : ''}}">
                     <a href="/admin/orderList" class="nav-link nav-toggle">
                         <i class="fa fa-reorder"></i>
@@ -248,7 +228,7 @@
                         </li>
                     </ul>
                 </li>
-                
+
                 <li class="nav-item {{in_array(Request::path(), ['marketing/emailList', 'marketing/pushList']) ? 'active open' : ''}}">
                     <a href="javascript:;" class="nav-link nav-toggle">
                         <i class="fa fa-send-o"></i>
@@ -348,6 +328,30 @@
                         </li>
                     </ul>
                 </li>
+                <li class="nav-item {{in_array(Request::path(), ['admin/groupList', 'admin/addGroup', 'admin/editGroup']) ? 'active open' : ''}}">
+                    <a href="/admin/groupList" class="nav-link ">
+                        <i class="fa fa-list-ul"></i>
+                        <span class="title">节点分组</span>
+                    </a>
+                </li>
+                <li class="nav-item {{in_array(Request::path(), ['shop/goodsList', 'shop/addGoods', 'shop/editGoods']) ? 'active open' : ''}}">
+                    <a href="/shop/goodsList" class="nav-link nav-toggle">
+                        <i class="fa fa-shopping-cart"></i>
+                        <span class="title">商品管理</span>
+                    </a>
+                </li>
+                <li class="nav-item {{in_array(Request::path(), ['admin/inviteList']) ? 'active open' : ''}}">
+                    <a href="/admin/inviteList" class="nav-link nav-toggle">
+                        <i class="fa fa-puzzle-piece"></i>
+                        <span class="title">邀请管理</span>
+                    </a>
+                </li>
+                <li class="nav-item {{in_array(Request::path(), ['admin/labelList', 'admin/addLabel', 'admin/editLabel']) ? 'active open' : ''}}">
+                    <a href="/admin/labelList" class="nav-link nav-toggle">
+                        <i class="fa fa-sticky-note-o"></i>
+                        <span class="title">标签管理</span>
+                    </a>
+                </li>
             </ul>
             <!-- END SIDEBAR MENU -->
         </div>
@@ -393,7 +397,7 @@
 <script src="/assets/layouts/layout4/scripts/layout.min.js" type="text/javascript"></script>
 <!-- END THEME LAYOUT SCRIPTS -->
 
-<!-- Global site tag (gtag.js) - Google Analytics 
+<!-- Global site tag (gtag.js) - Google Analytics
 <script async src="https://www.googletagmanager.com/gtag/js?id=UA-122312249-1"></script>
 <script>
     window.dataLayer = window.dataLayer || [];

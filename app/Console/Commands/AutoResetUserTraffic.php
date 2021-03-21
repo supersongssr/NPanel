@@ -41,12 +41,12 @@ class AutoResetUserTraffic extends Command
     {
         $today = date('d');
         $userList = User::query()->where('status', '>=', 0)->where('traffic_reset_day','=',$today)->where('expire_time', '>=', date('Y-m-d'))->get();
-        if (date('m') == 2 && date('d') == 28) {   // 2月 28号就重置，然后 30号 和 31号的用户无法重置 
+        if (date('m') == 2 && date('d') == 28) {   // 2月 28号就重置，然后 30号 和 31号的用户无法重置
             $userList = User::query()->where('status', '>=', 0)->where('traffic_reset_day','>=',$today)->where('expire_time', '>=', date('Y-m-d'))->get();
         }
         if (!$userList->isEmpty()) {
             foreach ($userList as $user) {
-/**
+/*
                 // 取出用户最后购买的有效套餐
                 $orders = Order::query()
                     ->with(['user', 'goods'])
@@ -78,13 +78,13 @@ class AutoResetUserTraffic extends Command
                         $goods = Goods::query()->where('id',$order->goods_id)->first();
                         // 这里从已使用流量中 扣除掉 套餐赠送的流量
                         $traffic = $user->u + $user->d - $goods->traffic * 1024 * 1024;
-                        // 如果扣除后发现流量小于0 那么设定为 0 
+                        // 如果扣除后发现流量小于0 那么设定为 0
                         $traffic < 0 && $traffic = 0;
                         User::query()->where('id', $user->id)->update(['u' => 0, 'd' => $traffic]);
                     }
                 }
-**/
-/**
+*/
+/*
                 // 获取该用户的所有 存在的套餐订单
                 $orders = Order::query()->where('user_id', $user->id)->where('is_expire', 0)->get();
                 if (!$orders) {
@@ -95,7 +95,7 @@ class AutoResetUserTraffic extends Command
                     # code...
                 }
     // song 备注 还是按照用户的 购买时间来写比较好，然后，每30天重置一次套餐流量。这个可以有。
-**/
+*/
                 // 套餐重置日，会把套餐流量重置一下 ，可以有
                 if ($user->d > $user->transfer_monthly ) {
                     $user->u += $user->d - $user->transfer_monthly;

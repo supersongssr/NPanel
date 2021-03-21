@@ -56,7 +56,7 @@
                                 </h4>
                             </li> -->
                         </ul>
-                        <p><small>*等级高，节点多，带宽大，流量足。 <a href="/profile#tab_4">移动、电信用户请设置CN+中转入口为联通。</a>  <br>*<code>CF+</code>:网络优化技术(直连网络不佳网络优化用它) <code>CN+</code>:中转技术(移动电信强力推荐) <code>NetFLix+</code>:支持网飞视频 <code>Azure+</code>:微软强力G口带宽 <code>BGP+</code>:三网混合加速 </small></p>
+                        <p><small>*等级高，节点多，带宽大，流量足。 <a href="/profile#tab_6">移动、电信用户可设置CF+中转。</a>  <br>*<code>CF+</code>:网络优化技术(直连网络不佳网络优化用它) <code>CN+</code>:中转技术(移动电信强力推荐) <code>NetFLix+</code>:支持网飞视频 <code>Azure+</code>:微软强力G口带宽 <code>BGP+</code>:三网混合加速 </small></p>
                     </div>
                 </div>
             </div>
@@ -102,7 +102,7 @@
                                         <li>等级、带宽取现有商品中最大值</li>
                                         <li>账号有效期取现有商品中最大值</li>
                                         <li>流量扣除顺序：按时间买的流量 -> 按流量买的流量 -> 系统赠送流量(签到、返利等)</li>
-                                        <li><code>*Bt、P2P、网盘上载流量优先扣除 按流量买的流量 -> 系统赠送的流量</code></li>
+                                        <li><code>*Bt、P2P、网盘上载流量优先扣除 按流量买的流量 -> 系统赠送的流量 -> 按时间买的流量</code></li>
                                     </ol>
 
 

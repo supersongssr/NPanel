@@ -144,7 +144,7 @@ Route::group(['middleware' => ['isLogin']], function () {
     Route::post("reActiveSubscribe", "UserController@reActiveSubscribe"); // 恢复订阅
     Route::post("reLevel", "UserController@reLevel"); // 矫正等级
     Route::post("reUUID", "UserController@reUUID"); // 开启vmess节点
-    
+
 
     Route::post('payment/create', 'PaymentController@create'); // 创建支付
     Route::get('payment/getStatus', 'PaymentController@getStatus'); // 获取支付单状态

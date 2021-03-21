@@ -121,34 +121,59 @@ class AutoJob extends Command
         }
     }
 
-    // 封禁访问异常的订阅链接
+    // 订阅异常的
     private function blockSubscribe()
     {
         if (self::$systemConfig['is_subscribe_ban']) {
-            $subscribeList = UserSubscribe::query()->where('status', 1)->get();
+            // 只有今天的 超过了 32次的才统计
+            $subscribeList = UserSubscribe::query()->where('status', 1)->where('times_today','>',self::$systemConfig['subscribe_ban_times'])->where('updated_at', '>=', date("Y-m-d H:i:s", strtotime("-24 hours")))->get();
             if (!$subscribeList->isEmpty()) {
-                foreach ($subscribeList as $subscribe) {
-                    // 24小时内不同IP的请求次数
-                    $request_times = UserSubscribeLog::query()->where('sid', $subscribe->id)->where('request_time', '>=', date("Y-m-d H:i:s", strtotime("-24 hours")))->distinct('request_ip')->count('request_ip');
-                    if ($request_times >= self::$systemConfig['subscribe_ban_times']) {
-                        //如果订阅超过了阈值，就直接把该用户设置为未激活
-                        User::query()->where('id', $subscribe->user_id)->update(['status' => -1]);
-                        //如果订阅超过了阈值的两倍 ，就把该用户设置为
-                        if ($request_times >= self::$systemConfig['subscribe_ban_times'] * 2 ) {
-                            # code...
-                            UserSubscribe::query()->where('id', $subscribe->id)->update(['status' => 0, 'ban_time' => time(), 'ban_desc' => '存在异常，自动封禁']);
-                            // 记录封禁日志
-                            $this->addUserBanLog($subscribe->user_id, 0, '【完全封禁订阅】-订阅24小时内请求异常');
-                        }
-                    }
-                }
+              foreach ($subscribeList as $subscribe) {
+                //将这次的 today统计桶重置为0 ，相当于一个桶 只要是超过32次的，才检查一次，减少检查次数。相当于变相增加了一个数据
+                  $subscribe->times_today = 0;
+                  // 过去24小时内不同IP的请求次数 (如果不是这样的话，会造成循环封禁)
+                  $request_times = UserSubscribeLog::query()->where('sid', $subscribe->id)->where('request_time', '>', date("Y-m-d H:i:s", strtotime("-24 hours")))->distinct('request_ip')->count('request_ip');
+                  if ($request_times > self::$systemConfig['subscribe_ban_times']) {
+                      //如果订阅超过了阈值，禁用用户
+                      $user = User::query()->where('id', $subscribe->user_id)->first();
+                      // User::query()->where('id', $subscribe->user_id)->update(['status' => -1]);
+                      //封禁订阅 必须封禁
+                      // UserSubscribe::query()->where('id', $subscribe->id)->update(['status' => 0, 'ban_time' => time(), 'ban_desc' => '存在异常，自动封禁']);
+                      // 封禁订阅
+                      $subscribe->status = 0;
+                      $subscribe->ban_time = time();
+                      $subscribe->ban_desc = '存在异常，自动封禁';
+                      // 重置用户订阅地址 提示您的订阅地址可能被泄露，已被重置
+                      $subscribe->code = Helpers::makeSubscribeCode();
+                      // 封禁日志
+                      $this->addUserBanLog($subscribe->user_id, 0, '【完全封禁订阅】-订阅24小时内请求异常');
+                      //如果订阅超过了阈值的两倍 ，就封禁订阅，把用户减1分组
+                      if ($request_times > self::$systemConfig['subscribe_ban_times'] * 2 ) {
+                          //封禁用户
+                          $user->status = -1;
+                          // 重置用户的UUID SS密码
+                          $user->vmess_id = createGuid();
+                          //重置 ss密码
+                          $user->passwd = makeRandStr();
+                          //用户分组 -1
+                          $user->node_group > 1 && $user->node_group -= 1;
+                          // 记录封禁日志
+                          $this->addUserBanLog($subscribe->user_id, 0, '两倍异常，封禁密码');
+
+                      }
+                      //保存用户数据
+                      $user->save();
+                  }
+                  //保存 sub数据
+                  $subscribe->save();
+              }
             }
         }
     }
 
     // 封禁账号
     private function blockUsers()
-    {       
+    {
         //删除过期x月，且余额低于x元的用户。
         $userDelList = User::query()->where('id', '>', 1)->where('enable', 0)->where('expire_time', '<', date('Y-m-d',strtotime("-16 day")))->get();
         if (!$userDelList->isEmpty()) {
@@ -156,7 +181,7 @@ class AutoJob extends Command
             foreach ($userDelList as $user) {
                 #song 这里进行一次判断，判断过期时间和余额之间的关系
                 $expire_time = time() - strtotime($user->expire_time);
-                ## 这里的balance 是 元 
+                ## 这里的balance 是 元
                 #1 元 = 30天 = 2592000s
                 if (floor($expire_time / 25920) < ($user->balance * 100)) {
                     # 如果过期时间 x 小于余额，比如 过期1个月，余额超过1元的话，就先保留用户
@@ -169,7 +194,7 @@ class AutoJob extends Command
                 // 用户的使用天数 + 用户的使用流量 之和要是小于 100 ，就说明是baduser 就删除返利
                 //$used_time = floor( ( time() - strtotime($user->enable_time) ) / 86400 );
                 //$used_data = floor( ($user->u + $user->d) / 1073741824 );
-                /**
+                /*
                 // 如果注册时间 + 100天 小于当前时间，说明注册时间超过100天，不删除
                 if ( (strtotime($user->enable_time) + 8640000 ) > time() ) {
                     # code...
@@ -180,7 +205,7 @@ class AutoJob extends Command
                     # code...
                     $bad_user = true;
                 }
-                **/
+                */
 
                 //song 这里查看一下此用户是否有邀请人，然后扣除邀请人的相关的余额。
                 //如果邀请人ID 不是0 就是说存在邀请人 ； 同时该用户不是 bad user
@@ -201,7 +226,7 @@ class AutoJob extends Command
                         $referral_user->credit_days > 1 &&  $referral_user->credit_days -= 1;
                         //扣除流量
                         $referral_user->transfer_enable -= self::$systemConfig['referral_traffic'] * 1048576;
-                        // 老用户没有信用额度，直接扣除余额 
+                        // 老用户没有信用额度，直接扣除余额
                         if ($referral_user->credit < 0) {
                             $referral_user->balance += $referral_user->credit;
                             $referral_user->credit = 0;
@@ -209,15 +234,15 @@ class AutoJob extends Command
                         $referral_user->save();
                         #写入用户余额变动日志
                         $this->addUserBalanceLog($user->referral_uid, 0, $user->balance, $user->balance - $referral->ref_amount, -$referral->ref_amount, '邀请用户被删除扣除余额');
-                        
-                        /** 因为是直接扣除了credit 所以，不再显示在这里了。 不用管。
+
+                        /* 因为是直接扣除了credit 所以，不再显示在这里了。 不用管。
                         ## 写入用户邀请返利日志
                         $referrallog = new ReferralLog();
                         # 用户ID 就是被删除用户ID
                         $referrallog->user_id = $user->id;
                         # 这个用户谁邀请的
                         $referrallog->ref_user_id = $user->referral_uid;
-                        #订单ID 自然是0 
+                        #订单ID 自然是0
                         $referrallog->order_id = -1;
                         $referrallog->amount = 0;
                         #这里是负值，就是已经扣除了相关的余额
@@ -225,7 +250,7 @@ class AutoJob extends Command
                         #这里设定为2 就是已打款的意思。就是说这个款已经自动扣除了
                         $referrallog->status = 2;
                         $referrallog->save();
-                        **/
+                        */
                     }
                 }
 
@@ -246,14 +271,14 @@ class AutoJob extends Command
             }
         }
 
-        // 获取 余额为负， 存在邀请人的人  
+        // 获取 余额为负， 存在邀请人的人
         $userNoMoneyDels = User::query()->where('balance', '<', 0)->where('referral_uid', '!=', 0)->get();
         if (!$userNoMoneyDels->isEmpty()) {
             # code...
             foreach ($userNoMoneyDels as $user) {
-                // 在判断一次 邀请人是否为 0 
+                // 在判断一次 邀请人是否为 0
                 if ( $user->referral_uid != 0 ) {
-                    # 取出此用户的注册奖励 order_id=0订单为0  amount=0消费金额为0 
+                    # 取出此用户的注册奖励 order_id=0订单为0  amount=0消费金额为0
                     $referral = ReferralLog::where('user_id','=',$user->id)->where('ref_user_id','=',$user->referral_uid)->where('order_id','=',0)->where('amount','=',0)->first();
                     // 去除此用户的注册返利被 删除时候的记录，如果没有的话
                     //$pays     = ReferralLog::where('user_id','=',$user->id)->where('ref_user_id','=',$user->referral_uid)->where('order_id','=',-1)->where('status','=',2)->count();
@@ -268,12 +293,12 @@ class AutoJob extends Command
                         //$transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
                         //User::query()->where('id', $user->referral_uid)->decrement('transfer_enable', $transfer_enable);
 
-                        
+
                         // 扣除信用额度
                         $referral_user->credit -= $referral->ref_amount;
                         //扣除流量
                         $referral_user->transfer_enable -= self::$systemConfig['referral_traffic'] * 1048576;
-                        // 老用户没有信用额度，直接扣除余额 
+                        // 老用户没有信用额度，直接扣除余额
                         if ($referral_user->credit < 0) {
                             $referral_user->balance += $referral_user->credit;
                             $referral_user->credit = 0;
@@ -282,14 +307,14 @@ class AutoJob extends Command
                         #写入用户余额变动日志
                         $this->addUserBalanceLog($user->referral_uid, 0, $user->balance, $user->balance - $referral->ref_amount, -$referral->ref_amount, '邀请用户被删除扣除余额');
 
-                        /** 不再写入这个 邀请返利日志了。这个返利只能提现了以后。
+                        /* 不再写入这个 邀请返利日志了。这个返利只能提现了以后。
                         ## 写入用户邀请返利日志
                         $referrallog = new ReferralLog();
                         # 用户ID 就是被删除用户ID
                         $referrallog->user_id = $user->id;
                         # 这个用户谁邀请的
                         $referrallog->ref_user_id = $user->referral_uid;
-                        #订单ID 自然是0 
+                        #订单ID 自然是0
                         $referrallog->order_id = -1;
                         $referrallog->amount = 0;
                         #这里是负值，就是已经扣除了相关的余额
@@ -297,7 +322,7 @@ class AutoJob extends Command
                         #这里设定为2 就是已打款的意思。就是说这个款已经自动扣除了
                         $referrallog->status = 2;
                         $referrallog->save();
-                        **/
+                        */
                     }
                 }
                 User::query()->where('id',$user->id)->update(['referral_uid' => 0, 'status' => -1]);
@@ -313,7 +338,7 @@ class AutoJob extends Command
                     User::query()->where('id', $user->id)->update([
                         //'u'                 => 0,
                         //'d'                 => 0,
-                        //song 
+                        //song
                         //'transfer_enable'   => 0,
                         'enable'            => 0,
                         'traffic_reset_day' => 0,
@@ -371,7 +396,8 @@ class AutoJob extends Command
                     }
 
                     // 多往前取5分钟，防止数据统计任务执行时间过长导致没有数据
-                    $totalTraffic = UserTrafficHourly::query()->where('user_id', $user->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m-d H:i:s', time() - 3900))->sum('total');
+                    // $totalTraffic = UserTrafficHourly::query()->where('user_id', $user->id)->where('node_id', 0)->where('created_at', '>=', date('Y-m-d H:i:s', time() - 3900))->sum('total');
+                    $totalTraffic = $user->u + $user->d - $user->traffic_lasthour;
                     if ($totalTraffic >= $traffic_ban_limit) {
                         User::query()->where('id', $user->id)->update(['status' => -1, 'enable' => 0, 'ban_time' => strtotime(date('Y-m-d H:i:s', strtotime("+" . self::$systemConfig['traffic_ban_time'] . " minutes")))]);
 
@@ -614,7 +640,7 @@ class AutoJob extends Command
                             }
 
                             // 更新用户等级  商品等级 > 用户等级，则更新用户等级
-                            $user = User::query()->where('id', $order->user_id)->first(); // 重新取出user信息 
+                            $user = User::query()->where('id', $order->user_id)->first(); // 重新取出user信息
                             if ($goods->level > $user->level) {
                                 # code...
                                 User::query()->where('id', $order->user_id)->update(['level' => $goods->level]);
@@ -705,18 +731,18 @@ class AutoJob extends Command
             }
         }
     }
-
-    // 关闭超过72小时未处理的工单
-    private function closeTickets()
-    {
-        $ticketList = Ticket::query()->where('updated_at', '<=', date('Y-m-d H:i:s', strtotime("-72 hours")))->where('status', 1)->get();
-        foreach ($ticketList as $ticket) {
-            $ret = Ticket::query()->where('id', $ticket->id)->update(['status' => 2]);
-            if ($ret) {
-                ServerChan::send('工单关闭提醒', '工单：ID' . $ticket->id . '超过72小时未处理，系统已自动关闭');
-            }
-        }
-    }
+    //
+    // // 关闭超过72小时未处理的工单
+    // private function closeTickets()
+    // {
+    //     $ticketList = Ticket::query()->where('updated_at', '<=', date('Y-m-d H:i:s', strtotime("-72 hours")))->where('status', 1)->get();
+    //     foreach ($ticketList as $ticket) {
+    //         $ret = Ticket::query()->where('id', $ticket->id)->update(['status' => 2]);
+    //         if ($ret) {
+    //             ServerChan::send('工单关闭提醒', '工单：ID' . $ticket->id . '超过72小时未处理，系统已自动关闭');
+    //         }
+    //     }
+    // }
 
     // 检测节点是否离线
     private function checkNodeStatus()

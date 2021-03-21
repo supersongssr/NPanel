@@ -34,6 +34,13 @@
                                     @else
                                         <span class="label label-info">!请检查流量 和 等级</span>
                                     @endif
+                                    @if ( Auth::user()->subscribe->status == 0  )
+                                        <span class="label label-danger">！请检查订阅地址</span>
+                                    @elseif ( Auth::user()->subscribe->status == 1 )
+                                        <span class="label label-success">订阅正常</span>
+                                    @else
+                                        <span class="label label-info">!请检查订阅地址</span>
+                                    @endif
                                 </h4>
                             </li>
                             <li>
@@ -77,8 +84,8 @@
                             @endif
                             <li>
                                 <h4>
-                                    <span class="font-red">中转入口：</span>
-                                    <span class="font-red"> <a href="/profile#tab_4">{{Auth::user()->cncdn}} 点击切换</a> </span>
+                                    <span class="font-blue">CF+加速：</span>
+                                    <span class="font-red"> <a href="/profile#tab_6">{{Auth::user()->cfcdn}} 切换</a> </span>
                                 </h4>
                             </li>
                             @if(Auth::user()->traffic_reset_day)
@@ -88,7 +95,7 @@
                                     <span class="font-red">{{ flowAutoShow(Auth::user()->u + Auth::user()->d)}} /{{flowAutoShow(Auth::user()->transfer_enable)}}</span>
                                     <span class="font-blue">( {{flowAutoShow(Auth::user()->u)}}/{{flowAutoShow(Auth::user()->transfer_enable - Auth::user()->transfer_monthly)}}流量包 +</span>
                                     <span class="font-blue">{{flowAutoShow(Auth::user()->d)}}/{{flowAutoShow(Auth::user()->transfer_monthly)}}每月流量 {{Auth::user()->traffic_reset_day}}号重置)</span>
-                                    
+
                                 </h4>
                             </li>
                             @else
@@ -99,14 +106,14 @@
                                 </h4>
                             </li>
                             @endif
-                            
+
                         </ul>
                     </div>
                 </div>
             </div>
         </div>
 
-        
+
         <div class="row">
             <div class="col-md-12">
                 <div class="portlet light bordered">
@@ -271,4 +278,3 @@
     </script>
 
 @endsection
-

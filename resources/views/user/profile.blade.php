@@ -31,11 +31,7 @@
                                     </div>
                                     <ul class="nav nav-tabs">
                                         <li class="active">
-                                            <a href="#tab_4" data-toggle="tab">CN+中转入口</a>
-                                        </li>
-
-                                        <li >
-                                            <a href="#tab_6" data-toggle="tab">CF+网络优化</a>
+                                            <a href="#tab_6" data-toggle="tab">网络优化</a>
                                         </li>
                                         <li >
                                             <a href="#tab_1" data-toggle="tab">账号密码</a>
@@ -46,8 +42,11 @@
                                         <li>
                                             <a href="#tab_3" data-toggle="tab">节点密码</a>
                                         </li>
+                                        <!-- <li >
+                                            <a href="#tab_4" data-toggle="tab">CN+中转入口</a>
+                                        </li> -->
                                         <li >
-                                            <a href="#tab_5" data-toggle="tab">申请CN+中转</a>
+                                            <a href="#tab_5" data-toggle="tab">帐号升级</a>
                                         </li>
                                     </ul>
                                 </div>
@@ -76,16 +75,27 @@
                                         <div class="tab-pane" id="tab_2">
                                             <form action="profile" method="post" enctype="multipart/form-data" class="form-bordered">
                                                 <div class="form-group">
-                                                    <label class="control-label"> 紧急联系方式：QQ / Wechat / Tg / Phone / Email / Facebook 等</label>
+                                                    <label class="control-label"> 打款失败联系方式：QQ / Wechat / Tg / Phone / Email / Facebook 等</label>
                                                     <input type="text" class="form-control" name="qq" value="{{Auth::user()->qq}}" id="qq" required />
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="control-label">微信收款二维码 *<a href="https://imgurl.org/" target="_blank">免费图床</a></label>
-                                                    <input type="text" class="form-control" name="wechat" value="{{Auth::user()->wechat}}" id="wechat" required />
+                                                    <label class="control-label">USDT-TRC20 (7日账期, 0手续费) *<a href="/article?id=49" target="_blank">USDT设置教程</a></label>
+                                                    <input type="text" class="form-control" name="usdt" value="{{Auth::user()->usdt}}" id="usdt" >
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
-                                                <p>请使用 <a href="https://imgurl.org/" target="_blank">免费图床</a>上传收款码，复制 URL 地址到上面。<br><code>*请务必检查您的收款二维码是否正确，如果由于您错误的二维码无法收到打款，只能自己承担呦</code></p>
-                                                <p><code>您的收款二维码为：<br></code><img src="{{Auth::user()->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 300px; max-height: 300px;"> </p>
+                                                <div class="form-group">
+                                                    <label class="control-label">微信收款二维码 (30日账期,手续费8%第三方平台收取)</label>
+                                                    <input type="text" class="form-control" name="wechat" value="{{Auth::user()->wechat}}" id="wechat" >
+                                                    <input type="hidden" name="_token" value="{{csrf_token()}}" />
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="control-label">支付宝收款二维码 (30日账期,6%手续费第三方平台收取)</label>
+                                                    <input type="text" class="form-control" name="alipay" value="{{Auth::user()->alipay}}" id="alipay" >
+                                                    <input type="hidden" name="_token" value="{{csrf_token()}}" />
+                                                </div>
+                                                <p>请使用 <a href="https://imgurl.org/" target="_blank">免费图床</a>上传收款码，复制 URL 地址到上面。<br><code>*请务必检查您的收款信息是否正确，如果由于您错误的设置无法收到打款，只能自己承担呦</code><br><code>*手续费由第三方平台手续，具体手续费以第三方平台为准。USDT-TRC20无手续费。</code></p>
+                                                <p><code>您的微信二维码为：</code><img src="{{Auth::user()->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 150px; max-height: 150px;">
+                                                  <code>您的支付宝二维码为：</code><img src="{{Auth::user()->alipay}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 150px; max-height: 150px;"> </p>
                                                 <div class="form-actions">
                                                     <div class="row">
                                                         <div class="col-md-12">
@@ -121,7 +131,7 @@
                                                 </div>
                                             </form>
                                         </div>
-                                        <div class="tab-pane active" id="tab_4">
+                                        <div class="tab-pane" id="tab_4">
                                             <form action="/profile" method="post" enctype="multipart/form-data" class="form-bordered">
                                                 <div class="form-group">
                                                     {{ csrf_field() }}
@@ -151,7 +161,7 @@
                                         <div class="tab-pane" id="tab_5">
                                             <form action="/cnupdate" method="post" enctype="multipart/form-data" class="form-bordered">
                                                 <div class="form-group">
-                                                    <label class="control-label"> 请输入您的账号，以确定您已阅读升级条款，并同意升级，这项操作不可逆： </label>
+                                                    <label class="control-label"> 请输入您的账号，以确定您已阅读升级条款，并同意升级，这项操作不可逆（适用于2019年前老帐号升级新版功能）： </label>
                                                     <input type="text" class="form-control" name="cn_update" value="请输入账号以确保您同意升级" id="cn_update" required />
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
@@ -165,21 +175,18 @@
                                                 </div>
                                             </form>
                                         </div>
-                                        <div class="tab-pane" id="tab_6">
+                                        <div class="tab-pane  active" id="tab_6">
                                             <form action="profile" method="post" enctype="multipart/form-data" class="form-bordered">
                                                 <div class="form-group">
-                                                    <label class="control-label">CF+ 选择下面延迟最低的IP，填写到这里</label>
-                                                    <input type="text" class="form-control" name="cfcdn" value="{{Auth::user()->cfcdn}}" id="cfcdn" required />
+                                                    <label class="control-label">请填入IP （默认为空值）</label>
+                                                    <input type="text" class="form-control" name="cfcdn" value="{{Auth::user()->cfcdn}}" id="cfcdn"  />
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
-                                                <p>什么条件下使用它： 直连网速不佳的时候。尤其是移动/电信。<br>
-                                                原理：某些用户的网络IP被运营商给限制，无法使用国际带宽，或者国际带宽被限制在500K左右。 设置CF+ 的IP优化，可以避开运营商的IP限制和限速。</p>
                                                 <p>
-                                                    您只能在如下IP段里选择IP：否则可能没有网络<br>
-                                                    <code>移动：172.64.32.0-255, 104.20.48.2, 104.24.96.2, 104.20.48.2, 104.17.32.0, 104.17.40.2, 104.24.240.2, 104.28.144.2, 104.25.192.2, 104.31.87.112
-                                                    <br>电信：162.159.208.4-103, 162.159.209.4-103, 162.159.210.4-103, 162.159.211.4-103
-                                                <br>联通：162.159.208.4-103, 162.159.209.4-103, 162.159.210.4-103, 162.159.211.4-103, 173.245.48.0-255, 108.162.192.0-255</code>
-                                                </p>
+                                                  什么条件下使用它： 直连网速不佳的时候。尤其是移动/电信。<br>
+                                                  <a href="https://github.com/badafans/better-cloudflare-ip" type="button" target="_blank" class="btn red btn-sm">如何选IP？</a>
+                                                <br><code>原理：某些用户的网络IP被运营商给限制，无法使用国际带宽，或者国际带宽被限制在500K左右。 设置CF+ 的IP优化，可以避开运营商的IP限制和限速。</code><br>教程 <code>https://github.com/badafans/better-cloudflare-ip 建议设置30Mbps，然后让脚本自动筛选IP，筛选出来的IP填入上方</code></p>
+
                                                 <div class="form-actions">
                                                     <div class="row">
                                                         <div class="col-md-12">

@@ -156,6 +156,15 @@ class SubscribeController extends Controller
 
         // 更新访问次数
         $subscribe->increment('times', 1);
+        //今日访问也+1
+        $subscribe->increment('times_today', 1);
+        //记录用户订阅IP
+        $user->rss_ip = getClientIp();
+        //记录如果用户设置 cfcdn 计入统计次数
+        if ($user->cfcdn) {
+          $user->cfcdn_count += 1;
+        }
+        $user->save();
 
         // 记录每次请求
         $this->log($subscribe->id, getClientIp(), $request->headers);
@@ -261,31 +270,39 @@ class SubscribeController extends Controller
                 //控制显示 cncdn 自定义
                 $node_server = $node['server'];
                 $cdn_area = '';
-                if ($node['is_transit'] ) {   //如果用户设置了 cncdn 而且设置了 中转
-                    if ($user->cncdn || $cn_sub) {
-                      $cdn_server = strstr($node_server, '.');
-                      $cdn_server = substr($cdn_server, 1);
-                      empty($cn_sub) && $cn_sub = $user->cncdn;
-                      $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cn_sub)->orderBy('id','desc')->first();
-                      if (!empty($cncdn->ipmd5)) {
-                          $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
-                          $cdn_area = $cncdn->area;
-                      }
-                    }else{
-                      $cdn_server = strstr($node_server, '.');
-                      $cdn_server = substr($cdn_server, 1);
-                      $cdn_area_array = array("武汉联通","郑州联通","天津联通","重庆联通","济南联通","广州联通","石家庄联通","天津移动","广州移动","无锡移动");
-                      $cdn_area_choice = $cdn_area_array[array_rand($cdn_area_array,1)];
-                      $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cdn_area_choice)->orderBy('id','desc')->first();
-                      if (!empty($cncdn->ipmd5)) {
-                          $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
-                          $cdn_area = $cncdn->area;
-                      }
-                    }
-
-                }elseif ($user->cfcdn || $cf_sub) {
+                // if ($node['is_transit'] ) {   //如果用户设置了 cncdn 而且设置了 中转
+                //     if ($user->cncdn || $cn_sub) {
+                //       $cdn_server = strstr($node_server, '.');
+                //       $cdn_server = substr($cdn_server, 1);
+                //       empty($cn_sub) && $cn_sub = $user->cncdn;
+                //       $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cn_sub)->orderBy('id','desc')->first();
+                //       if (!empty($cncdn->ipmd5)) {
+                //           $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
+                //           $cdn_area = $cncdn->area;
+                //       }
+                //     }else{
+                //       $cdn_server = strstr($node_server, '.');
+                //       $cdn_server = substr($cdn_server, 1);
+                //       $cdn_area_array = array("武汉联通","郑州联通","天津联通","重庆联通","济南联通","广州联通","石家庄联通","天津移动","广州移动","无锡移动");
+                //       $cdn_area_choice = $cdn_area_array[array_rand($cdn_area_array,1)];
+                //       $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cdn_area_choice)->orderBy('id','desc')->first();
+                //       if (!empty($cncdn->ipmd5)) {
+                //           $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
+                //           $cdn_area = $cncdn->area;
+                //       }
+                //     }
+                //
+                // }elseif ($user->cfcdn || $cf_sub) {
+                //     $node_server = $user->cfcdn;
+                //     !empty($cf_sub) && $node_server = $cf_sub;
+                // }
+                // 设置 cfcdn 这个配置，只有在 istransit 的节点才能用
+                if ($user->cfcdn || $cf_sub ) {
+                  if ($node['is_transit']) {
                     $node_server = $user->cfcdn;
                     !empty($cf_sub) && $node_server = $cf_sub;
+                    $cdn_area = $node_server;
+                  }
                 }
 
                 //
@@ -353,30 +370,37 @@ class SubscribeController extends Controller
                 //控制显示 cncdn 自定义
                 $node_server = $node['server'];
                 $cdn_area = '';
-                if ($node['is_transit'] ) {   //如果用户设置了 cncdn 而且设置了 中转
-                    if ($user->cncdn || $cn_sub) {
-                      $cdn_server = strstr($node_server, '.');
-                      $cdn_server = substr($cdn_server, 1);
-                      empty($cn_sub) && $cn_sub = $user->cncdn;
-                      $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cn_sub)->orderBy('id','desc')->first();
-                      if (!empty($cncdn->ipmd5)) {
-                          $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
-                          $cdn_area = $cncdn->area;
-                      }
-                    }else{
-                      $cdn_server = strstr($node_server, '.');
-                      $cdn_server = substr($cdn_server, 1);
-                      $cdn_area_array = array("武汉联通","郑州联通","天津联通","重庆联通","济南联通","广州联通","石家庄联通","天津移动","广州移动","无锡移动");
-                      $cdn_area_choice = $cdn_area_array[array_rand($cdn_area_array,1)];
-                      $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cdn_area_choice)->orderBy('id','desc')->first();
-                      if (!empty($cncdn->ipmd5)) {
-                          $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
-                          $cdn_area = $cncdn->area;
-                      }
-                    }
-                }elseif ($user->cfcdn || $cf_sub) {
+                // if ($node['is_transit'] ) {   //如果用户设置了 cncdn 而且设置了 中转
+                //     if ($user->cncdn || $cn_sub) {
+                //       $cdn_server = strstr($node_server, '.');
+                //       $cdn_server = substr($cdn_server, 1);
+                //       empty($cn_sub) && $cn_sub = $user->cncdn;
+                //       $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cn_sub)->orderBy('id','desc')->first();
+                //       if (!empty($cncdn->ipmd5)) {
+                //           $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
+                //           $cdn_area = $cncdn->area;
+                //       }
+                //     }else{
+                //       $cdn_server = strstr($node_server, '.');
+                //       $cdn_server = substr($cdn_server, 1);
+                //       $cdn_area_array = array("武汉联通","郑州联通","天津联通","重庆联通","济南联通","广州联通","石家庄联通","天津移动","广州移动","无锡移动");
+                //       $cdn_area_choice = $cdn_area_array[array_rand($cdn_area_array,1)];
+                //       $cncdn = Cncdn::where('status','=','1')->where('server','=',$cdn_server)->where('area','=',$cdn_area_choice)->orderBy('id','desc')->first();
+                //       if (!empty($cncdn->ipmd5)) {
+                //           $node_server = $cncdn->ipmd5.'.'.$cncdn->host;
+                //           $cdn_area = $cncdn->area;
+                //       }
+                //     }
+                // }elseif ($user->cfcdn || $cf_sub) {
+                //     $node_server = $user->cfcdn;
+                //     !empty($cf_sub) && $node_server = $cf_sub;
+                // }
+                if ($user->cfcdn || $cf_sub ) {
+                  if ($node['is_transit']) {
                     $node_server = $user->cfcdn;
                     !empty($cf_sub) && $node_server = $cf_sub;
+                    $cdn_area = $node_server;
+                  }
                 }
 
                 //

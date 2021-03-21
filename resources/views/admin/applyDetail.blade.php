@@ -13,63 +13,86 @@
                             <span class="caption-subject font-dark bold uppercase">提现申请详情</span>
                         </div>
                         <div class="actions">
-                            @if($info->status == -1)
-                                <span class="label label-default label-danger"> 已驳回 </span>
+                            @if($info->status == -3)
+                              <span class="label label-default label-danger"> 已驳回+收款地址报错 </span>
+                            @elseif($info->status == -2)
+                                <span class="label label-default label-danger"> 已驳回+更改提现方式 </span>
+                            @elseif($info->status == -1)
+                                <span class="label label-default label-danger"> 已驳回+重新提交 </span>
                             @elseif($info->status == 2)
                                 <span class="label label-default label-success"> 已提现 </span>
                             @elseif($info->status == 3)
-                            <span class="label label-default label-success"> 已代金券 </span>
-                            @else
+                                <span class="label label-default label-success"> 已代金券 </span>
+                            @elseif($info->status == 4)
+                                <span class="label label-default label-success"> 已微信 </span>
+                            @elseif($info->status == 5)
+                                <span class="label label-default label-success"> 已支付宝 </span>
+                            @elseif($info->status == 6)
+                                <span class="label label-default label-success"> 已USDT </span>
+                            @endif
+                                @if($info->status == 1)
+                                <span class="label label-default label-success"> 审核通过待打款 </span>
+                                @endif
                                 <div class="btn-group">
                                     <a class="btn btn-sm blue dropdown-toggle" href="javascript:;" data-toggle="dropdown"> 审核
                                         <i class="fa fa-angle-down"></i>
                                     </a>
                                     <ul class="dropdown-menu pull-right">
-                                        @if($info->status == 0)
+                                      <li>
+                                          <a href="javascript:setStatus('-3');"> <i class="fa fa-remove"></i>驳回：检查收款地址</a>
+                                      </li>
                                         <li>
-                                            <a href="javascript:setStatus('-1');"> <i class="fa fa-remove"></i> 驳回 </a>
+                                            <a href="javascript:setStatus('-2');"> <i class="fa fa-remove"></i>驳回：更换收款方式 </a>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:setStatus('-1');"> <i class="fa fa-remove"></i> 驳回：重新提交</a>
                                         </li>
                                         <li>
                                             <a href="javascript:setStatus('1');"> <i class="fa fa-circle-o"></i> 审核通过 </a>
                                         </li>
-
                                         <li>
                                             <a href="javascript:setStatus('2');"> <i class="fa fa-check"></i> 审核通过+现金打款 </a>
                                         </li>
 
-                                        @endif
-                                        @if($info->status == 1)
-                                        <!-- 
                                         <li>
-                                            <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> +余额 </a>
+                                            <a href="javascript:setStatus('4');"> <i class="fa fa-check"></i> 审核通过+微信打款 </a>
                                         </li>
-                                    -->
+
                                         <li>
-                                            <a href="javascript:setStatus('2');"> <i class="fa fa-circle-o"></i> +现金打款 </a>
+                                            <a href="javascript:setStatus('5');"> <i class="fa fa-check"></i> 审核通过+支付宝打款 </a>
                                         </li>
-                                        @endif
+
+                                        <li>
+                                            <a href="javascript:setStatus('6');"> <i class="fa fa-check"></i> 审核通过+USDT打款 </a>
+                                        </li>
                                     </ul>
                                 </div>
-                            @endif
                         </div>
                     </div>
                     <div class="portlet-body">
                         <div class="table-scrollable">
                             <table class="table table-striped table-hover table-checkable">
                                 <thead>
-                                    <tr class="uppercase">
+                                    <tr >
                                         <th colspan="6">ID：{{$info->id}} | 申请人：{{$info->user->username}} | 提现金额：{{$info->amount /100}} | 申请时间：{{$info->created_at}}</th>
                                     </tr>
-                                    <tr class="uppercase">
-                                        <th colspan="6"><img src="{{$info->user->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 500px; max-height: 500px;"></th>
+                                    <tr >
+                                        <th> USDT({{$info->amount /100 /6.8}}$): {{$info->user->usdt}}</th>
+                                    </tr>
+                                    <tr >
+                                        <th >WECHAT({{$info->amount /100 * 0.92}}￥)：<a href="{{$info->user->wechat}}" target="_blank">{{$info->user->wechat}}</a></th>
+                                    </tr>
+                                    <tr >
+                                        <th >ALIPAY({{$info->amount /100 * 0.94}}￥)：<a href="{{$info->user->alipay}}" target="_blank">{{$info->user->alipay}}</a></th>
                                     </tr>
                                     <tr class="uppercase">
                                         <th> # </th>
-                                        <th> 发生人 </th>
-                                        <th> 发生订单 </th>
-                                        <th> 发生金额 </th>
-                                        <th> 返利金额 </th>
-                                        <th> 发生时间 </th>
+                                        <th> 人 </th>
+                                        <th> 订单 </th>
+                                        <th> 金额 </th>
+                                        <th> 金额 </th>
+                                        <th> 状态 </th>
+                                        <th> 时间 </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -89,6 +112,7 @@
                                                 <td> {{empty($vo->order) ? '注册返利' : $vo->order->goods->name}}</td>
                                                 <td> {{$vo->amount / 100}} </td>
                                                 <td> {{$vo->ref_amount / 100}} </td>
+                                                <td> {{$vo->status }} </td>
                                                 <td> {{$vo->created_at}} </td>
                                             </tr>
                                         @endforeach

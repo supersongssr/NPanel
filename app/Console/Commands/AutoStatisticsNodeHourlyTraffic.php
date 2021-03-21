@@ -30,9 +30,7 @@ class AutoStatisticsNodeHourlyTraffic extends Command
             #计算 差值
             #记录每日流量
             #写入新的记录值
-            #如果为负，就写入0
             $traffic_hour = $node->traffic - $node->traffic_lasthour;
-            $traffic_hour < 0 && $traffic_hour =0;
 
             $obj = new SsNodeTrafficHourly();
             $obj->node_id = $node->id;

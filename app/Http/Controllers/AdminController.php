@@ -2507,20 +2507,18 @@ EOF;
     {
         $id = $request->get('id');
         $status = $request->get('status');
-        //
+        //referral_apply -2 驳回请更换支付方式 -1 驳回 0 待审核 1 审核通过待打款 2 已打款 3 代金券 4 微信 5 支付宝 6 usdt
         $ret = ReferralApply::query()->where('id', $id)->update(['status' => $status]);
         if ($ret) {
             // 审核申请的时候将关联的
             $referralApply = ReferralApply::query()->where('id', $id)->first();
             $log_ids = explode(',', $referralApply->link_logs);
-            if ($referralApply && $status == 1) {
-                // 1 审核通过
-                ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 1]);
-            } elseif ($referralApply && $status == 2) {
-                // 2 现金提现
-                ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 2]);
-            }elseif ($referralApply && $status == -1) {
-                # 驳回
+            if ($referralApply && $status > 0) {
+              //referral_log  0未提现 1 审核中 2 已提现 3 代金券 4 微信 5 支付宝 6 usdt
+                // 1待打款=1审核中 2提现=提现
+                ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => $status]);
+            }elseif ($referralApply && $status < 0) {
+                # 驳回=未提现
                 ReferralLog::query()->whereIn('id', $log_ids)->update(['status' => 0]);
             }
             /**elseif ($referralApply && $status == 2) {
@@ -2553,7 +2551,7 @@ EOF;
         $referral_apply = ReferralApply::query()->where('id', $id)->first();
         $user = User::where('id',$referral_apply->user_id)->first();
         if (!empty($user->id)) {
-            ReferralApply::query()->where('id', $id)->update(['card_name' => $user->wechat,'card_num' => $user->qq]);
+            ReferralApply::query()->where('id', $id)->update(['wechat' => $user->wechat,'alipay' => $user->alipay,'qq' => $user->qq , 'usdt' => $user->usdt]);
         }
 
         return Response::json(['status' => 'success', 'data' => '', 'message' => '操作成功']);
