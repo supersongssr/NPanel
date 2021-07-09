@@ -141,7 +141,7 @@ class PingController extends Controller
     {
         //$id < 9 && exit;   #id 小于32的没有需求 直接退出
         $node = SsNode::query()->where('id', $id)->first();
-
+        
         !empty($request->get('type')) && $node->type = $request->get('type');
         !empty($request->get('name')) && $node->name = $request->get('name');
         !empty($request->get('country_code')) && $node->country_code = $request->get('country_code');
@@ -153,9 +153,8 @@ class PingController extends Controller
         !empty($request->get('node_group')) && $node->node_group = $request->get('node_group');
         !empty($request->get('bandwidth')) && $node->bandwidth = $request->get('bandwidth');
         !empty($request->get('traffic_limit')) && $node->traffic_limit = $request->get('traffic_limit')*1024*1024*1024;
-        $request->get('is_transit') == false && $node->is_transit = 0;
-        $request->get('is_transit') && $node->is_transit = 1;
-        $node->sort = 0;
+        !empty($request->get('is_transit')) && $node->is_transit = $request->get('is_transit');
+        $request->get('sort') != '' && $node->sort = $request->get('sort');
 
         if ($request->get('v2')) {
             $v2 = $request->get('v2');
@@ -176,6 +175,8 @@ class PingController extends Controller
                 $node->v2_host = $addn['6'];
                 $node->v2_path = '/'.$addn['7'];
                 $node->v2_tls = empty($addn['8']) ? '0': '1';
+                $node->v2_insider_port = $addn['9'];  // 端口2
+                $node->v2_outsider_port = $addn['10'];  // 端口3
             }
         }
 

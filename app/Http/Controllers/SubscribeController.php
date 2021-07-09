@@ -307,7 +307,6 @@ class SubscribeController extends Controller
 
                 //
                 $node_warm = '';
-                $node['traffic_rate'] < 0.3 && $node_warm = '' ;
                 // 获取分组名称
                 if ($node['type'] == 2) {
                     // 生成v2ray scheme
@@ -325,6 +324,43 @@ class SubscribeController extends Controller
                         "tls"  => $node['v2_tls'] == 1 ? "tls" : ""
                     ];
                     $scheme .= 'vmess://' . base64_encode(json_encode($v2_json)) . "\n";
+
+                    // 增加端口2号节点
+                    if (!empty($node['v2_insider_port'])) {
+                        $v2_port2_json = [
+                            "v"    => "2",
+                            "ps"   => $node['name'].$cdn_area.'·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm,
+                            "add"  => $node['server'] ? $node_server : $node['ip'],
+                            "port" => $node['v2_insider_port'],
+                            "id"   => $node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id'],
+                            "aid"  => $node['v2_alter_id'],
+                            "net"  => $node['v2_net'],
+                            "type" => $node['v2_type'],
+                            "host" => $node['v2_host'],
+                            "path" => $node['v2_path'],
+                            "tls"  => $node['v2_tls'] == 1 ? "tls" : ""
+                        ];
+                        $scheme .= 'vmess://' . base64_encode(json_encode($v2_port2_json)) . "\n";
+                    }
+
+                    // 增加端口3号节点
+                    if (!empty($node['v2_outsider_port'])) {
+                        $v2_port3_json = [
+                            "v"    => "2",
+                            "ps"   => $node['name'].$cdn_area.'·'.$node['level'].'#'.$node['id'].'|'.$node['traffic_rate'].':'.($node['node_cost']/5).'|'.$node['node_online'].$node_warm,
+                            "add"  => $node['server'] ? $node_server : $node['ip'],
+                            "port" => $node['v2_outsider_port'],
+                            "id"   => $node['monitor_url'] ? $node['monitor_url'] : $user['vmess_id'],
+                            "aid"  => $node['v2_alter_id'],
+                            "net"  => $node['v2_net'],
+                            "type" => $node['v2_type'],
+                            "host" => $node['v2_host'],
+                            "path" => $node['v2_path'],
+                            "tls"  => $node['v2_tls'] == 1 ? "tls" : ""
+                        ];
+                        $scheme .= 'vmess://' . base64_encode(json_encode($v2_port3_json)) . "\n";
+                    }
+
                 }
             }
         }

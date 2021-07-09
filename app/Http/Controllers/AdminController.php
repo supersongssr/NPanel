@@ -883,8 +883,8 @@ class AdminController extends Controller
                 $ssNode->v2_host = $request->get('v2_host') ? $request->get('v2_host') : '';
                 $ssNode->v2_path = $request->get('v2_path') ? $request->get('v2_path') : '';
                 $ssNode->v2_tls = $request->get('v2_tls') ? intval($request->get('v2_tls')) : 0;
-                //$ssNode->v2_insider_port = $request->get('v2_insider_port') ? intval($request->get('v2_insider_port')) : 10550;
-                //$ssNode->v2_outsider_port = $request->get('v2_outsider_port') ? intval($request->get('v2_outsider_port')) : 443;
+                $ssNode->v2_insider_port = $request->get('v2_insider_port') ? intval($request->get('v2_insider_port')) : '';
+                $ssNode->v2_outsider_port = $request->get('v2_outsider_port') ? intval($request->get('v2_outsider_port')) : '';
                 $ssNode->save();
 
                 // 建立分组关联
@@ -1011,8 +1011,8 @@ class AdminController extends Controller
                     'v2_host'          => $request->get('v2_host'),
                     'v2_path'          => $request->get('v2_path'),
                     'v2_tls'           => intval($request->get('v2_tls')),
-                    //'v2_insider_port'  => intval($request->get('v2_insider_port', 10550)),
-                    //'v2_outsider_port' => intval($request->get('v2_outsider_port', 443))
+                    'v2_insider_port'  => intval($request->get('v2_insider_port', '')),
+                    'v2_outsider_port' => intval($request->get('v2_outsider_port', ''))
                 ];
 
                 SsNode::query()->where('id', $id)->update($data);
