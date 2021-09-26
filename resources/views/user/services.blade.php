@@ -19,28 +19,28 @@
                         <ul class="list-inline">
                             @if (Auth::user()->balance < 0)
                             <li>
-                                <h4>
-                                    <span class="font-blue">信用卡：</span>
-                                    <span class="font-red">{{ (Auth::user()->balance + Auth::user()->credit) / 100}} / {{Auth::user()->credit / 100}}</span>
-                                </h4>
+                                <h5>
+                                    <span class="font-blue">花呗：</span>
+                                    <span class="font-blue">{{ (Auth::user()->balance + Auth::user()->credit) / 100}} ￥/ {{Auth::user()->credit / 100}}￥</span>
+                                </h5>
                             </li>
                             <li>
                                 <h4>
                                     <span class="font-blue">本期账单：</span>
-                                    <span class="font-red">{{Auth::user()->balance / 100}}(请在{{Auth::user()->credit_days}}日内还款)</span>
+                                    <span class="font-red">{{Auth::user()->balance / 100}}￥(请在{{Auth::user()->credit_days}}日内还款)</span>
                                 </h4>
                             </li>
                             @else
                             <li>
-                                <h4>
-                                    <span class="font-blue">余额：</span>
-                                    <span class="font-red">{{ (Auth::user()->balance + Auth::user()->credit) / 100}}</span>
-                                </h4>
+                                <h5>
+                                    <span class="font-blue">花呗：</span>
+                                    <span class="font-blue">{{Auth::user()->credit / 100}}￥</span>
+                                </h5>
                             </li>
                             <li>
                                 <h4>
-                                    <span class="font-blue">信用卡：</span>
-                                    <span class="font-red">{{Auth::user()->credit / 100}}</span>
+                                    <span class="font-blue">账户余额：</span>
+                                    <span class="font-red">{{ (Auth::user()->balance) / 100}}￥</span>
                                 </h4>
                             </li>
                             @endif
@@ -267,8 +267,15 @@
                                 <div class="form-group" id="charge_coupon_code_url" >
                                     <label for="charge_coupon" class="col-md-4 control-label"> 购买{{trans('home.coupon_code')}} </label>
                                     <div class="col-md-6">
-                                        <a href="https://ka.1ka123.com/goods-133036.html" type="button" target="_blank" class="btn green btn-sm">点击购买 10￥ 充值卡券（购买多个可叠加）</a>
-                                        <br>* 所购买商品为充值卡券，用于在本站充值余额。充值更多金额可以叠加充值，如充值50，可以购买5个10￥充值卡券。如有疑问，请联系发卡平台卖家QQ。
+                                        <a href="https://www.39faka.com/details/D0161C39" type="button" target="_blank" class="btn green">购买6￥卡密（商品已做安全处理，可叠加）</a>
+                                        <h5><span class="font-blue">*商品名已安全处理，拍下即为充值卡密</span></h5>
+                                        <h5><span class="font-blue">*请在发卡平台购买卡密后，在此充值余额</span></h5>
+                                        <h5><span class="font-blue">*可购买多个卡密，叠加充值</span></h5>
+                                        <h5><span class="font-blue">*根据您需要充值的金额，拍下相应数量的卡密</span></h5>
+                                        <h5><span class="font-red">支付问题发邮件到 2ups@ssmail.win 为您快速解决</span></h5>
+                                        <a href="/article?id=46" type="button" target="_blank" class="btn red">售后和 常见问题解决方案</a>
+                                        <a href="https://www.39faka.com/details/6D960E4F" type="button" target="_blank" class="btn green">购买60￥卡密（商品已做安全处理，可叠加）</a>
+
                                     </div>
                                 </div>
                                 <div class="form-group" id="charge_coupon_code" >

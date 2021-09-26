@@ -88,8 +88,10 @@
                         <div class="actions">
                             <!-- <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 提取余额 </button>
                             <button type="submit" class="btn green" onclick="extractMoney()"> 银行卡提现 </button> -->
-                            <button type="submit" class="btn blue" onclick="ExtractAffMoney()"> 邀请奖励提现 </button>
-                            <button type="submit" class="btn green" onclick="ExtractRefMoney()"> 消费返利提现 </button>
+                            <!-- <button type="submit" class="btn blue" onclick="ExtractAffMoney()"> 邀请奖励提现 </button>
+                            <button type="submit" class="btn green" onclick="ExtractRefMoney()"> 消费返利提现 </button> -->
+                            <button type="submit" class="btn blue" onclick="autoExtractAffMoney()"> 邀请奖励生成代金券 </button>
+                            <button type="submit" class="btn green" onclick="autoExtractRefMoney()"> 消费返利生成代金券 </button>
                         </div>
                     </div>
                     <div class="portlet-body">

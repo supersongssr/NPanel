@@ -50,7 +50,7 @@
                                 @foreach ($replyList as $reply)
                                     <div class="timeline-item">
                                         <div class="timeline-badge">
-                                            @if ($reply->user->is_admin)
+                                            @if (!empty($reply->user->is_admin))
                                                 <img class="timeline-badge-userpic" src="/assets/images/avatar.png">
                                             @else
                                                 <div class="timeline-icon">
@@ -62,7 +62,7 @@
                                             <div class="timeline-body-arrow"></div>
                                             <div class="timeline-body-head">
                                                 <div class="timeline-body-head-caption">
-                                                    @if($reply->user->is_admin)
+                                                    @if(!empty($reply->user->is_admin))
                                                         <a href="javascript:;" class="timeline-body-title font-red-intense">管理员</a>
                                                     @else
                                                         <span class="timeline-body-alerttitle font-blue-madison">{{empty($reply->user) ? '【账号已删除】' : $reply->user->username}}</span>

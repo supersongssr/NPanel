@@ -138,7 +138,7 @@
                 </li>
 
                 <li class="nav-item {{in_array(Request::path(), ['coupon/couponList', 'coupon/addCoupon']) ? 'active open' : ''}}">
-                    <a href="/coupon/couponList" class="nav-link nav-toggle">
+                    <a href="/coupon/couponList?sn=" class="nav-link nav-toggle">
                         <i class="fa fa-ticket"></i>
                         <span class="title">卡券管理</span>
                     </a>

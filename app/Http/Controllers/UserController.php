@@ -1228,7 +1228,7 @@ class UserController extends Controller
 
         $coupon = Coupon::type(3)->where('sn', $request->coupon_sn)->where('status', 0)->first();
         if (!$coupon) {
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '该券不可用']);
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '该券已被使用，请勿重复使用']);
         }
 
         DB::beginTransaction();
