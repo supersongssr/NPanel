@@ -184,8 +184,11 @@
                                                 </div>
                                                 <p>
                                                   什么条件下使用它： 直连网速不佳的时候。尤其是移动/电信。<br>
-                                                  <a href="https://github.com/badafans/better-cloudflare-ip" type="button" target="_blank" class="btn red btn-sm">如何选IP？</a>
-                                                <br><code>原理：某些用户的网络IP被运营商给限制，无法使用国际带宽，或者国际带宽被限制在500K左右。 设置CF+ 的IP优化，可以避开运营商的IP限制和限速。</code><br>教程 <code>https://github.com/badafans/better-cloudflare-ip 建议设置30Mbps，然后让脚本自动筛选IP，筛选出来的IP填入上方</code></p>
+                                                <br><code>原理：某些用户的网络IP被运营商给限制，无法使用国际带宽，或者国际带宽被限制在500K左右。 设置CF+ 的IP优化，可以避开运营商的IP限制和限速。</code>
+                                                <br>WIN教程: <code><a href="https://www.anycast.eu.org/batch.zip" target="_blank">点我下载 - 内附使用说明</a></code>
+                                                <br>Linux教程：<code>curl https://www.anycast.eu.org/cf.sh -o cf.sh && chmod +x cf.sh && ./cf.sh</code>
+                                                </p>
+
 
                                                 <div class="form-actions">
                                                     <div class="row">

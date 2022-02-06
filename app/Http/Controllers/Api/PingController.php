@@ -154,7 +154,8 @@ class PingController extends Controller
         !empty($request->get('bandwidth')) && $node->bandwidth = $request->get('bandwidth');
         !empty($request->get('traffic_limit')) && $node->traffic_limit = $request->get('traffic_limit')*1024*1024*1024;
         !empty($request->get('is_transit')) && $node->is_transit = $request->get('is_transit');
-        $request->get('sort') != '' && $node->sort = $request->get('sort');
+        $request->get('node_sort') != '' && $node->sort = $request->get('node_sort');
+        // 这里之所以用 node_sort 是因为 sort 参数在 Sspuim里面 是节点类型的意思。避免混淆
 
         if ($request->get('v2')) {
             $v2 = $request->get('v2');
