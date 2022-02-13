@@ -88,47 +88,26 @@ class PingController extends Controller
 
     public function ssn_sub(Request $request, $id)
     {
-        $status = $request->get('status');
-        $traffic = $request->get('traffic');
-        $online = $request->get('online');
+        $request->get('token') != env('API_TOKEN') && exit; // 验证 token 防止滥用
+
+        $status = $request->getParam('status');
+        $daily = $request->getParam('daily');
+        $health = $request->getParam('health');
+        $traffic = $request->getParam('traffic');
+        $online = $request->getParam('online');
+
         //获取NODE数据
         $node = SsNode::query()->where('id', $id)->first();
-        $traffic_mark = $node['traffic'];
-        //
-        if (empty($node['monitor_url'])) {
-            $nodeOnlineLog = SsNodeOnlineLog::query()->where('node_id', $id)->orderBy('id', 'desc')->first();
-            if (!empty($nodeOnlineLog->online_user)) {
-                $online = $nodeOnlineLog->online_user;
-            }
-        }
-        $node_onload = round(($online / $node->node_cost),2);
-        //写入node数据 status
-        SsNode::query()->where('id',$id)->update(['status'=>$status,'traffic'=>$traffic,'node_online'=>$online,'node_onload'=>$node_onload]);
-        /*empty($node['monitor_url']) && exit;  //如果ssn关键数据为空，剩下的流量就不写了。 正常节点有正常写入流量的
-        //写入每小时节点流量
-        //直接写入用户流量数据
-        $obj = new UserTrafficLog();
-        $traffic_now = $traffic - $traffic_mark;
-        $traffic_now < 0 && $traffic_now = 1;    //如果流量差<0 那么可能是重置了 设为1
-        $obj->user_id =  0; //用户为0的使用的流量就是上传的流量
-        $obj->u = 0;
-        $obj->d = $traffic_now;
-        $obj->node_id = $id;
-        $obj->rate = 1;
-        $obj->traffic = floor($traffic_now / 1048576) . 'MB';
-        $obj->log_time = time();
-        $obj->save();*/
-        /*
-        $obj = new SsNodeTrafficHourly();
-        $traffic_now = $traffic - $traffic_mark;
-        $traffic_now < 0 && $traffic_now = 1;    //如果流量差<0 那么可能是重置了 设为1
-        $obj->node_id = $id;
-        $obj->u = 0;
-        $obj->d = $traffic_now;
-        $obj->total = $traffic_now;
-        $obj->traffic = floor($traffic_now / 1048576) . 'MB';
-        $obj->save();
-        */
+        $status == 0 && $node->status = 0;
+        $status == 1 && $node->status = 1;
+        $node->node_onload = $daily;
+        $health == 0 && $node->is_subscribe = 0;
+        $health == 1 && $node->is_subscribe = 1;
+        $node->node_online = $online;
+        $node->traffic = $traffic;
+        $node->heartbeat_at = date('Y-m-d H:i:s');
+        $node->save();
+
         //写入节点在线人数
         $online_log = new SsNodeOnlineLog();
         $online_log->node_id = $id;
@@ -139,46 +118,51 @@ class PingController extends Controller
 
     public function ssn_v2(Request $request, $id)
     {
-        //$id < 9 && exit;   #id 小于32的没有需求 直接退出
+
+        $request->get('token') != env('API_TOKEN') && exit; // 验证 token 防止滥用
         $node = SsNode::query()->where('id', $id)->first();
+
+        $request->get('name') && $node->name = $request->get('node_name');
+        $request->get('node_desc') && $node->desc = $request->get('node_desc');
+        $request->get('node_cost') && $node->node_cost = $request->get('node_cost');
+        $request->get('node_level') && $node->level = $request->get('node_level');
+        $request->get('node_group') && $node->node_group = $request->get('node_group');
+        $request->get('node_traffic_limit') && $node->traffic_limit = $request->get('node_traffic_limit')*1024*1024*1024;
+        $request->get('node_sort') != '' && $node->sort = $request->get('node_sort');  //排序 这里之所以用 node_sort 是因为 sort 参数在 Sspuim里面 是节点类型的意思。避免混淆
+        $request->get('node_ip') && $node->ip = $request->get('node_ip');  //排序
+        $request->get('node_ipv6') && $node->ipv6 = $request->get('node_ipv6');  //排序
+        $request->get('node_country_code') && $node->country_code = $request->get('node_country_code');
+        $request->get('node_traffic_rate') && $node->traffic_rate = $request->get('node_traffic_rate');
+        $request->get('node_bandwidth') && $node->bandwidth = $request->get('node_bandwidth');  //带宽
         
-        !empty($request->get('type')) && $node->type = $request->get('type');
-        !empty($request->get('name')) && $node->name = $request->get('name');
-        !empty($request->get('country_code')) && $node->country_code = $request->get('country_code');
-        !empty($request->get('server')) && $node->server = $request->get('server');
-        !empty($request->get('desc')) && $node->desc = $request->get('desc');
-        !empty($request->get('traffic_rate')) && $node->traffic_rate = $request->get('traffic_rate');
-        !empty($request->get('node_cost')) && $node->node_cost = $request->get('node_cost');
-        !empty($request->get('level')) && $node->level = $request->get('level');
-        !empty($request->get('node_group')) && $node->node_group = $request->get('node_group');
-        !empty($request->get('bandwidth')) && $node->bandwidth = $request->get('bandwidth');
-        !empty($request->get('traffic_limit')) && $node->traffic_limit = $request->get('traffic_limit')*1024*1024*1024;
-        !empty($request->get('is_transit')) && $node->is_transit = $request->get('is_transit');
-        $request->get('node_sort') != '' && $node->sort = $request->get('node_sort');
-        // 这里之所以用 node_sort 是因为 sort 参数在 Sspuim里面 是节点类型的意思。避免混淆
-
-        if ($request->get('v2')) {
-            $v2 = $request->get('v2');
-            $addn = explode('#',$v2);
-
-            $node->ip = $addn['0'];
-            $node->v2_port = $addn['1'];
-            $node->monitor_url = $addn['2'];
-            $node->v2_alter_id = $addn['3'];
-            $node->v2_net = $addn['4'];
-            $node->v2_type = $addn['5'];
-            $node->v2_host = '';
-            $node->v2_path = '';
-            $node->v2_tls = '0';
-
-            if (count($addn) > 8) {
-                # code...
-                $node->v2_host = $addn['6'];
-                $node->v2_path = '/'.$addn['7'];
-                $node->v2_tls = empty($addn['8']) ? '0': '1';
-                $node->v2_insider_port = $addn['9'];  // 端口2
-                $node->v2_outsider_port = $addn['10'];  // 端口3
-            }
+        //node protocol_conf  先判断是否有 vmess vless trojan ss 等标志前缀
+        if ( $request->get('v2') ) {
+            $request->get('v2') == 'ss' && $node->type = 1;
+            $request->get('v2') == 'vmess' && $node->type = 2;
+            $request->get('v2') == 'vless' && $node->type = 3;
+            $request->get('v2') == 'trojan' && $node->type = 4;
+            $node->server = $request->get('v2_add');
+            $node->v2_port = $request->get('v2_port');
+            $node->v2_alter_id = $request->get('v2_aid');
+            $node->v2_method = $request->get('v2_scy');
+            $node->v2_net = $request->get('v2_net');
+            $node->v2_type = $request->get('v2_type');
+            $node->v2_host = $request->get('v2_host');
+            $node->v2_path = $request->get('v2_path');
+            // tls : 0 tls xtls 
+            empty($request->get('v2_tls')) && $node->v2_tls = 0;
+            $request->get('v2_tls') == 'tls' && $node->v2_tls = 1;
+            $request->get('v2_tls') == 'xtls' && $node->v2_tls = 2;
+            $node->v2_sni = $request->get('v2_sni');
+            $node->v2_alpn = $request->get('v2_alpn');
+            // vless 特有
+            $node->v2_encryption = $request->get('v2_ecpt');
+            $node->v2_encryption || $node->v2_encryption = 'none';
+            // xtls特有 
+            $node->v2_flow = $request->get('v2_flow');
+            // 个性化
+            $node->node_uuid = $request->get('v2_uuid') ;  // node_uuid 独立节点的密码
+            $request->get('v2_cdn') == 'yes' ? $node->is_transit = 1 : $node->is_transit = 0;  // 支持 CDN 
         }
 
         $node->save();

@@ -809,7 +809,7 @@ class AdminController extends Controller
     {
         if ($request->isMethod('POST')) {
 
-            /**
+            /*
             if ($request->get('ssh_port') <= 0 || $request->get('ssh_port') >= 65535) {
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '添加失败：SSH端口不合法']);
             }
@@ -831,7 +831,7 @@ class AdminController extends Controller
                     return Response::json(['status' => 'fail', 'data' => '', 'message' => '绑定域名不合法']);
                 }
             }
-            **/
+            */
 
             // TODO：判断是否已存在绑定了相同域名的节点，提示是否要强制替换，或者不提示之前强制将其他节点的绑定域名置为空，然后发起域名绑定请求，或者请求进入队列
 
@@ -934,7 +934,7 @@ class AdminController extends Controller
         $id = $request->get('id');
 
         if ($request->isMethod('POST')) {
-            /**
+            /*
             if ($request->get('ssh_port') <= 0 || $request->get('ssh_port') >= 65535) {
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '编辑失败：SSH端口不合法']);
             }
@@ -961,7 +961,7 @@ class AdminController extends Controller
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '编辑失败：AlterId不合法']);
             }
 
-            **/
+            */
 
             DB::beginTransaction();
             try {
@@ -1012,22 +1012,27 @@ class AdminController extends Controller
                     'v2_path'          => $request->get('v2_path'),
                     'v2_tls'           => intval($request->get('v2_tls')),
                     'v2_insider_port'  => intval($request->get('v2_insider_port', '')),
-                    'v2_outsider_port' => intval($request->get('v2_outsider_port', ''))
+                    'v2_outsider_port' => intval($request->get('v2_outsider_port', '')),
+                    'node_uuid'        => $request->get('node_uuid'),
+                    'v2_flow'          => $request->get('v2_flow'),
+                    'v2_sni'           => $request->get('v2_sni'),
+                    'v2_alpn'          => $request->get('v2_alpn'),
+                    'v2_encryption'    => $request->get('v2_encryption')
                 ];
 
                 SsNode::query()->where('id', $id)->update($data);
 
-                // 建立分组关联
-                if ($request->get('group_id')) {
-                    // 先删除该节点所有关联
-                    SsGroupNode::query()->where('node_id', $id)->delete();
+                // // 建立分组关联
+                // if ($request->get('group_id')) {
+                //     // 先删除该节点所有关联
+                //     SsGroupNode::query()->where('node_id', $id)->delete();
 
-                    // 建立关联
-                    $ssGroupNode = new SsGroupNode();
-                    $ssGroupNode->group_id = $request->get('group_id');
-                    $ssGroupNode->node_id = $id;
-                    $ssGroupNode->save();
-                }
+                //     // 建立关联
+                //     $ssGroupNode = new SsGroupNode();
+                //     $ssGroupNode->group_id = $request->get('group_id');
+                //     $ssGroupNode->node_id = $id;
+                //     $ssGroupNode->save();
+                // }
 
                 // 生成节点标签
                 $this->makeNodeLabels($id, $request->get('labels'));

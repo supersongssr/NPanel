@@ -25,7 +25,7 @@
 -- ----------------------------
 CREATE TABLE `ss_node` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
-  `type` tinyint(4) NOT NULL DEFAULT '1' COMMENT '服务类型：1-SS、2-V2ray',
+  `type` tinyint(4) NOT NULL DEFAULT '1' COMMENT '服务类型：1-SS、2-V2 3 vless 4 trojan',
   `name` VARCHAR(128) NOT NULL DEFAULT '' COMMENT '名称',
   `group_id` INT(11) NOT NULL DEFAULT '0' COMMENT '所属分组',
   `country_code` CHAR(5) NOT NULL DEFAULT 'un' COMMENT '国家代码',
@@ -44,7 +44,7 @@ CREATE TABLE `ss_node` (
   `monitor_url` VARCHAR(255) NULL DEFAULT NULL COMMENT '监控地址',
   `is_subscribe` TINYINT(4) NULL DEFAULT '1' COMMENT '是否允许用户订阅该节点：0-否、1-是',
   `is_nat` TINYINT(4) NOT NULL DEFAULT '0' COMMENT '是否为NAT机：0-否、1-是',
-  `is_transit` TINYINT(4) NOT NULL DEFAULT '0' COMMENT '是否中转节点：0-否、1-是',
+  `is_transit` TINYINT(4) NOT NULL DEFAULT '0' COMMENT '允许CDN中转：0-否、1-是',
   `ssh_port` SMALLINT(6) UNSIGNED NOT NULL DEFAULT '22' COMMENT 'SSH端口',
   `is_tcp_check` TINYINT(4) NOT NULL DEFAULT '1' COMMENT '是否开启检测: 0-不开启、1-开启',
   `compatible` TINYINT(4) NOT NULL DEFAULT '0' COMMENT '兼容SS',
@@ -64,7 +64,7 @@ CREATE TABLE `ss_node` (
   `v2_type` VARCHAR(32) NOT NULL DEFAULT 'none' COMMENT 'V2ray伪装类型',
   `v2_host` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'V2ray伪装的域名',
   `v2_path` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'V2ray WS/H2路径',
-  `v2_tls` TINYINT(4) NOT NULL DEFAULT '0' COMMENT 'V2ray底层传输安全 0 未开启 1 开启',
+  `v2_tls` TINYINT(4) NOT NULL DEFAULT '0' COMMENT '0 1tls 2 xtls',
   `v2_insider_port` INT(11) NOT NULL DEFAULT '10550' COMMENT 'V2ray内部端口（内部监听），v2_port为0时有效',
   `v2_outsider_port` INT(11) NOT NULL DEFAULT '443' COMMENT 'V2ray外部端口（外部覆盖），v2_port为0时有效',
   `created_at` datetime NOT NULL,
@@ -1319,7 +1319,7 @@ ALTER TABLE `goods`
 ALTER TABLE `user`
   ADD COLUMN `node_group` INT(11) Default 0 COMMENT '分组' AFTER `level`;
 
-# 增加 节点 cncdn 自选节点功能
+-- 增加 节点 cncdn 自选节点功能
 CREATE TABLE IF NOT EXISTS `cncdn` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `area` varchar(128) NOT NULL COMMENT '地区',
@@ -1334,27 +1334,27 @@ CREATE TABLE IF NOT EXISTS `cncdn` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
-#用户列表增加cncdn cfcdn 自选ip的功能
+-- 用户列表增加cncdn cfcdn 自选ip的功能
 ALTER TABLE `user` ADD `rss_ip` VARCHAR(64) DEFAULT NULL COMMENT '订阅ip' AFTER `ban_times`;
 ALTER TABLE `user` ADD `cncdn` VARCHAR(64) DEFAULT '0' COMMENT 'CN自选入口' AFTER `rss_ip`;
 ALTER TABLE `user` ADD `cncdn_count` INT(11) DEFAULT '0' COMMENT 'CN次数统计' AFTER `cncdn`;
 ALTER TABLE `user` ADD `cfcdn` VARCHAR(64) DEFAULT '0' COMMENT 'CF自选ip' AFTER `cncdn_count`;
 ALTER TABLE `user` ADD `cfcdn_count` INT(11) DEFAULT '0' COMMENT 'CF次数统计' AFTER `cfcdn`;
 
-# 增加 月流量功能
+--  增加 月流量功能
 ALTER TABLE `user` ADD `transfer_monthly` BIGINT(20) DEFAULT '0' COMMENT '每月套餐流量' AFTER `transfer_enable`;
 
-# 工单加入等级功能
+-- 工单加入等级功能
 ALTER TABLE `ticket` ADD `sort` BIGINT(20) DEFAULT '0' COMMENT '等级排序' AFTER `user_id`;
 
-# 用户增加 信用卡字段 credit card
+-- 用户增加 信用卡字段 credit card
 ALTER TABLE `user`
   ADD COLUMN `credit` INT(11) Default 0 COMMENT '信用额度' AFTER `balance`;
 
 -- user字段新增用户还款限期`
 -- ----------------------------
 ALTER TABLE `user`
-  ADD COLUMN `credit_days` TINYINT(4) Default 0 COMMENT '延迟还款' AFTER `credit_days`;
+  ADD COLUMN `credit_days` TINYINT(4) Default 0 COMMENT '延迟还款' AFTER `credit`;
 -- ----------------------------
 -- 新增生成者ID`
 -- ----------------------------
@@ -1363,23 +1363,23 @@ ALTER TABLE `coupon`
 
 
 
-# 节点的昨日流量
+-- 节点的昨日流量
 ALTER TABLE `ss_node`
-ADD COLUMN `traffic_limit` BIGINT(20) Default 1099511627776 COMMENT '流量限制' AFTER `traffic`;
-# 前一小时流量
+  ADD COLUMN `traffic_limit` BIGINT(20) Default 1099511627776 COMMENT '流量限制' AFTER `traffic`;
+-- 前一小时流量
 ALTER TABLE `ss_node`
-ADD COLUMN `traffic_lasthour` BIGINT(20) Default 0 COMMENT '1H流量mark' AFTER `traffic_limit`;
-# 前一天流量mark
+  ADD COLUMN `traffic_lasthour` BIGINT(20) Default 0 COMMENT '1H流量mark' AFTER `traffic_limit`;
+-- 前一天流量mark
 ALTER TABLE `ss_node`
-ADD COLUMN `traffic_lastday` BIGINT(20) Default 0 COMMENT '1D流量mark' AFTER `traffic_lasthour`;
+  ADD COLUMN `traffic_lastday` BIGINT(20) Default 0 COMMENT '1D流量mark' AFTER `traffic_lasthour`;
 
 
-# 增加用户前一小时流量统计
+-- 增加用户前一小时流量统计
 ALTER TABLE `user`
   ADD COLUMN `traffic_lasthour` BIGINT(20) Default 0 COMMENT '前一小时流量' AFTER `t`;
 ALTER TABLE `user`
   ADD COLUMN `traffic_lastday` BIGINT(20) Default 0 COMMENT '前一天流量' AFTER `traffic_lasthour`;
-# 增加用户前一天流量统计
+-- 增加用户前一天流量统计
 
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1388,17 +1388,17 @@ ALTER TABLE `user`
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 
-#增加 trimepay
+-- 增加 trimepay
 INSERT INTO config values ('96', 'is_trimepay', 0);
 INSERT INTO config VALUES ('97', 'trimepay_appid', '');
 INSERT INTO config VALUES ('98', 'trimepay_appsecret', '');
 INSERT INTO config VALUES ('99', 'pay_notify_url', '');
 
-# 增加 订阅
+-- 增加 订阅
 ALTER TABLE `user_subscribe`
   ADD COLUMN `times_today` INT(11) Default 0 COMMENT '今日订阅次数' AFTER `times`;
 
-# 增加 用户 支付宝 USDT,方便用户设置
+-- 增加 用户 支付宝 USDT,方便用户设置
 ALTER TABLE `user`
   ADD COLUMN `alipay` varchar(128) Default 0 COMMENT '支付宝' AFTER `wechat`;
 ALTER TABLE `user`
@@ -1415,3 +1415,15 @@ ALTER TABLE `referral_apply`
   ADD COLUMN `qq` VARCHAR(20) COMMENT 'QQ联系方式' AFTER `alipay`;
 ALTER TABLE `referral_apply`
   ADD COLUMN `usdt` VARCHAR(128) COMMENT 'USDT' AFTER `qq`;
+
+
+-- ----------------------------
+-- 20220208 增加支持vless trojan的参数
+-- ----------------------------
+ALTER TABLE `ss_node` ADD COLUMN `v2_flow` VARCHAR(255) COMMENT '流控' AFTER `v2_tls`;
+ALTER TABLE `ss_node` ADD COLUMN `v2_sni` VARCHAR(255) COMMENT 'SNI' AFTER `v2_flow`;
+ALTER TABLE `ss_node` ADD COLUMN `v2_alpn` VARCHAR(255) COMMENT 'ALPN' AFTER `v2_sni`;
+ALTER TABLE `ss_node` ADD COLUMN `v2_encryption` VARCHAR(255) DEFAULT 'none' COMMENT 'Vless加密默认None' AFTER `v2_alpn`;
+ALTER TABLE `ss_node` ADD COLUMN `node_uuid` VARCHAR(255) DEFAULT '' COMMENT '独立节点的UUID，无用户版' AFTER `v2_encryption`;
+
+ALTER TABLE `ss_node` ADD COLUMN `heartbeat_at` datetime DEFAULT NULL COMMENT '节点心跳，后端API心跳' AFTER `node_uuid`;

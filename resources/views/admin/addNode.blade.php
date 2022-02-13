@@ -36,7 +36,7 @@
                                             </div>
                                             <div class="portlet-body">
                                                 <div class="form-group">
-                                                    <label for="is_transit" class="col-md-3 control-label">中转</label>
+                                                    <label for="is_transit" class="col-md-3 control-label">允许CDN中转</label>
                                                     <div class="col-md-8">
                                                         <div class="mt-radio-inline">
                                                             <label class="mt-radio">
@@ -180,7 +180,7 @@
                                                     <label for="traffic_limit" class="col-md-3 control-label">每月流量</label>
                                                     <div class="col-md-8">
                                                         <div class="input-group">
-                                                            <input type="text" class="form-control right" name="traffic_limit" value="{{floor($node->traffic_limit / 1024/1024/1024)}}" id="traffic_limit" placeholder="" required>
+                                                            <input type="text" class="form-control right" name="traffic_limit" value="" id="traffic_limit" placeholder="" required>
                                                             <span class="input-group-addon">G</span>
                                                         </div>
                                                     </div>

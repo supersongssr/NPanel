@@ -38,19 +38,20 @@
                                 <thead>
                                 <tr>
                                     <th> 操作 </th>
-                                    <th> <span class="node-id"><a href="javascript:showIdTips();">ID</a></span> </th>
+                                    <th> 名称 </th>
                                     <th> 类型 </th>
                                     <th> ! </th>
                                     <th> ? </th>
-                                    <th> 名称 </th>
+                                    
+                                    
                                     <th> O </th>
                                     <th> R </th>
                                     <th> G </th>
                                     <th> L </th>
-                                    <th> 描述 </th>
                                     <th> <span class="node-flow"><a href="javascript:showFlowTips();">流量</a></span> </th>
                                     <th> 监控 </th>
-                                    <th> 存活 </th>
+                                    <th> 描述 </th>
+                                    <th> 心跳 </th>
                                     <th> 操作 </th>
                                 </tr>
                                 </thead>
@@ -62,38 +63,37 @@
                                     @else
                                         @foreach($nodeList as $node)
                                             <tr class="odd gradeX">
-                                                <td><a class="btn green" href="javascript:editNode('{{$node->id}}');"> 编辑 </a>
-                                                </td>
-                                                <td> {{$node->id}} </td>
+                                                <td><a class="btn green" href="javascript:editNode('{{$node->id}}');"> {{$node->id}} </a></td>
+                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->name}}</span> </td>
                                                 <td>
-                                                    @if($node->is_transit)
-                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">{{$node->is_transit ? 'CF+' : ''}}</span>
+                                                    @if($node->is_transit == 1)
+                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">CDN</span>
+                                                    @elseif($node->type == 1)
+                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">SS</span>
+                                                    @elseif($node->type == 2)
+                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">Vm</span>
+                                                    @elseif($node->type == 3)
+                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">Vl</span>
+                                                    @elseif($node->type == 4)
+                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">Tr</span>
                                                     @else
-                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">{{$node->type == 2 ? 'V2' : 'SR'}}</span>
+                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">?</span>
                                                     @endif
                                                 </td>
+                                                
                                                 <td> {{$node->sort}}</td>
-                                                <td> {{$node->ipv6}} </td>
-                                                <td> {{$node->name}} </td>
-                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->online_users}}</span> </td>
-
+                                                <td> {{$node->monitor_url}} </td>
+                                                
+                                                
+                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->online_users}}</span> </td>
                                                 <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->traffic_rate}}</span> </td>
                                                 <td><span class="label label-info">{{$node->node_group}}</span></td>
                                                 <td><span class="label label-info">{{$node->level}}</span></td>
-                                                <td>
-                                                    <!--
-                                                    @if($node->is_nat)
-                                                        <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">NAT</span>
-                                                    @else
-                                                        <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->ip}}</span>
-                                                    @endif
-                                                -->
-                                                    <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->desc}}</span>
-                                                </td>
-                                                <td> {{$node->is_transit ? '' : $node->transfer}} </td>
+                                                <td> {{$node->transfer}} </td>
                                                 <td><a class="btn green" href="javascript:nodeMonitor('{{$node->id}}');"> 流量 </a>
                                                 </td>
-                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->is_transit ? '' : $node->uptime}}</span> </td>
+                                                <td>{{$node->desc}}</td>
+                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{ $node->heartbeat_at}}</span> </td>
 
                                                 <td>
                                                     <div class="btn-group">
@@ -148,8 +148,10 @@
                             <div class="col-md-3 col-sm-4 col-xs-12">
                                 <select class="form-control" name="type" id="type" onChange="doSearch()">
                                     <option value="" @if(Request::get('type') == '') selected @endif>类型</option>
-                                    <option value="1" @if(Request::get('type') == '1') selected @endif>S1</option>
-                                    <option value="2" @if(Request::get('type') == '2') selected @endif>V2</option>
+                                    <option value="1" @if(Request::get('type') == '1') selected @endif>SS</option>
+                                    <option value="2" @if(Request::get('type') == '2') selected @endif>VM</option>
+                                    <option value="3" @if(Request::get('type') == '3') selected @endif>VL</option>
+                                    <option value="4" @if(Request::get('type') == '4') selected @endif>Tr</option>
                                 </select>
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">

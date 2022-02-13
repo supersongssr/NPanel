@@ -35,22 +35,8 @@
                                                 </div>
                                             </div>
                                             <div class="portlet-body">
+                                                
                                                 <div class="form-group">
-                                                    <label for="is_transit" class="col-md-3 control-label">CF+</label>
-                                                    <div class="col-md-8">
-                                                        <div class="mt-radio-inline">
-                                                            <label class="mt-radio">
-                                                                <input type="radio" name="is_transit" value="1" {{$node->is_transit == '1' ? 'checked' : ''}}> 是
-                                                                <span></span>
-                                                            </label>
-                                                            <label class="mt-radio">
-                                                                <input type="radio" name="is_transit" value="0" {{$node->is_transit == '0' ? 'checked' : ''}}> 否
-                                                                <span></span>
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <!-- <div class="form-group">
                                                     <label for="is_nat" class="col-md-3 control-label">NAT</label>
                                                     <div class="col-md-8">
                                                         <div class="mt-radio-inline">
@@ -64,141 +50,9 @@
                                                             </label>
                                                         </div>
                                                     </div>
-                                                </div> -->
-                                                <div class="form-group">
-                                                    <label for="country_code" class="col-md-3 control-label"> 国家/地区 </label>
-                                                    <div class="col-md-8">
-                                                        <select class="form-control" name="country_code" id="country_code">
-                                                            <option value="">请选择</option>
-                                                            @if(!$country_list->isEmpty())
-                                                                @foreach($country_list as $country)
-                                                                    <option value="{{$country->country_code}}" {{$node->country_code == $country->country_code ? 'selected' : ''}}>{{$country->country_code}} - {{$country->country_name}}</option>
-                                                                @endforeach
-                                                            @endif
-                                                        </select>
-                                                    </div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="name" class="col-md-3 control-label"> 节点名称 </label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="name" value="{{$node->name}}" id="name" placeholder="" autofocus required>
-                                                        <input type="hidden" name="id" value="{{$node->id}}">
-                                                        <input type="hidden" name="_token" value="{{csrf_token()}}">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="server" class="col-md-3 control-label"> 域名 </label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="server" value="{{$node->server}}" id="server" placeholder="服务器域名地址，填则优先取域名地址">
-                                                        <span class="help-block">如果开启Namesilo且域名是Namesilo上购买的，则会强制更新域名的DNS记录为本节点IP，如果其他节点绑定了该域名则会清空其域名信息</span>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="ip" class="col-md-3 control-label"> IPv4地址 </label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="ip" value="{{$node->ip}}" id="ip" placeholder="服务器IPv4地址" {{$node->is_nat ? 'readonly=readonly' : ''}} required>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="ipv6" class="col-md-3 control-label"> IPv6地址 </label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="ipv6" value="{{$node->ipv6}}" id="ipv6" placeholder="服务器IPv6地址，填写则用户可见，域名无效">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="traffic_rate" class="col-md-3 control-label"> 流量比例 </label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="traffic_rate" value="{{$node->traffic_rate}}" id="traffic_rate" placeholder="" required>
-                                                        <span class="help-block"> 举例：0.1用100M结算10M，5用100M结算500M </span>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="node_cost" class="col-md-3 control-label"> 成本 </label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="node_cost" value="{{$node->node_cost}}" id="node_cost" placeholder="" required>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="level" class="col-md-3 control-label">节点等级</label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="level" value="{{$node->level}}" id="level" placeholder="">
-                                                        <span class="help-block"> 节点level等级 </span>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="node_group" class="col-md-3 control-label">节点分组</label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="node_group" value="{{$node->node_group}}" id="node_group" placeholder="">
-                                                        <span class="help-block"> 节点分组 </span>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="group_id" class="col-md-3 control-label"> 所属分组 功能无用 </label>
-                                                    <div class="col-md-8">
-                                                        <select class="form-control" name="group_id" id="group_id">
-                                                            <option value="0">请选择</option>
-                                                            @if(!$group_list->isEmpty())
-                                                                @foreach($group_list as $group)
-                                                                    <option value="{{$group->id}}" {{$node->group_id == $group->id ? 'selected' : ''}}>{{$group->name}}</option>
-                                                                @endforeach
-                                                            @endif
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="labels" class="col-md-3 control-label">标签</label>
-                                                    <div class="col-md-8">
-                                                        <select id="labels" class="form-control select2-multiple" name="labels[]" multiple>
-                                                            @foreach($label_list as $label)
-                                                                <option value="{{$label->id}}" @if(in_array($label->id, $node->labels)) selected @endif>{{$label->name}}</option>
-                                                            @endforeach
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="sort" class="col-md-3 control-label">故障排序</label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="sort" value="{{$node->sort}}" id="sort" placeholder="">
-                                                        <span class="help-block"> sort故障值排序 </span>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="desc" class="col-md-3 control-label"> 描述 </label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="desc" value="{{$node->desc}}" id="desc" placeholder="简单描述">
-                                                    </div>
-                                                </div>
-
-
-                                                <div class="form-group">
-                                                    <label for="bandwidth" class="col-md-3 control-label">带宽</label>
-                                                    <div class="col-md-8">
-                                                        <div class="input-group">
-                                                            <input type="text" class="form-control" name="bandwidth" value="{{$node->bandwidth}}" id="bandwidth" placeholder="" required>
-                                                            <span class="input-group-addon">M</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="traffic_limit" class="col-md-3 control-label">每月流量</label>
-                                                    <div class="col-md-8">
-                                                        <div class="input-group">
-                                                            <input type="text" class="form-control right" name="traffic_limit" value="{{floor($node->traffic_limit / 1024/1024/1024)}}" id="traffic_limit" placeholder="" required>
-                                                            <span class="input-group-addon">G</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="traffic" class="col-md-3 control-label">已用流量</label>
-                                                    <div class="col-md-8">
-                                                        <div class="input-group">
-                                                            <input type="text" class="form-control right" name="traffic" value="{{floor($node->traffic / 1024/1024/1024)}}" id="traffic" placeholder="" required>
-                                                            <span class="input-group-addon">G</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="status" class="col-md-3 control-label">状态</label>
+                                                    <label for="status" class="col-md-3 control-label">status</label>
                                                     <div class="col-md-8">
                                                         <div class="mt-radio-inline">
                                                             <label class="mt-radio">
@@ -212,19 +66,170 @@
                                                         </div>
                                                     </div>
                                                 </div>
-
+                                                
                                                 <div class="form-group">
-                                                    <label for="ssh_port" class="col-md-3 control-label"> SRS端口 </label>
+                                                    <label for="name" class="col-md-3 control-label"> name </label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="ssh_port" value="{{$node->ssh_port}}" id="ssh_port" placeholder="SRS端口" required>
-                                                        <span class="help-block">这里变成了 SRS端口</span>
+                                                        <input type="text" class="form-control" name="name" value="{{$node->name}}" id="name" placeholder="节点名称" autofocus required>
+                                                        <input type="hidden" name="id" value="{{$node->id}}">
+                                                        <input type="hidden" name="_token" value="{{csrf_token()}}">
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="monitor_url" class="col-md-3 control-label">SRS密码 V2UUID</label>
+                                                    <label for="server" class="col-md-3 control-label"> server </label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control right" name="monitor_url" value="{{$node->monitor_url}}" id="monitor_url" placeholder="UUID SS密码">
-                                                        <span class="help-block"> SRS写密码 V2写 UUID 非？请留空</span>
+                                                        <input type="text" class="form-control" name="server" value="{{$node->server}}" id="server" placeholder="域名或ip">
+                                                        <span class="help-block">服务器地址或CDNIP</span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="ip" class="col-md-3 control-label"> ip  </label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="ip" value="{{$node->ip}}" id="ip" placeholder="服务器IPv4地址" >
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="ipv6" class="col-md-3 control-label"> ipv6  </label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="ipv6" value="{{$node->ipv6}}" id="ipv6" placeholder="服务器IPv6地址 ">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="traffic_rate" class="col-md-3 control-label"> traffic_rate  </label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="traffic_rate" value="{{$node->traffic_rate}}" id="traffic_rate" placeholder="流量比例"  >
+                                                        <span class="help-block"> 举例：0.1用100M结算10M，5用100M结算500M </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="country_code" class="col-md-3 control-label"> country_code </label>
+                                                    <div class="col-md-8">
+                                                        <select class="form-control" name="country_code" id="country_code">
+                                                            <option value="">请选择</option>
+                                                            @if(!$country_list->isEmpty())
+                                                                @foreach($country_list as $country)
+                                                                    <option value="{{$country->country_code}}" {{$node->country_code == $country->country_code ? 'selected' : ''}}>{{$country->country_code}} - {{$country->country_name}}</option>
+                                                                @endforeach
+                                                            @endif
+                                                        </select>
+                                                        <span class="help-block">国家/地区代码</span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="node_cost" class="col-md-3 control-label"> node_cost </label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="node_cost" value="{{$node->node_cost}}" id="node_cost" placeholder="$" required>
+                                                        <span class="help-block"> 服务器成本，美金 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="level" class="col-md-3 control-label">level</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="level" value="{{$node->level}}" id="level" placeholder="节点等级">
+                                                        <span class="help-block"> 节点level等级 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="node_group" class="col-md-3 control-label">node_group</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="node_group" value="{{$node->node_group}}" id="node_group" placeholder="节点分组">
+                                                        <span class="help-block"> 节点分组，0分组代表通知分组 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                        <label for="is_subscribe" class="col-md-3 control-label">is_subscribe</label>
+                                                        <div class="col-md-8">
+                                                            <div class="mt-radio-inline">
+                                                                <label class="mt-radio">
+                                                                    <input type="radio" name="is_subscribe" value="1" {{$node->is_subscribe ? 'checked' : ''}}> 允许订阅
+                                                                    <span></span>
+                                                                </label>
+                                                                <label class="mt-radio">
+                                                                    <input type="radio" name="is_subscribe" value="0" {{!$node->is_subscribe ? 'checked' : ''}}> 不允许订阅
+                                                                    <span></span>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                <div class="form-group">
+                                                    <label for="group_id" class="col-md-3 control-label"> group_id </label>
+                                                    <div class="col-md-8">
+                                                        <select class="form-control" name="group_id" id="group_id">
+                                                            <option value="0">请选择</option>
+                                                            @if(!$group_list->isEmpty())
+                                                                @foreach($group_list as $group)
+                                                                    <option value="{{$group->id}}" {{$node->group_id == $group->id ? 'selected' : ''}}>{{$group->name}}</option>
+                                                                @endforeach
+                                                            @endif
+                                                        </select>
+                                                        <span class="help-block"> 功能废弃 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="labels" class="col-md-3 control-label">labels</label>
+                                                    <div class="col-md-8">
+                                                        <select id="labels" class="form-control select2-multiple" name="labels[]" multiple>
+                                                            @foreach($label_list as $label)
+                                                                <option value="{{$label->id}}" @if(in_array($label->id, $node->labels)) selected @endif>{{$label->name}}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <span class="help-block"> 节点标签，目前无用 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="sort" class="col-md-3 control-label">sort</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="sort" value="{{$node->sort}}" id="sort" placeholder="维护值">
+                                                        <span class="help-block"> sort维护值 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="desc" class="col-md-3 control-label"> desc </label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="desc" value="{{$node->desc}}" id="desc" placeholder="节点描述">
+                                                        <span class="help-block"> 节点备注信息 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="bandwidth" class="col-md-3 control-label">bandwidth </label>
+                                                    <div class="col-md-8">
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control" name="bandwidth" value="{{$node->bandwidth}}" id="bandwidth" placeholder="带宽"  >
+                                                            <span class="input-group-addon">带宽 M</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="traffic_limit" class="col-md-3 control-label">traffic_limit </label>
+                                                    <div class="col-md-8">
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control right" name="traffic_limit" value="{{floor($node->traffic_limit / 1024/1024/1024)}}" id="traffic_limit" placeholder="月流量限制"  >
+                                                            <span class="input-group-addon">月流量 G</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="traffic" class="col-md-3 control-label">traffic </label>
+                                                    <div class="col-md-8">
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control right" name="traffic" value="{{floor($node->traffic / 1024/1024/1024)}}" id="traffic" placeholder="已用流量"  >
+                                                            <span class="input-group-addon">已用流量 G</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="form-group">
+                                                    <label for="ssh_port" class="col-md-3 control-label"> ssh_port </label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="ssh_port" value="{{$node->ssh_port}}" id="ssh_port" placeholder="SRS端口" >
+                                                        <span class="help-block">SSH检测端口，目前无用</span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="monitor_url" class="col-md-3 control-label">monitor_url</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control right" name="monitor_url" value="{{$node->monitor_url}}" id="monitor_url" placeholder="节点监控信息">
+                                                        <span class="help-block"> 节点监控</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -234,30 +239,46 @@
                                         <div class="portlet light bordered">
                                             <div class="portlet-title">
                                                 <div class="caption">
-                                                    <span class="caption-subject font-dark bold">扩展信息</span>
+                                                    <span class="caption-subject font-dark bold">配置信息</span>
                                                 </div>
                                             </div>
                                             <div class="portlet-body">
                                                 <div class="form-group">
-                                                    <label for="service" class="col-md-3 control-label">类型</label>
+                                                    <label for="service" class="col-md-3 control-label">type</label>
                                                     <div class="col-md-8">
                                                         <div class="mt-radio-inline">
                                                             <label class="mt-radio">
-                                                                <input type="radio" name="service" value="1" @if($node->type == 1) checked @endif> SR
+                                                                <input type="radio" name="service" value="1" @if($node->type == 1) checked @endif> SS
                                                                 <span></span>
                                                             </label>
                                                             <label class="mt-radio">
-                                                                <input type="radio" name="service" value="2" @if($node->type == 2) checked @endif> V2
+                                                                <input type="radio" name="service" value="2" @if($node->type == 2) checked @endif> Vmess
+                                                                <span></span>
+                                                            </label>
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="service" value="3" @if($node->type == 3) checked @endif> Vless
+                                                                <span></span>
+                                                            </label>
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="service" value="4" @if($node->type == 4) checked @endif> Trojan
                                                                 <span></span>
                                                             </label>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <hr />
-                                                <!-- SS/SSR 设置部分 -->
-                                                <div class="ssr-setting {{$node->type == 1 ? '' : 'hidden'}}">
+                                                <!-- 通用 设置部分 -->
+                                                    
                                                     <div class="form-group">
-                                                        <label for="method" class="col-md-3 control-label">加密方式</label>
+                                                        <label for="node_uuid" class="col-md-3 control-label">node_uuid</label>
+                                                        <div class="col-md-8">
+                                                            <input type="text" class="form-control" name="node_uuid" value="{{$node->node_uuid}}" id="node_uuid">
+                                                            <span class="help-block"> 独立节点UUID,默认留空 </span>
+                                                        </div>
+                                                    </div>
+                                                <!-- SS/SSR 设置部分 -->
+                                                <div class="ss-setting {{$node->type == 1 ? '' : 'hidden'}}">
+                                                    <div class="form-group">
+                                                        <label for="method" class="col-md-3 control-label">method</label>
                                                         <div class="col-md-8">
                                                             <select class="form-control" name="method" id="method">
                                                                 @foreach ($method_list as $method)
@@ -267,7 +288,7 @@
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="protocol" class="col-md-3 control-label">协议</label>
+                                                        <label for="protocol" class="col-md-3 control-label">protocol</label>
                                                         <div class="col-md-8">
                                                             <select class="form-control" name="protocol" id="protocol">
                                                                 @foreach ($protocol_list as $protocol)
@@ -314,21 +335,7 @@
                                                             <span class="help-block"> 如果兼容请在服务端配置协议和混淆时加上<span style="color:red">_compatible</span> </span>
                                                         </div>
                                                     </div>
-                                                    <div class="form-group">
-                                                        <label for="is_subscribe" class="col-md-3 control-label">订阅</label>
-                                                        <div class="col-md-8">
-                                                            <div class="mt-radio-inline">
-                                                                <label class="mt-radio">
-                                                                    <input type="radio" name="is_subscribe" value="1" {{$node->is_subscribe ? 'checked' : ''}}> 允许
-                                                                    <span></span>
-                                                                </label>
-                                                                <label class="mt-radio">
-                                                                    <input type="radio" name="is_subscribe" value="0" {{!$node->is_subscribe ? 'checked' : ''}}> 不允许
-                                                                    <span></span>
-                                                                </label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                    
                                                     <div class="form-group">
                                                         <label for="is_tcp_check" class="col-md-3 control-label">TCP阻断检测</label>
                                                         <div class="col-md-8">
@@ -420,46 +427,63 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <!-- V2ray 设置部分 -->
-                                                <div class="v2ray-setting {{$node->type == 2 ? '' : 'hidden'}}">
+                                                <!-- V2 vless trojan 设置部分 -->
+                                                <div class="v2-setting {{$node->type != 1 ? '' : 'hidden'}}">
                                                     <div class="form-group">
-                                                        <label for="v2_alter_id" class="col-md-3 control-label">额外ID</label>
+                                                        <label for="v2_alter_id" class="col-md-3 control-label">v2_alter_id</label>
                                                         <div class="col-md-8">
-                                                            <input type="text" class="form-control" name="v2_alter_id" value="{{$node->v2_alter_id}}" id="v2_alter_id" placeholder="16">
+                                                            <input type="text" class="form-control" name="v2_alter_id" value="{{$node->v2_alter_id}}" id="v2_alter_id" placeholder="0">
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="v2_port" class="col-md-3 control-label">端口</label>
+                                                        <label for="v2_port" class="col-md-3 control-label">v2_port</label>
                                                         <div class="col-md-8">
-                                                            <input type="text" class="form-control" name="v2_port" value="{{$node->v2_port}}" id="v2_port" placeholder="10087">
+                                                            <input type="text" class="form-control" name="v2_port" value="{{$node->v2_port}}" id="v2_port" placeholder="443">
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="v2_method" class="col-md-3 control-label">加密方式</label>
+                                                        <label for="v2_flow" class="col-md-3 control-label">v2_flow</label>
+                                                        <div class="col-md-8">
+                                                            <select class="form-control" name="v2_flow" id="v2_flow">
+                                                                <option value="" @if($node->v2_flow == '') selected @endif>不设置</option>
+                                                                <option value="xtls-rprx-origin" @if($node->v2_flow == 'xtls-rprx-origin') selected @endif>xtls-rprx-origin纪念价值大于实用</option>
+                                                                <option value="xtls-rprx-origin-udp443" @if($node->v2_flow == 'xtls-rprx-origin-udp443') selected @endif>xtls-rprx-origin-udp443</option>
+                                                                <option value="xtls-rprx-direct" @if($node->v2_flow == 'xtls-rprx-direct') selected @endif>xtls-rprx-direct所有平台</option>
+                                                                <option value="xtls-rprx-direct-udp443" @if($node->v2_flow == 'xtls-rprx-direct-udp443') selected @endif>xtls-rprx-direct-udp443</option>
+                                                                <option value="xtls-rprx-splice" @if($node->v2_flow == 'xtls-rprx-splice') selected @endif>xtls-rprx-spliceLinux推荐</option>
+                                                                <option value="xtls-rprx-splice-udp443" @if($node->v2_flow == 'xtls-rprx-splice-udp443') selected @endif>xtls-rprx-splice-udp443</option>
+                                                            </select>
+                                                            <span class="help-block"> Xray流控 XTls </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="v2_method" class="col-md-3 control-label">v2_method</label>
                                                         <div class="col-md-8">
                                                             <select class="form-control" name="v2_method" id="v2_method">
                                                                 <option value="none" @if($node->v2_method == 'none') selected @endif>none</option>
-                                                                <option value="aes-128-cfb" @if($node->v2_method == 'aes-128-cfb') selected @endif>aes-128-cfb</option>
+                                                                <option value="auto" @if($node->v2_method == 'auto') selected @endif>auto</option>
                                                                 <option value="aes-128-gcm" @if($node->v2_method == 'aes-128-gcm') selected @endif>aes-128-gcm</option>
                                                                 <option value="chacha20-poly1305" @if($node->v2_method == 'chacha20-poly1305') selected @endif>chacha20-poly1305</option>
                                                             </select>
-                                                            <span class="help-block"> 使用WebSocket传输协议时不要使用none </span>
+                                                            <span class="help-block"> 加密方式 </span>
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="v2_net" class="col-md-3 control-label">传输协议</label>
+                                                        <label for="v2_net" class="col-md-3 control-label">v2_net</label>
                                                         <div class="col-md-8">
                                                             <select class="form-control" name="v2_net" id="v2_net">
                                                                 <option value="tcp" @if($node->v2_net == 'tcp') selected @endif>TCP</option>
                                                                 <option value="kcp" @if($node->v2_net == 'kcp') selected @endif>mKCP（kcp）</option>
                                                                 <option value="ws" @if($node->v2_net == 'ws') selected @endif>WebSocket（ws）</option>
                                                                 <option value="h2" @if($node->v2_net == 'h2') selected @endif>HTTP/2（h2）</option>
+                                                                <option value="quic" @if($node->v2_net == 'quic') selected @endif>Quic</option>
+                                                                <option value="grpc" @if($node->v2_net == 'grpc') selected @endif>Grpc</option>
                                                             </select>
-                                                            <span class="help-block"> 使用WebSocket传输协议时请启用TLS </span>
+                                                            <span class="help-block"> 传输协议  </span>
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="v2_type" class="col-md-3 control-label">伪装类型</label>
+                                                        <label for="v2_type" class="col-md-3 control-label">v2_type</label>
                                                         <div class="col-md-8">
                                                             <select class="form-control" name="v2_type" id="v2_type">
                                                                 <option value="none" @if($node->v2_type == 'none') selected @endif>无伪装</option>
@@ -473,45 +497,85 @@
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="v2_host" class="col-md-3 control-label">伪装域名</label>
+                                                        <label for="v2_host" class="col-md-3 control-label">v2_host</label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control" name="v2_host" value="{{$node->v2_host}}" id="v2_host">
-                                                            <span class="help-block"> 伪装类型为http时多个伪装域名逗号隔开，使用WebSocket传输协议时只允许单个 </span>
+                                                            <span class="help-block"> host / ws host/ h2 host / QUIC加密 </span>
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="v2_path" class="col-md-3 control-label">ws/h2路径</label>
+                                                        <label for="v2_path" class="col-md-3 control-label">v2_path</label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control" name="v2_path" value="{{$node->v2_path}}" id="v2_path">
+                                                            <span class="help-block"> ws path / h2 path /Quic 加密密钥 / kcp seed / gRPC serviceName</span>
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="v2_tls" class="col-md-3 control-label">TLS</label>
+                                                        <label for="v2_ " class="col-md-3 control-label">v2_tls</label>
                                                         <div class="col-md-8">
                                                             <div class="mt-radio-inline">
                                                                 <label class="mt-radio">
-                                                                    <input type="radio" name="v2_tls" value="1" @if($node->v2_tls == 1) checked @endif> 是
+                                                                    <input type="radio" name="v2_tls" value="0" @if($node->v2_tls == 0) checked @endif> 否
                                                                     <span></span>
                                                                 </label>
                                                                 <label class="mt-radio">
-                                                                    <input type="radio" name="v2_tls" value="0" @if($node->v2_tls == 0) checked @endif> 否
+                                                                    <input type="radio" name="v2_tls" value="1" @if($node->v2_tls == 1) checked @endif> Tls
+                                                                    <span></span>
+                                                                </label>
+                                                                <label class="mt-radio">
+                                                                    <input type="radio" name="v2_tls" value="2" @if($node->v2_tls == 2) checked @endif> XTls
                                                                     <span></span>
                                                                 </label>
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="v2_insider_port" class="col-md-3 control-label">内部端口</label>
+                                                        <label for="v2_sni" class="col-md-3 control-label">v2_sni</label>
                                                         <div class="col-md-8">
-                                                            <input type="text" class="form-control" name="v2_insider_port" value="{{$node->v2_insider_port}}" id="v2_insider_port" placeholder="10550">
-                                                            <span class="help-block"> 内部监听，当端口为0时启用，仅支持<a href="https://github.com/rico93/pay-v2ray-sspanel-v3-mod_Uim-plugin/" target="_blank">rico93版</a> </span>
+                                                            <input type="text" class="form-control" name="v2_sni" value="{{$node->v2_sni}}" id="v2_sni">
+                                                            <span class="help-block"> v2_sni 域名分流 </span>
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="v2_outsider_port" class="col-md-3 control-label">内部端口</label>
+                                                        <label for="v2_alpn" class="col-md-3 control-label">v2_alpn</label>
+                                                        <div class="col-md-8">
+                                                            <input type="text" class="form-control" name="v2_alpn" value="{{$node->v2_alpn}}" id="v2_alpn">
+                                                            <span class="help-block"> v2_alpn </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="v2_encryption" class="col-md-3 control-label">v2_encryption</label>
+                                                        <div class="col-md-8">
+                                                            <input type="text" class="form-control" name="v2_encryption" value="{{$node->v2_encryption}}" id="v2_encryption">
+                                                            <span class="help-block"> Vless特有 默认 none </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                    <label for="is_transit" class="col-md-3 control-label">is_transit</label>
+                                                    <div class="col-md-8">
+                                                        <div class="mt-radio-inline">
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="is_transit" value="1" {{$node->is_transit == '1' ? 'checked' : ''}}> 支持CND中转
+                                                                <span></span>
+                                                            </label>
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="is_transit" value="0" {{$node->is_transit == '0' ? 'checked' : ''}}> 否
+                                                                <span></span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="v2_insider_port" class="col-md-3 control-label">v2_insider_port</label>
+                                                        <div class="col-md-8">
+                                                            <input type="text" class="form-control" name="v2_insider_port" value="{{$node->v2_insider_port}}" id="v2_insider_port" placeholder="10550">
+                                                            <span class="help-block"> 内部监听 </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="v2_outsider_port" class="col-md-3 control-label">v2_outsider_port</label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control" name="v2_outsider_port" value="{{$node->v2_outsider_port}}" id="v2_outsider_port" placeholder="443">
-                                                            <span class="help-block"> 外部覆盖，当端口为0时启用，仅支持<a href="https://github.com/rico93/pay-v2ray-sspanel-v3-mod_Uim-plugin/" target="_blank">rico93版</a> </span>
+                                                            <span class="help-block"> 外部覆盖 </span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -601,6 +665,11 @@
             var v2_tls = $("input:radio[name='v2_tls']:checked").val();
             var v2_insider_port = $('#v2_insider_port').val();
             var v2_outsider_port = $('#v2_outsider_port').val();
+            var node_uuid = $('#node_uuid').val();
+            var v2_flow = $('#v2_flow option:selected').val();
+            var v2_sni = $('#v2_sni').val();
+            var v2_alpn = $('#v2_alpn').val();
+            var v2_encryption = $('#v2_encryption').val();
 
             $.ajax({
                 type: "POST",
@@ -655,7 +724,12 @@
                     v2_path: v2_path,
                     v2_tls: v2_tls,
                     v2_insider_port: v2_insider_port,
-                    v2_outsider_port: v2_outsider_port
+                    v2_outsider_port: v2_outsider_port,
+                    node_uuid: node_uuid,
+                    v2_flow: v2_flow,
+                    v2_sni: v2_sni,
+                    v2_alpn: v2_alpn,
+                    v2_encryption: v2_encryption
                 },
                 dataType: 'json',
                 success: function (ret) {
@@ -689,26 +763,26 @@
             var service = parseInt($(this).val());
 
             if (service === 1) {
-                $(".ssr-setting").removeClass('hidden');
-                $(".v2ray-setting").addClass('hidden');
+                $(".ss-setting").removeClass('hidden');
+                $(".v2-setting").addClass('hidden');
             } else {
-                $(".ssr-setting").addClass('hidden');
-                $(".v2ray-setting").removeClass('hidden');
+                $(".ss-setting").addClass('hidden');
+                $(".v2-setting").removeClass('hidden');
             }
         });
 
-        // 设置是否为NAT
-        $("input:radio[name='is_nat']").on('change', function() {
-            var is_nat = parseInt($(this).val());
+        // // 设置是否为NAT
+        // $("input:radio[name='is_nat']").on('change', function() {
+        //     var is_nat = parseInt($(this).val());
 
-            if (is_nat === 1) {
-                $("#ip").val("1.1.1.1").attr("readonly", "readonly");
-                $("#server").attr("required", "required");
-            } else {
-                $("#ip").val("").removeAttr("readonly");
-                $("#server").removeAttr("required");
-            }
-        });
+        //     if (is_nat === 1) {
+        //         $("#ip").val("1.1.1.1").attr("readonly", "readonly");
+        //         $("#server").attr("required", "required");
+        //     } else {
+        //         $("#ip").val("").removeAttr("readonly");
+        //         $("#server").removeAttr("required");
+        //     }
+        // });
 
         // 服务条款
         function showTnc() {
