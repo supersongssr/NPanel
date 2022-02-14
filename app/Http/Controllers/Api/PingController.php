@@ -90,11 +90,11 @@ class PingController extends Controller
     {
         $request->get('token') != env('API_TOKEN') && exit; // 验证 token 防止滥用
 
-        $status = $request->getParam('status');
-        $daily = $request->getParam('daily');
-        $health = $request->getParam('health');
-        $traffic = $request->getParam('traffic');
-        $online = $request->getParam('online');
+        $status = $request->get('status');
+        $daily = $request->get('daily');
+        $health = $request->get('health');
+        $traffic = $request->get('traffic');
+        $online = $request->get('online');
 
         //获取NODE数据
         $node = SsNode::query()->where('id', $id)->first();
