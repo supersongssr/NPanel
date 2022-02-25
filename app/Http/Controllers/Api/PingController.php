@@ -11,6 +11,8 @@ use App\Http\Models\UserTrafficLog;
 use App\Http\Models\SsNode;
 use Illuminate\Console\Command;
 use App\Http\Models\SsNodeOnlineLog;
+use App\Components\Helpers;
+
 
 
 /**
@@ -95,9 +97,18 @@ class PingController extends Controller
         $health = $request->get('health');
         $traffic = $request->get('traffic');
         $online = $request->get('online');
-
+        $ip = getClientIp();
+        //
         //获取NODE数据
         $node = SsNode::query()->where('id', $id)->first();
+        $node->heartbeat_at = date('Y-m-d H:i:s');      //节点心跳
+        // 审核上报的IP， 是否和记录的一致 如果记录Ip不匹配， 就不更改，外加报错。
+        if ( $node->ip != $ip && $node->ipv6 != $ip ) {
+            $node->desc .= '_'.$ip;
+            $node->sort -= 100;
+            // $node->save();
+            // exit;
+        }
         $status == 0 && $node->status = 0;
         $status == 1 && $node->status = 1;
         $node->node_onload = $daily;
@@ -105,14 +116,12 @@ class PingController extends Controller
         $health == 1 && $node->is_subscribe = 1;
         $node->node_online = $online;
         $node->traffic = $traffic;
-        $node->heartbeat_at = date('Y-m-d H:i:s');
         $node->save();
-
         //写入节点在线人数
         $online_log = new SsNodeOnlineLog();
         $online_log->node_id = $id;
         $online_log->online_user = $online;
-        $online_log->log_time = time();
+        $online_log->log_time = time();   
         $online_log->save();
     }
 
@@ -122,18 +131,20 @@ class PingController extends Controller
         $request->get('token') != env('API_TOKEN') && exit; // 验证 token 防止滥用
         $node = SsNode::query()->where('id', $id)->first();
 
-        $request->get('name') && $node->name = $request->get('node_name');
+        $request->get('node_name') && $node->name = $request->get('node_name');
         $request->get('node_desc') && $node->desc = $request->get('node_desc');
-        $request->get('node_cost') && $node->node_cost = $request->get('node_cost');
+        $request->get('node_cost') != '' && $node->node_cost = $request->get('node_cost');
         $request->get('node_level') && $node->level = $request->get('node_level');
         $request->get('node_group') && $node->node_group = $request->get('node_group');
         $request->get('node_traffic_limit') && $node->traffic_limit = $request->get('node_traffic_limit')*1024*1024*1024;
         $request->get('node_sort') != '' && $node->sort = $request->get('node_sort');  //排序 这里之所以用 node_sort 是因为 sort 参数在 Sspuim里面 是节点类型的意思。避免混淆
-        $request->get('node_ip') && $node->ip = $request->get('node_ip');  //排序
-        $request->get('node_ipv6') && $node->ipv6 = $request->get('node_ipv6');  //排序
         $request->get('node_country_code') && $node->country_code = $request->get('node_country_code');
         $request->get('node_traffic_rate') && $node->traffic_rate = $request->get('node_traffic_rate');
         $request->get('node_bandwidth') && $node->bandwidth = $request->get('node_bandwidth');  //带宽
+        if ($request->get('node_ip') || $request->get('node_ipv6')) {   //IP IPV6要同时记录。嘎嘎
+            $node->ip = $request->get('node_ip');  //排序
+            $node->ipv6 = $request->get('node_ipv6');  //排序
+        }
         
         //node protocol_conf  先判断是否有 vmess vless trojan ss 等标志前缀
         if ( $request->get('v2') ) {
