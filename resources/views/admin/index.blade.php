@@ -79,7 +79,45 @@
                             <td>{{$usergroup1}}</td>
                         </tr>
                     </table>
+                    <table class="table table-hover table-light">
+                        <tr>
+                            <td>备注</td>
+                            <td>config</td>
+                            <td>date</td>
+                        </tr>
+                        <tr>
+                            <td>日耗流量</td>
+                            <td>all_traffic_daily_mark</td>
+                            <td>{{$all_traffic_daily_mark}}</td>
+                        </tr>
+                        <tr>
+                            <td>日供流量</td>
+                            <td>all_traffic_daily_supply</td>
+                            <td>{{$all_traffic_daily_supply}}</td>
+                        </tr>
+                        <tr>
+                            <td>组1日耗</td>
+                            <td>group1_traffic_daily_mark</td>
+                            <td>{{$group1_traffic_daily_mark}}</td>
+                        </tr>
+                        <tr>
+                            <td>组1日供</td>
+                            <td>group1_traffic_daily_supply</td>
+                            <td>{{$group1_traffic_daily_supply}}</td>
+                        </tr>
+                        <tr>
+                            <td>组2日耗</td>
+                            <td>group2_traffic_daily_mark</td>
+                            <td>{{$group2_traffic_daily_mark}}</td>
+                        </tr>
+                        <tr>
+                            <td>组2日供</td>
+                            <td>group2_traffic_daily_supply</td>
+                            <td>{{$group2_traffic_daily_supply}}</td>
+                        </tr>
+                    </table>
                 </div>
+                
             </div>
         </div>
         <div class="row">

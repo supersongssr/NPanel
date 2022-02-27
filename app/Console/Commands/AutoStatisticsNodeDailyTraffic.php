@@ -7,6 +7,8 @@ use App\Http\Models\SsNode;
 use App\Http\Models\SsNodeTrafficDaily;
 use App\Http\Models\SsNodeTrafficHourly;
 use App\Http\Models\UserTrafficLog;
+use App\Http\Models\Config;
+
 use Log;
 
 class AutoStatisticsNodeDailyTraffic extends Command
@@ -22,20 +24,103 @@ class AutoStatisticsNodeDailyTraffic extends Command
     public function handle()
     {
         $jobStartTime = microtime(true);
-        $nodeList = SsNode::query()->where('status', 1)->where('node_group','!=',0)->orderBy('id', 'desc')->get();  //只获取在线的节点
-        // 2022-02-14 修复group0的 bug
-        // 1 2 3 节点是 用来发广告的节点，嘎嘎 可以有，哈哈 嘿嘿 嘎嘎 喜喜
-        foreach ($nodeList as $node) {
-            //$this->statisticsByNode($node->id);
-            # 按照之前的算法来计算。不错的选择。
-            #获取节点
-            #计算 差值
-            #记录每日流量
-            #写入新的记录值
-            #如果为负，就写入0 这条取消，为啥要<0 好像没必要
-            $traffic_today = $node->traffic - $node->traffic_lastday;
-            // $traffic_today < 0 && $traffic_today =0;
 
+        /*
+        增加 统计每天流量的消耗量，和每组节点的流量消耗量
+        */
+        // function getConfig( $name ){
+        //     $config = Config::query()->where('name',$name)->first();
+        //     return $config->value;
+        // }
+        // function setConfig( $name, $value ){
+        //     return Config::query()->where('name', $name )->update(['value' => $value]); 
+        // }
+        // 每日消耗量
+        $all_traffic = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->sum('traffic');
+        $all_traffic_lastday = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->sum('traffic_lastday');
+        $all_traffic_daily_mark = Config::query()->where('name','all_traffic_daily_mark')->first();
+        $all_traffic_today = $all_traffic - $all_traffic_lastday;
+        $all_traffic_daily_mark = ($all_traffic_today / 1073741824) .'G_'.$all_traffic_daily_mark->value;
+        $all_traffic_daily_mark = substr($all_traffic_daily_mark, 0,1000);   //只保留1000位，防止过长！
+        Config::query()->where('name', 'all_traffic_daily_mark')->update(['value' => $all_traffic_daily_mark]);    //记录进数据库
+        // 每日供给量
+        $all_traffic_supply = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('status',1)->sum('node_onload');
+        $all_traffic_daily_supply = Config::query()->where('name','all_traffic_daily_supply')->first();
+        $all_traffic_daily_supply = $all_traffic_supply .'G_'. $all_traffic_daily_supply->value;
+        $all_traffic_daily_supply = substr($all_traffic_daily_supply,0,1000);
+        Config::query()->where('name', 'all_traffic_daily_supply')->update(['value' => $all_traffic_daily_supply]);    //记录进数据库
+        //
+        // Group 1 每日消耗量
+        $group1_traffic = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('node_group',1)->sum('traffic');
+        $group1_traffic_lastday = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('node_group',1)->sum('traffic_lastday');
+        $group1_traffic_daily_mark = Config::query()->where('name','group1_traffic_daily_mark')->first();
+        $group1_traffic_today = $group1_traffic - $group1_traffic_lastday;
+        $group1_traffic_daily_mark = ($group1_traffic_today / 1073741824) .'G_'.$group1_traffic_daily_mark->value;
+        $group1_traffic_daily_mark = substr($group1_traffic_daily_mark, 0,1000);   //只保留1000位，防止过长！
+        Config::query()->where('name', 'group1_traffic_daily_mark')->update(['value' => $group1_traffic_daily_mark]);    //记录进数据库
+        // Group 1 每日供给量
+        $group1_traffic_supply = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('node_group',1)->where('status',1)->sum('node_onload');
+        $group1_traffic_daily_supply = Config::query()->where('name','group1_traffic_daily_supply')->first();
+        $group1_traffic_daily_supply = $group1_traffic_supply .'G_'. $group1_traffic_daily_supply->value;
+        $group1_traffic_daily_supply = substr($group1_traffic_daily_supply,0,1000);
+        Config::query()->where('name', 'group1_traffic_daily_supply')->update(['value' => $group1_traffic_daily_supply]);    //记录进数据库
+
+        // Group 2 每日消耗量
+        $group2_traffic = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('node_group',2)->sum('traffic');
+        $group2_traffic_lastday = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('node_group',2)->sum('traffic_lastday');
+        $group2_traffic_daily_mark = Config::query()->where('name','group2_traffic_daily_mark')->first();
+        $group2_traffic_today = $group2_traffic - $group2_traffic_lastday;
+        $group2_traffic_daily_mark = ($group2_traffic_today / 1073741824) .'G_'.$group2_traffic_daily_mark->value;
+        $group2_traffic_daily_mark = substr($group2_traffic_daily_mark, 0,1000);   //只保留1000位，防止过长！
+        Config::query()->where('name', 'group2_traffic_daily_mark')->update(['value' => $group2_traffic_daily_mark]);    //记录进数据库
+        // Group 2 每日供给量
+        $group2_traffic_supply = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('node_group',2)->where('status',1)->sum('node_onload');
+        $group2_traffic_daily_supply = Config::query()->where('name','group2_traffic_daily_supply')->first();
+        $group2_traffic_daily_supply = $group2_traffic_supply .'G_'. $group2_traffic_daily_supply->value;
+        $group2_traffic_daily_supply = substr($group2_traffic_daily_supply,0,1000);
+        Config::query()->where('name', 'group2_traffic_daily_supply')->update(['value' => $group2_traffic_daily_supply]);    //记录进数据库
+        // Config::query()->where('name', $name)->update(['value' => $value]);
+
+        /*   计算每个节点的每日自动化 */
+        $nodeList = SsNode::query()->where('id','>',9)->where('node_group','!=',0)->get();  //获取所有节点
+        // 2022-02-14 修复group0的 bug
+        // 1-9 和 node_group=0的节点，是广告节点。
+        foreach ($nodeList as $node) {
+            // 判断节点过去2小时 是否存在心跳
+            if ( $node->heartbeat_at < (time() - 7200)) {
+                if ($node->status != 0) {
+                    $node->status = 0;
+                    $node->traffic_lastday = $node->traffic;
+                    $node->save();
+                }
+                continue;
+            } elseif ( $node->traffic == $node->traffic_lastday ) {  // 判断节点 今日流量 = 昨日流量，说明没走流量，记录仪下，然后报告bug
+                if ($node->status != 0) {
+                    $node->status = 0 ;
+                    $node->save();   //节点禁用
+                }
+                continue ;
+            } 
+            //每日流量
+            $traffic_today = $node->traffic - $node->traffic_lastday;
+            // 记录当前流量值
+            $node->traffic_lastday = $node->traffic;
+            // 写入每天流量差值记录
+            $node->monitor_url = floor($traffic_today / 1073741824) . '_' . $node->monitor_url;
+            $node->monitor_url = substr($node->monitor_url, 0, 32);
+            # 流量统计和节点故障预警 ，排除一种情况，流量少，但是实际上是 流量已用超那种
+            if ($node->is_subscribe == 1) {
+                $traffic_today < 1*1024*1024*1024 && $node->sort -= 10;
+                $traffic_today < 8*1024*1024*1024 && $node->sort -= 3;
+                $traffic_today < 16*1024*1024*1024 && $node->sort -= 1;
+                $traffic_today > 32*1024*1024*1024 && $node->sort += 1;
+                $traffic_today > 64*1024*1024*1024 && $node->sort += 4;
+            }
+            // 如果今日流量 < 0 说明重置了。就把正数的sort变为0
+            $traffic_today < 0 && $node->sort > 0 && $node->sort = 0;
+            $node->save();
+            //
+            // 记录流量记录
             $obj = new SsNodeTrafficDaily();
             $obj->node_id = $node->id;
             $obj->u = 0;
@@ -43,31 +128,6 @@ class AutoStatisticsNodeDailyTraffic extends Command
             $obj->total = $traffic_today ;
             $obj->traffic = flowAutoShow($traffic_today);
             $obj->save();
-
-            #记录当前流量值
-            $node->traffic_lastday = $node->traffic;
-            # 写入每天流量差值记录
-            $node->monitor_url = floor($traffic_today / 1073741824) . '.' . $node->monitor_url;
-            $node->monitor_url = substr($node->monitor_url, 0, 32);
-            # 计算每个节点的倍率 昨日流量 / 总体的流量
-            if ($node->traffic_limit > 0) {
-                $node->traffic_rate = round($traffic_today * 32 / $node->traffic_limit,1) ;
-            }
-            $node->traffic_rate > ($node->node_cost/5) && $node->traffic_rate = ($node->node_cost/5);
-
-            # 若今天流量少于 16G，就写入禁用一次。
-            if ($traffic_today < 16*1024*1024*1024) {
-                $node->status = 0;
-                $node->sort -= 1;
-            }elseif ($traffic_today > 32*1024*1024*1024) {
-              // code...
-                $node->sort += 1;
-            }
-
-            // 如果今日流量 < 0 说明重置了。就把正数的sort变为0
-            $traffic_today < 0 && $node->sort > 0 && $node->sort = 0;
-
-            $node->save();
         }
 
         $jobEndTime = microtime(true);
@@ -147,8 +207,8 @@ class AutoStatisticsNodeDailyTraffic extends Command
         */
     }
 
-    private function statisticsByNode($node_id)
-    {
+    // private function statisticsByNode($node_id)
+    // {
         /*$start_time = strtotime(date('Y-m-d 00:00:00', strtotime("-1 day")));
         $end_time = strtotime(date('Y-m-d 23:59:59', strtotime("-1 day")));
 
@@ -192,5 +252,5 @@ class AutoStatisticsNodeDailyTraffic extends Command
         //SsNode::query()->where('id',$node_id)->update(['status'=>$node->status, 'ipv6'=>$node->ipv6 , 'desc'=>$node->desc ,'sort'=>$node->sort ]);
 */
 
-    }
+    // }
 }

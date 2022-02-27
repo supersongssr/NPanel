@@ -51,26 +51,26 @@ class AutoStatisticsNodeHourlyTraffic extends Command
         Log::info('执行定时任务【' . $this->description . '】，耗时' . $jobUsedTime . '秒');
     }
 
-    private function statisticsByNode($node_id)
-    {
-        $start_time = strtotime(date('Y-m-d H:i:s', strtotime("-1 hour")));
-        $end_time = time();
+    // private function statisticsByNode($node_id)
+    // {
+    //     $start_time = strtotime(date('Y-m-d H:i:s', strtotime("-1 hour")));
+    //     $end_time = time();
 
-        $query = UserTrafficLog::query()->where('node_id', $node_id)->whereBetween('log_time', [$start_time, $end_time]);
+    //     $query = UserTrafficLog::query()->where('node_id', $node_id)->whereBetween('log_time', [$start_time, $end_time]);
 
-        $u = $query->sum('u');
-        $d = $query->sum('d');
-        $total = $u + $d;
-        $traffic = flowAutoShow($total);
+    //     $u = $query->sum('u');
+    //     $d = $query->sum('d');
+    //     $total = $u + $d;
+    //     $traffic = flowAutoShow($total);
 
-        if ($total) { // 有数据才记录
-            $obj = new SsNodeTrafficHourly();
-            $obj->node_id = $node_id;
-            $obj->u = $u;
-            $obj->d = $d;
-            $obj->total = $total;
-            $obj->traffic = $traffic;
-            $obj->save();
-        }
-    }
+    //     if ($total) { // 有数据才记录
+    //         $obj = new SsNodeTrafficHourly();
+    //         $obj->node_id = $node_id;
+    //         $obj->u = $u;
+    //         $obj->d = $d;
+    //         $obj->total = $total;
+    //         $obj->traffic = $traffic;
+    //         $obj->save();
+    //     }
+    // }
 }
