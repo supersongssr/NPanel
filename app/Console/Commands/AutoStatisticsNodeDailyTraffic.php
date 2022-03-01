@@ -87,14 +87,19 @@ class AutoStatisticsNodeDailyTraffic extends Command
         // 1-9 和 node_group=0的节点，是广告节点。
         foreach ($nodeList as $node) {
             if ( $node->traffic == $node->traffic_lastday ) {  // 判断节点 今日流量 = 昨日流量，说明没走流量，记录仪下，然后报告bug
-                $node->status != 0 && $node->status = 0 && $node->save();   //节点禁用
+                if ($node->status != 0) {
+                    $node->status = 0 ;
+                    $node->save();
+                }
                 continue ;
             } 
             // 判断节点过去2小时 是否存在心跳
-            if ( $node->heartbeat_at < (time() - 7200)) {
-                $node->status = 0;
-                $node->traffic_lastday = $node->traffic;
-                $node->save();
+            if ( strtotime($node->heartbeat_at) < (time() - 7200)) {
+                if ($node->status != 0 || $node->traffic_lastday != $node->traffic) {
+                    $node->status = 0;
+                    $node->traffic_lastday = $node->traffic;
+                    $node->save();
+                }
                 continue;
             } 
             //每日流量
