@@ -15,8 +15,17 @@
                         <div class="caption font-dark">
                             <span class="caption-subject bold"> 公开工单 - 相似问题快速解决 </span>
                         </div>
+                        
                     </div>
                         <code>*常见问题工单已公开展示；相似问题可以在这里快速找到解决方案。</code>
+                        <div class="row">
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <input type="text" class="col-md-4 form-control" name="search" value="{{Request::get('search')}}" id="search" placeholder="请输入 关键词 " onkeydown="if(event.keyCode==13){do_search();}">
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <button type="button" class="btn blue" onclick="do_search();">查询</button>
+                            </div>
+                        </div>
                     <div class="portlet-body">
                         <div class="table-scrollable table-scrollable-borderless">
                             <table class="table table-hover table-light table-checkable order-column">
@@ -166,6 +175,12 @@
 
                 layer.close(index);
             });
+        }
+        // 搜索
+        function do_search() {
+            var search = $("#search").val();
+
+            window.location.href = '/tickets' + '?search=' + search;
         }
     </script>
 @endsection

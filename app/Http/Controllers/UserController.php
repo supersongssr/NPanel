@@ -333,7 +333,14 @@ class UserController extends Controller
     public function ticketList(Request $request)
     {
         $view['ticketList'] = Ticket::uid()->orderBy('id', 'desc')->paginate(16)->appends($request->except('page'));
-        $view['openTicket'] = Ticket::where('open',1)->orderBy('updated_at', 'desc')->paginate(32)->appends($request->except('page'));
+
+        if ( $request->get('search')  ) {
+            $keyword = trim($request->get('search'));
+            $view['openTicket'] = Ticket::where('open',1)->where('content','like','%'.$keyword.'%')->orderBy('updated_at', 'desc')->paginate(32)->appends($request->except('page'));
+        }else{
+            $view['openTicket'] = Ticket::where('open',1)->orderBy('updated_at', 'desc')->paginate(32)->appends($request->except('page'));
+        }
+        
 
         return Response::view('user.ticketList', $view);
     }
