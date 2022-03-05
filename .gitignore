@@ -1,4 +1,5 @@
 /node_modules
+/public/clients
 /public/upload
 /public/storage
 /public/hot

@@ -8,77 +8,7 @@
             <div class="col-md-12">
                 <div class="portlet light">
                     <div class="portlet-body">
-                        <ul class="list-inline">
-                            <li>
-                                <h4>
-                                    <span class="font-blue">账号：</span>
-                                    <span class="font-red">{{Auth::user()->username}}</span>
-                                </h4>
-                            </li>
-                            <li>
-                                <h4>
-                                    <span class="font-blue">状态：</span>
-                                    @if ( Auth::user()->status == 0  )
-                                        <span class="label label-danger">账号状态异常 请重新登陆</span>
-                                    @elseif ( Auth::user()->status == 1 )
-                                        <span class="label label-success">账号正常</span>
-                                    @else
-                                        <span class="label label-info">账号异常,请重新登录</span>
-                                    @endif
-                                    @if ( Auth::user()->enable == 0  )
-                                        <span class="label label-danger">!请检查流量 和 等级</span>
-                                    @elseif ( Auth::user()->enable == 1 )
-                                        <span class="label label-success">节点正常</span>
-                                    @else
-                                        <span class="label label-info">!请检查流量 和 等级</span>
-                                    @endif
-                                    @if ( Auth::user()->subscribe->status == 0  )
-                                        <span class="label label-danger">！请检查订阅地址</span>
-                                    @elseif ( Auth::user()->subscribe->status == 1 )
-                                        <span class="label label-success">订阅正常</span>
-                                    @else
-                                        <span class="label label-info">!请检查订阅地址</span>
-                                    @endif
-                                </h4>
-                            </li>
-                            <li>
-                                <h4>
-                                    <span class="font-blue">{{trans('home.account_expire')}}：</span>
-                                    <span class="font-red">@if(date('Y-m-d') > Auth::user()->expire_time) {{trans('home.expired')}} @else {{Auth::user()->expire_time}} @endif</span>
-                                </h4>
-                            </li>
-                            <li>
-                                <h4>
-                                    <span class="font-blue">学历：</span>
-                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span>
-                                </h4>
-                            </li>
-
-                            @if(Auth::user()->traffic_reset_day)
-                            <li>
-                                <h4>
-                                    <span class="font-red">总流量：</span>
-                                    <span class="font-red">{{ flowAutoShow(Auth::user()->u + Auth::user()->d)}} /{{flowAutoShow(Auth::user()->transfer_enable)}}</span>
-                                    <span class="font-blue">( {{flowAutoShow(Auth::user()->u)}}/{{flowAutoShow(Auth::user()->transfer_enable - Auth::user()->transfer_monthly)}}流量包 +</span>
-                                    <span class="font-blue">{{flowAutoShow(Auth::user()->d)}}/{{flowAutoShow(Auth::user()->transfer_monthly)}}每月流量 {{Auth::user()->traffic_reset_day}}号重置)</span>
-
-                                </h4>
-                            </li>
-                            @else
-                            <li>
-                                <h4>
-                                    <span class="font-blue">流量：</span>
-                                    <span class="font-blue"> {{flowAutoShow(Auth::user()->u + Auth::user()->d)}} /{{flowAutoShow(Auth::user()->transfer_enable)}} </span>
-                                </h4>
-                            </li>
-                            @endif
-                            <li>
-                                <h4>
-                                    <span class="font-red">CF+加速：</span>
-                                    <span class="font-red"> <a href="/profile#tab_6">{{Auth::user()->cfcdn}} 切换</a> </span>
-                                </h4>
-                            </li>
-                        </ul>
+                        
                     </div>
                 </div>
             </div>
@@ -89,7 +19,8 @@
                 <div class="portlet light">
                     <div class="portlet-title">
                         <div class="caption">
-                            <span class="caption-subject font-blue bold">如何使用？{{trans('home.subscribe_address')}}使用教程！</span>
+                            <span class="caption-subject font-blue bold">使用教程 - {{trans('home.subscribe_address')}}</span>
+                              -  <a href="javascript:exchangeSubscribe();" class="btn green">重置订阅码</a>
                         </div>
                         <div class="actions">
 
@@ -100,7 +31,8 @@
                                 <div class="mt-clipboard-container">
                                     <!-- Song -->
                                     <div class="alert alert-danger">
-                                        <p> VIP用户专享：香港、台湾、日本、新加坡高速节点 + VIP独享节点 + 中转节点支持 + Netflix！支持 + 35ms + 服务单优先回复！<br> SR 和 V2ray是不同软件，不同技术呦 :)</p>
+                                        <p>支持技术：ss ssr vmess vless trojan .您可以修改 ?ss=64&vmess=64&vless=64&trojan=64 的数值，来控制获取节点的数量。 =0时为不获取相应节点。
+                                            <br> 如部分路由器不支持ss节点，获取会报错，可设置： ?ss=0&vmess=64&vless=64&trojan=64 即不获取ss节点。</p>
                                     </div>
                                     <div class="tabbable-line">
                                         <ul class="nav nav-tabs ">
@@ -154,9 +86,9 @@
                                             <div class="tab-pane active" id="tools2">
                                                 <ol>【Vmess节点 - v2rayN软件 教程】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li> <a href="/clients/v2rayN.zip" target="_blank">点此下载V2rayN软件</a> 解压缩 - 右键以管理员身份运行 <code>V2rayN.exe</code></li>
+                                                    <li> <a href="/clients/v2rayN-Core.zip" target="_blank">点此下载V2rayN v4.35</a> 解压缩 - 右键以管理员身份运行 <code>V2rayN.exe</code></li>
                                                     <li> 双击任务栏右下角 <code>V2rayN</code>图标 - 在软件界面中 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<code>{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 确定 - 返回软件界面 - 订阅 - 更新订阅  </li>
-                                                    <li> 软件界面 - 右键任意节点 - 设为活动的服务器 ； 右键点击右下角软件图标 - HTTP代理 - 全局；打开浏览器上网吧 </li>
+                                                    <li> 软件界面 - 右键任意节点 - 设为活动的服务器 ； 右键点击右下角软件图标 - 代理 - 自动设置系统代理；打开浏览器上网吧 </li>
                                                     <li> <a href="/article?id=47">没看懂？点我图文教程</a></li>
                                                 </ol>
                                                 <hr>
@@ -215,7 +147,7 @@
                                             <div class="tab-pane" id="tools5">
                                                 <ol>【Vmess节点 - V2rayNG软件 教程】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li> <a href="/clients/app-universal-release.apk">点此下载v2rayNG</a> - 安装 - 打开软件</li>
+                                                    <li> <a href="/clients/v2rayNG_1.7.1.apk">点此下载v2rayNG v1.7.1</a> - 安装 - 打开软件</li>
                                                     <li> 软件界面 - 右滑 - 订阅设置 - 点击右上角 <code>+</code> - 备注随意 - 地址：<code>{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 返回主界面 - 点击右上角打开菜单 - 更新订阅 </li>
                                                     <li> 选择一个节点 - 点击右下角小飞机 - 开始使用吧。 </li>
                                                 </ol>
@@ -239,11 +171,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <p>
-                                        <hr>
-                                        担心订阅地址外泄？ -><a href="javascript:exchangeSubscribe();" class="btn green">
-                                        重置订阅码</a>
-                                    </p>
                                 </div>
                             </div>
 

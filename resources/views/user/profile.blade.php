@@ -79,17 +79,17 @@
                                                     <input type="text" class="form-control" name="qq" value="{{Auth::user()->qq}}" id="qq" required />
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="control-label">USDT-TRC20 (7日账期, 0手续费) *<a href="/article?id=49" target="_blank">USDT设置教程</a></label>
+                                                    <label class="control-label">USDT-TRC20 (每笔提现 1USDT手续费) </label>
                                                     <input type="text" class="form-control" name="usdt" value="{{Auth::user()->usdt}}" id="usdt" >
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="control-label">微信收款二维码 (30日账期,手续费8%第三方平台收取)</label>
+                                                    <label class="control-label">微信收款二维码 (每笔提现 -2￥手续费)</label>
                                                     <input type="text" class="form-control" name="wechat" value="{{Auth::user()->wechat}}" id="wechat" >
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="control-label">支付宝收款二维码 (30日账期,6%手续费第三方平台收取)</label>
+                                                    <label class="control-label">支付宝收款二维码 (每笔提现 -2￥手续费)</label>
                                                     <input type="text" class="form-control" name="alipay" value="{{Auth::user()->alipay}}" id="alipay" >
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
@@ -185,8 +185,8 @@
                                                 <p>
                                                   什么条件下使用它： 直连网速不佳的时候。尤其是移动/电信。<br>
                                                 <br><code>原理：某些用户的网络IP被运营商给限制，无法使用国际带宽，或者国际带宽被限制在500K左右。 设置CF+ 的IP优化，可以避开运营商的IP限制和限速。</code>
-                                                <br>WIN教程: <code><a href="https://www.anycast.eu.org/batch.zip" target="_blank">点我下载 - 内附使用说明</a></code>
-                                                <br>Linux教程：<code>curl https://www.anycast.eu.org/cf.sh -o cf.sh && chmod +x cf.sh && ./cf.sh</code>
+                                                <br>WIN教程: <code><a href="https://www.baipiao.eu.org/batch.zip" target="_blank">点我下载 - 内附使用说明</a></code>
+                                                <br>Linux教程：<code>curl https://www.baipiao.eu.org/cf.sh -o cf.sh && chmod +x cf.sh && ./cf.sh</code>
                                                 </p>
 
 

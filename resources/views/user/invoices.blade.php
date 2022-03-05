@@ -13,12 +13,12 @@
                         <div class="caption">
                             <span class="caption-subject font-dark bold">消费账单</span>
                         </div>
-                        <div style="text-align: center;"><span class="font-blue">账户等级：</span>
+                        <!-- <div style="text-align: center;"><span class="font-blue">账户等级：</span>
                                     <span class="font-red">{{Auth::user()->levelList->level_name}}&nbsp;&nbsp;&nbsp;</span>
                         <button type="button" class="btn btn-sm green btn-outline" onclick="reLevel()">等级校正</button>
                         <span class="font-blue">*等级按照您当前购买的套餐现在的等级的最大值计算。</span>
                         </div>
-                        <div class="actions"></div>
+                        <div class="actions"></div> -->
                     </div>
                     <div class="portlet-body">
                         <div class="table-scrollable table-scrollable-borderless">
