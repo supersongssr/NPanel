@@ -111,10 +111,10 @@
                                                     <div class="mt-comment-info">
                                                         <span class="mt-comment-author">{{$node->name}} ·{{$node->level}}#{{$node->id}}</span>
                                                         <span class="mt-comment-date">
-                                                            <span class="badge badge-danger">{{$node->node_onload * 10}}%</span>
+                                                            <span class="badge badge-danger">{{$node->node_onload}}G/D</span>
                                                         </span>
                                                     </div>
-                                                    <div class="mt-comment-text"> Class:{{$node->sort}},No.{{$node->id}},Rate:{{$node->traffic_rate}},TopRate:{{$node->node_cost/5}},Bandwidth:{{$node->bandwidth}}M,Traffic:{{floor($node->traffic /100000000)}}G,Online:{{$node->node_online}},Onload:{{$node->node_onload * 10}}%</div>
+                                                    <div class="mt-comment-text"> Class:{{$node->sort}},No.{{$node->id}},Rate:{{$node->traffic_rate}},TopRate:{{$node->node_cost/5}},Bandwidth:{{$node->bandwidth}}M,Traffic:{{floor($node->traffic /100000000)}}G,Online:{{$node->node_online}},Onload:{{$node->node_onload}}G/D</div>
                                                     <div class="mt-comment-details">
                                                             <span class="mt-comment-status mt-comment-status-pending">
                                                                 @if($node->labels)

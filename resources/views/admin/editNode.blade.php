@@ -36,21 +36,7 @@
                                             </div>
                                             <div class="portlet-body">
                                                 
-                                                <div class="form-group">
-                                                    <label for="is_nat" class="col-md-3 control-label">NAT</label>
-                                                    <div class="col-md-8">
-                                                        <div class="mt-radio-inline">
-                                                            <label class="mt-radio">
-                                                                <input type="radio" name="is_nat" value="1" {{$node->is_nat == '1' ? 'checked' : ''}}> 是
-                                                                <span></span>
-                                                            </label>
-                                                            <label class="mt-radio">
-                                                                <input type="radio" name="is_nat" value="0" {{$node->is_nat == '0' ? 'checked' : ''}}> 否
-                                                                <span></span>
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                
                                                 <div class="form-group">
                                                     <label for="status" class="col-md-3 control-label">status</label>
                                                     <div class="col-md-8">
@@ -66,7 +52,21 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+                                                <div class="form-group">
+                                                    <label for="is_subscribe" class="col-md-3 control-label">is_subscribe</label>
+                                                    <div class="col-md-8">
+                                                        <div class="mt-radio-inline">
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="is_subscribe" value="1" {{$node->is_subscribe ? 'checked' : ''}}> 允许订阅
+                                                                <span></span>
+                                                            </label>
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="is_subscribe" value="0" {{!$node->is_subscribe ? 'checked' : ''}}> 不允许订阅
+                                                                <span></span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 <div class="form-group">
                                                     <label for="name" class="col-md-3 control-label"> name </label>
                                                     <div class="col-md-8">
@@ -86,6 +86,13 @@
                                                     <label for="ip" class="col-md-3 control-label"> ip  </label>
                                                     <div class="col-md-8">
                                                         <input type="text" class="form-control" name="ip" value="{{$node->ip}}" id="ip" placeholder="服务器IPv4地址" >
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="sort" class="col-md-3 control-label">sort</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="sort" value="{{$node->sort}}" id="sort" placeholder="维护值">
+                                                        <span class="help-block"> sort维护值 </span>
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
@@ -136,21 +143,7 @@
                                                         <span class="help-block"> 节点分组，0分组代表通知分组 </span>
                                                     </div>
                                                 </div>
-                                                <div class="form-group">
-                                                        <label for="is_subscribe" class="col-md-3 control-label">is_subscribe</label>
-                                                        <div class="col-md-8">
-                                                            <div class="mt-radio-inline">
-                                                                <label class="mt-radio">
-                                                                    <input type="radio" name="is_subscribe" value="1" {{$node->is_subscribe ? 'checked' : ''}}> 允许订阅
-                                                                    <span></span>
-                                                                </label>
-                                                                <label class="mt-radio">
-                                                                    <input type="radio" name="is_subscribe" value="0" {{!$node->is_subscribe ? 'checked' : ''}}> 不允许订阅
-                                                                    <span></span>
-                                                                </label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                
                                                 <div class="form-group">
                                                     <label for="group_id" class="col-md-3 control-label"> group_id </label>
                                                     <div class="col-md-8">
@@ -176,13 +169,7 @@
                                                         <span class="help-block"> 节点标签，目前无用 </span>
                                                     </div>
                                                 </div>
-                                                <div class="form-group">
-                                                    <label for="sort" class="col-md-3 control-label">sort</label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="sort" value="{{$node->sort}}" id="sort" placeholder="维护值">
-                                                        <span class="help-block"> sort维护值 </span>
-                                                    </div>
-                                                </div>
+                                                
                                                 <div class="form-group">
                                                     <label for="desc" class="col-md-3 control-label"> desc </label>
                                                     <div class="col-md-8">
@@ -217,7 +204,21 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+                                                <div class="form-group">
+                                                    <label for="is_nat" class="col-md-3 control-label">NAT</label>
+                                                    <div class="col-md-8">
+                                                        <div class="mt-radio-inline">
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="is_nat" value="1" {{$node->is_nat == '1' ? 'checked' : ''}}> 是
+                                                                <span></span>
+                                                            </label>
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="is_nat" value="0" {{$node->is_nat == '0' ? 'checked' : ''}}> 否
+                                                                <span></span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 <div class="form-group">
                                                     <label for="ssh_port" class="col-md-3 control-label"> ssh_port </label>
                                                     <div class="col-md-8">
