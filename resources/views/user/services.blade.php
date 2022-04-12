@@ -267,14 +267,14 @@
                                 <div class="form-group" id="charge_coupon_code_url" >
                                     <label for="charge_coupon" class="col-md-4 control-label"> 购买{{trans('home.coupon_code')}} </label>
                                     <div class="col-md-6">
-                                        <a href="https://www.39faka.com/details/D0161C39" type="button" target="_blank" class="btn green">购买10￥卡密（商品已做安全处理，可叠加）</a>
+                                        <a href="https://www.yiranpay.com/mall/?link=m622ea2c5739dd" type="button" target="_blank" class="btn green">购买10￥卡密（商品已做安全处理，可叠加）</a>
                                         <h5><span class="font-blue">*商品名已安全处理，拍下即为充值卡密</span></h5>
                                         <h5><span class="font-blue">*请在发卡平台购买卡密后，在此充值余额</span></h5>
                                         <h5><span class="font-blue">*可购买多个卡密，叠加充值</span></h5>
                                         <h5><span class="font-blue">*根据您需要充值的金额，拍下相应数量的卡密</span></h5>
                                         <h5><span class="font-red">支付问题发邮件到 3ups@ssmail.win 为您快速解决</span></h5>
                                         <a href="/article?id=46" type="button" target="_blank" class="btn red">售后和 常见问题解决方案</a>
-                                        <a href="https://www.39faka.com/details/6D960E4F" type="button" target="_blank" class="btn green">购买60￥卡密（商品已做安全处理，可叠加）</a>
+                                        <!-- <a href="https://www.39faka.com/details/6D960E4F" type="button" target="_blank" class="btn green">购买60￥卡密（商品已做安全处理，可叠加）</a> -->
 
                                     </div>
                                 </div>

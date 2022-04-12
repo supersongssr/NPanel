@@ -173,7 +173,7 @@ class PingController extends Controller
             $node->v2_flow = $request->get('v2_flow');
             // 个性化
             $node->node_uuid = $request->get('v2_uuid') ;  // node_uuid 独立节点的密码
-            $request->get('v2_cdn') == 'yes' ? $node->is_transit = 1 : $node->is_transit = 0;  // 支持 CDN 
+            $request->get('v2_cdn') != '' ? $node->is_transit = 1 : $node->is_transit = 0;  // 支持 CDN 
         }
 
         $node->save();
