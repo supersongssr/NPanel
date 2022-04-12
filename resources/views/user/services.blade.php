@@ -17,20 +17,6 @@
                 <div class="portlet light">
                     <div class="portlet-body">
                         <ul class="list-inline">
-                            @if (Auth::user()->balance < 0)
-                            <li>
-                                <h5>
-                                    <span class="font-blue">花呗：</span>
-                                    <span class="font-blue">{{ (Auth::user()->balance + Auth::user()->credit) / 100}} ￥/ {{Auth::user()->credit / 100}}￥</span>
-                                </h5>
-                            </li>
-                            <li>
-                                <h4>
-                                    <span class="font-blue">本期账单：</span>
-                                    <span class="font-red">{{Auth::user()->balance / 100}}￥(请在{{Auth::user()->credit_days}}日内还款)</span>
-                                </h4>
-                            </li>
-                            @else
                             <li>
                                 <h5>
                                     <span class="font-blue">花呗：</span>
@@ -39,22 +25,17 @@
                             </li>
                             <li>
                                 <h4>
-                                    <span class="font-blue">账户余额：</span>
+                                    <span class="font-blue">余额：</span>
+                                    @if (Auth::user()->balance < 0)
+                                    <span class="font-red">{{Auth::user()->balance / 100}} ￥ (请在 {{Auth::user()->credit_days}} 日内还款)</span>
+                                    @else
                                     <span class="font-red">{{ (Auth::user()->balance) / 100}}￥</span>
+                                    @endif
                                 </h4>
                             </li>
-                            @endif
                             <li>
-                                <a class="btn btn-sm red" href="#" data-toggle="modal" data-target="#charge_modal" style="color: #FFF;">{{trans('home.recharge')}}</a>
+                                <a class="btn red btn-outline" href="/invoices" ><i class="icon-wallet"></i> {{trans('home.recharge')}}</a>
                             </li>
-
-
-                           <!--  <li>
-                                <h4>
-                                    <span class="font-blue">账户等级：</span>
-                                    <span class="font-red">{{Auth::user()->levelList->level_name}}</span>
-                                </h4>
-                            </li> -->
                         </ul>
                         <p><small>*等级高，节点多，带宽大，流量足。 <a href="/profile#tab_6">移动、电信用户可设置CF+中转。</a>  <br>*<code>CF+</code>:网络优化技术(直连网络不佳网络优化用它) <code>CN+</code>:中转技术(移动电信强力推荐) <code>NetFLix+</code>:支持网飞视频 <code>Azure+</code>:微软强力G口带宽 <code>BGP+</code>:三网混合加速 </small></p>
                     </div>
@@ -230,71 +211,6 @@
             </div>
         </div>
 
-        <div id="charge_modal" class="modal fade" tabindex="-1" data-focus-on="input:first" data-keyboard="false">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                        <h4 class="modal-title">{{trans('home.recharge_balance')}}</h4>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert alert-danger" style="display: none; text-align: center;" id="charge_msg"></div>
-                        <form action="#" method="post" class="form-horizontal">
-                            <div class="form-body">
-                                <div class="form-group">
-                                    <label for="charge_type" class="col-md-4 control-label">{{trans('home.payment_method')}}</label>
-                                    <div class="col-md-6">
-                                        <select class="form-control" name="charge_type" id="charge_type">
-                                            <option value="1" selected>{{trans('home.coupon_code')}}</option>
-                                            @if(!$chargeGoodsList->isEmpty())
-                                                <option value="2" >{{trans('home.online_pay')}}</option>
-                                            @endif
-                                        </select>
-                                    </div>
-                                </div>
-                                @if(!$chargeGoodsList->isEmpty())
-                                    <div class="form-group" id="charge_balance" style="display: none;">
-                                        <label for="online_pay" class="col-md-4 control-label">充值金额</label>
-                                        <div class="col-md-6">
-                                            <select class="form-control" name="online_pay" id="online_pay">
-                                                @foreach($chargeGoodsList as $key => $chargeGoods)
-                                                    <option value="{{$chargeGoods->id}}">充值{{$chargeGoods->price /100}}元</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                @endif
-                                <div class="form-group" id="charge_coupon_code_url" >
-                                    <label for="charge_coupon" class="col-md-4 control-label"> 购买{{trans('home.coupon_code')}} </label>
-                                    <div class="col-md-6">
-                                        <a href="https://www.yiranpay.com/mall/?link=m622ea2c5739dd" type="button" target="_blank" class="btn green">购买10￥卡密（商品已做安全处理，可叠加）</a>
-                                        <h5><span class="font-blue">*商品名已安全处理，拍下即为充值卡密</span></h5>
-                                        <h5><span class="font-blue">*请在发卡平台购买卡密后，在此充值余额</span></h5>
-                                        <h5><span class="font-blue">*可购买多个卡密，叠加充值</span></h5>
-                                        <h5><span class="font-blue">*根据您需要充值的金额，拍下相应数量的卡密</span></h5>
-                                        <h5><span class="font-red">支付问题发邮件到 3ups@ssmail.win 为您快速解决</span></h5>
-                                        <a href="/article?id=46" type="button" target="_blank" class="btn red">售后和 常见问题解决方案</a>
-                                        <!-- <a href="https://www.39faka.com/details/6D960E4F" type="button" target="_blank" class="btn green">购买60￥卡密（商品已做安全处理，可叠加）</a> -->
-
-                                    </div>
-                                </div>
-                                <div class="form-group" id="charge_coupon_code" >
-                                    <label for="charge_coupon" class="col-md-4 control-label"> 输入{{trans('home.coupon_code')}} </label>
-                                    <div class="col-md-6">
-                                        <input type="text" class="form-control" name="charge_coupon" id="charge_coupon" placeholder="{{trans('home.please_input_coupon')}}">
-                                    </div>
-                                </div>
-
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" data-dismiss="modal" class="btn dark btn-outline">{{trans('home.close')}}</button>
-                        <button type="button" class="btn red btn-outline" onclick="return charge();">{{trans('home.recharge')}}</button>
-                    </div>
-                </div>
-            </div>
-        </div>
         <!-- END PAGE BASE CONTENT -->
     </div>
     <!-- END CONTENT BODY -->
@@ -315,58 +231,6 @@
             })
         })
 
-        // 切换充值方式
-        $("#charge_type").change(function(){
-            if ($(this).val() == 2) {
-                $("#charge_balance").show();
-                $("#charge_coupon_code").hide();
-                $("#charge_coupon_code_url").hide();
-            } else {
-                $("#charge_balance").hide();
-                $("#charge_coupon_code").show();
-                $("#charge_coupon_code_url").show();
-            }
-        });
-
-        // 充值
-        function charge() {
-            var charge_type = $("#charge_type").val();
-            var charge_coupon = $("#charge_coupon").val();
-            var online_pay = $("#online_pay").val();
-
-            if (charge_type == '2') {
-                $("#charge_msg").show().html("正在跳转支付界面");
-                window.location.href = '/buy/' + online_pay;
-                return false;
-            }
-
-            if (charge_type == '1' && (charge_coupon == '' || charge_coupon == undefined)) {
-                $("#charge_msg").show().html("{{trans('home.coupon_not_empty')}}");
-                $("#charge_coupon").focus();
-                return false;
-            }
-
-            $.ajax({
-                url:'/charge',
-                type:"POST",
-                data:{_token:'{{csrf_token()}}', coupon_sn:charge_coupon},
-                beforeSend:function(){
-                    $("#charge_msg").show().html("{{trans('home.recharging')}}");
-                },
-                success:function(ret){
-                    if (ret.status == 'fail') {
-                        $("#charge_msg").show().html(ret.message);
-                        return false;
-                    }
-
-                    $("#charge_modal").modal("hide");
-                    window.location.reload();
-                },
-                error:function(){
-                    $("#charge_msg").show().html("{{trans('home.error_response')}}");
-                },
-                complete:function(){}
-            });
-        }
+        
     </script>
 @endsection

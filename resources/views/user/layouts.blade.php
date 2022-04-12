@@ -119,12 +119,6 @@
                         <span class="title">订阅教程</span>
                     </a>
                 </li>
-                <li class="nav-item {{in_array(Request::path(), ['nodeList']) || in_array(Request::segment(1), ['nodeList']) ? 'active open' : ''}}">
-                    <a href="/nodeList" class="nav-link nav-toggle">
-                        <i class="icon-list"></i>
-                        <span class="title">节点列表</span>
-                    </a>
-                </li>
                 <li class="nav-item {{in_array(Request::path(), ['services']) || in_array(Request::segment(1), ['buy', 'payment']) ? 'active open' : ''}}">
                     <a href="/services" class="nav-link nav-toggle">
                         <i class="icon-basket"></i>
@@ -137,10 +131,10 @@
                         <span class="title">{{trans('home.invoices')}}</span>
                     </a>
                 </li>
-                <li class="nav-item {{in_array(Request::path(), ['tickets', 'replyTicket']) ? 'active open' : ''}}">
-                    <a href="/tickets" class="nav-link nav-toggle">
-                        <i class="icon-question"></i>
-                        <span class="title">{{trans('home.tickets')}}</span>
+                <li class="nav-item {{in_array(Request::path(), ['nodeList']) || in_array(Request::segment(1), ['nodeList']) ? 'active open' : ''}}">
+                    <a href="/nodeList" class="nav-link nav-toggle">
+                        <i class="icon-list"></i>
+                        <span class="title">节点列表</span>
                     </a>
                 </li>
                 <!-- Song -->
@@ -160,16 +154,22 @@
                     </a>
                 </li>
                 @endif
-                <li class="nav-item {{in_array(Request::path(), ['profile']) ? 'active open' : ''}}">
-                    <a href="/profile" class="nav-link nav-toggle">
-                        <i class="icon-user"></i>
-                        <span class="title">个人设置</span>
+                <li class="nav-item {{in_array(Request::path(), ['tickets', 'replyTicket']) ? 'active open' : ''}}">
+                    <a href="/tickets" class="nav-link nav-toggle">
+                        <i class="icon-question"></i>
+                        <span class="title">{{trans('home.tickets')}}</span>
                     </a>
                 </li>
                 <li class="nav-item {{in_array(Request::path(), ['help', 'article']) ? 'active open' : ''}}">
                     <a href="/help" class="nav-link nav-toggle">
                         <i class="icon-doc"></i>
                         <span class="title">{{trans('home.help')}}</span>
+                    </a>
+                </li>
+                <li class="nav-item {{in_array(Request::path(), ['profile']) ? 'active open' : ''}}">
+                    <a href="/profile" class="nav-link nav-toggle">
+                        <i class="icon-user"></i>
+                        <span class="title">个人设置</span>
                     </a>
                 </li>
             </ul>
