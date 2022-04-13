@@ -20,25 +20,25 @@
                                 <div class="portlet-title tabbable-line">
                                     <ul class="nav nav-tabs">
                                         <li class="active">
-                                            <a href="#tab_1" data-toggle="tab"> 常规设置 </a>
+                                            <a href="#tab_1" data-toggle="tab"> 常规 </a>
                                         </li>
                                         <li>
-                                            <a href="#tab_2" data-toggle="tab"> 拓展设置 </a>
+                                            <a href="#tab_2" data-toggle="tab"> 拓展 </a>
                                         </li>
                                         <li>
-                                            <a href="#tab_3" data-toggle="tab"> 签到设置 </a>
+                                            <a href="#tab_3" data-toggle="tab"> 签到 </a>
                                         </li>
                                         <li>
-                                            <a href="#tab_4" data-toggle="tab"> 推广返利设置 </a>
+                                            <a href="#tab_4" data-toggle="tab"> 推广返利 </a>
                                         </li>
                                         <li>
-                                            <a href="#tab_5" data-toggle="tab"> 警告提醒设置 </a>
+                                            <a href="#tab_5" data-toggle="tab"> 警告提醒 </a>
                                         </li>
                                         <li>
                                             <a href="#tab_6" data-toggle="tab"> 自动化任务 </a>
                                         </li>
-                                        <!-- <li>
-                                            <a href="#tab_7" data-toggle="tab"> LOGO、客服、统计设置 </a>
+                                        <li>
+                                            <a href="#tab_7" data-toggle="tab"> LOGO、客服、统计 </a>
                                         </li>
                                         <li>
                                             <a href="#tab_8" data-toggle="tab"> 有赞云支付 </a>
@@ -48,9 +48,9 @@
                                         </li>
                                         <li>
                                             <a href="#tab_10" data-toggle="tab"> 支付宝当面付 </a>
-                                        </li> -->
+                                        </li>
                                         <li>
-                                            <a href="#tab_11" data-toggle="tab"> TrimePay支付 </a>
+                                            <a href="#tab_11" data-toggle="tab"> 支付 </a>
                                         </li>
                                         <li id="li_tab_geetest" class="tab_captcha" style="display:none;">
                                             <a href="#tab_geetest" data-toggle="tab"> Geetest 极验 </a>
@@ -1057,7 +1057,7 @@
                                                                 <div class="input-group">
                                                                     <input class="form-control" type="text" name="f2fpay_subject_name" value="{{$f2fpay_subject_name}}" id="f2fpay_subject_name"/>
                                                                     <span class="input-group-btn">
-                                                                        <button class="btn btn-success" type="button" onclick="setF2fpaySubjectName()">修改</button>
+                                                                        <button class="btn btn-success" type="button" onclick="setConfig('f2fpay_subject_name')">修改</button>
                                                                     </span>
                                                                 </div>
                                                                 <span class="help-block"> 用于在用户支付宝客户端显示 </span>
@@ -1072,7 +1072,7 @@
                                                 <div class="portlet-body">
                                                     <div class="form-group">
                                                         <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="is_trimepay" class="col-md-3 control-label">本功能</label>
+                                                            <label for="is_trimepay" class="col-md-3 control-label">Trimepay开关</label>
                                                             <div class="col-md-9">
                                                                 <input type="checkbox" class="make-switch" @if($is_trimepay) checked @endif id="is_trimepay" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
                                                                 <span class="help-block"> 请先到 <a href="https://portal.trimepay.com/#/auth/register/284" target="_blank">TrimePay</a> 申请app_id和app_secret </span>
@@ -1086,7 +1086,7 @@
                                                                 <div class="input-group">
                                                                     <input class="form-control" type="text" name="trimepay_appid" value="{{$trimepay_appid}}" id="trimepay_appid" />
                                                                     <span class="input-group-btn">
-                                                                        <button class="btn btn-success" type="button" onclick="setTrimepayAppId()">修改</button>
+                                                                        <button class="btn btn-success" type="button" onclick="setConfig('trimepay_appid')">修改</button>
                                                                     </span>
                                                                 </div>
                                                             </div>
@@ -1097,9 +1097,48 @@
                                                                 <div class="input-group">
                                                                     <input class="form-control" type="text" name="trimepay_appsecret" value="{{$trimepay_appsecret}}" id="trimepay_appsecret" />
                                                                     <span class="input-group-btn">
-                                                                    <button class="btn btn-success" type="button" onclick="setTrimepayAppSecret()">修改</button>
+                                                                    <button class="btn btn-success" type="button" onclick="setConfig('trimepay_appsecret')">修改</button>
                                                                 </span>
                                                                 </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <hr>
+                                                    <div class="form-group">
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="fakapay" class="col-md-3 control-label">发卡支付</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" value="{{$fakapay}}" id="fakapay" />
+                                                                    <span class="input-group-btn">
+                                                                    <button class="btn btn-success" type="button" onclick="setConfig('fakapay')">修改</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> 值 on off  </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="fakapay" class="col-md-3 control-label">10元链接</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" value="{{$fakapay_10url}}" id="fakapay_10url" />
+                                                                    <span class="input-group-btn">
+                                                                    <button class="btn btn-success" type="button" onclick="setConfig('fakapay_10url')">修改</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> 链接 </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="fakapay" class="col-md-3 control-label">100元链接</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" value="{{$fakapay_100url}}" id="fakapay_100url" />
+                                                                    <span class="input-group-btn">
+                                                                    <button class="btn btn-success" type="button" onclick="setConfig('fakapay_100url')">修改</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> 链接 </span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -2216,38 +2255,14 @@
             $(this).val($(this).val().replace(/(\s+)/g, ''));
         });
 
-        // 设置f2fpay的商品名称
-        function setF2fpaySubjectName() {
-            var f2fpay_subject_name = $("#f2fpay_subject_name").val();
-
+        //sdo2022-04-12 设置 system config 
+        function setConfig(confname) {
+            var confvalue = $('#'+confname).val();
             $.post("/admin/setConfig", {
-                _token: '{{csrf_token()}}',
-                name: 'f2fpay_subject_name',
-                value: f2fpay_subject_name
+                _token:'{{csrf_token()}}', 
+                name:confname, 
+                value:confvalue
             }, function (ret) {
-                layer.msg(ret.message, {time: 1000}, function () {
-                    if (ret.status == 'fail') {
-                        window.location.reload();
-                    }
-                });
-            });
-        }
-
-        //trimepay id
-        function setTrimepayAppId() {
-            var trimepay_appid = $("#trimepay_appid").val();
-            $.post("{{url('admin/setConfig')}}", {_token:'{{csrf_token()}}', name:'trimepay_appid', value:trimepay_appid}, function (ret) {
-                layer.msg(ret.message, {time:1000}, function() {
-                    if (ret.status == 'fail') {
-                        window.location.reload();
-                    }
-                });
-            });
-        }
-        //trimepay 密钥
-        function setTrimepayAppSecret() {
-            var trimepay_appsecret = $("#trimepay_appsecret").val();
-            $.post("{{url('admin/setConfig')}}", {_token:'{{csrf_token()}}', name:'trimepay_appsecret', value:trimepay_appsecret}, function (ret) {
                 layer.msg(ret.message, {time:1000}, function() {
                     if (ret.status == 'fail') {
                         window.location.reload();

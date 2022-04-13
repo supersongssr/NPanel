@@ -348,6 +348,9 @@ class UserController extends Controller
     // 订单
     public function invoices(Request $request)
     {
+        $view['fakapay'] = self::$systemConfig['fakapay'];
+        $view['fakapay_10url'] = self::$systemConfig['fakapay_10url'];
+        $view['fakapay_100url'] = self::$systemConfig['fakapay_100url'];
         $view['orderList'] = Order::uid()->with(['user', 'goods', 'coupon', 'payment'])->orderBy('oid', 'desc')->paginate(10)->appends($request->except('page'));
         $view['couponList'] = Coupon::where('user_id',Auth::user()->id)->orderBy('updated_at', 'desc')->paginate(10)->appends($request->except('page'));
 

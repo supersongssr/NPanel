@@ -1440,3 +1440,12 @@ INSERT INTO `config` VALUES ('', 'group1_traffic_daily_mark', '','组1每日用�
 INSERT INTO `config` VALUES ('', 'group1_traffic_daily_supply', '','组1每日供给流量记录');
 INSERT INTO `config` VALUES ('', 'group2_traffic_daily_mark', '','组2每日用流量记录');
 INSERT INTO `config` VALUES ('', 'group2_traffic_daily_supply', '','组2每日供给记录');
+
+
+--
+-- sdo2022-04-12 增加一些 config 配置
+--
+INSERT INTO `config` VALUES ('', 'fakapay', '','发卡支付开关 on off');
+INSERT INTO `config` VALUES ('', 'fakapay_10url', '','10元发卡链接');
+INSERT INTO `config` VALUES ('', 'fakapay_100url', '','100元发卡链接');
+

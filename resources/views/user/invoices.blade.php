@@ -6,6 +6,7 @@
     <div class="page-content" style="padding-top: 0;">
         <!-- BEGIN PAGE BASE CONTENT -->
         <div class="row">
+            @if($fakapay == 'on')
             <!-- sdo2022-04-12 余额充值代码开始写 -->
             <div class="col-md-12">
                 <div class="portlet light">
@@ -17,7 +18,7 @@
                     <div class="portlet-body">
                         <form enctype="multipart/form-data" class="form-bordered" >
                             <div class="form-group" id="charge_coupon_code_url" >
-                                <a href="https://www.yiranpay.com/mall/?link=m622ea2c5739dd" type="button" target="_blank" class="btn green">购买 10￥ 卡密（商品已做安全处理，可叠加）</a>
+                                <a href="{{$fakapay_10url}}" type="button" target="_blank" class="btn green">购买 10￥ 卡密（商品已做安全处理，可叠加）</a>
                             </div>
                             <div class="form-group">
                                 <!-- <label for="charge_coupon" > 输入{{trans('home.coupon_code')}} </label> -->
@@ -37,6 +38,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <div class="col-md-12">
                 <!-- BEGIN EXAMPLE TABLE PORTLET-->
@@ -189,21 +191,26 @@
 
 <script type="text/javascript">
     //    // 重置用户等级
-    function reLevel() {
-        $.post("/reLevel", {_token:'{{csrf_token()}}'}, function(ret) {
-            layer.msg(ret.message, {time:1000}, function() {
-                window.location.reload();
-            });
-        });
-    }
+    // function reLevel() {
+    //     $.post("/reLevel", {_token:'{{csrf_token()}}'}, function(ret) {
+    //         layer.msg(ret.message, {time:1000}, function() {
+    //             window.location.reload();
+    //         });
+    //     });
+    // }
     //    开启 vmess节点
-    function reUUID() {
-        $.post("/reUUID", {_token:'{{csrf_token()}}'}, function(ret) {
-            layer.msg(ret.message, {time:1000}, function() {
-                window.location.reload();
-            });
-        });
-    }
+    // function reUUID() {
+    //     $.post("/reUUID", {_token:'{{csrf_token()}}'}, function(ret) {
+    //         layer.msg(ret.message, {time:1000}, function() {
+    //             window.location.reload();
+    //         });
+    //     });
+    // }
+    // sdo2022-04-12 自动去除 卡密中的 空格
+    // 自动去除公钥和私钥中的空格和换行
+    $("#charge_coupon").on('input', function () {
+        $(this).val($(this).val().replace(/(\s+)/g, ''));
+    });
     // sdo2022-04-12 充值
     function coupon_charge() {
         var charge_coupon = $("#charge_coupon").val();
