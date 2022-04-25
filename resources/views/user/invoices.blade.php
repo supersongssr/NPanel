@@ -27,13 +27,50 @@
                             <div class="alert alert-danger" style="display: none;" id="charge_msg"></div>
                             <div class="form-group">
                                 <button type="button" class="btn red btn-outline" onclick="return coupon_charge();"><i class="icon-wallet"></i>  {{trans('home.recharge')}}</button>
-                                <span class="btn btn-sm btn-outline blue">余额 ：{{ (Auth::user()->balance) / 100}}￥</span>
+                                <a class="btn btn-sm btn-outline blue" href="javascript:location.reload();">余额 ：{{ (Auth::user()->balance) / 100}}￥</a>
                             </div>
                             <div class="form-group">
                                 <h5><span class="font-blue">* 商品名已安全处理，拍下即为充值卡密。可购买多个卡密，叠加充值。根据您需要充值的金额，拍下相应数量的卡密。
                                     <br>* 支付问题发邮件到 <span class="font-red">3ups@ssmail.win</span> 为您快速解决</span>
                                 <a href="/article?id=46" type="button" target="_blank" class="btn btn-sm default">售后和 常见问题解决方案</a></h5>
                             </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            @if($clonepay == 'on')
+            <!-- sdo2022-04-13 CP代付 -->
+            <div class="col-md-12">
+                <div class="portlet light">
+                    <div class="portlet-title">
+                        <div class="caption">
+                            <span class="caption-subject font-dark bold">充值余额 (代付方式)  </span>
+                        </div>
+                    </div>
+                    <div class="portlet-body">
+                        <form enctype="multipart/form-data" class="form-bordered" >
+                            <div class="form-group" id="charge_coupon_code_url" >
+                                @代付充值 -> <a href="{{$clonepay_url}}" type="button" target="_blank" class="btn red btn-outline">代付网站 (商品已做安全处理)</a>
+                            </div>
+                            <hr>
+                            <div class="form-group">
+                                1. 在 <code>代付网站</code> 用邮箱 <span class="font-blue">{{Auth::user()->username}}</span> 注册登录。 (邮箱相同，充值同步)
+                                <br><br>2. 在 <code>代付网站</code> 支付充值 =  <span class="font-blue">本站充值</span> (充值记录，自动同步)
+                                <br><br>3. 充值完成 -><a class="btn btn-sm btn-outline blue" href="javascript:location.reload();">刷新余额 ：{{ (Auth::user()->balance) / 100}}￥</a>
+                                <br> 
+                            </div>
+                            <hr>
+                            <div class="alert alert-danger" style="display: none;" id="clonepay_msg"></div>
+                            <div class="form-group">
+                                @常见问题 -> <button type="button" class="btn btn-sm blue btn-outline" onclick="return clonepay_Sync();"><i class="icon-wallet"></i>  同步充值记录 </button> 
+                                <div>
+                                    支付问题： 发邮件至 3ups@ssmail.win 为您快速解决 <a href="/article?id=46" type="button" target="_blank" class="btn btn-sm default"> 代付常见问题解决</a>
+                                </div>
+                            </div>
+                            
+                            
                         </form>
                     </div>
                 </div>
@@ -238,5 +275,26 @@
             complete:function(){}
         });
     }
+
+    // sdo2022-04-13 同步代付记录
+    @if($clonepay == 'on')
+    function clonepay_Sync() {
+        $.ajax({
+            url:'/clonepay_sync',
+            type:"POST",
+            data:{_token:'{{csrf_token()}}'},
+            beforeSend:function(){
+                $("#clonepay_msg").show().html("正在自动同步...");
+            },
+            success:function(ret){
+                $("#clonepay_msg").show().html(ret.message);
+                return false;
+            },
+            error:function(){
+                $("#clonepay_msg").show().html("{{trans('home.error_response')}}");
+            },
+        });
+    }
+    @endif
 </script>
 @endsection

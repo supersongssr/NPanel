@@ -15,4 +15,6 @@ Route::group(['namespace' => 'Api'], function () {
     //song SSN API
     Route::post('ssn_sub/{id}', 'PingController@ssn_sub');
     Route::post('ssn_v2/{id}', 'PingController@ssn_v2');
+    // sdo2022-04-13 clonepay api
+    Route::post('clonepay', 'PingController@clonepay');
 });

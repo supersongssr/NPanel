@@ -351,6 +351,13 @@ class UserController extends Controller
         $view['fakapay'] = self::$systemConfig['fakapay'];
         $view['fakapay_10url'] = self::$systemConfig['fakapay_10url'];
         $view['fakapay_100url'] = self::$systemConfig['fakapay_100url'];
+
+        $view['clonepay'] = self::$systemConfig['clonepay'];
+        $sign = Auth::user()->username . '&' . date('Ymd') . '&'.self::$systemConfig['clonepay_token'];
+        $key = md5($sign);
+        $view['clonepay_url'] = self::$systemConfig['clonepay_homeurl'] .'&regname=user'.Auth::user()->id .'&regemail='.Auth::user()->username.'&regkey='.$key;
+
+
         $view['orderList'] = Order::uid()->with(['user', 'goods', 'coupon', 'payment'])->orderBy('oid', 'desc')->paginate(10)->appends($request->except('page'));
         $view['couponList'] = Coupon::where('user_id',Auth::user()->id)->orderBy('updated_at', 'desc')->paginate(10)->appends($request->except('page'));
 
@@ -1265,6 +1272,54 @@ class UserController extends Controller
             DB::rollBack();
 
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '充值失败']);
+        }
+    }
+
+    // sdo2022-04-13 同步clonepay记录
+    public function clonepay_sync(Request $request)
+    {
+        //sdo2022-04-13 
+        //检测 是否开启这个功能
+        if (self::$systemConfig['clonepay'] != 'on') {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '本功能尚未开启']);
+        }
+        // 开始同步信息
+        if (self::$systemConfig['clonepay_syncurl']) {   //是否设置了 同步 url地址
+            $sync_url = self::$systemConfig['clonepay_syncurl'] .'&email=' . Auth::user()->username ;
+            // 开始 curl get 
+            // 初始化
+            $curl = curl_init();
+            // 设置url路径
+            curl_setopt($curl, CURLOPT_URL, $sync_url);
+            // 将 curl_exec()获取的信息以文件流的形式返回，而不是直接输出。
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true) ;
+            // 在启用 CURLOPT_RETURNTRANSFER 时候将获取数据返回
+            // 添加头信息
+            // CURLINFO_HEADER_OUT选项可以拿到请求头信息
+            curl_setopt($curl, CURLINFO_HEADER_OUT, true);
+            // 不验证SSL
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+            // 执行
+            $syncpays = curl_exec($curl);
+            // 关闭连接
+            curl_close($curl);
+            // 返回数据
+        }
+        //
+        if ($syncpays) {
+            parse_str($syncpays, $msg);
+        }else{
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '网络超时，没有获取到数据']);
+        }
+        // 判断 是否存在 error 
+        if (!empty($msg['error'])) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => $msg['error']]);
+        }elseif(!empty($msg['success'])){
+            $msginfo = '已同步<code>'.Auth::user()->username.'</code>用户在'.$msg['days'] . '天内的 <code>'. $msg['total'].'</code> 个订单。请刷新页面';
+            return Response::json(['status' => 'success', 'data' => '', 'message' => $msginfo]);
+        }else{
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '返回数据无法识别，请联系管理员']);
         }
     }
 

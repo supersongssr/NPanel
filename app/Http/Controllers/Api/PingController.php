@@ -12,6 +12,9 @@ use App\Http\Models\SsNode;
 use Illuminate\Console\Command;
 use App\Http\Models\SsNodeOnlineLog;
 use App\Components\Helpers;
+//sdo2022-04-13
+use App\Http\Models\User;
+use App\Http\Models\Coupon;
 
 
 
@@ -177,5 +180,64 @@ class PingController extends Controller
         }
 
         $node->save();
+    }
+
+    public function clonepay(Request $request){
+        $sysConf = Helpers::systemConfig();  //获取系统设置
+        // 验证是否开启 clonepay
+        if ($sysConf['clonepay'] != 'on') {
+            exit;
+        }
+        // 验证 安全ip  
+        $ip = $_SERVER["REMOTE_ADDR"]; // 获取请求ip
+        if ($ip != $sysConf['clonepay_safeip'] && $ip != $sysConf['clonepay_safeipv6']) {
+            exit;
+        }
+        // 验证签名
+        $signStr = $request->get('order') .'&'. $request->get('money') .'&'. $sysConf['clonepay_token']; // 订单号 金额 token 生成签名
+        if(md5($signStr) != $request->get('sign')){         //验证签名是否一致
+            exit;
+        }
+        //获取 email，验证用户
+        $email = $request->get('email');
+        if (!$email) {
+            exit;
+        }
+        $user = User::query()->where('username',$email)->first();
+        // 验证用户
+        if (!$user->id) {
+            exit;
+        }
+        // 验证订单号是否已存在
+        $exsitcoupon = Coupon::query()->where('sn',$request->get('order'))->first();
+        if (!empty($exsitcoupon->id)) {
+            echo '&error=订单已被记录';
+            exit;
+        }
+        // 计算 money ,这里是按照 分计算的 所以 * 100
+        $money = $request->money * 100;
+        // 开始写入 充值记录 和返利
+        $obj = new Coupon();
+        $obj->name = 'CP代付';
+        $obj->sn =  $request->order;  //订单
+        $obj->logo = '';
+        $obj->type = 3;  // 3=充值券
+        $obj->usage = 1;
+        $obj->amount = $money;  //金额
+        $obj->discount = 0;
+        $obj->available_start = time();
+        $obj->available_end = time();
+        $obj->status = 1;   //状态  1=已使用
+        $obj->user_id = $user->id; //使用者
+        $obj->created_at = date("Y-m-d H:i:s", $request->time);
+        $obj->updated_at = date("Y-m-d H:i:s", $request->time);
+        $obj->save();
+        // 开始写入用户充值
+        $user->balance += $money ;
+        $user->save();
+        //写入用户充值记录
+        // 写入卡券日志
+        Helpers::addCouponLog($obj->id, 0, 0, $user->id, 'CP代付充值使用');
+        
     }
 }

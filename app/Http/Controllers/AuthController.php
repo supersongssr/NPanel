@@ -172,6 +172,11 @@ class AuthController extends Controller
                 return Redirect::back()->withErrors('系统维护，暂停注册');
             }
 
+            //sdo2022-04-25 禁止某些邮箱注册
+            if ( stripos($request->username, 'ssmail.win') ) {
+                return Redirect::back()->withInput()->withErrors('呃，邮箱不常见呢，请联系管理员将邮箱添加到白名单！');
+            }
+
             // 校验域名邮箱是否在敏感词中
             //Song 检查是否白名单邮箱，这个可以有
             $sensitiveWords = $this->sensitiveWords();
@@ -180,7 +185,7 @@ class AuthController extends Controller
                 return Redirect::back()->withInput()->withErrors('呃，邮箱不常见呢，请联系管理员将邮箱添加到白名单！');
                 //Session::flash('errorMsg', '呃，陌生的邮箱，请联系管理员将邮箱添加到白名单！');
 
-                return Redirect::back()->withInput();
+                // return Redirect::back()->withInput();
             }
 
 

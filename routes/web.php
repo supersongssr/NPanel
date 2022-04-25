@@ -145,6 +145,8 @@ Route::group(['middleware' => ['isLogin']], function () {
     Route::post("reLevel", "UserController@reLevel"); // 矫正等级
     Route::post("reUUID", "UserController@reUUID"); // 开启vmess节点
 
+    Route::post("clonepay_sync", "UserController@clonepay_sync"); // sdo2022-04-13 同步 clone 充值记录
+
 
     Route::post('payment/create', 'PaymentController@create'); // 创建支付
     Route::get('payment/getStatus', 'PaymentController@getStatus'); // 获取支付单状态

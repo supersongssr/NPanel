@@ -1449,3 +1449,13 @@ INSERT INTO `config` VALUES ('', 'fakapay', '','发卡支付开关 on off');
 INSERT INTO `config` VALUES ('', 'fakapay_10url', '','10元发卡链接');
 INSERT INTO `config` VALUES ('', 'fakapay_100url', '','100元发卡链接');
 
+--
+-- sdo2022-04-13 增加一些 CP代付的数据库配置
+--
+INSERT INTO `config` VALUES ('', 'clonepay', '','CP代付 on off');
+INSERT INTO `config` VALUES ('', 'clonepay_token', '','密钥');
+INSERT INTO `config` VALUES ('', 'clonepay_safeip', '','安全ip');
+INSERT INTO `config` VALUES ('', 'clonepay_safeipv6', '','安全ipv6');
+
+INSERT INTO `config` VALUES ('', 'clonepay_homeurl', '','代付地址');
+INSERT INTO `config` VALUES ('', 'clonepay_syncurl', '','代付同步请求地址');
