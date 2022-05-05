@@ -76,14 +76,21 @@
                                     <tr >
                                         <th colspan="6">ID：{{$info->id}} | 申请人：{{$info->user->username}} | 提现金额：{{$info->amount /100}} | 申请时间：{{$info->created_at}}</th>
                                     </tr>
-                                    <tr >
+                                    <!-- <tr >
                                         <th> USDT({{$info->amount /100 /6.8}}$): {{$info->user->usdt}}</th>
+                                    </tr> -->
+                                    <tr >
+                                        <th >WECHAT({{$info->amount /100 }}￥)：<a href="{{$info->user->wechat}}" target="_blank">{{$info->user->wechat}}</a></th>
+                                        
                                     </tr>
                                     <tr >
-                                        <th >WECHAT({{$info->amount /100 * 0.92}}￥)：<a href="{{$info->user->wechat}}" target="_blank">{{$info->user->wechat}}</a></th>
+                                        <th >ALIPAY({{$info->amount /100 }}￥)：<a href="{{$info->user->alipay}}" target="_blank">{{$info->user->alipay}}</a></th>
                                     </tr>
-                                    <tr >
-                                        <th >ALIPAY({{$info->amount /100 * 0.94}}￥)：<a href="{{$info->user->alipay}}" target="_blank">{{$info->user->alipay}}</a></th>
+                                    <tr>
+                                        <th>
+                                        <img src="{{Auth::user()->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 150px; max-height: 150px;">
+                                        <img src="{{Auth::user()->alipay}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 150px; max-height: 150px;">
+                                        </th>
                                     </tr>
                                     <tr class="uppercase">
                                         <th> # </th>

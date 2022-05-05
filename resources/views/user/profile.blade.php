@@ -79,21 +79,21 @@
                                                     <input type="text" class="form-control" name="qq" value="{{Auth::user()->qq}}" id="qq" required />
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="control-label">USDT-TRC20 (每笔提现 1USDT手续费) </label>
+                                                    <label class="control-label">USDT-TRC20 (CN地区已失效) </label>
                                                     <input type="text" class="form-control" name="usdt" value="{{Auth::user()->usdt}}" id="usdt" >
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="control-label">微信收款二维码 (每笔提现 -2￥手续费)</label>
+                                                    <label class="control-label">微信收款二维码 ()</label>
                                                     <input type="text" class="form-control" name="wechat" value="{{Auth::user()->wechat}}" id="wechat" >
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="control-label">支付宝收款二维码 (每笔提现 -2￥手续费)</label>
+                                                    <label class="control-label">支付宝收款二维码 ()</label>
                                                     <input type="text" class="form-control" name="alipay" value="{{Auth::user()->alipay}}" id="alipay" >
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
-                                                <p>请使用 <a href="https://imgurl.org/" target="_blank">免费图床</a>上传收款码，复制 URL 地址到上面。<br><code>*请务必检查您的收款信息是否正确，如果由于您错误的设置无法收到打款，只能自己承担呦</code><br><code>*手续费由第三方平台手续，具体手续费以第三方平台为准。USDT-TRC20无手续费。</code></p>
+                                                <p>请使用 <a href="https://imgurl.org/" target="_blank">免费图床</a>上传收款码，复制 URL 地址到上面。<br><code>*请务必检查您的收款信息是否正确，如果由于您错误的设置无法收到打款，只能自己承担呦</code><br><code>*手续费由第三方平台手续，具体手续费以第三方平台为准。</code></p>
                                                 <p><code>您的微信二维码为：</code><img src="{{Auth::user()->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 150px; max-height: 150px;">
                                                   <code>您的支付宝二维码为：</code><img src="{{Auth::user()->alipay}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 150px; max-height: 150px;"> </p>
                                                 <div class="form-actions">

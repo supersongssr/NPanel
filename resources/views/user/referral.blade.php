@@ -88,10 +88,10 @@
                         <div class="actions">
                             <!-- <button type="submit" class="btn blue" onclick="autoExtractMoney()"> 提取余额 </button>
                             <button type="submit" class="btn green" onclick="extractMoney()"> 银行卡提现 </button> -->
-                            <!-- <button type="submit" class="btn blue" onclick="ExtractAffMoney()"> 邀请奖励提现 </button>
-                            <button type="submit" class="btn green" onclick="ExtractRefMoney()"> 消费返利提现 </button> -->
-                            <button type="submit" class="btn blue" onclick="autoExtractAffMoney()"> 邀请奖励生成代金券 </button>
-                            <button type="submit" class="btn green" onclick="autoExtractRefMoney()"> 消费返利生成代金券 </button>
+                            <button type="submit" class="btn green" onclick="ExtractAffMoney()"> 邀请奖励{{$my_affmoney/100}}￥提现 </button> or
+                            <button type="submit" class="btn green" onclick="ExtractRefMoney()"> 消费返利{{$my_refmoney/100}}￥提现 </button> (二选一)
+                            <!-- <button type="submit" class="btn blue" onclick="autoExtractAffMoney()"> 邀请奖励生成代金券 </button>
+                            <button type="submit" class="btn green" onclick="autoExtractRefMoney()"> 消费返利生成代金券 </button> -->
                         </div>
                     </div>
                     <div class="portlet-body">
@@ -155,12 +155,12 @@
                         </div>
                         <div class="row">
                             <div class="col-md-5 col-sm-5">
-                                <div class="dataTables_info" role="status" aria-live="polite">{{trans('home.referral_summary', ['total' => $referralLogList->total(), 'amount' => $canAmount, 'money' => $referral_money])}}<br>银行卡提现请先<a href="/profile#tab_2">设置收款信息</a>，每笔提现手续费1￥。</div>
+                                <div class="dataTables_info" role="status" aria-live="polite">{{trans('home.referral_summary', ['total' => $referralLogList->total(), 'amount' => $canAmount, 'money' => $referral_money])}}</div>
                             <br>
-                            * 为保护用户隐私，如果您不愿意提现您的邀请返利，您可以才选择将可提现的返利生成代金券，在网站购买商品时可抵扣相应的金额
+                            * 为保护用户隐私，您可以将返利生成代金券，在网站购买商品时可抵扣相应的金额。()
                             <br>
-                            <button type="submit" class="btn blue" onclick="autoExtractAffMoney()"> 邀请奖励生成代金券 </button>
-                            <button type="submit" class="btn green" onclick="autoExtractRefMoney()"> 消费返利生成代金券 </button>
+                            <button type="submit" class="btn blue" onclick="autoExtractAffMoney()"> 邀请奖励 {{$my_affmoney/100}} ￥生成代金券 </button> or
+                            <button type="submit" class="btn blue" onclick="autoExtractRefMoney()"> 消费返利 {{$my_refmoney/100}} ￥生成代金券 </button> (二选一)
                             </div>
 
                             <div class="col-md-7 col-sm-7">
