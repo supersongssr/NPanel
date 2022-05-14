@@ -156,7 +156,7 @@ class AutoJob extends Command
                           //重置 ss密码
                           $user->passwd = makeRandStr();
                           //用户分组 -1
-                          $user->node_group > 1 && $user->node_group -= 1;
+                        //   $user->node_group > 1 && $user->node_group -= 1;
                           // 记录封禁日志
                           $this->addUserBanLog($subscribe->user_id, 0, '两倍异常，封禁密码');
 
