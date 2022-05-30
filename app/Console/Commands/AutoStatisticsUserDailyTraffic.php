@@ -36,7 +36,7 @@ class AutoStatisticsUserDailyTraffic extends Command
 
             $traffic_today = $user->u + $user->d - $user->traffic_lastday;
             #每天流量超过 32G，就减一个分组
-            $traffic_today > 32*1024*1024*1024 && $user->node_group > 1 && $user->node_group -= 1;
+            #$traffic_today > 32*1024*1024*1024 && $user->node_group > 1 && $user->node_group -= 1;
 
             $obj = new UserTrafficDaily();
             $obj->user_id = $user->id;

@@ -36,7 +36,7 @@ class AutoStatisticsUserHourlyTraffic extends Command
 
             $traffic_hour = $user->u + $user->d - $user->traffic_lasthour;
             # 如果每小时流量超过8G，用户分组-1
-            $traffic_hour > 8*1024*1024*1024 && $user->node_group > 1 && $user->node_group -= 1;
+            #$traffic_hour > 8*1024*1024*1024 && $user->node_group > 1 && $user->node_group -= 1;
 
             $obj = new UserTrafficHourly();
             $obj->user_id = $user->id;
