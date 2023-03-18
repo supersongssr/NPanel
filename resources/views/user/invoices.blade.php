@@ -66,7 +66,9 @@
                             <div class="form-group">
                                 @常见问题 -> <button type="button" class="btn btn-sm blue btn-outline" onclick="return clonepay_Sync();"><i class="icon-wallet"></i>  同步充值记录 </button> 
                                 <div>
-                                    支付问题： 发邮件至 3ups@ssmail.win 为您快速解决 <a href="/article?id=46" type="button" target="_blank" class="btn btn-sm default"> 代付常见问题解决</a>
+                                    支付问题： 请与 3ups@ssmail.win(管理员邮箱) 邮件沟通 或 客服工单沟通 <a href="/article?id=46" type="button" target="_blank" class="btn btn-sm default"> 代付常见问题解决</a>
+                                    <h4 class="font-red">未与 管理员 沟通就发起的支付投诉/发卡投诉, 账号ID/IP将被冻结</h4>
+                                    <h6>*本站已加入支付联盟, 黑名单账号全网共享</h6>
                                 </div>
                             </div>
                             

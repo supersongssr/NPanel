@@ -230,6 +230,8 @@ class SubscribeController extends Controller
                     "path" => $node->v2_path ,
                     "tls"  => $node->v2_tls ,
                     "sni"  => $node->v2_sni ,
+                    "serviceName" => $node->v2_servicename,
+                    "mode"  => $node->v2_mode ,
                     "alpn" => $node->v2_alpn  
                 ];
                 $scheme .= 'vmess://' . base64_encode(json_encode($v2_json)) . "\n";
@@ -241,7 +243,7 @@ class SubscribeController extends Controller
                     continue;
                 }
                 $scheme .= 'vless://'.$node_uuid.'@'.$node->server.':'.$node->v2_port;
-                $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni.'&alpn='.urlencode($node->v2_alpn);
+                $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni .'&serviceName='.$node->v2_servicename. '&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
                 $scheme .= '#'.urlencode($node->name.'_'.$node->traffic_rate.'_'.$node->bandwidth.'M') . "\n";
                 $vless_count += 1;
                 $v2ray_count += 1;
@@ -251,7 +253,7 @@ class SubscribeController extends Controller
                     continue;
                 }
                 $scheme .= 'trojan://'.$node_uuid.'@'.$node->server.':'.$node->v2_port;
-                $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni.'&alpn='.urlencode($node->v2_alpn);
+                $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni.'&serviceName='.$node->v2_servicename.'&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
                 $scheme .= '#'.urlencode($node->name.'_'.$node->traffic_rate.'_'.$node->bandwidth.'M') . "\n";
                 $trojan_count += 1;
                 $v2ray_count += 1;

@@ -81,7 +81,7 @@ class AutoJob extends Command
         $this->closeOrders();
 
         // 关闭超过72小时未处理的工单
-        $this->closeTickets();
+        // $this->closeTickets();
 
         // 检测节点是否离线
         $this->checkNodeStatus();
@@ -427,7 +427,10 @@ class AutoJob extends Command
         $userList = User::query()->where('status', '>=', 0)->where('enable', 0)->where('ban_time', '>', 0)->get();
         foreach ($userList as $user) {
             if ($user->ban_time < time()) {
-                User::query()->where('id', $user->id)->update(['enable' => 1, 'ban_time' => 0]);
+                //修复临时封禁到期后,依然循环封禁的BUG 2023-02-18
+                $last_total_traffic = $user->u + $user->d;
+
+                User::query()->where('id', $user->id)->update(['enable' => 1, 'ban_time' => 0, 'traffic_lasthour' => $last_total_traffic]);
 
                 // 写入操作日志
                 $this->addUserBanLog($user->id, 0, '【自动解封】-临时封禁到期');

@@ -1429,6 +1429,8 @@ ALTER TABLE `ss_node` ADD COLUMN `node_uuid` VARCHAR(255) DEFAULT '' COMMENT '�
 ALTER TABLE `ss_node` ADD COLUMN `heartbeat_at` datetime DEFAULT NULL COMMENT '节点心跳，后端API心跳' AFTER `node_uuid`;
 
 
+
+
 -- ----------------------------
 -- 20220225增加 全站每日流量统计 注意，这是插入值，不是别的。
 -- ----------------------------
@@ -1459,3 +1461,10 @@ INSERT INTO `config` VALUES ('', 'clonepay_safeipv6', '','安全ipv6');
 
 INSERT INTO `config` VALUES ('', 'clonepay_homeurl', '','代付地址');
 INSERT INTO `config` VALUES ('', 'clonepay_syncurl', '','代付同步请求地址');
+
+
+-- 2023-02-16 添加 v2_mode参数
+ALTER TABLE `ss_node` ADD COLUMN `v2_mode` VARCHAR(255) COMMENT 'grpcMode';
+-- 2023-02-20 添加 v2_servicename 参数
+ALTER TABLE `ss_node` ADD COLUMN `v2_servicename` VARCHAR(255) COMMENT 'servicename';
+

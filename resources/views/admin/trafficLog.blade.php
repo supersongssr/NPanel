@@ -75,7 +75,7 @@
                                                         <a href="'/admin/userList?id=' . $vo->user->id" target="_blank"> <span class="label label-info"> {{$vo->user->username}} </span> </a>
                                                     @endif
                                                 </td>
-                                                <td> {{$vo->node ? $vo->node->name : '【节点已删除】'}} </td>
+                                                <td> {{$vo->node ? $vo->node->name .'#'. $vo->node->id : '【节点已删除】'}} </td>
                                                 <td> {{$vo->rate}} </td>
                                                 <td> {{$vo->u}} </td>
                                                 <td> {{$vo->d}} </td>

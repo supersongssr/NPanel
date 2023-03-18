@@ -1381,12 +1381,12 @@ class UserController extends Controller
             'hourlyData' => "'" . implode("','", $hourlyData) . "'"
         ];
 
-        /**    // 本月天数数据
+        /*   // 本月天数数据
         $monthDays = [];
         $monthHasDays = date("t");
         for ($i = 1; $i <= $monthHasDays; $i++) {
             $monthDays[] = $i;
-        } **/
+        } */
 
         $view['nodeName'] = $node->name . ' #' . $node->id;
         $view['nodeDesc'] = $node->desc;
@@ -1421,7 +1421,8 @@ class UserController extends Controller
             $ss_scheme = 'ss://' . $ss_str;
 
             // 生成文本配置信息
-            $txt = "服务器：" . ($node->server ? $node->server : $node->ip) . PHP_EOL;
+            $txt = "节点技术: ss SS" . PHP_EOL;
+            $txt .= "服务器：" . ($node->server ? $node->server : $node->ip) . PHP_EOL;
             $txt .= "远程端口：" . ($node->single ? $node->single_port : Auth::user()->port) . PHP_EOL;
             $txt .= "密码：" . ($node->single ? $node->single_passwd : Auth::user()->passwd) . PHP_EOL;
             $txt .= "加密方法：" . ($node->single ? $node->single_method : Auth::user()->method) . PHP_EOL;
@@ -1437,7 +1438,7 @@ class UserController extends Controller
             $node->ss_scheme = $node->compatible ? $ss_scheme : ''; // 节点兼容原版才显示
 
             $allNodes .= $ssr_scheme . '|';
-        } else {
+        } elseif ($node->type == 2) {
             // 生成v2ray scheme
             $v2_json = [
                 "v"    => "2",
@@ -1455,7 +1456,8 @@ class UserController extends Controller
             $v2_scheme = 'vmess://' . base64url_encode(json_encode($v2_json, JSON_PRETTY_PRINT));
 
             // 生成文本配置信息
-            $txt = "服务器：" . ($node->server ? $node->server : $node->ip) . PHP_EOL;
+            $txt = "节点技术: Vmess "  . PHP_EOL;
+            $txt .= "服务器：" . ($node->server ? $node->server : $node->ip) . PHP_EOL;
             $txt .= "端口：" . $node->v2_port . PHP_EOL;
             $txt .= "加密方式：" . $node->v2_method . PHP_EOL;
             $txt .= "用户ID：" . Auth::user()->vmess_id . PHP_EOL;
@@ -1464,6 +1466,8 @@ class UserController extends Controller
             $txt .= "伪装类型：" . $node->v2_type . PHP_EOL;
             $txt .= $node->v2_host ? "伪装域名：" . $node->v2_host . PHP_EOL : "";
             $txt .= $node->v2_path ? "路径：" . $node->v2_path . PHP_EOL : "";
+            $txt .= $node->v2_servicename ? "gRPC serviceName：" . $node->v2_servicename . PHP_EOL : "";
+            $txt .= $node->v2_mode ? "gRPC mode：" . $node->v2_mode . PHP_EOL : "";
             $txt .= $node->v2_tls ? "TLS：tls" . PHP_EOL : "";
             $txt .= "allowInsecure：true" . PHP_EOL;
             $txt .= $node->v2_host ? "MAC,tls servername：" . $node->v2_host . PHP_EOL : "";
@@ -1471,6 +1475,49 @@ class UserController extends Controller
 
             $node->txt = $txt;
             $node->v2_scheme = $v2_scheme;
+        } elseif ($node->type == 3) {//vless 
+            // 生成文本配置信息
+            $txt = "节点技术: Vless (请注意区分Vmess Vless)"  . PHP_EOL;
+            $txt .= "服务器：" . ($node->server ? $node->server : $node->ip) . PHP_EOL;
+            $txt .= "端口：" . $node->v2_port . PHP_EOL;
+            $txt .= "用户ID：" . Auth::user()->vmess_id . PHP_EOL;
+            $txt .= "传输协议：" . $node->v2_net . PHP_EOL;
+            $txt .= "伪装类型：" . $node->v2_type . PHP_EOL;
+            $txt .= $node->v2_host ? "伪装域名：" . $node->v2_host . PHP_EOL : "";
+            $txt .= $node->v2_path ? "路径：" . $node->v2_path . PHP_EOL : "";
+            $txt .= "gRPC serviceName：" . $node->v2_servicename . PHP_EOL;
+            $txt .= "gRPC mode：" . $node->v2_mode . PHP_EOL;
+            $txt .= "TLS：tls" . PHP_EOL;
+            $txt .= "allowInsecure：true" . PHP_EOL;
+            $txt .= $node->v2_host ? "MAC,tls servername：" . $node->v2_host . PHP_EOL : "";
+            $txt .= $node->v2_host ? "IOS,Peer：" . $node->v2_host . PHP_EOL : "";
+            //
+            $node->txt = $txt ;
+            $scheme = 'vless://'.Auth::user()->vmess_id.'@'.$node->server.':'.$node->v2_port;
+            $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni.'&serviceName='.$node->v2_servicename. '&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
+            $scheme .= '#'.urlencode($node->name.'_'.$node->traffic_rate.'_'.$node->bandwidth.'M') . "\n";
+            $node->v2_scheme = $scheme;
+        }   elseif ( $node->type == 4) { // trojan
+            // 生成文本配置信息
+            $txt = "节点技术: Trojan "  . PHP_EOL;
+            $txt .= "服务器：" . ($node->server ? $node->server : $node->ip) . PHP_EOL;
+            $txt .= "端口：" . $node->v2_port . PHP_EOL;
+            $txt .= "用户ID：" . Auth::user()->vmess_id . PHP_EOL;
+            $txt .= "传输协议：" . $node->v2_net . PHP_EOL;
+            $txt .= "伪装类型：" . $node->v2_type . PHP_EOL;
+            $txt .= $node->v2_host ? "伪装域名：" . $node->v2_host . PHP_EOL : "";
+            $txt .= $node->v2_path ? "路径：" . $node->v2_path . PHP_EOL : "";
+            $txt .= $node->v2_servicename ? "gRPC serviceName：" . $node->v2_servicename . PHP_EOL : "";
+            $txt .= $node->v2_mode ? "gRPC mode：" . $node->v2_mode . PHP_EOL : "";
+            $txt .= "TLS：tls" . PHP_EOL;
+            $txt .= "allowInsecure：true" . PHP_EOL;
+            $txt .= $node->v2_host ? "MAC,tls servername：" . $node->v2_host . PHP_EOL : "";
+            $txt .= $node->v2_host ? "IOS,Peer：" . $node->v2_host . PHP_EOL : "";
+            $node->txt = $txt;
+            $scheme = 'trojan://'.Auth::user()->vmess_id.'@'.$node->server.':'.$node->v2_port;
+            $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni.'&serviceName='.$node->v2_servicename. '&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
+            $scheme .= '#'.urlencode($node->name.'_'.$node->traffic_rate.'_'.$node->bandwidth.'M') . "\n";
+            $node->v2_scheme = $scheme;
         }
 
         // 节点在线状态

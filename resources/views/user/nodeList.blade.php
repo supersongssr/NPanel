@@ -172,6 +172,8 @@ remarks： {{$node->name}}#{{$node->id}}
 type： {{$node->v2_type}}
 host： {{$node->v2_host}}
 path： {{$node->v2_path}}
+serviceName: {{$node->v2_servicename}}
+mode: {{$node->v2_mode}}
 TLS： {{$node->v2_tls}}
 allowInsecure: true
 MAC:tls servername： {{$node->v2_host}}
