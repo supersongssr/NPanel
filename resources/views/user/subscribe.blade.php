@@ -57,21 +57,13 @@
                                         </ul>
                                         <div class="tab-content" style="font-size:16px;">
                                             <div class="tab-pane" id="tools1">
-                                                <ol>【Vmess节点 - v2rayU软件教程】
+                                                <ol>【 v2rayA 】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li><a href="/clients/V2rayU-64.dmg" target="_blank">Intel芯片点这里下载 v2rayU</a> __ <a href="/clients/V2rayU-arm64.dmg" target="_blank">M1/M2芯片点这里下载 v2rayU</a></li>
-                                                    <li>  - 将 v2rayU 拖到 <code>Applications</code>文件夹 - 启动 v2rayU - <small>*如有安全提示，点允许*</small></li>
-                                                    <li> 右键状态栏的v2rayU图标 - Subscribe/订阅设置 - Url/地址:<code>{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - remark/备注随意填写 - add/添加 - 更新/update servers <small>*此时应可以获取节点*</small></li>
-                                                    <li> 选择任意节点 - 右键任务栏图标 - 全局模式/ClobalMode - Turn V2ray-core ON - 开始使用吧</li>
-                                                    <li> *CN+和CP+节点，请编辑节点，复制 <code>host</code> 处地址 粘贴到 <code>tls servername</code>处，才可能正常使用。 2020.3.5</li>
-                                                    <li> <a href="">看不懂？点我图文教程</a> </li>
+                                                    <li>1. 一键安装homebrew (如已安装homebrew请略过): <a href="/article?id=53" target="_blank">安装homebrew教程</a></li>
+                                                    <li>2. 一键安装v2rayA : <a href="/article?id=55" target="_blank">安装v2rayA教程</a></li>
+                                                    <li>3. 使用 v2rayA : <a href="https://zhuanlan.zhihu.com/p/414998586" target="_blank">如何使用v2rayA</a></li>
                                                 </ol>
-                                                <hr>
-                                                <ol>【Vmess- Clash 教程】
-                                                    <input type="text" id="mt-target-1" class="form-control" value="https://sub.1upsrss.top/sub?target=clash&url={{$link}}?v2ray=64" />
-                                                    <li> 订阅地址 <code>https://sub.1upsrss.top/sub?target=clash&url={{$link}}?v2ray=64</code> </li>
-                                                </ol>
-                                                <hr>
+                                                
                                                 <!-- <ol>【SS-R 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksX-NG-R8-1.4.4.dmg')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 点击状态栏纸飞机 -> 服务器 -> 编辑订阅 </li>
@@ -85,7 +77,7 @@
                                                 </ol> -->
                                             </div>
                                             <div class="tab-pane active" id="tools2">
-                                                <ol>【Vmess节点 - v2rayN软件 教程】
+                                                <ol>【 v2rayN 】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
                                                     <li> <a href="/clients/v2rayN-Core.zip" target="_blank">点此下载V2rayN</a> 解压缩 - 右键以管理员身份运行 <code>V2rayN.exe</code></li>
                                                     <li> 双击任务栏右下角 <code>V2rayN</code>图标 - 在软件界面中 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<code>{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 确定 - 返回软件界面 - 订阅 - 更新订阅  </li>
@@ -93,10 +85,10 @@
                                                     <li> <a href="/article?id=47">没看懂？点我图文教程</a></li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【Vmess- Clash 教程】
+                                                <!-- <ol>【 Clash 】
                                                     <input type="text" id="mt-target-1" class="form-control" value="https://sub.1upsrss.top/sub?target=clash&url={{$link}}?v2ray=64&scv=true" />
                                                     <li> 订阅地址 <code>https://sub.1upsrss.top/sub?target=clash&url={{$link}}?v2ray=64&scv=true</code> </li>
-                                                </ol>
+                                                </ol> -->
                                                 <hr>
                                                 <!-- <ol>【SS-R 教程】
                                                     <li> <a href="https://github.com/shadowsocksrr/shadowsocksr-csharp/releases/download/4.9.2/ShadowsocksR-win-4.9.2.zip" target="_blank">点击此处（V4.9.2版本）</a>下载客户端并启动 </li>
