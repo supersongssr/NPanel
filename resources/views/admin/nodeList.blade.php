@@ -64,7 +64,16 @@
                                         @foreach($nodeList as $node)
                                             <tr class="odd gradeX">
                                                 <td><a class="btn green" href="javascript:editNode('{{$node->id}}');"> {{$node->id}} </a></td>
-                                                <td> <span class="label {{$node->status ? 'label-danger' : 'label-default'}}">{{$node->name}}</span> </td>
+                                                <!-- <td> <span class="label {{$node->status ? 'label-danger' : 'label-warning'}}">{{$node->name}}</span> </td> -->
+                                                <td>  
+                                                    @if($node->status && $node->is_subscribe)
+                                                        <span class="label label-info">{{$node->name}}</span>
+                                                    @elseif($node->status)
+                                                        <span class="label label-warning">{{$node->name}}</span>
+                                                    @else
+                                                        <span class="label label-default">{{$node->name}}</span>
+                                                    @endif
+                                                    </td>
                                                 <td>
                                                     @if($node->is_transit == 1)
                                                         <span class="label {{$node->status ? 'label-info' : 'label-default'}}">CDN</span>
