@@ -166,20 +166,19 @@ class TicketController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '关闭失败']);
         }
 
-        $ticket->status = 2;
+        // $ticket->status = 2;
         $ticket->sort = 0;
         $ret = $ticket->save();
         if (!$ret) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '关闭失败']);
         }
-
+/*
         $title = "工单关闭提醒";
         $content = "工单【" . $ticket->title . "】已关闭";
-/**
         // 发邮件通知用户
         $logId = Helpers::addEmailLog($ticket->user->username, $title, $content);
         Mail::to($ticket->user->username)->send(new closeTicket($logId, $title, $content));
-**/
+*/
         return Response::json(['status' => 'success', 'data' => '', 'message' => '关闭成功']);
     }
 
