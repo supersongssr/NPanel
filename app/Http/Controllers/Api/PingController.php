@@ -15,8 +15,8 @@ use App\Components\Helpers;
 //sdo2022-04-13
 use App\Http\Models\User;
 use App\Http\Models\Coupon;
-
-
+// song2023-12-21 use for label ! cool way 
+use App\Http\Models\SsNodeLabel;
 
 /**
  * PING检测工具

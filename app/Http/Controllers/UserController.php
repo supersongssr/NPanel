@@ -496,7 +496,7 @@ class UserController extends Controller
     {
         $id = $request->get('id');
 
-        $ret = Ticket::uid()->where('id', $id)->update(['status' => 2]);
+        $ret = Ticket::uid()->where('id', $id)->update(['status' => 2,'sort' => 0]);
         if ($ret) {
             ServerChan::send('工单关闭提醒', '工单：ID' . $id . '用户已手动关闭');
 
