@@ -95,11 +95,6 @@ class PingController extends Controller
     {
         $request->get('token') != env('API_TOKEN') && exit; // 验证 token 防止滥用
 
-        $status = $request->get('status');
-        $daily = $request->get('daily');
-        $health = $request->get('health');
-        $traffic = $request->get('traffic');
-        $online = $request->get('online');
         $ip = getClientIp();
         //
         //获取NODE数据
@@ -112,18 +107,22 @@ class PingController extends Controller
             // $node->save();
             // exit;
         }
-        $status == 0 && $node->status = 0;
-        $status == 1 && $node->status = 1;
-        $node->node_onload = $daily;
-        $health == 0 && $node->is_subscribe = 0;
-        $health == 1 && $node->is_subscribe = 1;
-        $node->node_online = $online;
-        $node->traffic = $traffic;
+        $request->get('status') == 0 && $node->status = 0;
+        $request->get('status') == 1 && $node->status = 1;
+        $request->get('health') == 0 && $node->is_subscribe = 0;
+        $request->get('health') == 1 && $node->is_subscribe = 1;
+        $node->node_online = $request->get('online');
+        $node->traffic = $request->get('traffic');
+        $node->traffic_used = $request->get('traffic_used');
+        $node->traffic_used_daily = $request->get('traffic_used_daily');
+        $node->traffic_left = $request->get('traffic_left');
+        $node->traffic_left_daily = $request->get('traffic_left_daily');
+        $node->node_onload = $request->get('daily');
         $node->save();
         //写入节点在线人数
         $online_log = new SsNodeOnlineLog();
         $online_log->node_id = $id;
-        $online_log->online_user = $online;
+        $online_log->online_user = $request->get('online');
         $online_log->log_time = time();   
         $online_log->save();
     }
@@ -136,6 +135,8 @@ class PingController extends Controller
 
         $request->get('node_name') && $node->name = $request->get('node_name');
         $request->get('node_desc') && $node->desc = $request->get('node_desc');
+        $request->get('node_from') && $node->desc .= ',from:' . $request->get('node_from');
+        $request->get('node_expire') && $node->desc .= ',expire:' . $request->get('node_expire');
         $request->get('node_cost') != '' && $node->node_cost = $request->get('node_cost');
         $request->get('node_level') && $node->level = $request->get('node_level');
         $request->get('node_group') && $node->node_group = $request->get('node_group');
@@ -180,7 +181,13 @@ class PingController extends Controller
             //
             $node->v2_mode = $request->get('v2_mode'); // 2023-02-16 新增 grpc mode
             $node->v2_servicename = $request->get('v2_servicename'); // 2023-02-20 新增 grpc serviceName
-
+            if ($request->get('v2_id')){
+                if ($request->get('v2_id') != $id){
+                    $node->is_clone = $request->get('v2_id');
+                }else{
+                    $node->is_clone = 0;
+                }
+            }
         }
 
         $node->save();

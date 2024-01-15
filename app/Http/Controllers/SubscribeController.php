@@ -165,17 +165,17 @@ class SubscribeController extends Controller
         $rocket_count = 0;
         // 开始获取节点 ：
         $scheme = '';  
-        $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@cloudfront.com:443'.'#'.urlencode('有效期：'.$user->expire_time)."\n";
+        $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('有效期：'.$user->expire_time)."\n";
         $newsList = SsNode::query()->where('status',1)->where('node_group',0)->orderBy('level', 'desc')->get();     //获取等级为0的news节点，新闻通知节点。
         foreach ($newsList as $key => $node) {
             if ( $node->type == 1 && ($ss_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {
-                $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@cloudfront.com:443';
+                $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443';
                 $scheme .= '#'.urlencode($node->name) ."\n";
             } elseif ( $node->type == 2 && ($vmess_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {       // 获取 vmess节点   
                 $v2_json = [
                     "v"    => "2",
                     "ps"   => $node->name ,
-                    "add"  => 'cloudfront.com' ,
+                    "add"  => 'google.com' ,
                     "port" => 443 ,
                     "id"   => '11886d96-252e-4166-9535-ec72467ad095' ,
                     "aid"  => 0 ,
@@ -190,15 +190,15 @@ class SubscribeController extends Controller
                 ];
                 $scheme .= 'vmess://' . base64_encode(json_encode($v2_json)) . "\n";
             } elseif ( $node->type == 3 && ($vless_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {   // vless节点获取
-                $scheme .= 'vless://11886d96-252e-4166-9535-ec72467ad095@cloudfront.com:443?encryption=none';
+                $scheme .= 'vless://11886d96-252e-4166-9535-ec72467ad095@google.com:443?encryption=none';
                 $scheme .= '#'.urlencode($node->name) . "\n";
             } elseif ( $node->type == 4 && ($trojan_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {  // trojan节点获取
-                $scheme .= 'trojan://33216f76-f96d-417d-855a-7bd40bb3b884@cloudfront.com:443';
+                $scheme .= 'trojan://33216f76-f96d-417d-855a-7bd40bb3b884@google.com:443';
                 $scheme .= '#'.urlencode($node->name) . "\n";
             }       
         }
         // 获取正式节点。
-        $nodeList = SsNode::query()->where('status',1)->where('is_subscribe',1)->where('node_group',$user->node_group)->where('level', '<=' ,$user->level)->orderBy('node_onload', 'desc')->get();
+        $nodeList = SsNode::query()->where('status',1)->where('is_subscribe',1)->where('node_group',$user->node_group)->where('level', '<=' ,$user->level)->orderBy('traffic_left_daily', 'desc')->get();
         if (empty($nodeList)) {
             exit(base64_encode($scheme));
         }
@@ -218,7 +218,7 @@ class SubscribeController extends Controller
                 }
                 $v2_json = [
                     "v"    => "2",
-                    "ps"   => $node->name.'_'.$node->traffic_rate.'_'.$node->bandwidth.'M' ,
+                    "ps"   => $node->name  ,
                     "add"  => $node->server ,
                     "port" => $node->v2_port ,
                     "id"   => $node_uuid ,
@@ -244,7 +244,7 @@ class SubscribeController extends Controller
                 }
                 $scheme .= 'vless://'.$node_uuid.'@'.$node->server.':'.$node->v2_port;
                 $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni .'&serviceName='.$node->v2_servicename. '&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
-                $scheme .= '#'.urlencode($node->name.'_'.$node->traffic_rate.'_'.$node->bandwidth.'M') . "\n";
+                $scheme .= '#'.urlencode($node->name) . "\n";
                 $vless_count += 1;
                 $v2ray_count += 1;
                 $rocket_count += 1;
@@ -254,12 +254,30 @@ class SubscribeController extends Controller
                 }
                 $scheme .= 'trojan://'.$node_uuid.'@'.$node->server.':'.$node->v2_port;
                 $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni.'&serviceName='.$node->v2_servicename.'&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
-                $scheme .= '#'.urlencode($node->name.'_'.$node->traffic_rate.'_'.$node->bandwidth.'M') . "\n";
+                $scheme .= '#'.urlencode($node->name) . "\n";
                 $trojan_count += 1;
                 $v2ray_count += 1;
                 $rocket_count += 1;
             }            
         }
+
+        // 2023-12-21 获取 free proxy nodes share link 
+        $getFreeNodes = false;
+        if ($getFreeNodes){
+            if ($ss_sub || $ver == "2" || $v2ray_sub || $rocket_sub){
+                $scheme .= "";
+            }
+            if ($vmess_sub || $ver == "2" || $v2ray_sub || $rocket_sub){
+                $scheme .= "";
+            }
+            if ($vless_sub || $ver == "2" || $v2ray_sub || $rocket_sub){
+                $scheme .= "";
+            }
+            if ($trojan_sub || $ver == "2" || $v2ray_sub || $rocket_sub){
+                $scheme .= "";
+            }
+        }
+
         exit(base64_encode($scheme));
     }
 

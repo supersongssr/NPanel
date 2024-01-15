@@ -40,7 +40,7 @@ CREATE TABLE `ss_node` (
   `obfs_param` VARCHAR(128) NULL DEFAULT '' COMMENT '混淆参数',
   `traffic_rate` FLOAT NOT NULL DEFAULT '1.00' COMMENT '流量比率',
   `bandwidth` INT(11) NOT NULL DEFAULT '100' COMMENT '出口带宽，单位M',
-  `traffic` BIGINT(20) NOT NULL DEFAULT '1000' COMMENT '已用流量',
+  `traffic` BIGINT(20) NOT NULL DEFAULT '1000' COMMENT '流量',
   `monitor_url` VARCHAR(255) NULL DEFAULT NULL COMMENT '监控地址',
   `is_subscribe` TINYINT(4) NULL DEFAULT '1' COMMENT '是否允许用户订阅该节点：0-否、1-是',
   `is_nat` TINYINT(4) NOT NULL DEFAULT '0' COMMENT '是否为NAT机：0-否、1-是',
@@ -1468,3 +1468,14 @@ ALTER TABLE `ss_node` ADD COLUMN `v2_mode` VARCHAR(255) COMMENT 'grpcMode';
 -- 2023-02-20 添加 v2_servicename 参数
 ALTER TABLE `ss_node` ADD COLUMN `v2_servicename` VARCHAR(255) COMMENT 'servicename';
 
+ALTER TABLE `ss_node` ADD COLUMN  `traffic_used` BIGINT(20)  DEFAULT '0' COMMENT '已用流量';
+ALTER TABLE `ss_node` ADD COLUMN  `traffic_left` BIGINT(20)  DEFAULT '0' COMMENT '剩余流量';
+
+ALTER TABLE `ss_node` ADD COLUMN  `traffic_used_daily` BIGINT(20)  DEFAULT '0' COMMENT '已用流量日均';
+ALTER TABLE `ss_node` ADD COLUMN  `traffic_left_daily` BIGINT(20)  DEFAULT '0' COMMENT '剩余流量日均';
+
+INSERT INTO `config` VALUES ('', 'traffic_record_group0', '','0组记录');
+INSERT INTO `config` VALUES ('', 'traffic_record_group1', '','1组记录');
+INSERT INTO `config` VALUES ('', 'traffic_record_group2', '','2组记录');
+
+ALTER TABLE `ss_node` ADD COLUMN `is_clone` int(11)  NOT NULL DEFAULT '0' COMMENT '克隆ID';

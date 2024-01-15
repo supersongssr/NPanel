@@ -66,12 +66,14 @@ class AdminController extends Controller
     {
 
         // 显示节点流量信息
-        $view['all_traffic_daily_mark'] = self::$systemConfig['all_traffic_daily_mark'];
-        $view['all_traffic_daily_supply'] = self::$systemConfig['all_traffic_daily_supply'];
-        $view['group1_traffic_daily_mark'] = self::$systemConfig['group1_traffic_daily_mark'];
-        $view['group1_traffic_daily_supply'] = self::$systemConfig['group1_traffic_daily_supply'];
-        $view['group2_traffic_daily_mark'] = self::$systemConfig['group2_traffic_daily_mark'];
-        $view['group2_traffic_daily_supply'] = self::$systemConfig['group2_traffic_daily_supply'];
+        // $view['all_traffic_daily_mark'] = self::$systemConfig['all_traffic_daily_mark'];
+        // $view['all_traffic_daily_supply'] = self::$systemConfig['all_traffic_daily_supply'];
+        // $view['group1_traffic_daily_mark'] = self::$systemConfig['group1_traffic_daily_mark'];
+        // $view['group1_traffic_daily_supply'] = self::$systemConfig['group1_traffic_daily_supply'];
+        // $view['group2_traffic_daily_mark'] = self::$systemConfig['group2_traffic_daily_mark'];
+        // $view['group2_traffic_daily_supply'] = self::$systemConfig['group2_traffic_daily_supply'];
+        $view['traffic_record_group1'] = self::$systemConfig['traffic_record_group1'];
+        $view['traffic_record_group2'] = self::$systemConfig['traffic_record_group2'];
 
         //Song
         $past = strtotime(date('Y-m-d', strtotime("-" . self::$systemConfig['expire_days'] . " days")));
