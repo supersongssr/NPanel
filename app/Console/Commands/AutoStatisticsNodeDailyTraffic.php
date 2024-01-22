@@ -101,20 +101,20 @@ class AutoStatisticsNodeDailyTraffic extends Command
                     continue;
                 }
 
-                $_tt = $node->traffic - $node->traffic_lastday;
-                $_tt > 100*1024*1024*1024 && $_tt = 100*1024*1024*1024;
-                $_tt < 1 && $_tt = 0;  // 限制在 0-100G之间
+                $_tt = $node->traffic - $node->traffic_lastday;  # $_tt = trafficToday 
+                $_tt > 999*1024*1024*1024 && $_tt = 999*1024*1024*1024;
+                $_tt < 1 && $_tt = 0;  // 限制在 0-999G之间
                 $_u += $_tt;
 
-                $_tl = $node->traffic_left_daily;
+                $_tl = $node->traffic_left_daily;  # $_tl = trafficLeft 
                 $_tl > 100*1024*1024*1024 && $_tl = 100*1024*1024*1024;
-                $_tl < 1 && $_tl = 1;
+                $_tl < 1 && $_tl = 0;  # limit 0-100G
                 $_l += $_tl;
 
             }
             $_nv = round($_u / 1024/1024/1024).'+'.round(($_l - $_u)/1024/1024/1024).'G,'.$_r->value; // new value 
-            $_nv = substr($_nv , 0 ,32);
-            $_r->value = $_nv .'|'.date("Y-m-d");
+            $_nv = substr($_nv , 0 ,63);
+            $_r->value = $_nv .'|'.date("m-d");
             $_r->save();
 
             $_group++;
