@@ -173,8 +173,15 @@
                                                 <div class="form-group">
                                                     <label for="desc" class="col-md-3 control-label"> desc </label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" name="desc" value="{{$node->desc}}" id="desc" placeholder="节点描述">
-                                                        <span class="help-block"> 节点备注信息 </span>
+                                                        <input type="text" class="form-control" name="desc" value="{{$node->desc}}" id="desc" placeholder="节点备注">
+                                                        <span class="help-block"> 备注 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="desc" class="col-md-3 control-label"> info </label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="info" value="{{$node->info}}" id="info" placeholder="节点信息">
+                                                        <span class="help-block"> 信息 </span>
                                                     </div>
                                                 </div>
                                                 <div class="form-group">

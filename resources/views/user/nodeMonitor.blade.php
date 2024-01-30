@@ -8,8 +8,7 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="note note-info">
-                    <h3 class="block">{{$nodeName}}<small style="padding-left:10px;">{{$nodeDesc}}</small></h3>
-                    <p> 提示：月流量统计不会统计当天，日流量统计不会统计当前小时。 </p>
+                    <h3 class="block">{{$node->name}}<br><small style="padding-left:10px;">{{$node->info}}</small></h3>
                 </div>
             </div>
         </div>
@@ -32,12 +31,12 @@
                                         </div>
                                         <div class="mt-comment-body">
                                             <div class="mt-comment-info">
-                                                <span class="mt-comment-author">{{$node->name}} ·{{$node->sort}}#{{$node->id}}</span>
+                                                <span class="mt-comment-author">{{$node->name}} </span>
                                                 <span class="mt-comment-date">
-                                                    <span class="badge badge-danger">#{{$node->id }}</span>
+                                                    <span class="badge badge-danger">@ {{$node->id }}</span>
                                                 </span>
                                             </div>
-                                            <div class="mt-comment-text"> Class:{{$node->sort}},No.{{$node->id}},Rate:{{$node->traffic_rate}},TopRate:{{$node->node_cost/5}},Bandwidth:{{$node->bandwidth}}M,Traffic:{{floor($node->traffic /100000000)}}G,Online:{{$node->node_online}},Onload:{{$node->node_onload }}G/D</div>
+                                            <div class="mt-comment-text"> {{$node->node_unlock}}</div>
                                             <div class="mt-comment-details">
                                                     <span class="mt-comment-status mt-comment-status-pending">
                                                         @if($node->labels)

@@ -136,11 +136,10 @@ class AutoStatisticsNodeDailyTraffic extends Command
 
             # 流量统计和节点故障预警 ，排除一种情况，流量少，但是实际上是 流量已用超那种
             if ($node->is_subscribe == 1) {
-                $traffic_today < 1*1024*1024*1024 && $node->sort -= 10;
-                $traffic_today < 8*1024*1024*1024 && $node->sort -= 3;
+                $traffic_today < 1*1024*1024*1024 && $node->sort -= 3;
+                $traffic_today < 8*1024*1024*1024 && $node->sort -= 2;
                 $traffic_today < 16*1024*1024*1024 && $node->sort -= 1;
-                $traffic_today > 32*1024*1024*1024 && $node->sort += 1;
-                $traffic_today > 64*1024*1024*1024 && $node->sort += 4;
+                $traffic_today > 32*1024*1024*1024 && $node->sort = 0;
             }
 
             // 记录当前流量值

@@ -17,6 +17,8 @@ use App\Http\Models\User;
 use App\Http\Models\Coupon;
 // song2023-12-21 use for label ! cool way 
 use App\Http\Models\SsNodeLabel;
+use App\Http\Models\Label;
+
 
 /**
  * PING检测工具
@@ -132,10 +134,15 @@ class PingController extends Controller
 
         $request->get('token') != env('API_TOKEN') && exit; // 验证 token 防止滥用
         $node = SsNode::query()->where('id', $id)->first();
+        if (! $node ){
+            $node = new SsNode();
+            $node->id = $id;
+        }
 
         $request->get('node_name') && $node->name = $request->get('node_name');
-        $request->get('node_desc') && $node->desc = $request->get('node_desc');
-        $request->get('node_from') && $node->desc .= ',from:' . $request->get('node_from');
+        $request->get('node_info') && $node->info = $request->get('node_info');
+        $request->get('node_unlock_info') && $node->info .= $request->get('node_unlock_info');
+        $request->get('node_from') && $node->desc = ',from:' . $request->get('node_from');
         $request->get('node_expire') && $node->desc .= ',expire:' . $request->get('node_expire');
         $request->get('node_cost') != '' && $node->node_cost = $request->get('node_cost');
         $request->get('node_level') && $node->level = $request->get('node_level');
@@ -148,6 +155,25 @@ class PingController extends Controller
         if ($request->get('node_ip') || $request->get('node_ipv6')) {   //IP IPV6要同时记录。嘎嘎
             $node->ip = $request->get('node_ip');  //排序
             $node->ipv6 = $request->get('node_ipv6');  //排序
+        }
+
+        if ($request->get('node_unlock')){
+            $_a = $_a = str_replace(',','&',$request->get('node_unlock'));
+            $_a = str_replace(':','=',$_a);
+            $node->node_unlock = $_a;
+        }
+
+        if ($request->get('node_unlock_info')){  //生成 user Lables
+            SsNodeLabel::query()->where('node_id',$node->id)->delete(); //先删除之前的 label
+            $labels = Label::query()->orderBy('sort', 'desc')->orderBy('id', 'asc')->get();
+            foreach ($labels as $label) {
+                if (strstr($node->info , $label->name)){
+                    $ssNodeLabel = new SsNodeLabel();
+                    $ssNodeLabel->node_id = $node->id;
+                    $ssNodeLabel->label_id = $label->id;
+                    $ssNodeLabel->save();
+                }
+            }
         }
         
         //node protocol_conf  先判断是否有 vmess vless trojan ss 等标志前缀

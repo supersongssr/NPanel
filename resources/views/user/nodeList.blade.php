@@ -109,12 +109,12 @@
                                                 </div>
                                                 <div class="mt-comment-body">
                                                     <div class="mt-comment-info">
-                                                        <span class="mt-comment-author">{{$node->name}} ·{{$node->level}}#{{$node->id}}</span>
+                                                        <span class="mt-comment-author">{{$node->name}} </span>&nbsp;&nbsp;<span class="badge badge-default"> X {{$node->traffic_rate}}</span>
                                                         <span class="mt-comment-date">
-                                                            <span class="badge badge-danger">Rate: x{{$node->traffic_rate}}</span>
+                                                            <span class="badge badge-danger">@ {{$node->id}}</span>
                                                         </span>
                                                     </div>
-                                                    <div class="mt-comment-text"> {{$node->desc}}</div>
+                                                    <div class="mt-comment-text"> {{$node->info}}</div>
                                                     <div class="mt-comment-details">
                                                             <span class="mt-comment-status mt-comment-status-pending">
                                                                 @if($node->labels)
@@ -127,14 +127,14 @@
                                                             </span>
                                                         <ul class="mt-comment-actions" style="display: block;">
                                                             <li>
-                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="#txt_{{$node->id}}" > <i class="fa fa-reorder"></i> </a>
+                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="#txt_{{$node->id}}" > <i class="fa fa-unlock"></i> </a>
                                                             </li>
                                                             <li>
-                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="/nodeMonitor?id={{$node->id}}"> @if($node->type == 1) <i class="fa fa-paper-plane"></i> @else <i class="fa fa-vimeo"></i> @endif </a>
+                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="/nodeMonitor?id={{$node->id}}"> @if($node->type == 1) <i class="fa fa-code"></i> @else <i class="fa fa-vimeo"></i> @endif </a>
                                                             </li>
-                                                            <li>
+                                                            <!-- <li>
                                                                 <a class="btn btn-sm green btn-outline" data-toggle="modal" href="/nodeMonitor?id={{$node->id}}"> <i class="fa fa-qrcode"></i> </a>
-                                                            </li>
+                                                            </li> -->
                                                         </ul>
                                                     </div>
                                                 </div>
@@ -160,41 +160,9 @@
                             <h4 class="modal-title">{{trans('home.setting_info')}}</h4>
                         </div>
                         <div class="modal-body">
-                            @if ($node->type == 2)
-                            <textarea class="form-control" rows="10" readonly="readonly">Vmess V2ray Config：
-address: {{$node->server}}
-port: {{$node->v2_port}}
-id: {{Auth::user()->vmess_id}}
-alterId： {{$node->v2_alter_id}}
-security： {{$node->v2_method}}
-network： {{$node->v2_net}}
-remarks： {{$node->name}}#{{$node->id}}
-type： {{$node->v2_type}}
-host： {{$node->v2_host}}
-path： {{$node->v2_path}}
-serviceName: {{$node->v2_servicename}}
-mode: {{$node->v2_mode}}
-TLS： {{$node->v2_tls}}
-allowInsecure: true
-MAC:tls servername： {{$node->v2_host}}
-IOS:peer： {{$node->v2_host}}         </textarea>
-                            @else
-                            <textarea class="form-control" rows="10" readonly="readonly">SS SSR Config：
-address: {{$node->server}}
-port: {{$node->v2_port}}
-id: {{Auth::user()->vmess_id}}
-alterId： {{$node->v2_alter_id}}
-security： {{$node->v2_method}}
-network： {{$node->v2_net}}
-remarks： {{$node->name}}#{{$node->id}}
-type： {{$node->v2_type}}
-host： {{$node->v2_host}}
-MAC:tls servername： {{$node->v2_host}}
-IOS:peer： {{$node->v2_host}}
-path： {{$node->v2_path}}
-TLS： {{$node->v2_tls}}
-allowInsecure: true         </textarea>
-                            @endif
+                            <textarea class="form-control" rows="10" readonly="readonly"> {{$node->node_unlock}}   </textarea>
+                            
+
                         </div>
                     </div>
                 </div>

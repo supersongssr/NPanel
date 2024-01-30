@@ -1479,3 +1479,8 @@ INSERT INTO `config` VALUES ('', 'traffic_record_group1', '','1组记录');
 INSERT INTO `config` VALUES ('', 'traffic_record_group2', '','2组记录');
 
 ALTER TABLE `ss_node` ADD COLUMN `is_clone` int(11)  NOT NULL DEFAULT '0' COMMENT '克隆ID';
+
+ALTER TABLE `ss_node` ADD COLUMN `node_unlock` VARCHAR(500)  DEFAULT '' COMMENT '媒体解锁';
+
+
+ALTER TABLE `ss_node` ADD COLUMN  `info` VARCHAR(255) DEFAULT '' COMMENT '节点信息';

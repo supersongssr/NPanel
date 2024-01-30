@@ -47,12 +47,16 @@ class Test extends Command
     private function aTest()
     {
 
-        echo '禁用几乎所有节点的订阅信息';
-        $nodes = SsNode::query()->where('id','>',20)->get();
-        foreach ($nodes as $node) {
-            $node->is_subscribe = 0;
-            echo $node->id . ' --- ';
-            $node->save();
+        // echo '禁用几乎所有节点的订阅信息';
+        // $nodes = SsNode::query()->where('id','>',20)->get();
+        // foreach ($nodes as $node) {
+        //     $node->is_subscribe = 0;
+        //     echo $node->id . ' --- ';
+        //     $node->save();
+        // }
+        $nodes = SsNode::query()->where('id',300)->first();
+        if (! $nodes){
+            echo 123;
         }
       // $all_traffic_today = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('node_group','>',0)->where('status',1)->sum('traffic') - SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('node_group','>',0)->where('status',1)->sum('traffic_lastday');
       // echo '总用' . floor($all_traffic_today / 1073741824) ."G \n";
