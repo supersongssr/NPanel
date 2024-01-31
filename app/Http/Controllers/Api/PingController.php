@@ -141,7 +141,7 @@ class PingController extends Controller
 
         $request->get('node_name') && $node->name = $request->get('node_name');
         $request->get('node_info') && $node->info = $request->get('node_info');
-        $request->get('node_unlock_info') && $node->info .= $request->get('node_unlock_info');
+        // $request->get('node_unlock_info') && $node->info .= $request->get('node_unlock_info');
         $request->get('node_from') && $node->desc = ',from:' . $request->get('node_from');
         $request->get('node_expire') && $node->desc .= ',expire:' . $request->get('node_expire');
         $request->get('node_cost') != '' && $node->node_cost = $request->get('node_cost');
@@ -163,7 +163,7 @@ class PingController extends Controller
             $node->node_unlock = $_a;
         }
 
-        if ($request->get('node_unlock_info')){  //生成 user Lables
+        if ($request->get('node_info')){  //生成 user Lables
             SsNodeLabel::query()->where('node_id',$node->id)->delete(); //先删除之前的 label
             $labels = Label::query()->orderBy('sort', 'desc')->orderBy('id', 'asc')->get();
             foreach ($labels as $label) {
