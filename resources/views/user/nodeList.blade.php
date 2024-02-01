@@ -127,10 +127,10 @@
                                                             </span>
                                                         <ul class="mt-comment-actions" style="display: block;">
                                                             <li>
-                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="#txt_{{$node->id}}" > <i class="fa fa-unlock"></i> </a>
+                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="#txt_{{$node->id}}" > <i class="fa fa-youtube-play"></i> </a>
                                                             </li>
                                                             <li>
-                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="/nodeMonitor?id={{$node->id}}"> @if($node->type == 1) <i class="fa fa-code"></i> @else <i class="fa fa-vimeo"></i> @endif </a>
+                                                                <a class="btn btn-sm green btn-outline" data-toggle="modal" href="/nodeMonitor?id={{$node->id}}"> <i class="fa fa-info"></i>  </a>
                                                             </li>
                                                             <!-- <li>
                                                                 <a class="btn btn-sm green btn-outline" data-toggle="modal" href="/nodeMonitor?id={{$node->id}}"> <i class="fa fa-qrcode"></i> </a>
@@ -160,7 +160,7 @@
                             <h4 class="modal-title">{{trans('home.setting_info')}}</h4>
                         </div>
                         <div class="modal-body">
-                            <textarea class="form-control" rows="10" readonly="readonly"> {{$node->node_unlock}}   </textarea>
+                            <textarea class="form-control" rows="10" readonly="readonly"> {{str_replace('&',"\n",$node->node_unlock)}}   </textarea>
                             
 
                         </div>

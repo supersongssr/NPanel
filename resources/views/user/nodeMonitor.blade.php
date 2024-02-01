@@ -36,7 +36,7 @@
                                                     <span class="badge badge-danger">@ {{$node->id }}</span>
                                                 </span>
                                             </div>
-                                            <div class="mt-comment-text"> {{$node->node_unlock}}</div>
+                                            <div class="mt-comment-text"> {{parse_str($node->node_unlock, $node_unlock)}} @foreach($node_unlock as $k => $v ) <span class="font-green">{{$k}}:</span>{{$v}} @endforeach</div>
                                             <div class="mt-comment-details">
                                                     <span class="mt-comment-status mt-comment-status-pending">
                                                         @if($node->labels)

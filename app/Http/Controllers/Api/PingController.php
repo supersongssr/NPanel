@@ -161,20 +161,22 @@ class PingController extends Controller
             $_a = $_a = str_replace(',','&',$request->get('node_unlock'));
             $_a = str_replace(':','=',$_a);
             $node->node_unlock = $_a;
-        }
-
-        if ($request->get('node_info')){  //生成 user Lables
-            SsNodeLabel::query()->where('node_id',$node->id)->delete(); //先删除之前的 label
-            $labels = Label::query()->orderBy('sort', 'desc')->orderBy('id', 'asc')->get();
-            foreach ($labels as $label) {
-                if (strstr($node->info , $label->name)){
-                    $ssNodeLabel = new SsNodeLabel();
-                    $ssNodeLabel->node_id = $node->id;
-                    $ssNodeLabel->label_id = $label->id;
-                    $ssNodeLabel->save();
+            
+            if ($request->get('node_info')){  //生成 user Lables
+                SsNodeLabel::query()->where('node_id',$node->id)->delete(); //先删除之前的 label
+                $labels = Label::query()->orderBy('sort', 'desc')->orderBy('id', 'asc')->get();
+                foreach ($labels as $label) {
+                    if (strstr($node->info , $label->name)){
+                        $ssNodeLabel = new SsNodeLabel();
+                        $ssNodeLabel->node_id = $node->id;
+                        $ssNodeLabel->label_id = $label->id;
+                        $ssNodeLabel->save();
+                    }
                 }
             }
         }
+
+        
         
         //node protocol_conf  先判断是否有 vmess vless trojan ss 等标志前缀
         if ( $request->get('v2') ) {
