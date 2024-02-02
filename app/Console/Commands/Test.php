@@ -54,10 +54,12 @@ class Test extends Command
         //     echo $node->id . ' --- ';
         //     $node->save();
         // }
-        $nodes = SsNode::query()->where('id',300)->first();
-        if (! $nodes){
-            echo 123;
-        }
+        // $nodes = SsNode::query()->get();
+        
+        // foreach($nodes as $node){
+        //     $node->sort = 0;
+        //     $node->save();
+        // }
       // $all_traffic_today = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('node_group','>',0)->where('status',1)->sum('traffic') - SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('node_group','>',0)->where('status',1)->sum('traffic_lastday');
       // echo '总用' . floor($all_traffic_today / 1073741824) ."G \n";
       // // 每日供给量

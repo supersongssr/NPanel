@@ -132,14 +132,15 @@ class AutoStatisticsNodeDailyTraffic extends Command
             // 写入每天流量差值记录
             $node->monitor_url = round($traffic_today / 1073741824) . ',' . $node->monitor_url;
             $node->monitor_url = substr($node->monitor_url, 0, 32);
+            $node->is_subscribe == 0 && $node->monitor_url = 'U'.$node->monitor_url;
             $node->monitor_url .= '|'.date("Y-m-d");
 
             # 流量统计和节点故障预警 ，排除一种情况，流量少，但是实际上是 流量已用超那种
-            if ($node->is_subscribe == 1) {
-                $traffic_today < 1*1024*1024*1024 && $node->sort -= 3;
-                $traffic_today < 8*1024*1024*1024 && $node->sort -= 2;
-                $traffic_today < 16*1024*1024*1024 && $node->sort -= 1;
-                $traffic_today > 32*1024*1024*1024 && $node->sort = 0;
+            if ($node->status == 1 && $node->is_subscribe == 1 && $node->is_clone == 0 ) {
+                $traffic_today < 1*1024*1024*1024 && $node->sort -= 2;
+                $traffic_today < 8*1024*1024*1024 && $node->sort -= 1;
+                $traffic_today > 16*1024*1024*1024 && $node->sort = 0;
+                $node->traffic_used_daily > $node->traffic_left_daily && $node->sort = 0;
             }
 
             // 记录当前流量值
