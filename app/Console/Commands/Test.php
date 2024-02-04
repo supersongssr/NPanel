@@ -48,14 +48,16 @@ class Test extends Command
     {
 
         // echo '禁用几乎所有节点的订阅信息';
-        // $nodes = SsNode::query()->where('id','>',20)->get();
+        // $nodes = SsNode::query()->where('id','>',9)->get();
         // foreach ($nodes as $node) {
-        //     $node->is_subscribe = 0;
-        //     echo $node->id . ' --- ';
+        //     // $node->is_subscribe = 0;
+        //     // echo $node->id . ' --- ';
+        //     $node->name = str_replace('🇺🇳','',$node->name);
+        //     $node->name = $node->isotoemoji($node->country_code) . $node->name;
         //     $node->save();
         // }
+
         // $nodes = SsNode::query()->get();
-        
         // foreach($nodes as $node){
         //     $node->sort = 0;
         //     $node->save();
