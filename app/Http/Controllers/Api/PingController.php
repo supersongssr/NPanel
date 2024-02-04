@@ -140,6 +140,8 @@ class PingController extends Controller
         }
 
         $request->get('node_name') && $node->name = $request->get('node_name');
+        $request->get('node_country_code') && $node->country_code = $request->get('node_country_code');
+        // $request->get('node_country_code') && $node->name = $node->isotoemoji($request->get('node_country_code')).$node->name;
         $request->get('node_info') && $node->info = $request->get('node_info');
         // $request->get('node_unlock_info') && $node->info .= $request->get('node_unlock_info');
         $request->get('node_from') && $node->desc = ',from:' . $request->get('node_from');
@@ -149,7 +151,6 @@ class PingController extends Controller
         $request->get('node_group') && $node->node_group = $request->get('node_group');
         $request->get('node_traffic_limit') && $node->traffic_limit = $request->get('node_traffic_limit')*1024*1024*1024;
         $request->get('node_sort') != '' && $node->sort = $request->get('node_sort');  //排序 这里之所以用 node_sort 是因为 sort 参数在 Sspuim里面 是节点类型的意思。避免混淆
-        $request->get('node_country_code') && $node->country_code = $request->get('node_country_code');
         $request->get('node_traffic_rate') && $node->traffic_rate = $request->get('node_traffic_rate');
         $request->get('node_bandwidth') && $node->bandwidth = $request->get('node_bandwidth');  //带宽
         if ($request->get('node_ip') || $request->get('node_ipv6')) {   //IP IPV6要同时记录。嘎嘎
