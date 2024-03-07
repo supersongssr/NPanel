@@ -105,7 +105,9 @@ class AutoStatisticsNodeDailyTraffic extends Command
                 $_tt > 999*1024*1024*1024 && $_tt = 999*1024*1024*1024;
                 $_tt < 1 && $_tt = 0;  // 限制在 0-999G之间
                 $_u += $_tt;
-
+                if ($node->status != 1){  // fix the bugs: status = 0 nodes do not count the traffic 
+                    continue;
+                }
                 $_tl = $node->traffic_left_daily;  # $_tl = trafficLeft 
                 $_tl > 100*1024*1024*1024 && $_tl = 100*1024*1024*1024;
                 $_tl < 1 && $_tl = 0;  # limit 0-100G
@@ -145,6 +147,8 @@ class AutoStatisticsNodeDailyTraffic extends Command
 
             // 记录当前流量值
             $node->traffic_lastday = $node->traffic;
+            $node->traffic_used_daily = 0;
+            $node->traffic_left_daily = 0;
             $node->save();
             //
             // 记录流量记录
