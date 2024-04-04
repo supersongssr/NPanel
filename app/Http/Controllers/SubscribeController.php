@@ -243,7 +243,7 @@ class SubscribeController extends Controller
                     continue;
                 }
                 $scheme .= 'vless://'.$node_uuid.'@'.$node->server.':'.$node->v2_port;
-                $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni .'&serviceName='.$node->v2_servicename. '&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
+                $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni .'&fp='.$node->v2_fp.'&serviceName='.$node->v2_servicename. '&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
                 $scheme .= '#'.urlencode($node->name.($node->traffic_rate != 1 ? '_$'.$node->traffic_rate : '')) . "\n";
                 $vless_count += 1;
                 $v2ray_count += 1;

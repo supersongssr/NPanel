@@ -185,6 +185,13 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
+                                                    <label for="desc" class="col-md-3 control-label"> node_unlock </label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" name="node_unlock" value="{{$node->node_unlock}}" id="node_unlock" placeholder="解锁">
+                                                        <span class="help-block"> 信息 </span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
                                                     <label for="bandwidth" class="col-md-3 control-label">bandwidth </label>
                                                     <div class="col-md-8">
                                                         <div class="input-group">
@@ -462,6 +469,12 @@
                                                                 <option value="xtls-rprx-splice-udp443" @if($node->v2_flow == 'xtls-rprx-splice-udp443') selected @endif>xtls-rprx-splice-udp443</option>
                                                             </select>
                                                             <span class="help-block"> Xray流控 XTls </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="v2_fp" class="col-md-3 control-label">fp fingerprint</label>
+                                                        <div class="col-md-8">
+                                                            <input type="text" class="form-control" name="v2_fp" value="{{$node->v2_fp}}" id="v2_fp" placeholder="">
                                                         </div>
                                                     </div>
                                                     <div class="form-group">

@@ -1484,3 +1484,6 @@ ALTER TABLE `ss_node` ADD COLUMN `node_unlock` VARCHAR(500)  DEFAULT '' COMMENT 
 
 
 ALTER TABLE `ss_node` ADD COLUMN  `info` VARCHAR(255) DEFAULT '' COMMENT '节点信息';
+
+-- 2024-04-04 add fingerprint to vless 
+ALTER TABLE `ss_node` ADD COLUMN  `v2_fp` VARCHAR(255) DEFAULT '' COMMENT 'fingerprint';

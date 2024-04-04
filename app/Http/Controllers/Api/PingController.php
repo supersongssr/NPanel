@@ -210,6 +210,8 @@ class PingController extends Controller
             //
             $node->v2_mode = $request->get('v2_mode'); // 2023-02-16 新增 grpc mode
             $node->v2_servicename = $request->get('v2_servicename'); // 2023-02-20 新增 grpc serviceName
+            $node->v2_fp = $request->get('v2_fp'); // 2024-04-04 add fingerprint
+
             if ($request->get('v2_id')){
                 if ($request->get('v2_id') != $id){
                     $node->is_clone = $request->get('v2_id');
