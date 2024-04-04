@@ -459,20 +459,12 @@
                                                     <div class="form-group">
                                                         <label for="v2_flow" class="col-md-3 control-label">v2_flow</label>
                                                         <div class="col-md-8">
-                                                            <select class="form-control" name="v2_flow" id="v2_flow">
-                                                                <option value="" @if($node->v2_flow == '') selected @endif>不设置</option>
-                                                                <option value="xtls-rprx-origin" @if($node->v2_flow == 'xtls-rprx-origin') selected @endif>xtls-rprx-origin纪念价值大于实用</option>
-                                                                <option value="xtls-rprx-origin-udp443" @if($node->v2_flow == 'xtls-rprx-origin-udp443') selected @endif>xtls-rprx-origin-udp443</option>
-                                                                <option value="xtls-rprx-direct" @if($node->v2_flow == 'xtls-rprx-direct') selected @endif>xtls-rprx-direct所有平台</option>
-                                                                <option value="xtls-rprx-direct-udp443" @if($node->v2_flow == 'xtls-rprx-direct-udp443') selected @endif>xtls-rprx-direct-udp443</option>
-                                                                <option value="xtls-rprx-splice" @if($node->v2_flow == 'xtls-rprx-splice') selected @endif>xtls-rprx-spliceLinux推荐</option>
-                                                                <option value="xtls-rprx-splice-udp443" @if($node->v2_flow == 'xtls-rprx-splice-udp443') selected @endif>xtls-rprx-splice-udp443</option>
-                                                            </select>
-                                                            <span class="help-block"> Xray流控 XTls </span>
+                                                            <input type="text" class="form-control" name="v2_flow" value="{{$node->v2_flow}}" id="v2_flow" placeholder="">
                                                         </div>
                                                     </div>
+                                                    
                                                     <div class="form-group">
-                                                        <label for="v2_fp" class="col-md-3 control-label">fp fingerprint</label>
+                                                        <label for="v2_fp" class="col-md-3 control-label">v2_fp</label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control" name="v2_fp" value="{{$node->v2_fp}}" id="v2_fp" placeholder="">
                                                         </div>
@@ -687,7 +679,7 @@
             var v2_insider_port = $('#v2_insider_port').val();
             var v2_outsider_port = $('#v2_outsider_port').val();
             var node_uuid = $('#node_uuid').val();
-            var v2_flow = $('#v2_flow option:selected').val();
+            var v2_flow = $('#v2_flow').val();
             var v2_sni = $('#v2_sni').val();
             var v2_alpn = $('#v2_alpn').val();
             var v2_encryption = $('#v2_encryption').val();
