@@ -9,18 +9,16 @@
         <div class="row">
             <div class="col-md-12">
                 <!-- BEGIN PAGE BASE CONTENT -->
-                <!-- <div class="row">
+                <div class="row">
                     <div class="col-md-12">
                         <div class="note note-info">
-                            <p><strong>注意：</strong> 添加节点后自动生成的<code>ID</code>，即为该节点部署ShadowsocksR Python版后端时<code>usermysql.json</code>中的<code>node_id</code>的值，同时也是部署V2Ray后端时的<code>nodeId</code>的值；</p>
-                            <p>V2Ray Go版节点<a href="https://github.com/ssrpanel/SSRPanel/wiki/V2Ray%E5%AE%8C%E6%95%B4%E9%85%8D%E7%BD%AE%E7%A4%BA%E4%BE%8B%EF%BC%88Go%E7%89%88%EF%BC%89" target="_blank">部署教程</a>；
-                            Shadowsocks Go版节点<a href="https://github.com/ssrpanel/SSRPanel/wiki/SS-Go%E7%89%88%E8%8A%82%E7%82%B9%E9%83%A8%E7%BD%B2" target="_blank">部署教程</a>；
-                            更改服务器的SSH端口<a href="https://github.com/ssrpanel/SSRPanel/wiki/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A6%81%E6%AD%A2PING%E3%80%81%E6%94%B9SSH%E7%AB%AF%E5%8F%A3%E5%8F%B7" target="_blank">教程</a>；</p>
-                            <p>中转节点需要自行配置服务器端口转发，TCP阻断检测无效，务必填写域名； </p>
-                            <p>NAT节点需要<a href="https://github.com/ssrpanel/SSRPanel/wiki/NAT-VPS%E9%85%8D%E7%BD%AE%E6%95%99%E7%A8%8B" target="_blank">配置DDNS</a>，TCP阻断检测无效，务必填写域名； </p>
+                        traffic_used={{round($node->traffic_used / 1024/1024/1024)}}G ; 
+                        traffic_left={{round($node->traffic_left /1024/1024/1024)}}G;
+                        traffic_used_daily={{round($node->traffic_used_daily/1024/1024/1024)}}G;
+                        traffic_left_daily={{round($node->traffic_left_daily / 1024/1024/1024)}}G;           
                         </div>
                     </div>
-                </div> -->
+                </div>
                 <div class="portlet light bordered">
                     <div class="portlet-body form">
                         <!-- BEGIN FORM-->
