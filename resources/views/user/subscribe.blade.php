@@ -81,7 +81,7 @@
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
                                                     <li> <a href="/clients/v2rayN-Core.zip" target="_blank">点此下载V2rayN</a> 解压缩 - 右键以管理员身份运行 <code>V2rayN.exe</code></li>
                                                     <li> 双击任务栏右下角 <code>V2rayN</code>图标 - 在软件界面中 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<code>{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 确定 - 返回软件界面 - 订阅 - 更新订阅  </li>
-                                                    <li> 软件界面 - 右键任意节点 - 设为活动的服务器 ； 右键点击右下角软件图标 - 代理 - 自动设置系统代理；打开浏览器上网吧 </li>
+                                                    <li> 软件界面 - 右键任意节点 - 设为活动的服务器 ； v2rayN软件界面 - 代理 - 自动设置系统代理；打开浏览器上网吧 </li>
                                                     <li> <a href="/article?id=47">没看懂？点我图文教程</a></li>
                                                 </ol>
                                                 <hr>
