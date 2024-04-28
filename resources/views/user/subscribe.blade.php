@@ -52,7 +52,7 @@
                                                 <a href="#tools5" data-toggle="tab"> <i class="fa fa-android"></i> Android </a>
                                             </li>
                                             <li>
-                                                <a href="#tools6" data-toggle="tab"> <i class="fa fa-gamepad"></i> Games </a>
+                                                <a href="#tools6" data-toggle="tab"> <i class="fa fa-wifi"></i> Router </a>
                                             </li>
                                         </ul>
                                         <div class="tab-content" style="font-size:16px;">
@@ -103,7 +103,7 @@
                                                 </ol> -->
                                             </div>
                                             <div class="tab-pane" id="tools3">
-                                                <ol>【Vmess 教程】
+                                                <ol>【Qv2ray】
                                                     <li><a href="https://github.com/jiangxufeng/v2rayL">点此查看Qv2ray的教程</a></li>
                                                 </ol>
                                                 <hr>
@@ -114,7 +114,7 @@
                                                 </ol> -->
                                             </div>
                                             <div class="tab-pane" id="tools4">
-                                                <ol>【Vmess节点 - 小火箭软件 教程】
+                                                <ol>【Shadowrocket】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?rocket=64" />
                                                     <li> 在<code>非国区</code>苹果商店 搜索 <code>shadowrocket</code> 购买 - 安装 <small>*在帮助中心页面提供了免费的applestore账号*</small></li>
                                                     <li> 打开<code>shadowrocket</code> - 点击右上角<code>+</code>号，类型: <code>Subscribe</code> - URL:<code>{{$link}}?rocket=64</code><small>*注意，小火箭的订阅链接很独特*</small> - 备注随意 - 完成 - 此时应已获取节点</li>
@@ -122,7 +122,7 @@
                                                     <li> <a href="/article?id=48">没看懂？点我查看图文教程</a></li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【Vmess Quan-X 教程】
+                                                <ol>【Quan-X】
                                                     <input type="text" id="mt-target-1" class="form-control" value="https://sub.1upsrss.top/sub?target=quanx&url={{$link}}?v2ray=64&emoji=true&fdn=true&list=true" />
                                                     <li> 订阅地址 <code>https://sub.1upsrss.top/sub?target=quanx&url={{$link}}?v2ray=64&emoji=true&fdn=true&list=true</code>
                                                 </ol>
@@ -138,9 +138,9 @@
                                                 </ol> -->
                                             </div>
                                             <div class="tab-pane" id="tools5">
-                                                <ol>【Vmess节点 - V2rayNG软件 教程】
+                                                <ol>【v2rayNG】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li> <a href="/clients/v2rayNG_1.7.1.apk">点此下载v2rayNG v1.7.1</a> - 安装 - 打开软件</li>
+                                                    <li> <a href="/clients/v2rayNG_1.7.1.apk">点此下载v2rayNG </a> - 安装 - 打开软件</li>
                                                     <li> 软件界面 - 右滑 - 订阅设置 - 点击右上角 <code>+</code> - 备注随意 - 地址：<code>{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 返回主界面 - 点击右上角打开菜单 - 更新订阅 </li>
                                                     <li> 选择一个节点 - 点击右下角小飞机 - 开始使用吧。 </li>
                                                 </ol>
