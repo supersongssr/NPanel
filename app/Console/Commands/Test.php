@@ -47,6 +47,20 @@ class Test extends Command
     private function aTest()
     {
 
+        # 自动获取所有节点 和 节点来自哪里
+        $nodes = SsNode::query()->where('status',1)->where('is_clone',0)->orderBy('node_group','desc')->get();
+        $a='';
+        foreach($nodes as $node){
+            $a.= $node->name.' @'.$node->id.' N'.$node->node_group.' from:'.$node->node_from.' ' .$node->desc."\n";
+            echo $node->id.' ';
+        }
+        $myfile = fopen("/www/wwwroot/srp-song/public/out.txt", "w") or die("Unable to open file!");
+        fwrite($myfile, $a);
+        fclose($myfile);
+        echo 'done';
+
+
+
         // echo '禁用几乎所有节点的订阅信息';
         // $nodes = SsNode::query()->where('id','>',9)->get();
         // foreach ($nodes as $node) {
