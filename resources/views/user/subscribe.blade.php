@@ -140,7 +140,7 @@
                                             <div class="tab-pane" id="tools5">
                                                 <ol>【v2rayNG】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li> <a href="/clients/v2rayNG_1.7.1.apk">点此下载v2rayNG </a> - 安装 - 打开软件</li>
+                                                    <li> <a href="/clients/v2rayNG_1.8.29_arm64-v8a.apk">点此下载v2rayNG </a> - 安装 - 打开软件</li>
                                                     <li> 软件界面 - 右滑 - 订阅设置 - 点击右上角 <code>+</code> - 备注随意 - 地址：<code>{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 返回主界面 - 点击右上角打开菜单 - 更新订阅 </li>
                                                     <li> 选择一个节点 - 点击右下角小飞机 - 开始使用吧。 </li>
                                                 </ol>
