@@ -57,13 +57,19 @@
                                         </ul>
                                         <div class="tab-content" style="font-size:16px;">
                                             <div class="tab-pane" id="tools1">
-                                                <ol>【 v2rayA 】
+                                                <ol>【 v2rayU 】
+                                                    <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
+                                                    <li>1. 下载安装:<a href="/clients/V2rayU-64.dmg" target="_blank">Intel芯片 v4.2.4</a> , <a href="/clients/V2rayU-arm64.dmg" target="_blank">AppleM芯片 v4.2.4</a></li>
+                                                    <li>2. 添加订阅: v2rayU图标 - Subscription - 输入上述订阅URL </li>
+                                                    <li>3. 使用节点: v2rayU - turn v2ray-core on </li>
+                                                </ol>
+                                                <hr>
+                                                <ol>【 v2rayA 暂停使用 】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
                                                     <li>1. 一键安装homebrew (如已安装homebrew请略过): <a href="/article?id=53" target="_blank">安装homebrew教程</a></li>
                                                     <li>2. 一键安装v2rayA : <a href="/article?id=55" target="_blank">安装v2rayA教程</a></li>
                                                     <li>3. 使用 v2rayA : <a href="https://zhuanlan.zhihu.com/p/414998586" target="_blank">如何使用v2rayA</a></li>
                                                 </ol>
-                                                
                                                 <!-- <ol>【SS-R 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksX-NG-R8-1.4.4.dmg')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
                                                     <li> 点击状态栏纸飞机 -> 服务器 -> 编辑订阅 </li>
@@ -79,7 +85,7 @@
                                             <div class="tab-pane active" id="tools2">
                                                 <ol>【 v2rayN 】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li> <a href="/clients/v2rayN-Core.zip" target="_blank">点此下载V2rayN</a> 解压缩 - 右键以管理员身份运行 <code>V2rayN.exe</code></li>
+                                                    <li> <a href="/clients/v2rayN-Core.zip" target="_blank">点此下载V2rayN v6.32</a> 解压缩 - 右键以管理员身份运行 <code>V2rayN.exe</code></li>
                                                     <li> 双击任务栏右下角 <code>V2rayN</code>图标 - 在软件界面中 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<code>{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 确定 - 返回软件界面 - 订阅 - 更新订阅  </li>
                                                     <li> 软件界面 - 右键任意节点 - 设为活动的服务器 ； v2rayN软件界面 - 代理 - 自动设置系统代理；打开浏览器上网吧 </li>
                                                     <li> <a href="/article?id=47">没看懂？点我图文教程</a></li>
