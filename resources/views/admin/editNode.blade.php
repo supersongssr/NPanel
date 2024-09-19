@@ -15,7 +15,8 @@
                         traffic_used={{round($node->traffic_used / 1024/1024/1024)}}G ; 
                         traffic_left={{round($node->traffic_left /1024/1024/1024)}}G;
                         traffic_used_daily={{round($node->traffic_used_daily/1024/1024/1024)}}G;
-                        traffic_left_daily={{round($node->traffic_left_daily / 1024/1024/1024)}}G;           
+                        traffic_left_daily={{round($node->traffic_left_daily / 1024/1024/1024)}}G;    
+                        is_clone={{$node->is_clone}};       
                         </div>
                     </div>
                 </div>

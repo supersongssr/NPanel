@@ -59,16 +59,16 @@
                                             <div class="tab-pane" id="tools1">
                                                 <ol>【 v2rayU 】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li>1. 下载安装:<a href="/clients/V2rayU-64.dmg" target="_blank">Intel芯片 v4.2.4</a> , <a href="/clients/V2rayU-arm64.dmg" target="_blank">AppleM芯片 v4.2.4</a></li>
-                                                    <li>2. 添加订阅: v2rayU图标 - Subscription - 输入上述订阅URL </li>
-                                                    <li>3. 使用节点: v2rayU - turn v2ray-core on </li>
+                                                    <li>安装软件:<a href="/clients/V2rayU-64.dmg" target="_blank">Intel芯片 </a> , <a href="/clients/V2rayU-arm64.dmg" target="_blank">AppleM芯片 </a></li>
+                                                    <li>添加订阅: v2rayU图标 - Subscription - 输入订阅URL </li>
+                                                    <li>使用节点: v2rayU - Server - 选择节点,  v2rayU - turn v2ray-core on </li>
                                                 </ol>
                                                 <hr>
                                                 <ol>【 v2rayA 暂停使用 】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li>1. 一键安装homebrew (如已安装homebrew请略过): <a href="/article?id=53" target="_blank">安装homebrew教程</a></li>
-                                                    <li>2. 一键安装v2rayA : <a href="/article?id=55" target="_blank">安装v2rayA教程</a></li>
-                                                    <li>3. 使用 v2rayA : <a href="https://zhuanlan.zhihu.com/p/414998586" target="_blank">如何使用v2rayA</a></li>
+                                                    <li>一键安装homebrew (如已安装homebrew请略过): <a href="/article?id=53" target="_blank">安装homebrew教程</a></li>
+                                                    <li>一键安装v2rayA : <a href="/article?id=55" target="_blank">安装v2rayA教程</a></li>
+                                                    <li>使用 v2rayA : <a href="https://zhuanlan.zhihu.com/p/414998586" target="_blank">如何使用v2rayA</a></li>
                                                 </ol>
                                                 <!-- <ol>【SS-R 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksX-NG-R8-1.4.4.dmg')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
@@ -120,7 +120,12 @@
                                                 </ol> -->
                                             </div>
                                             <div class="tab-pane" id="tools4">
-                                                <ol>【Shadowrocket】
+                                            <ol>【Sing-Box】
+                                                    <input type="text" id="mt-target-1" class="form-control" value="https://sub.1upsrss.top/sub?target=singbox&url={{$link}}?v2ray=64" />
+                                                    <li> 在<code>美区</code>苹果商店 搜索 <code>sing-box</code> 免费 - 安装  </li>
+                                                </ol>
+                                                <hr>
+                                                <ol>【Shadowrocket 3.99$】
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?rocket=64" />
                                                     <li> 在<code>非国区</code>苹果商店 搜索 <code>shadowrocket</code> 购买 - 安装 <small>*在帮助中心页面提供了免费的applestore账号*</small></li>
                                                     <li> 打开<code>shadowrocket</code> - 点击右上角<code>+</code>号，类型: <code>Subscribe</code> - URL:<code>{{$link}}?rocket=64</code><small>*注意，小火箭的订阅链接很独特*</small> - 备注随意 - 完成 - 此时应已获取节点</li>
@@ -128,7 +133,7 @@
                                                     <li> <a href="/article?id=48">没看懂？点我查看图文教程</a></li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【Quan-X】
+                                                <ol>【Quan-X 8.99$】
                                                     <input type="text" id="mt-target-1" class="form-control" value="https://sub.1upsrss.top/sub?target=quanx&url={{$link}}?v2ray=64&emoji=true&fdn=true&list=true" />
                                                     <li> 订阅地址 <code>https://sub.1upsrss.top/sub?target=quanx&url={{$link}}?v2ray=64&emoji=true&fdn=true&list=true</code>
                                                 </ol>
