@@ -203,9 +203,13 @@ class SubscribeController extends Controller
             exit(base64_encode($scheme));
         }
         foreach ($nodeList as $key => $node) {
-
-            if ( $node->is_transit == 1 && $user->cfcdn ) {   // 设置用户CDN
-                $node->server = $user->cfcdn;
+            if ($node->v2_cdn){
+                if ($node->v2_cdn_ip){
+                    $node->server = $node->v2_cdn_ip; // cdn ip
+                }
+                if ( $node->v2_cdn == 'cf' && $user->cfcdn ) {   // 设置用户CDN
+                    $node->server = $user->cfcdn;
+                }
             }
             $node->v2_tls == 0 && $node->v2_tls = '';   // 解析 tls xtls 
             $node->v2_tls == 1 && $node->v2_tls = 'tls';

@@ -12,6 +12,7 @@
                 <div class="row">
                     <div class="col-md-12">
                         <div class="note note-info">
+                        v2_cdn={{$node->v2_cdn}};
                         traffic_used={{round($node->traffic_used / 1024/1024/1024)}}G ; 
                         traffic_left={{round($node->traffic_left /1024/1024/1024)}}G;
                         traffic_used_daily={{round($node->traffic_used_daily/1024/1024/1024)}}G;

@@ -1487,3 +1487,7 @@ ALTER TABLE `ss_node` ADD COLUMN  `info` VARCHAR(255) DEFAULT '' COMMENT '节点
 
 -- 2024-04-04 add fingerprint to vless 
 ALTER TABLE `ss_node` ADD COLUMN  `v2_fp` VARCHAR(255) DEFAULT '' COMMENT 'fingerprint';
+
+-- 2024-09-27 add cdn cdnip 
+ALTER TABLE `ss_node` ADD COLUMN  `v2_cdn` VARCHAR(255) DEFAULT '' COMMENT 'cdn';
+ALTER TABLE `ss_node` ADD COLUMN  `v2_cdn_ip` VARCHAR(255) DEFAULT '' COMMENT 'cdnip';

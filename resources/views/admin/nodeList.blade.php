@@ -75,7 +75,7 @@
                                                     @endif
                                                     </td>
                                                 <td>
-                                                    @if($node->is_transit == 1)
+                                                    @if($node->v2_cdn)
                                                         <span class="label {{$node->status ? 'label-info' : 'label-default'}}">CDN</span>
                                                     @elseif($node->type == 1)
                                                         <span class="label {{$node->status ? 'label-info' : 'label-default'}}">SS</span>
