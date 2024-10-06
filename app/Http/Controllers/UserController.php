@@ -352,11 +352,18 @@ class UserController extends Controller
         $view['fakapay_10url'] = self::$systemConfig['fakapay_10url'];
         $view['fakapay_100url'] = self::$systemConfig['fakapay_100url'];
 
+        $clonepay_webs = json_decode(self::$systemConfig['clonepay_webs']);
+        $clonepay_apis = json_decode(self::$systemConfig['clonepay_apis']);
+        // $sign = Auth::user()->username . '&' . date('Ymd') . '&'.self::$systemConfig['clonepay_token'];
+        // $view['clonepay_url'] = self::$systemConfig['clonepay_homeurl'] .'&regname=user'.Auth::user()->id .'&regemail='.Auth::user()->username.'&regkey='.$key;
+        $clonepays = [];
+        foreach($clonepay_webs as $k => $v ){
+            $sign = Auth::user()->username . '&' . date('Ymd') . '&'.$clonepay_apis->$v->logintoken;
+            $clonepays[$v]['name'] = $clonepay_apis->$v->name;
+            $clonepays[$v]['url'] = $clonepay_apis->$v->homeurl .'&regname=user'.Auth::user()->id .'&regemail='.Auth::user()->username.'&regkey='. md5($sign);
+        };
         $view['clonepay'] = self::$systemConfig['clonepay'];
-        $sign = Auth::user()->username . '&' . date('Ymd') . '&'.self::$systemConfig['clonepay_token'];
-        $key = md5($sign);
-        $view['clonepay_url'] = self::$systemConfig['clonepay_homeurl'] .'&regname=user'.Auth::user()->id .'&regemail='.Auth::user()->username.'&regkey='.$key;
-
+        $view['clonepays'] = $clonepays;
 
         $view['orderList'] = Order::uid()->with(['user', 'goods', 'coupon', 'payment'])->orderBy('oid', 'desc')->paginate(10)->appends($request->except('page'));
         $view['couponList'] = Coupon::where('user_id',Auth::user()->id)->orderBy('updated_at', 'desc')->paginate(10)->appends($request->except('page'));
@@ -1294,9 +1301,15 @@ class UserController extends Controller
         if (self::$systemConfig['clonepay'] != 'on') {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '本功能尚未开启']);
         }
+        if ( empty($request->get('code')) ){
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '请求信息为空,请联系管理员']);
+        }
+
+        $code = $request->get('code');
+        $clonepay_apis = json_decode(self::$systemConfig['clonepay_apis']);
         // 开始同步信息
-        if (self::$systemConfig['clonepay_syncurl']) {   //是否设置了 同步 url地址
-            $sync_url = self::$systemConfig['clonepay_syncurl'] .'&email=' . Auth::user()->username ;
+        if ($clonepay_apis->$code->syncurl) {   //是否设置了 同步 url地址
+            $sync_url = $clonepay_apis->$code->syncurl .'&email=' . Auth::user()->username ;
             // 开始 curl get 
             // 初始化
             $curl = curl_init();

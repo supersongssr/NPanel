@@ -231,13 +231,26 @@ class PingController extends Controller
         if ($sysConf['clonepay'] != 'on') {
             exit;
         }
+        $from = $request->get('from');
+        if (empty($from)){
+            exit;
+        }
+        // $clonepay_webs = json_decode($sysConf['clonepay_webs']);
+        // if (!in_array($from, $clonepay_webs)){
+        //     exit;
+        // }
+        $clonepay_apis = json_decode($sysConf['clonepay_apis']);
+        if (empty($clonepay_apis->$from)){
+            exit;
+        }
+
         // 验证 安全ip  
         $ip = $_SERVER["REMOTE_ADDR"]; // 获取请求ip
-        if ($ip != $sysConf['clonepay_safeip'] && $ip != $sysConf['clonepay_safeipv6']) {
+        if ($ip != $clonepay_apis->$from->safeip && $ip != $clonepay_apis->$from->safeipv6) {
             exit;
         }
         // 验证签名
-        $signStr = $request->get('order') .'&'. $request->get('money') .'&'. $sysConf['clonepay_token']; // 订单号 金额 token 生成签名
+        $signStr = $request->get('salt') .'&'. date('Ymd') .'&'. $request->get('order') .'&'. $request->get('money') .'&'. $clonepay_apis->$from->paytoken; // 订单号 金额 token 生成签名
         if(md5($signStr) != $request->get('sign')){         //验证签名是否一致
             exit;
         }
@@ -252,17 +265,23 @@ class PingController extends Controller
             exit;
         }
         // 验证订单号是否已存在
-        $exsitcoupon = Coupon::query()->where('sn',$request->get('order'))->first();
-        if (!empty($exsitcoupon->id)) {
+        $exsitcoupon = Coupon::query()->where('sn',$request->get('order'))->first(); 
+        if (!empty($exsitcoupon->id)) {  // 7后后可以删除. mark 2024-10-05
             echo '&error=订单已被记录';
+            exit;
+        }
+        $order = $from.$request->get('order');  //订单号前面加了标签
+        $exsitcoupon = Coupon::query()->where('sn',$order)->first();
+        if (!empty($exsitcoupon->id)) {
+            echo '&error=订单已被记录了';
             exit;
         }
         // 计算 money ,这里是按照 分计算的 所以 * 100
         $money = $request->money * 100;
         // 开始写入 充值记录 和返利
         $obj = new Coupon();
-        $obj->name = 'CP代付';
-        $obj->sn =  $request->order;  //订单
+        $obj->name = 'CP';
+        $obj->sn =  $order;  //订单
         $obj->logo = '';
         $obj->type = 3;  // 3=充值券
         $obj->usage = 1;

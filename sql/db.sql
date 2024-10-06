@@ -1463,6 +1463,8 @@ INSERT INTO `config` VALUES ('', 'clonepay_homeurl', '','代付地址');
 INSERT INTO `config` VALUES ('', 'clonepay_syncurl', '','代付同步请求地址');
 
 
+
+
 -- 2023-02-16 添加 v2_mode参数
 ALTER TABLE `ss_node` ADD COLUMN `v2_mode` VARCHAR(255) COMMENT 'grpcMode';
 -- 2023-02-20 添加 v2_servicename 参数
@@ -1491,3 +1493,9 @@ ALTER TABLE `ss_node` ADD COLUMN  `v2_fp` VARCHAR(255) DEFAULT '' COMMENT 'finge
 -- 2024-09-27 add cdn cdnip 
 ALTER TABLE `ss_node` ADD COLUMN  `v2_cdn` VARCHAR(255) DEFAULT '' COMMENT 'cdn';
 ALTER TABLE `ss_node` ADD COLUMN  `v2_cdn_ip` VARCHAR(255) DEFAULT '' COMMENT 'cdnip';
+
+
+-- 2024-10-05 add clonepay webs apis 
+
+INSERT INTO `config` VALUES ('', 'clonepay_webs', '','代付站点代号');
+INSERT INTO `config` VALUES ('', 'clonepay_apis', '','代付站点apis');

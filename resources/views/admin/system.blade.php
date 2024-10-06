@@ -1157,63 +1157,27 @@
                                                             </div>
                                                         </div>
                                                         <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label  class="col-md-3 control-label">密钥</label>
+                                                            <label  class="col-md-3 control-label">webs</label>
                                                             <div class="col-md-9">
                                                                 <div class="input-group">
-                                                                    <input class="form-control" type="text" value="{{$clonepay_token}}" id="clonepay_token" />
+                                                                    <input class="form-control" type="text" value="{{$clonepay_webs}}" id="clonepay_webs" />
                                                                     <span class="input-group-btn">
-                                                                    <button class="btn btn-success" type="button" onclick="setConfig('clonepay_token')">修改</button>
+                                                                    <button class="btn btn-success" type="button" onclick="setConfig('clonepay_webs')">修改</button>
                                                                     </span>
                                                                 </div>
-                                                                <span class="help-block"> 密钥 token </span>
+                                                                <span class="help-block"> 开启哪些web json </span>
                                                             </div>
                                                         </div>
                                                         <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label class="col-md-3 control-label">安全ip</label>
+                                                            <label  class="col-md-3 control-label">apis</label>
                                                             <div class="col-md-9">
                                                                 <div class="input-group">
-                                                                    <input class="form-control" type="text" value="{{$clonepay_safeip}}" id="clonepay_safeip" />
+                                                                    <input class="form-control" type="text" value="{{$clonepay_apis}}" id="clonepay_apis" />
                                                                     <span class="input-group-btn">
-                                                                    <button class="btn btn-success" type="button" onclick="setConfig('clonepay_safeip')">修改</button>
+                                                                    <button class="btn btn-success" type="button" onclick="setConfig('clonepay_apis')">修改</button>
                                                                     </span>
                                                                 </div>
-                                                                <span class="help-block"> ip </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label class="col-md-3 control-label">安全ipv6</label>
-                                                            <div class="col-md-9">
-                                                                <div class="input-group">
-                                                                    <input class="form-control" type="text" value="{{$clonepay_safeipv6}}" id="clonepay_safeipv6" />
-                                                                    <span class="input-group-btn">
-                                                                    <button class="btn btn-success" type="button" onclick="setConfig('clonepay_safeipv6')">修改</button>
-                                                                    </span>
-                                                                </div>
-                                                                <span class="help-block"> ip </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label class="col-md-3 control-label">代付地址</label>
-                                                            <div class="col-md-9">
-                                                                <div class="input-group">
-                                                                    <input class="form-control" type="text" value="{{$clonepay_homeurl}}" id="clonepay_homeurl" />
-                                                                    <span class="input-group-btn">
-                                                                    <button class="btn btn-success" type="button" onclick="setConfig('clonepay_homeurl')">修改</button>
-                                                                    </span>
-                                                                </div>
-                                                                <span class="help-block"> 代付打开地址 </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label class="col-md-3 control-label">代付订单同步</label>
-                                                            <div class="col-md-9">
-                                                                <div class="input-group">
-                                                                    <input class="form-control" type="text" value="{{$clonepay_syncurl}}" id="clonepay_syncurl" />
-                                                                    <span class="input-group-btn">
-                                                                    <button class="btn btn-success" type="button" onclick="setConfig('clonepay_syncurl')">修改</button>
-                                                                    </span>
-                                                                </div>
-                                                                <span class="help-block"> 同步订单的url </span>
+                                                                <span class="help-block"> web的apis配置 json </span>
                                                             </div>
                                                         </div>
                                                     </div>

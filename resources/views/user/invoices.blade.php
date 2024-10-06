@@ -46,36 +46,76 @@
                 <div class="portlet light">
                     <div class="portlet-title">
                         <div class="caption">
-                            <span class="caption-subject font-dark bold">充值余额 (代付方式)  </span>
+                            <span class="caption-subject font-dark bold">充值余额 / 代付充值  (余额:{{ (Auth::user()->balance) / 100}}￥) </span>
                         </div>
                     </div>
-                    <div class="portlet-body">
-                        <form enctype="multipart/form-data" class="form-bordered" >
-                            <div class="form-group" id="charge_coupon_code_url" >
-                                @代付充值 -> <a href="{{$clonepay_url}}" type="button" target="_blank" class="btn red btn-outline">代付网站 (商品已做安全处理)</a>
-                            </div>
-                            <hr>
-                            <div class="form-group">
-                                1. 在 <code>代付网站</code> 用邮箱 <span class="font-blue">{{Auth::user()->username}}</span> 注册登录。 (邮箱相同，充值同步)
-                                <br><br>2. 在 <code>代付网站</code> 支付充值 =  <span class="font-blue">本站充值</span> (充值记录，自动同步)
-                                <br><br>3. 充值完成 -><a class="btn btn-sm btn-outline blue" href="javascript:location.reload();">刷新余额 ：{{ (Auth::user()->balance) / 100}}￥</a>
-                                <br> 
-                            </div>
-                            <hr>
-                            <div class="alert alert-danger" style="display: none;" id="clonepay_msg"></div>
-                            <div class="form-group">
-                                @常见问题 -> <button type="button" class="btn btn-sm blue btn-outline" onclick="return clonepay_Sync();"><i class="icon-wallet"></i>  同步充值记录 </button> 
-                                <div>
-                                    支付问题： 请与 3ups@ssmail.win(管理员邮箱) 邮件沟通 或 客服工单沟通 <a href="/article?id=46" type="button" target="_blank" class="btn btn-sm default"> 代付常见问题解决</a>
-                                    <h4 class="font-red">未与 管理员 沟通就发起的支付投诉/发卡投诉, 账号ID/IP将被冻结</h4>
-                                    <h6>*本站已加入支付联盟, 黑名单账号全网共享</h6>
+                    <div class="alert alert-danger" style="display: none;" id="clonepay_msg"></div>
+                    <ul class="nav nav-tabs">
+                        <li  class="active" >
+                            <a href="#info" data-toggle="tab"><i class="fa fa-book"></i> 充值说明 </a>
+                        </li>
+                        @foreach($clonepays as $k => $v)
+                        <li >
+                            <a href="#{{$k}}" data-toggle="tab"><i class="fa fa-credit-card "></i>充值站点: {{$v['name']}} </a>
+                        </li>
+                        @endforeach
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade active in " id="info">
+                            <form enctype="multipart/form-data" class="form-bordered" >
+                                
+                                <div class="form-group">
+                                    <br>
+                                    <div>
+                                        @充值步骤:
+                                        <p>1. 选择站点: 在 <code>右侧选择</code> 合作的代付网站.</p>
+                                        <p>2. 自动注册: 在 <code>代付网站</code> 用邮箱 <span class="font-blue">{{Auth::user()->username}}</span> 自动注册登录。 (邮箱相同，充值同步)</p>
+                                        <p>3. 充值同步: 在 <code>代付网站</code> 支付充值 =  <span class="font-blue">本站充值</span> (充值记录，自动同步)</p>
+                                        <hr>
+                                        @支付提示:
+                                        支付问题： 请与 1ups@ssmail.win(管理员邮箱) 邮件沟通 或 客服工单沟通 <a href="/article?id=46" type="button" target="_blank" class="btn btn-sm default"> 代付常见问题解决</a>
+                                        <h5 class="font-red">未与 管理员 沟通就发起的支付投诉/发卡投诉, 账号ID/IP将被冻结</h5>
+                                        <h6>*本站已加入支付联盟, 黑名单账号全网共享</h6>
+                                        <hr>
+                                        <p>@支付问答:</p>
+                                        <p>代付站点邮箱和本站不同,充值同步吗? 不同步(邮箱必须相同)</p>
+                                        <p>代付站点邮箱相同,密码和本站不同,充值同步吗? 同步(邮箱相同即可)</p>
+                                        <p>代付站点的余额在代付站点消费的话,本站会扣余额吗? 不会(仅同步充值记录,不同步消费记录)</p>
+                                        <p>本站的充值方式是否相当于买一赠一? 是的(买本站,送代付站点余额)</p>
+
+
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            
-                        </form>
+                            </form>
+                        </div>
+                        @foreach($clonepays as $k => $v)
+                        <div class="tab-pane fade " id="{{$k}}">
+                            <form enctype="multipart/form-data" class="form-bordered" >
+                                <br>
+                                <div class="form-group" id="charge_coupon_code_url" >
+                                    @代付网站 -> <a href="{{$v['url']}}" type="button" target="_blank" class="btn red btn-outline">代付网站:{{$v['name']}} </a> (商品已做安全处理)
+                                </div>
+                                <hr>
+                                <div class="form-group">
+                                    <p>1. 在 <code>代付网站</code> 用邮箱 <span class="font-blue">{{Auth::user()->username}}</span> 自动注册登录。 (邮箱相同，充值同步)</p>
+                                    <p>2. 在 <code>代付网站</code> 支付充值 =  <span class="font-blue">本站充值</span> (充值记录，自动同步)</p>
+                                    <p>3. 充值完成 -><a class="btn btn-sm btn-outline blue" href="?{{time()}}#{{$k}}" >刷新余额 ：{{ (Auth::user()->balance) / 100}}￥</a></p>
+                                    <hr>
+                                    充值未同步? -> <button type="button" class="btn btn-sm blue btn-outline" onclick="return clonepay_Sync('{{$k}}');"><i class="icon-wallet"></i> 点此 同步充值记录 </button>
+                                </div>
+                                <hr>
+                                <div class="form-group">
+                                    <div>
+                                        支付问题： 请与 1ups@ssmail.win(管理员邮箱) 邮件沟通 或 客服工单沟通 <a href="/article?id=46" type="button" target="_blank" class="btn btn-sm default"> 代付常见问题解决</a>
+                                        <h5 class="font-red">未与 管理员 沟通就发起的支付投诉/发卡投诉, 账号ID/IP将被冻结</h5>
+                                        <h6>*本站已加入支付联盟, 黑名单账号全网共享</h6>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        @endforeach
                     </div>
-                </div>
+                </div>          
             </div>
             @endif
 
@@ -279,12 +319,14 @@
     }
 
     // sdo2022-04-13 同步代付记录
-    @if($clonepay == 'on')
-    function clonepay_Sync() {
+    function clonepay_Sync($site_tag) {
         $.ajax({
             url:'/clonepay_sync',
             type:"POST",
-            data:{_token:'{{csrf_token()}}'},
+            data:{
+                _token:'{{csrf_token()}}',
+                code : $site_tag
+            },
             beforeSend:function(){
                 $("#clonepay_msg").show().html("正在自动同步...");
             },
@@ -297,6 +339,5 @@
             },
         });
     }
-    @endif
 </script>
 @endsection
