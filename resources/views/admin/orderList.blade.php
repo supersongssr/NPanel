@@ -105,7 +105,7 @@
                                                     @if(empty($order->user) )
                                                         【账号不存在】
                                                     @else
-                                                        <a href="/admin/userList?id=' . $order->user->id" target="_blank"> {{$order->user->username}} </a>
+                                                        <a href="/admin/userList?id={{$order->user->id}}" target="_blank"> {{$order->user->username}} </a>
                                                     @endif
                                                 </td>
                                                 <td> {{$order->order_sn}} </td>

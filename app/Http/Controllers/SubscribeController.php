@@ -198,7 +198,7 @@ class SubscribeController extends Controller
             }       
         }
         // 获取正式节点。
-        $nodeList = SsNode::query()->where('status',1)->where('is_subscribe',1)->where('node_group',$user->node_group)->where('level', '<=' ,$user->level)->orderBy('traffic_left_daily', 'desc')->get();
+        $nodeList = SsNode::query()->where('status',1)->where('is_subscribe',1)->where('node_group',$user->node_group)->where('level', '<=' ,$user->level)->orderBy('level', 'desc')->orderBy('traffic_left_daily', 'desc')->get();
         if (empty($nodeList)) {
             exit(base64_encode($scheme));
         }

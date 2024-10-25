@@ -37,7 +37,7 @@
                                 <a class="btn red btn-outline" href="/invoices" ><i class="icon-wallet"></i> {{trans('home.recharge')}}</a>
                             </li>
                         </ul>
-                        <p><small>*等级高，节点多，带宽大，流量足。 <a href="/profile#tab_6">移动、电信用户可设置CF+中转。</a>  <br>*<code>CF+</code>:网络优化技术(直连网络不佳网络优化用它) <code>CN+</code>:中转技术(移动电信强力推荐) <code>NetFLix+</code>:支持网飞视频 <code>Azure+</code>:微软强力G口带宽 <code>BGP+</code>:三网混合加速 </small></p>
+                        <p><small>*购买多个流量包和套餐,流量叠加,时间不叠加。 <br>*<code>CF+</code>:国际中转  <code>NF+</code>:流媒体解锁如Netflix,OpenAI <code>CN+</code>:国际出口网络 <code>GIA+</code>:国际电信专线 <code>BGP+</code>:三网混合加速 </small></p>
                     </div>
                 </div>
             </div>
@@ -52,12 +52,13 @@
                                 <li>
                                     <a href="#services1" data-toggle="tab"> <i class="fa fa-book"></i> 说明 </a>
                                 </li>
-                                <li>
-                                    <a href="#services2" data-toggle="tab"> <i class="fa fa-cloud"></i> 按时间买 </a>
+                                <li class="active">
+                                    <a href="#services2" data-toggle="tab"> <i class="fa fa-cloud"></i> 套餐 </a>
                                 </li>
-                                <li  class="active">
-                                    <a href="#services3" data-toggle="tab"> <i class="fa fa-jsfiddle"></i> 按流量买 </a>
+                                <li  >
+                                    <a href="#services3" data-toggle="tab"> <i class="fa fa-jsfiddle"></i> 流量包 </a>
                                 </li>
+                                
                             </ul>
                             <div class="tab-content " style="font-size:16px;">
                                 <div class="tab-pane" id="services1">
@@ -66,29 +67,29 @@
                                         <li>① 充值余额</li>
                                         <li>② 购买商品</li>
                                     </ol>
-                                    <h4>按时间买：</h4>
+                                    <h4>套餐：</h4>
                                     <ol>
                                         <li>流量每月重置</li>
                                         <li>等级越高，流量越多、带宽越大、特权越多</li>
                                     </ol>
-                                    <h4>按流量买：</h4>
+                                    <h4>流量包：</h4>
                                     <ol>
                                         <li>一次性流量</li>
                                         <li>等级越高，节点越多、带宽越大、特权越多</li>
                                     </ol>
-                                    <h4>商品说明：</h4>
+                                    <h4>套餐 + 流量包：</h4>
                                     <ol>
                                         <li>购买多个商品时:</li>
                                         <li>流量叠加、特权叠加、节点叠加</li>
                                         <li>等级、带宽取现有商品中最大值</li>
                                         <li>账号有效期取现有商品中最大值</li>
-                                        <li>流量扣除顺序：按时间买的流量 -> 按流量买的流量 -> 系统赠送流量(签到、返利等)</li>
-                                        <li><code>*Bt、P2P、网盘上载流量优先扣除 按流量买的流量 -> 系统赠送的流量 -> 按时间买的流量</code></li>
+                                        <li>流量扣除顺序：套餐 -> 流量包 -> 赠送流量</li>
+                                        <li><code>*BT、P2P流量优先扣除 流量包 -> 赠送的流量 -> 套餐流量 (该方案计划取消)</code> </li>
                                     </ol>
 
 
                                 </div>
-                                <div class="tab-pane" id="services2">
+                                <div class="tab-pane active" id="services2">
                                     <div class="pricing-content-1" style="padding-top: 10px;">
                                         <div class="row">
                                             @if($packageList->isEmpty())
@@ -146,7 +147,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="tab-pane active" id="services3">
+                                <div class="tab-pane " id="services3">
                                     <div class="pricing-content-1" style="padding-top: 10px;">
                                         <div class="row">
                                             @if($trafficList->isEmpty())
