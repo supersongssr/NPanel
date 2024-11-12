@@ -93,6 +93,51 @@ class PingController extends Controller
         }
     }
 
+    public function simpleApiTools(Request $request ){
+        // 验证 token 
+        if (!empty($request->get('token')) && !empty($request->get('salt')) ) {
+            if (md5(env('API_TOKEN') . $request->get('salt') ) != $request->get('token')) {
+                echo 'err=token-error';
+                exit;        
+            }
+        }else{
+            echo 'err=none-token';
+            exit;
+        }
+
+        // 获取访问者ip
+        if (!empty($request->get('ip'))) {
+            echo 'ip='. getClientIp();
+            exit;
+        }
+
+        // 获取 时间令牌
+        if (!empty($request->get('due'))) {
+            $_due_time = time() + 300; // 5分钟有效期
+            echo 'due='.$_due_time;
+            exit;
+        }
+
+        // 获取一个可用的 nodeid
+        if (!empty($request->get('new_node_id'))) {
+            $node = SsNode::query()->where('id','>',19)->where('status', 0)->orderBy('heartbeat_at', 'asc')->first();
+            if ($node) {
+                if (strtotime($node->heartbeat_at) < time() - 604800){   // 过期7天
+                    $node->heartbeat_at = date('Y-m-d H:i:s');
+                    $node->save();
+                    echo 'node_id='.$node->id;
+                    exit ;
+                }
+            }
+            echo 'err=node-empty';
+            exit;
+        }
+
+        echo 'err=unknown';
+        exit;
+        
+    }
+
     public function ssn_sub(Request $request, $id)
     {
         $request->get('token') != env('API_TOKEN') && exit; // 验证 token 防止滥用
