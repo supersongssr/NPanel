@@ -97,44 +97,46 @@ class PingController extends Controller
         // 验证 token 
         if (!empty($request->get('token')) && !empty($request->get('salt')) ) {
             if (md5(env('API_TOKEN') . $request->get('salt') ) != $request->get('token')) {
-                echo 'err=token-error';
-                exit;        
+                $res['err'] = 'token-invalid';
+                return response()->json($res);
             }
         }else{
-            echo 'err=none-token';
-            exit;
+            $res['err'] = 'token-empty';
+            return response()->json($res);
         }
 
         // 获取访问者ip
         if (!empty($request->get('ip'))) {
-            echo 'ip='. getClientIp();
-            exit;
+            $res['ip'] = getClientIp();
         }
 
-        // 获取 时间令牌
-        if (!empty($request->get('due'))) {
-            $_due_time = time() + 300; // 5分钟有效期
-            echo 'due='.$_due_time;
-            exit;
+        // 获取时间
+        if (!empty($request->get('time'))) {
+            $res['time'] = time();
+        }
+
+        // 获取 时间令牌 ，用于验证
+        if (!empty($request->get('due_time'))) {
+            $res['due_time'] = time() + 300;// 5分钟有效期
         }
 
         // 获取一个可用的 nodeid
         if (!empty($request->get('new_node_id'))) {
             $node = SsNode::query()->where('id','>',19)->where('status', 0)->orderBy('heartbeat_at', 'asc')->first();
-            if ($node) {
-                if (strtotime($node->heartbeat_at) < time() - 604800){   // 过期7天
-                    $node->heartbeat_at = date('Y-m-d H:i:s');
-                    $node->save();
-                    echo 'node_id='.$node->id;
-                    exit ;
-                }
+            if ($node && strtotime($node->heartbeat_at) < time() - 604800) { // 过期7天
+                $node->heartbeat_at = date('Y-m-d H:i:s');
+                $node->save();
+                $res['new_node_id'] = $node->id;
+            }else{
+                $res['err'] = 'node-empty';
             }
-            echo 'err=node-empty';
-            exit;
         }
 
-        echo 'err=unknown';
-        exit;
+        if (empty($res)) {
+            $res['err'] = 'no-param';
+        }
+
+        return response()->json($res);
         
     }
 
