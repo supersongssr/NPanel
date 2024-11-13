@@ -23,6 +23,7 @@ class SsNode extends Model
 
     function isotoemoji($iso)
     {
+        $iso = strtolower($iso);
         $iso_to_emoji = array(
             'ac' => '🇦🇨',
             'ad' => '🇦🇩',

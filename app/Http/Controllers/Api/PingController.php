@@ -223,8 +223,6 @@ class PingController extends Controller
                 }
             }
         }
-
-        
         
         //node protocol_conf  先判断是否有 vmess vless trojan ss 等标志前缀
         if ( $request->get('v2') ) {
