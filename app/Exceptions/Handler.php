@@ -10,6 +10,7 @@ use Illuminate\Session\TokenMismatchException;
 use ReflectionException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
+
 class Handler extends ExceptionHandler
 {
     /**
@@ -42,7 +43,7 @@ class Handler extends ExceptionHandler
     public function report(Exception $exception)
     {
         // 记录异常来源
-        \Log::info('异常来源：' . get_class($exception));
+        // \Log::info('异常来源：' . get_class($exception));
 
         parent::report($exception);
     }
@@ -64,7 +65,7 @@ class Handler extends ExceptionHandler
 
         // 捕获访问异常
         if ($exception instanceof NotFoundHttpException) {
-            \Log::info("异常请求：" . $request->fullUrl() . "，IP：" . getClientIp());
+            // \Log::info("异常请求：" . $request->fullUrl() . "，IP：" . getClientIp());
 
             if ($request->ajax()) {
                 return response()->json(['status' => 'fail', 'data' => '', 'message' => 'Page Not Found']);

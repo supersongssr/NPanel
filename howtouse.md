@@ -46,8 +46,8 @@
 ## 安装
 #### 环境要求
 ````
-PHP 7.1.3+ （必须）
-MYSQL 5.5+ （推荐5.6）
+PHP 7.1.3+ （必须） (mine: php7.3)
+MYSQL 5.5+ （推荐5.6） 
 内存 1G+ (推荐2G)
 磁盘空间 10G+
 PHP必须开启zip、xml、curl、gd2、fileinfo、openssl、mbstring组件
@@ -59,18 +59,22 @@ PHP必须开启zip、xml、curl、gd2、fileinfo、openssl、mbstring组件
 找到php.ini
 vim /usr/local/php/etc/php.ini
 搜索disable_function
-删除proc_开头的所有函数 以及 force_env这个函数
+删除 proc_ 开头的所有函数 以及 force_env 这个函数
 putenv
 pcntl_alarm
 pcntl_signal
 symlink
-proc_开头函数
+exec
+shell_exec
+force_env
+proc_ 开头函数
 ````
 
 #### 拉取代码
+这一步也可以使用 sftp 传输的方式. 因为 sftp和 本地是相同的
 ````
 cd /home/wwwroot/
-git clone https://github.com/supersongssr/srp-song.git
+git clone https://github.com/supersongssr/Npanel.git
 ````
 #### 配置数据库
 ````
@@ -79,21 +83,38 @@ git clone https://github.com/supersongssr/srp-song.git
 3.导入 sql/db.sql 到数据库
 ````
 #### 安装面板
-````
+必须解释一下:在 composer install时候有很多github的依赖无法使用了. 最好是直接使用我网站的克隆版,不然会很麻烦.
+```shell
 cd ssrpanel/
 cp .env.example .env
 （然后 vi .env 修改数据库的连接信息）
-php composer.phar install
+#php composer.phar install
+composer config repo.packagist composer https://packagist.phpcomposer.com
+composer install
+#composer update # 这一步是根据 网上查找到的, 
 php artisan key:generate
-cd ../
-chown -R www:www srp-song
-chmod -R a+x srp-song
-````
+
+chown -R www:www *
+chmod -R a+x *
+chmod -R 777 storage
+```
 #### 加入NGINX的URL重写规则
-````
+````conf
 location / {
     try_files $uri $uri/ /index.php$is_args$args;
 }
+````
+
+#### 代码解释
+````
+\app\Http\Controllers 控制器文件
+\app\Http\Models 模型文件
+\config 配置信息
+\public 公共文件
+\resources\views 视图文件
+\storage 临时文件（页面缓存、日志），文件夹一个都不能少，少了必报错
+\vendor 组件
+\routes 路由
 ````
 
 #### 出现500错误

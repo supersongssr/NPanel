@@ -1476,9 +1476,9 @@ ALTER TABLE `ss_node` ADD COLUMN  `traffic_left` BIGINT(20)  DEFAULT '0' COMMENT
 ALTER TABLE `ss_node` ADD COLUMN  `traffic_used_daily` BIGINT(20)  DEFAULT '0' COMMENT '已用流量日均';
 ALTER TABLE `ss_node` ADD COLUMN  `traffic_left_daily` BIGINT(20)  DEFAULT '0' COMMENT '剩余流量日均';
 
-INSERT INTO `config` VALUES ('', 'traffic_record_group0', '','0组记录');
-INSERT INTO `config` VALUES ('', 'traffic_record_group1', '','1组记录');
-INSERT INTO `config` VALUES ('', 'traffic_record_group2', '','2组记录');
+INSERT INTO `config` ( `name`, `value`, `comment`) VALUES (  'traffic_record_group0', '','0组记录');
+INSERT INTO `config` ( `name`, `value`, `comment`) VALUES (  'traffic_record_group1', '','1组记录');
+INSERT INTO `config` ( `name`, `value`, `comment`) VALUES (  'traffic_record_group2', '','2组记录');
 
 ALTER TABLE `ss_node` ADD COLUMN `is_clone` int(11)  NOT NULL DEFAULT '0' COMMENT '克隆ID';
 

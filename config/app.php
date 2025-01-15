@@ -151,8 +151,8 @@ return [
         /*
         * Package Service Providers...
         */
-        Misechow\Geetest\GeetestServiceProvider::class,  // Geetest Service
-        Misechow\NoCaptcha\NoCaptchaServiceProvider::class, // Google reCAPTCHA Service
+        biscolab\Geetest\GeetestServiceProvider::class,  // Geetest Service
+        biscolab\NoCaptcha\NoCaptchaServiceProvider::class, // Google reCAPTCHA Service
         Overtrue\LaravelLang\TranslationServiceProvider::class, // 多国语言包功能
 
         /*
@@ -214,8 +214,8 @@ return [
         'Captcha'      => Mews\Captcha\Facades\Captcha::class,
         'Agent'        => Jenssegers\Agent\Facades\Agent::class,
         'Purifier'     => Mews\Purifier\Facades\Purifier::class,
-        'Geetest'      => Misechow\Geetest\Geetest::class,
-        'NoCaptcha' => Misechow\NoCaptcha\Facades\NoCaptcha::class,
+        'Geetest'      => biscolab\Geetest\Geetest::class,
+        'NoCaptcha' => biscolab\NoCaptcha\Facades\NoCaptcha::class,
     ],
 
 ];

@@ -14931,7 +14931,7 @@ namespace Mews\Purifier\Facades {
  
 }
 
-namespace Misechow\Geetest { 
+namespace biscolab\Geetest { 
 
     /**
      * 
@@ -14947,7 +14947,7 @@ namespace Misechow\Geetest {
          */ 
         public static function getGeetestUrl()
         {
-                        /** @var \Misechow\Geetest\GeetestLib $instance */
+                        /** @var \biscolab\Geetest\GeetestLib $instance */
                         return $instance->getGeetestUrl();
         }
         
@@ -14955,12 +14955,12 @@ namespace Misechow\Geetest {
          * 
          *
          * @param string $geetestUrl
-         * @return \Misechow\Geetest\GeetestLib 
+         * @return \biscolab\Geetest\GeetestLib 
          * @static 
          */ 
         public static function setGeetestUrl($url)
         {
-                        /** @var \Misechow\Geetest\GeetestLib $instance */
+                        /** @var \biscolab\Geetest\GeetestLib $instance */
                         return $instance->setGeetestUrl($url);
         }
         
@@ -14973,7 +14973,7 @@ namespace Misechow\Geetest {
          */ 
         public static function preProcess($param, $new_captcha = 1)
         {
-                        /** @var \Misechow\Geetest\GeetestLib $instance */
+                        /** @var \biscolab\Geetest\GeetestLib $instance */
                         return $instance->preProcess($param, $new_captcha);
         }
         
@@ -14985,7 +14985,7 @@ namespace Misechow\Geetest {
          */ 
         public static function getResponseStr()
         {
-                        /** @var \Misechow\Geetest\GeetestLib $instance */
+                        /** @var \biscolab\Geetest\GeetestLib $instance */
                         return $instance->getResponseStr();
         }
         
@@ -14997,7 +14997,7 @@ namespace Misechow\Geetest {
          */ 
         public static function getResponse()
         {
-                        /** @var \Misechow\Geetest\GeetestLib $instance */
+                        /** @var \biscolab\Geetest\GeetestLib $instance */
                         return $instance->getResponse();
         }
         
@@ -15013,7 +15013,7 @@ namespace Misechow\Geetest {
          */ 
         public static function successValidate($challenge, $validate, $seccode, $param, $json_format = 1)
         {
-                        /** @var \Misechow\Geetest\GeetestLib $instance */
+                        /** @var \biscolab\Geetest\GeetestLib $instance */
                         return $instance->successValidate($challenge, $validate, $seccode, $param, $json_format);
         }
         
@@ -15028,7 +15028,7 @@ namespace Misechow\Geetest {
          */ 
         public static function failValidate($challenge, $validate, $seccode)
         {
-                        /** @var \Misechow\Geetest\GeetestLib $instance */
+                        /** @var \biscolab\Geetest\GeetestLib $instance */
                         return $instance->failValidate($challenge, $validate, $seccode);
         }
         
@@ -15040,7 +15040,7 @@ namespace Misechow\Geetest {
          */ 
         public static function render($product = 'float', $captchaId = 'geetest-captcha')
         {
-                        /** @var \Misechow\Geetest\GeetestLib $instance */
+                        /** @var \biscolab\Geetest\GeetestLib $instance */
                         return $instance->render($product, $captchaId);
         }
          
@@ -15048,7 +15048,7 @@ namespace Misechow\Geetest {
  
 }
 
-namespace Misechow\NoCaptcha\Facades { 
+namespace biscolab\NoCaptcha\Facades { 
 
     /**
      * 
@@ -15065,7 +15065,7 @@ namespace Misechow\NoCaptcha\Facades {
          */ 
         public static function display($attributes = array())
         {
-                        /** @var \Misechow\NoCaptcha\NoCaptcha $instance */
+                        /** @var \biscolab\NoCaptcha\NoCaptcha $instance */
                         return $instance->display($attributes);
         }
         
@@ -15077,7 +15077,7 @@ namespace Misechow\NoCaptcha\Facades {
          */ 
         public static function displayWidget($attributes = array())
         {
-                        /** @var \Misechow\NoCaptcha\NoCaptcha $instance */
+                        /** @var \biscolab\NoCaptcha\NoCaptcha $instance */
                         return $instance->displayWidget($attributes);
         }
         
@@ -15092,7 +15092,7 @@ namespace Misechow\NoCaptcha\Facades {
          */ 
         public static function displaySubmit($formIdentifier, $text = 'submit', $attributes = array())
         {
-                        /** @var \Misechow\NoCaptcha\NoCaptcha $instance */
+                        /** @var \biscolab\NoCaptcha\NoCaptcha $instance */
                         return $instance->displaySubmit($formIdentifier, $text, $attributes);
         }
         
@@ -15107,7 +15107,7 @@ namespace Misechow\NoCaptcha\Facades {
          */ 
         public static function renderJs($lang = null, $callback = false, $onLoadClass = 'onloadCallBack')
         {
-                        /** @var \Misechow\NoCaptcha\NoCaptcha $instance */
+                        /** @var \biscolab\NoCaptcha\NoCaptcha $instance */
                         return $instance->renderJs($lang, $callback, $onLoadClass);
         }
         
@@ -15121,7 +15121,7 @@ namespace Misechow\NoCaptcha\Facades {
          */ 
         public static function verifyResponse($response, $clientIp = null)
         {
-                        /** @var \Misechow\NoCaptcha\NoCaptcha $instance */
+                        /** @var \biscolab\NoCaptcha\NoCaptcha $instance */
                         return $instance->verifyResponse($response, $clientIp);
         }
         
@@ -15134,7 +15134,7 @@ namespace Misechow\NoCaptcha\Facades {
          */ 
         public static function verifyRequest($request)
         {
-                        /** @var \Misechow\NoCaptcha\NoCaptcha $instance */
+                        /** @var \biscolab\NoCaptcha\NoCaptcha $instance */
                         return $instance->verifyRequest($request);
         }
         
@@ -15149,7 +15149,7 @@ namespace Misechow\NoCaptcha\Facades {
          */ 
         public static function getJsLink($lang = null, $callback = false, $onLoadClass = 'onloadCallBack')
         {
-                        /** @var \Misechow\NoCaptcha\NoCaptcha $instance */
+                        /** @var \biscolab\NoCaptcha\NoCaptcha $instance */
                         return $instance->getJsLink($lang, $callback, $onLoadClass);
         }
          
@@ -17750,9 +17750,9 @@ namespace  {
 
     class Purifier extends \Mews\Purifier\Facades\Purifier {}
 
-    class Geetest extends \Misechow\Geetest\Geetest {}
+    class Geetest extends \biscolab\Geetest\Geetest {}
 
-    class NoCaptcha extends \Misechow\NoCaptcha\Facades\NoCaptcha {}
+    class NoCaptcha extends \biscolab\NoCaptcha\Facades\NoCaptcha {}
 
     class Image extends \Intervention\Image\Facades\Image {}
  

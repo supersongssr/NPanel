@@ -2307,17 +2307,17 @@
             "time": "2019-03-07T07:55:14+00:00"
         },
         {
-            "name": "misechow/geetest",
+            "name": "biscolab/geetest",
             "version": "v1.0.5",
             "source": {
                 "type": "git",
-                "url": "https://github.com/MIseChow/laravel-geetest.git",
-                "reference": "78caa9dcbfeda917067245f0b067ab23b758386e"
+                "url": "https://github.com/jormin/laravel-geetest.git",
+                "reference": "aa8759b25cbd23bb13c4255ced864b827ff396d7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/MIseChow/laravel-geetest/zipball/78caa9dcbfeda917067245f0b067ab23b758386e",
-                "reference": "78caa9dcbfeda917067245f0b067ab23b758386e",
+                "url": "https://api.github.com/repos/jormin/laravel-geetest/zipball/aa8759b25cbd23bb13c4255ced864b827ff396d7",
+                "reference": "aa8759b25cbd23bb13c4255ced864b827ff396d7",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -2342,7 +2342,7 @@
             },
             "autoload": {
                 "psr-4": {
-                    "Misechow\\Geetest\\": "src/"
+                    "biscolab\\Geetest\\": "src/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -2351,30 +2351,30 @@
             ],
             "authors": [
                 {
-                    "name": "MIseChow",
-                    "email": "misechow@qq.com"
+                    "name": "biscolab",
+                    "email": "biscolab@qq.com"
                 }
             ],
             "description": "Geetest Package for Laravel5",
             "keywords": [
-                "Misechow",
+                "biscolab",
                 "geetest",
                 "laravel"
             ],
             "time": "2019-03-22T06:24:55+00:00"
         },
         {
-            "name": "misechow/no-captcha",
-            "version": "v1.0.3",
+            "name": "biscolab/no-captcha",
+            "version": "v3.6.1",
             "source": {
                 "type": "git",
-                "url": "https://github.com/MIseChow/laravel-reCAPTCHA.git",
-                "reference": "f9c18feb26e0e825afae4fea3cce67a950992d6a"
+                "url": "https://github.com/biscolab/laravel-reCAPTCHA.git",
+                "reference": "77e65a06b64f8fa1efefb4fd355bc9993620a664"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/MIseChow/laravel-reCAPTCHA/zipball/f9c18feb26e0e825afae4fea3cce67a950992d6a",
-                "reference": "f9c18feb26e0e825afae4fea3cce67a950992d6a",
+                "url": "https://api.github.com/repos/biscolab/laravel-reCAPTCHA/zipball/77e65a06b64f8fa1efefb4fd355bc9993620a664",
+                "reference": "77e65a06b64f8fa1efefb4fd355bc9993620a664",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -2394,7 +2394,7 @@
             "type": "library",
             "autoload": {
                 "psr-4": {
-                    "Misechow\\NoCaptcha\\": "src/"
+                    "biscolab\\NoCaptcha\\": "src/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -2403,13 +2403,13 @@
             ],
             "authors": [
                 {
-                    "name": "misechow",
+                    "name": "biscolab",
                     "email": "mise3uc@gmail.com"
                 }
             ],
             "description": "No CAPTCHA reCAPTCHA For Laravel5.",
             "keywords": [
-                "Misechow",
+                "biscolab",
                 "captcha",
                 "laravel",
                 "laravel5",

@@ -121,7 +121,7 @@
                                             </div>
                                             <div class="tab-pane" id="tools4">
                                             <ol>【Sing-Box】
-                                                    <input type="text" id="mt-target-1" class="form-control" value="https://sub.1upsrss.top/sub?target=singbox&url={{$link}}?v2ray=64" />
+                                                    <input type="text" id="mt-target-1" class="form-control" value="https://sub.1ups.xyz/sub?target=singbox&url={{$link}}" />
                                                     <li> 在<code>美区</code>苹果商店 搜索 <code>sing-box</code> 免费 - 安装  </li>
                                                 </ol>
                                                 <hr>
@@ -134,8 +134,7 @@
                                                 </ol>
                                                 <hr>
                                                 <ol>【Quan-X 8.99$】
-                                                    <input type="text" id="mt-target-1" class="form-control" value="https://sub.1upsrss.top/sub?target=quanx&url={{$link}}?v2ray=64&emoji=true&fdn=true&list=true" />
-                                                    <li> 订阅地址 <code>https://sub.1upsrss.top/sub?target=quanx&url={{$link}}?v2ray=64&emoji=true&fdn=true&list=true</code>
+                                                    <input type="text" id="mt-target-1" class="form-control" value="https://sub.1ups.xyz/sub?target=quanx&url={{$link}}&emoji=true&fdn=true&list=true" />
                                                 </ol>
                                                 <hr>
                                                 <!-- <ol>【SS-R 教程】
