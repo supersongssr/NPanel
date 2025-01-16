@@ -300,14 +300,14 @@ class AuthController extends Controller
                 $user->balance = 96;
                 $user->remark = 'regEDU';
             }**/
-            /**
+            /*
             //song 判断邮箱是否以edu.cn结尾，来作为奖励的依据
             if (strrchr($usernameSuffix[1], 'edu.cn') == 'edu.cn') {
                 # code...
                 $user->balance = 90;
                 $user->remark = 'regEDU';
             }
-            **/
+            */
             $user->save();
 
             // 注册失败，抛出异常
@@ -360,7 +360,7 @@ class AuthController extends Controller
                 // 写入邀请返利 5元，可提现
                 $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 500);
 
-                /**
+                /*
                 //判断邀请用户id是否是EDU邮箱结尾的，来判断注册是否可用！
                 if (strrchr($ref_user->username, 'edu.cn') == 'edu.cn') {
                     # code...
@@ -378,14 +378,14 @@ class AuthController extends Controller
                     //返利日志写入
                     $this->addReferralLog($user->id, $user->referral_uid, 0, 0, 5);
                 }
-                **/
+                */
             }
 
             User::query()->where('id', $user->id)->update(['status' => 1, 'enable' => 1]);
 
             Session::flash('regSuccessMsg', '注册成功');
 
-            /**
+            /*
             if (self::$systemConfig['is_verify_register']) {
                 if ($referral_uid) {
                     $transfer_enable = self::$systemConfig['referral_traffic'] * 1048576;
@@ -431,7 +431,7 @@ class AuthController extends Controller
 
                     Session::flash('regSuccessMsg', '注册成功');
                 }
-            } **/
+            } */
 
             return Redirect::to('login')->withInput();
         } else {
@@ -866,7 +866,7 @@ class AuthController extends Controller
             // 查找账号
             $user = User::query()->where('username', $request->username)->first();
             if ($user->status < 0 ) {
-                User::query()->where('username', $request->username)->update(['status' => 1]);
+                User::query()->where('username', $request->username)->update(['status' => 1 , 'enable' => 1]);
                 return Redirect::back()->with('successMsg', '解封成功，请登陆账号后请尽快补充余额至 > 0');
             } else{
                 return Redirect::back()->withErrors('无效申请，请联系管理员！');

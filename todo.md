@@ -1,7 +1,26 @@
 
 # 2025-01-16
 
-- [] 订阅节点,显示倍率
+- [x] 订阅节点,显示倍率
+
+- [x] N panel , 流量用超以后,可以允许用户自助解封. 
+  - check how to limit user
+    - status : -1 
+      - -1 disalbe 0 not active  1 active 
+    - enable : 0 
+      - 0 disable 
+      - 1 enable 
+  - check how to unlock limit . 
+    - status : 1 
+    - enable : 1 
+    - [x] 这里有一个bug, 如果用户过期了,或者流量用尽了, 怎么能激活 enable 那里呢
+      - 用户到期后,等级为 0 . 通过等级来控制用户 能否使用节点的. 
+  - [x] srp plugin xray 那里 是如何判断的?
+    - 后台  enable = 1 AND u + d < transfer_enable  
+  - add the function , where to lock user 
+
+
+- [] 优化每小时流量异常的代码,放到一个地方去.
 
 - [] 防止 rebot 功能无法使用
 - [] 验证码功能无法使用.
