@@ -195,6 +195,7 @@ class UserController extends Controller
             //Song
             // 节点标签
             $node->labels = SsNodeLabel::query()->with('labelInfo')->where('node_id', $node->id)->get();
+            $node->country_code = strtolower($node->country_code);
         }
 
         $view['allNodes'] = '';

@@ -187,7 +187,7 @@ class PingController extends Controller
         }
 
         $request->get('node_name') && $node->name = $request->get('node_name');
-        $request->get('node_country_code') && $node->country_code = $request->get('node_country_code');
+        $request->get('node_country_code') && $node->country_code = strtolower($request->get('node_country_code'));
         $request->get('node_country_code') && $node->name = $node->isotoemoji($request->get('node_country_code')).$node->name;
         $request->get('node_info') && $node->info = $request->get('node_info');
         // $request->get('node_unlock_info') && $node->info .= $request->get('node_unlock_info');
