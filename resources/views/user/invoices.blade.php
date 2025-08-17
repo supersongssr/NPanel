@@ -56,7 +56,7 @@
                         </li>
                         @foreach($clonepays as $k => $v)
                         <li >
-                            <a href="#{{$k}}" data-toggle="tab"><i class="fa fa-credit-card "></i>充值站点: {{$v['name']}} </a>
+                            <a href="#{{$k}}" data-toggle="tab"><i class="fa fa-credit-card "></i>充值通道: {{$v['name']}} </a>
                         </li>
                         @endforeach
                     </ul>
@@ -67,23 +67,16 @@
                                 <div class="form-group">
                                     <br>
                                     <div>
-                                        @充值步骤:
-                                        <p>1. 选择站点: 在 <code>右侧选择</code> 合作的代付网站.</p>
-                                        <p>2. 自动注册: 在 <code>代付网站</code> 用邮箱 <span class="font-blue">{{Auth::user()->username}}</span> 自动注册登录。 (邮箱相同，充值同步)</p>
-                                        <p>3. 充值同步: 在 <code>代付网站</code> 支付充值 =  <span class="font-blue">本站充值</span> (充值记录，自动同步)</p>
-                                        <hr>
-                                        @支付提示:
-                                        支付问题： 请与 1ups@ssmail.win(管理员邮箱) 邮件沟通 或 客服工单沟通 <a href="/article?id=46" type="button" target="_blank" class="btn btn-sm default"> 代付常见问题解决</a>
-                                        <h5 class="font-red">未与 管理员 沟通就发起的支付投诉/发卡投诉, 账号ID/IP将被冻结</h5>
-                                        <h6>*本站已加入支付联盟, 黑名单账号全网共享</h6>
-                                        <hr>
-                                        <p>@支付问答:</p>
-                                        <p>代付站点邮箱和本站不同,充值同步吗? 不同步(邮箱必须相同)</p>
-                                        <p>代付站点邮箱相同,密码和本站不同,充值同步吗? 同步(邮箱相同即可)</p>
-                                        <p>代付站点的余额在代付站点消费的话,本站会扣余额吗? 不会(仅同步充值记录,不同步消费记录)</p>
-                                        <p>本站的充值方式是否相当于买一赠一? 是的(买本站,送代付站点余额)</p>
-
-
+                                        亲爱的用户您好！
+                                        我们已与一些支付网站达成合作。您可通过以下方式完成账户充值：
+                                        <p>1️⃣ 点击 <code>右侧标签页 充值通道</code> 合作的充值网站</p>
+                                        <p>2️⃣ 充值优势说明: <br>
+                                            实时同步: 您在 合作网站的任何充值将自动同步到本站; <br>
+                                            资源互通: 您在 本站的充值,既可以购买本站资源,也可以购买合作网站资源;  <br>
+                                            专属优惠: 等于您 充值一次钱, 得到两个网站的 余额 ❤️ ;
+                                        </p>
+                                        <p>3️⃣ 验证充值: 在本站刷新余额,查看是否充值到账</p>
+                                        <p>4️⃣ 遇到问题: 请通过邮件联系 1ups@ssmail.win 提供支付截屏为您解决</p>
                                     </div>
                                 </div>
                             </form>
@@ -106,9 +99,8 @@
                                 <hr>
                                 <div class="form-group">
                                     <div>
-                                        支付问题： 请与 1ups@ssmail.win(管理员邮箱) 邮件沟通 或 客服工单沟通 <a href="/article?id=46" type="button" target="_blank" class="btn btn-sm default"> 代付常见问题解决</a>
-                                        <h5 class="font-red">未与 管理员 沟通就发起的支付投诉/发卡投诉, 账号ID/IP将被冻结</h5>
-                                        <h6>*本站已加入支付联盟, 黑名单账号全网共享</h6>
+                                        支付问题： 请与 2ups@ssmail.win(管理员邮箱) 邮件沟通 或 客服工单沟通 <a href="/article?id=46" type="button" target="_blank" class="btn btn-sm default"> 代付常见问题解决</a>
+                                        <h5 class="font-red">未与 管理员 沟通就发起的支付投诉/发卡投诉, 账号ID/IP将被临时冻结</h5>
                                     </div>
                                 </div>
                             </form>
