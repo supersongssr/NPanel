@@ -25,9 +25,9 @@
 - [] 防止 rebot 功能无法使用
 - [] 验证码功能无法使用.
 
-# 2024-12-31 
+# 2024-12-31  这个废弃!
 
-- [] fix一大堆 composer 的报错. 一些github库 私有 或 消失了, 在逐个替换中
+- [x] 废弃! fix一大堆 composer 的报错. 一些github库 私有 或 消失了, 在逐个替换中
     - [x] https://github.com/MIseChow/laravel-geetest项目私有化了, 改为 https://github.com/jormin/laravel-geetest
         - 所有的 MIseChow 改为了 jormin
         - [x] 测试 网站是否能正常运行
@@ -56,3 +56,7 @@ Stack trace:
 - [x] In CurlDownloader.php line 371: curl error 28 while downloading https://packagist.laravel-china.org/packages.json: Connection timed out after 10004 milliseconds 
     - 解决方案:
 
+- [] 2025-08-20 
+上面将 MIseChow 改为 jormin 是愚蠢的行为, 无法解决问题! 
+恢复了 所有的 更改, 
+直接 copy了 verder 文件夹, 直接上报即可.

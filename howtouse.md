@@ -89,8 +89,8 @@ cd ssrpanel/
 cp .env.example .env
 （然后 vi .env 修改数据库的连接信息）
 #php composer.phar install
-composer config repo.packagist composer https://packagist.phpcomposer.com
-composer install
+# composer config repo.packagist composer https://packagist.phpcomposer.com
+# composer install
 #composer update # 这一步是根据 网上查找到的, 
 php artisan key:generate
 
@@ -98,6 +98,9 @@ chown -R www:www *
 chmod -R a+x *
 chmod -R 777 storage
 ```
+
+
+
 #### 加入NGINX的URL重写规则
 ````conf
 location / {
@@ -123,7 +126,14 @@ location / {
 请看WIKI：https://github.com/ssrpanel/ssrpanel/wiki/%E5%87%BA%E7%8E%B0-open_basedir%E9%94%99%E8%AF%AF
 修改完记得重启NGINX和PHP-FPM
 ````
+官方提及的是出现 open_basedir错误，照官方wiki文档先操作
 
+vim /usr/local/nginx/conf/fastcgi.conf
+#找到下面这句把它注释掉
+fastcgi_param PHP_ADMIN_VALUE "open_basedir=$document_root/:/tmp/:/proc/"; 
+#保存 重启nginx 且 重启 php-fpm
+
+如果不灵验，注意检查是不是站点文件权限有问题，用chown -R www:www命令更改一遍，再不行检查nginx设置。
 #### 密码错误
 ````
 如果正确安装完成后发现admin无法登陆，请到SSRPanel目录下执行如下命令：
