@@ -1389,10 +1389,12 @@ ALTER TABLE `user`
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 
 -- 增加 trimepay
-INSERT INTO config values ('96', 'is_trimepay', 0);
-INSERT INTO config VALUES ('97', 'trimepay_appid', '');
-INSERT INTO config VALUES ('98', 'trimepay_appsecret', '');
-INSERT INTO config VALUES ('99', 'pay_notify_url', '');
+ALTER TABLE `config` ADD COLUMN `comment` text COMMENT '备注';
+
+INSERT INTO config values (null, 'is_trimepay', 0,'开否开启trimepay');
+INSERT INTO config VALUES (null, 'trimepay_appid', '','appid');
+INSERT INTO config VALUES (null, 'trimepay_appsecret', '','key');
+INSERT INTO config VALUES (null, 'pay_notify_url', '','回掉地址');
 
 -- 增加 订阅
 ALTER TABLE `user_subscribe`
@@ -1434,33 +1436,33 @@ ALTER TABLE `ss_node` ADD COLUMN `heartbeat_at` datetime DEFAULT NULL COMMENT '�
 -- ----------------------------
 -- 20220225增加 全站每日流量统计 注意，这是插入值，不是别的。
 -- ----------------------------
-ALTER TABLE `config` ADD COLUMN `comment` text COMMENT '备注';
-INSERT INTO `config` VALUES ('', 'all_traffic_daily_mark', '','全站每日用流量记录');
-INSERT INTO `config` VALUES ('', 'all_traffic_daily_supply', '','全站每日供给流量记录');
 
-INSERT INTO `config` VALUES ('', 'group1_traffic_daily_mark', '','组1每日用流量记录');
-INSERT INTO `config` VALUES ('', 'group1_traffic_daily_supply', '','组1每日供给流量记录');
-INSERT INTO `config` VALUES ('', 'group2_traffic_daily_mark', '','组2每日用流量记录');
-INSERT INTO `config` VALUES ('', 'group2_traffic_daily_supply', '','组2每日供给记录');
+INSERT INTO `config` VALUES (null, 'all_traffic_daily_mark', '','全站每日用流量记录');
+INSERT INTO `config` VALUES (null, 'all_traffic_daily_supply', '','全站每日供给流量记录');
+
+INSERT INTO `config` VALUES (null, 'group1_traffic_daily_mark', '','组1每日用流量记录');
+INSERT INTO `config` VALUES (null, 'group1_traffic_daily_supply', '','组1每日供给流量记录');
+INSERT INTO `config` VALUES (null, 'group2_traffic_daily_mark', '','组2每日用流量记录');
+INSERT INTO `config` VALUES (null, 'group2_traffic_daily_supply', '','组2每日供给记录');
 
 
 --
 -- sdo2022-04-12 增加一些 config 配置
 --
-INSERT INTO `config` VALUES ('', 'fakapay', '','发卡支付开关 on off');
-INSERT INTO `config` VALUES ('', 'fakapay_10url', '','10元发卡链接');
-INSERT INTO `config` VALUES ('', 'fakapay_100url', '','100元发卡链接');
+INSERT INTO `config` VALUES (null, 'fakapay', '','发卡支付开关 on off');
+INSERT INTO `config` VALUES (null, 'fakapay_10url', '','10元发卡链接');
+INSERT INTO `config` VALUES (null, 'fakapay_100url', '','100元发卡链接');
 
 --
 -- sdo2022-04-13 增加一些 CP代付的数据库配置
 --
-INSERT INTO `config` VALUES ('', 'clonepay', '','CP代付 on off');
-INSERT INTO `config` VALUES ('', 'clonepay_token', '','密钥');
-INSERT INTO `config` VALUES ('', 'clonepay_safeip', '','安全ip');
-INSERT INTO `config` VALUES ('', 'clonepay_safeipv6', '','安全ipv6');
+INSERT INTO `config` VALUES (null, 'clonepay', '','CP代付 on off');
+INSERT INTO `config` VALUES (null, 'clonepay_token', '','密钥');
+INSERT INTO `config` VALUES (null, 'clonepay_safeip', '','安全ip');
+INSERT INTO `config` VALUES (null, 'clonepay_safeipv6', '','安全ipv6');
 
-INSERT INTO `config` VALUES ('', 'clonepay_homeurl', '','代付地址');
-INSERT INTO `config` VALUES ('', 'clonepay_syncurl', '','代付同步请求地址');
+INSERT INTO `config` VALUES (null, 'clonepay_homeurl', '','代付地址');
+INSERT INTO `config` VALUES (null, 'clonepay_syncurl', '','代付同步请求地址');
 
 
 
@@ -1497,5 +1499,5 @@ ALTER TABLE `ss_node` ADD COLUMN  `v2_cdn_ip` VARCHAR(255) DEFAULT '' COMMENT 'c
 
 -- 2024-10-05 add clonepay webs apis 
 
-INSERT INTO `config` VALUES ('', 'clonepay_webs', '','代付站点代号');
-INSERT INTO `config` VALUES ('', 'clonepay_apis', '','代付站点apis');
+INSERT INTO `config` VALUES (null, 'clonepay_webs', '','代付站点代号');
+INSERT INTO `config` VALUES (null, 'clonepay_apis', '','代付站点apis');
