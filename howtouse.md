@@ -88,10 +88,14 @@ git clone https://github.com/supersongssr/Npanel.git
 cd ssrpanel/
 cp .env.example .env
 （然后 vi .env 修改数据库的连接信息）
-#php composer.phar install
+# 原版安装方式
+# php composer.phar install
+## 我在网上查到的另外一种安装方式
 # composer config repo.packagist composer https://packagist.phpcomposer.com
 # composer install
 #composer update # 这一步是根据 网上查找到的, 
+# 直接使用网站提供的 vender
+
 php artisan key:generate
 
 chown -R www:www *

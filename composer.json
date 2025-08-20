@@ -73,7 +73,7 @@
 	"repositories": {
         "packagist": {
             "type": "composer",
-            "url": "https://packagist.laravel-china.org"
+            "url": "https://repo.packagist.org"
         }
     },
     "minimum-stability": "dev",
