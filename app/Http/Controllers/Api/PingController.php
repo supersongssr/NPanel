@@ -122,7 +122,7 @@ class PingController extends Controller
 
         // 获取一个可用的 nodeid
         if (!empty($request->get('new_node_id'))) {
-            $node = SsNode::query()->where('id','>',99)->where('heartbeat_at','<', date(time() - 604800))->where('status', 0)->orderBy('id', 'asc')->first();
+            $node = SsNode::query()->where('id','>',99)->where('heartbeat_at','<', date('Y-m-d H:i:s',time() - 604800))->where('status', 0)->orderBy('id', 'asc')->first();
             if ($node ) { // 过期7天
                 $node->heartbeat_at = date('Y-m-d H:i:s');
                 $node->save();
