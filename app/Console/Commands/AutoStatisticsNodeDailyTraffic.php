@@ -138,12 +138,16 @@ class AutoStatisticsNodeDailyTraffic extends Command
             $node->monitor_url .= '|'.date("Y-m-d");
 
             # 流量统计和节点故障预警 ，排除一种情况，流量少，但是实际上是 流量已用超那种
-            if ($node->status == 1 && $node->is_subscribe == 1 && $node->is_clone == 0 ) {
-                $traffic_today < 1*1024*1024*1024 && $node->sort -= 2;
-                $traffic_today < 8*1024*1024*1024 && $node->sort -= 1;
-                $traffic_today > 16*1024*1024*1024 && $node->sort = 0;
-                $node->traffic_used_daily > $node->traffic_left_daily && $node->sort = 0;
+            if ( $node->id > 9 && $node->is_clone == 0 ) {
+                if ( $node->traffic_used_daily < $node->traffic_left_daily / 4 && $traffic_today < 4*1024*1024*1024){
+                    $node->sort -= 100; //故障值
+                } else {
+                    $node->node_cost < 1 && $node->node_cost = 1;
+                    $node->sort = floor($node->traffic_used_daily /1024/1024/1024 / $node->node_cost); //性价比
+                }
+                
             }
+
 
             // 记录当前流量值
             $node->traffic_lastday = $node->traffic;
