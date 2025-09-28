@@ -1501,3 +1501,5 @@ ALTER TABLE `ss_node` ADD COLUMN  `v2_cdn_ip` VARCHAR(255) DEFAULT '' COMMENT 'c
 
 INSERT INTO `config` VALUES (null, 'clonepay_webs', '','代付站点代号');
 INSERT INTO `config` VALUES (null, 'clonepay_apis', '','代付站点apis');
+
+INSERT INTO `config` VALUES (null, 'sub_rss_url', '','订阅转换地址');

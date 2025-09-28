@@ -383,6 +383,18 @@
                                                             </div>
                                                         </div>
                                                         <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="sub_rss_url" class="col-md-3 control-label">订阅转换地址</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" name="sub_rss_url" value="{{$sub_rss_url}}" id="sub_rss_url" />
+                                                                    <span class="input-group-btn">
+                                                                        <button class="btn btn-success" type="button" onclick="setSubRssUrl()">修改</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> 订阅转换地址 </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
                                                             <label for="subscribe_max" class="col-md-3 control-label">订阅节点数</label>
                                                             <div class="col-md-9">
                                                                 <div class="input-group">
@@ -2059,6 +2071,23 @@
                 _token: '{{csrf_token()}}',
                 name: 'subscribe_ban_times',
                 value: subscribe_ban_times
+            }, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'fail') {
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+
+        // 设置订阅转换地址
+        function setSubRssUrl() {
+            var sub_rss_url = $("#sub_rss_url").val();
+
+            $.post("/admin/setConfig", {
+                _token: '{{csrf_token()}}',
+                name: 'sub_rss_url',
+                value: sub_rss_url
             }, function (ret) {
                 layer.msg(ret.message, {time: 1000}, function () {
                     if (ret.status == 'fail') {

@@ -89,4 +89,58 @@ Stack trace:
       - ipkey有数据,直接添加 当前ip
 
     
-- [] 检查 srp vps 是否安装 redis
+- [x] 检查 srp vps 是否安装 redis
+
+
+- [] clash 和 singbox 订阅, 通过第三方url 转换后 发送给用户
+  - [] 在设置中添加 sub_rss_url 地址配置
+    - admin - 系统设置。- 拓展。-  订阅转换地址 sub_rss_url 
+    - sub_rss_url 格式: 地址 http://139.162.118.243:25500/sub?target={target}&url={url}
+
+  - [] clash 和 singbox 订阅 , 通过 sub_rss_url 转换后 发给用户
+  - 核心文件: app/Http/Controllers/SubscribeController.php  getSubscribeByCode
+  - clash & singbox
+    - 当用户订阅中出现 clash=xx 或 singbox=xx ,存在且不为空值, 或值 >0  的时候, 获取 http://139.162.118.243:25500/sub.   ?target={target}&url={url} 内容,然后发给 用户
+      - target: clash , singbox  , surfboard 
+      - url : (self::$systemConfig['subscribe_domain'] ? self::$systemConfig['subscribe_domain'] : self::$systemConfig['website_url']) . '/s/' . Auth::user()->subscribe->code;
+        - url 需要 urlencode 
+    - 当 clash , singbox 参数存在时候, 优先处理, 
+    - 检查, 当订阅转换超时的时候,返回空值.
+
+- [] 新要求
+1. 修正方法调用：
+    - 将 getConvertedSubscribe 方法的参数从 5 个改为 3 个：target、value、subscribe
+    - 更新了调用处的代码，正确传递参数
+  2. 更新了方法签名：
+    - $target: 目标类型（clash/singbox/surfboard）
+    - $value: 订阅参数值（虽然暂时用不到，但保留以备将来扩展）
+    - $subscribe: 订阅对象
+  3. 优化了逻辑：
+    - 在调用方法之前先确定 target 值
+    - 简化了 getConvertedSubscribe 方法内部的目标验证逻辑
+  4. 数据库配置：
+    - 确认 sub_rss_url 配置已正确添加到数据库中
+
+  功能使用方式
+
+  现在用户可以通过以下方式使用转换功能：
+
+  - Clash 订阅：/s/用户订阅码?clash=1
+  - Singbox 订阅：/s/用户订阅码?singbox=1
+  - Surfboard 订阅：/s/用户订阅码?surfboard=1
+
+  管理员配置
+
+  管理员需要在后台设置订阅转换地址，格式示例：
+  http://139.162.118.243:25500/sub
+
+  系统会自动在 URL 后面添加 ?target={target}&url={url} 参数。
+
+  
+- [] app/Http/Controllers/SubscribeController.php 修改
+  - [] 订阅地址 如果检测到 app= 参数, 且为 clash singbox surfboard 中的任意一个,就进行订阅转换 target={app}
+  - [] 订阅转换时候的地址,去除 app= 参数, 保留其他参数,  
+  - [] singbox= , clash= , surfboard= 参数作废, 用 app= 参数代替
+
+- [x] npanel test add sub_rss_url to mysql 
+- [] srp add sub_rss_url to mysql 

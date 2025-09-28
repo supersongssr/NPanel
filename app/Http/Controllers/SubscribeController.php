@@ -13,6 +13,7 @@ use App\Http\Models\UserSubscribeLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Log;
 
 // cncdn
 use App\Http\Models\Cncdn;
@@ -162,12 +163,18 @@ class SubscribeController extends Controller
         if (!$user) {
             exit(0);
         }
-        $subscribe->increment('times', 1);  // 更新访问次数
-        $subscribe->increment('times_today', 1);   //今日访问也+1
-        $user->rss_ip = $clientIp;
-        $user->save();
+
+        
+
+        // $subscribe->increment('times', 1);  // 更新访问次数
+        // $subscribe->increment('times_today', 1);   //今日访问也+1
+        // $user->rss_ip = $clientIp;
+        // $user->save();
         $this->log($subscribe->id, $clientIp, $request->headers);   // 记录每次请求
-        //Song 获取查询字符串
+
+        // 获取查询字符串参数
+        $app = $request->get('app');     // app 参数用于订阅转换
+
         $ver = $request->get('ver');  // 1 = sr 2 = v2ray 这个废弃了 旧版本的
         $ssr_sub = $request->get('ssr'); //ssr现在已经废弃了
         $v2ray_sub = $request->get('v2ray');  // v2ray 包含 ss vmess vless trojan 三个订阅格式
@@ -176,6 +183,19 @@ class SubscribeController extends Controller
         $vless_sub = $request->get('vless');
         $trojan_sub = $request->get('trojan');
         $rocket_sub = $request->get('rocket');  // 效果等同 v2ray_sub
+
+        // Clash 和 Singbox 订阅转换处理（使用 app 参数）
+        if ($app && in_array($app, ['clash', 'singbox', 'surfboard'])) {
+            // 移除 app 参数，保留其他参数构建原始订阅URL
+            $query_string = $request->query();
+            unset($query_string['app']);
+
+            $converted_subscribe = $this->getConvertedSubscribe($app, $subscribe, $query_string);
+            if ($converted_subscribe) {
+                exit($converted_subscribe);
+            }
+        }
+
         //订阅数量统计
         $v2ray_count = 0;
         $ss_count = 0;
@@ -184,7 +204,7 @@ class SubscribeController extends Controller
         $trojan_count = 0;
         $rocket_count = 0;
         // 开始获取节点 ：
-        $scheme = '';  
+        $scheme = '';
         $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('有效期：'.$user->expire_time)."\n";
         $newsList = SsNode::query()->where('status',1)->where('node_group',0)->orderBy('level', 'desc')->get();     //获取等级为0的news节点，新闻通知节点。
         foreach ($newsList as $key => $node) {
@@ -424,5 +444,81 @@ class SubscribeController extends Controller
         $text = '到期时间：' . $user->expire_time;
 
         return 'ssr://' . base64url_encode('0.0.0.1:1:origin:none:plain:' . base64url_encode('0000') . '/?obfsparam=&protoparam=&remarks=' . base64url_encode($text) . '&group=' . base64url_encode(Helpers::systemConfig()['website_name']) . '&udpport=0&uot=0') . "\n";
+    }
+
+    /**
+     * 获取转换后的订阅（Clash/Singbox/Surfboard）
+     *
+     * @param string $target 目标类型（clash/singbox/surfboard）
+     * @param object $subscribe 订阅对象
+     * @param array $query_string 查询字符串参数（已移除app参数）
+     *
+     * @return string|false
+     */
+    private function getConvertedSubscribe($target, $subscribe, $query_string = [])
+    {
+        // 获取系统配置中的订阅转换地址
+        $sub_rss_url = self::$systemConfig['sub_rss_url'] ?? '';
+
+        if (empty($sub_rss_url)) {
+            return false;
+        }
+
+        // // 验证目标类型
+        // if (!in_array($target, ['clash', 'singbox', 'surfboard'])) {
+        //     return false;
+        // }
+
+        // 构建订阅URL（保留其他参数）
+        $subscribe_domain = self::$systemConfig['subscribe_domain'] ?: self::$systemConfig['website_url'];
+        $original_url = $subscribe_domain . '/s/' . $subscribe->code;
+
+        // 如果有其他查询参数，添加到URL中
+        if (!empty($query_string)) {
+            $original_url .= '?' . http_build_query($query_string);
+        }
+
+        // 构建转换URL
+        $convert_url = $sub_rss_url. '?target='. $target . '&url=' . urlencode($original_url);
+
+        try {
+            // 设置超时时间（5秒）
+            $timeout = 5;
+
+            // 使用 cURL 获取转换后的订阅内容
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $convert_url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; NPanel Subscribe Converter)');
+
+            $response = curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            // 检查是否成功
+            if ($http_code === 200 && $response !== false && !empty($response)) {
+                return $response;
+            }
+
+            // 超时或错误处理
+            if (strpos($error, 'timeout') !== false || strpos($error, 'Operation timed out') !== false) {
+                // 记录超时日志（可选）
+                Log::error('订阅转换超时: ' . $convert_url);
+                return false;
+            }
+
+            // 其他错误处理
+            Log::error('订阅转换失败: ' . $convert_url . ' - ' . $error);
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error('订阅转换异常: ' . $convert_url . ' - ' . $e->getMessage());
+            return false;
+        }
     }
 }
