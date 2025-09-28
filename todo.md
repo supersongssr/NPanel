@@ -56,7 +56,37 @@ Stack trace:
 - [x] In CurlDownloader.php line 371: curl error 28 while downloading https://packagist.laravel-china.org/packages.json: Connection timed out after 10004 milliseconds 
     - 解决方案:
 
-- [] 2025-08-20 
+- [x] 2025-08-20 
 上面将 MIseChow 改为 jormin 是愚蠢的行为, 无法解决问题! 
 恢复了 所有的 更改, 
 直接 copy了 verder 文件夹, 直接上报即可.
+
+
+- [] 订阅请求频率限制
+  - 作用: 每个用户的订阅请求频率限制, 防止cc攻击
+  - 每个用户的 限制
+    - 限制 请求频率
+      - 限制
+        - 20次 每 15分钟
+        - 30次 每小时
+      - 超额限制:
+        - 订阅返回空值
+    - 限制请求的ip数量
+      - 限制每个用户的 每小时请求的ip总数
+      - 限制: 15ips 每小时限制
+      - 超额返回报错ss: 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('订阅请求ip数量异常,有太多ip在使用您的订阅,请联系管理员')."\n";
+  - 性能优化
+    - 频率限制使用 $code 
+    - 所有的频率限制 在 mysql请求之前! 
+      - 所有的数据库查询 都要在 频率限制之后
+        - 作用: 避免 cc 攻击导致 数据库频繁查询 
+    - ips 统计 使用 redis set , 代替 json
+  - 优化
+    - ips 统计 ,每小时重置一次. 
+    - 代码中似乎是 每次请求都重置1小时统计, 这似乎是bug
+    - 修改
+      - ipKey 没有数据, 添加当前ip, 并设置为1小时
+      - ipkey有数据,直接添加 当前ip
+
+    
+- [] 检查 srp vps 是否安装 redis

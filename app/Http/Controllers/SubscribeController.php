@@ -11,6 +11,8 @@ use App\Http\Models\UserLabel;
 use App\Http\Models\UserSubscribe;
 use App\Http\Models\UserSubscribeLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redis;
 
 // cncdn
 use App\Http\Models\Cncdn;
@@ -133,6 +135,24 @@ class SubscribeController extends Controller
         if (empty($code)) {
             return Redirect::to('login');
         }
+        
+        // 获取客户端IP
+        $clientIp = getClientIp();
+        
+        // 频率限制检查 - 在任何数据库查询之前执行
+        $limitResult = $this->checkFrequencyLimit($code, $clientIp);
+        
+        // 如果频率限制超额，返回空值
+        if ($limitResult === 'empty') {
+            exit(base64_encode(''));
+        }
+        
+        // 如果IP数量超额，返回错误信息
+        if ($limitResult === 'ip_exceeded') {
+            $errorResponse = 'ss://' . base64_encode('0.0.0.0:1:origin:none:plain:' . base64_encode('0000') . '/?obfsparam=&protoparam=&remarks=' . base64_encode('订阅请求ip数量异常,有太多ip在使用您的订阅,请联系管理员') . '&group=' . base64_encode('错误') . '&udpport=0&uot=0') . "\n";
+            exit(base64_encode($errorResponse));
+        }
+        
         // 校验合法性
         $subscribe = UserSubscribe::query()->with('user')->where('status', 1)->where('code', $code)->first();
         if (!$subscribe) {
@@ -144,9 +164,9 @@ class SubscribeController extends Controller
         }
         $subscribe->increment('times', 1);  // 更新访问次数
         $subscribe->increment('times_today', 1);   //今日访问也+1
-        $user->rss_ip = getClientIp();
+        $user->rss_ip = $clientIp;
         $user->save();
-        $this->log($subscribe->id, getClientIp(), $request->headers);   // 记录每次请求
+        $this->log($subscribe->id, $clientIp, $request->headers);   // 记录每次请求
         //Song 获取查询字符串
         $ver = $request->get('ver');  // 1 = sr 2 = v2ray 这个废弃了 旧版本的
         $ssr_sub = $request->get('ssr'); //ssr现在已经废弃了
@@ -294,6 +314,68 @@ class SubscribeController extends Controller
         $log->request_time = date('Y-m-d H:i:s');
         $log->request_header = $headers;
         $log->save();
+    }
+    
+    /**
+     * 检查订阅请求频率限制
+     *
+     * @param string $code 订阅码
+     * @param string $ip 客户端IP
+     * @return string|bool 'empty' 表示超额返回空值, 'ip_exceeded' 表示IP数量超额, true 表示通过
+     */
+    private function checkFrequencyLimit($code, $ip)
+    {
+        $currentTime = time();
+        $subscribeKey = 'subscribe_limit:' . $code;
+        $ipKey = 'subscribe_ip:' . $code;
+        
+        // 检查15分钟频率限制 (20次/15分钟)
+        $fifteenMinuteKey = $subscribeKey . ':15m';
+        $fifteenMinuteCount = Redis::get($fifteenMinuteKey);
+        
+        if ($fifteenMinuteCount === false) {
+            // 第一次请求，设置初始值和过期时间
+            Redis::setex($fifteenMinuteKey, 900, 1); // 15分钟 = 900秒
+        } else {
+            $fifteenMinuteCount = intval($fifteenMinuteCount);
+            if ($fifteenMinuteCount >= 20) {
+                return 'empty'; // 超过15分钟限制，返回空值
+            }
+            Redis::incr($fifteenMinuteKey);
+        }
+        
+        // 检查1小时频率限制 (30次/小时)
+        $oneHourKey = $subscribeKey . ':1h';
+        $oneHourCount = Redis::get($oneHourKey);
+        
+        if ($oneHourCount === false) {
+            // 第一次请求，设置初始值和过期时间
+            Redis::setex($oneHourKey, 3600, 1); // 1小时 = 3600秒
+        } else {
+            $oneHourCount = intval($oneHourCount);
+            if ($oneHourCount >= 30) {
+                return 'empty'; // 超过1小时限制，返回空值
+            }
+            Redis::incr($oneHourKey);
+        }
+        
+        // 检查IP数量限制 (15个IP/小时)
+        $ipCount = Redis::sCard($ipKey);
+        if ($ipCount >= 15) {
+            return 'ip_exceeded'; // 超过IP数量限制
+        }
+        
+        // 添加当前IP到集合，设置1小时过期
+        // 如果ipKey没有数据，添加当前ip并设置1小时过期
+        // 如果ipKey有数据，直接添加当前ip
+        if (!Redis::exists($ipKey)) {
+            Redis::sAdd($ipKey, $ip);
+            Redis::expire($ipKey, 3600);
+        } else {
+            Redis::sAdd($ipKey, $ip);
+        }
+        
+        return true; // 所有检查通过
     }
 
     // 抛出无可用的节点信息，用于兼容防止客户端订阅失败
