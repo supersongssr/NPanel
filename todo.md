@@ -143,4 +143,4 @@ Stack trace:
   - [] singbox= , clash= , surfboard= 参数作废, 用 app= 参数代替
 
 - [x] npanel test add sub_rss_url to mysql 
-- [] srp add sub_rss_url to mysql 
+- [x] srp add sub_rss_url to mysql 
