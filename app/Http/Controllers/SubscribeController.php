@@ -143,25 +143,34 @@ class SubscribeController extends Controller
         // 频率限制检查 - 在任何数据库查询之前执行
         $limitResult = $this->checkFrequencyLimit($code, $clientIp);
         
-        // 如果频率限制超额，返回空值
-        if ($limitResult === 'empty') {
-            exit(base64_encode(''));
+        // 如果15分钟频率限制超额，返回特定错误信息
+        if ($limitResult === 'fifteen_min_exceeded') {
+            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('每15分钟请求请少于20次')."\n";
+            exit(base64_encode($errorResponse));
+        }
+        
+        // 如果1小时频率限制超额，返回特定错误信息
+        if ($limitResult === 'one_hour_exceeded') {
+            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('一小时请求请少于30次')."\n";
+            exit(base64_encode($errorResponse));
         }
         
         // 如果IP数量超额，返回错误信息
         if ($limitResult === 'ip_exceeded') {
-            $errorResponse = 'ss://' . base64_encode('0.0.0.0:1:origin:none:plain:' . base64_encode('0000') . '/?obfsparam=&protoparam=&remarks=' . base64_encode('订阅请求ip数量异常,有太多ip在使用您的订阅,请联系管理员') . '&group=' . base64_encode('错误') . '&udpport=0&uot=0') . "\n";
+            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('订阅ip数量异常')."\n";
             exit(base64_encode($errorResponse));
         }
         
         // 校验合法性
         $subscribe = UserSubscribe::query()->with('user')->where('status', 1)->where('code', $code)->first();
         if (!$subscribe) {
-            exit(0);
+            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('error167')."\n";
+            exit(base64_encode($errorResponse));
         }
         $user = User::query()->where('status', 1)->where('enable', 1)->where('id', $subscribe->user_id)->first();
         if (!$user) {
-            exit(0);
+            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('error172')."\n";
+            exit(base64_encode($errorResponse));
         }
 
         
@@ -341,7 +350,7 @@ class SubscribeController extends Controller
      *
      * @param string $code 订阅码
      * @param string $ip 客户端IP
-     * @return string|bool 'empty' 表示超额返回空值, 'ip_exceeded' 表示IP数量超额, true 表示通过
+     * @return string|bool 'fifteen_min_exceeded' 表示15分钟限制超额, 'one_hour_exceeded' 表示1小时限制超额, 'ip_exceeded' 表示IP数量超额, true 表示通过
      */
     private function checkFrequencyLimit($code, $ip)
     {
@@ -359,7 +368,7 @@ class SubscribeController extends Controller
         } else {
             $fifteenMinuteCount = intval($fifteenMinuteCount);
             if ($fifteenMinuteCount >= 20) {
-                return 'empty'; // 超过15分钟限制，返回空值
+                return 'fifteen_min_exceeded'; // 超过15分钟限制，返回特定标识
             }
             Redis::incr($fifteenMinuteKey);
         }
@@ -374,7 +383,7 @@ class SubscribeController extends Controller
         } else {
             $oneHourCount = intval($oneHourCount);
             if ($oneHourCount >= 30) {
-                return 'empty'; // 超过1小时限制，返回空值
+                return 'one_hour_exceeded'; // 超过1小时限制，返回特定标识
             }
             Redis::incr($oneHourKey);
         }

@@ -144,3 +144,8 @@ Stack trace:
 
 - [x] npanel test add sub_rss_url to mysql 
 - [x] srp add sub_rss_url to mysql 
+
+- [] 订阅出错的时候,返回一条 信息, 告诉用户出错了. 用 rss 返回吧.
+
+
+- [] 订阅中,找出所有返回空值的地方,然后修改为返回 对应的 ss链接的信息.告诉用户信息.

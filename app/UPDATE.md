@@ -7,9 +7,13 @@
 git pull 
 
 # 下载指定分支
-git pull oriin SPanel 
+git pull origin NPanel 
+
+# 强制放弃本地更新,然后 拉取
+git reset --hard HEAD
+git pull
 
 # 强制更新 并覆盖本地文件
-git reset --hard origin/SPanel
+git reset --hard origin/NPanel
 
 ```
