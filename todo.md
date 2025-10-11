@@ -155,3 +155,20 @@ Stack trace:
   - 用户反馈, 用户触发了 15分钟不超过20次的提示, 但是 用户等了一个小时, 还是有这个提示
     - 检查一下 这个缓存的 时间过期时间是否为 15分钟? 这里是否有BUG
   - 结论: 没问题.
+
+请使用中文交流,有问题请问我.
+- [x] 由用户反馈: “每15分钟限制20次的。我们根本没人一直订阅，过了一晚上还是不行。”
+  - [x] 检查 /Volumes/co/github.com/supersongssr/NPanel/app/Http/Controllers/SubscribeController.php 这个文件中的 15分钟限制 , 是否会过了 15分钟重置,还是不重置. 
+    - [x] 这里面的代码是否有bug? 
+    - 给出检查结论. 
+      - 没问题.
+
+- [] php 脚本 
+  - get  /Volumes/co/github.com/supersongssr/NPanel/app/Http/Controllers/SubscribeController.php 的 redis limit 
+  - 提供一个 订阅码, 返回 该订阅码在 redis 中的 limit 值.
+    - 15分钟 limit
+    - 1小时 limit
+    - ip limit
+    - 脚本放在 /tests floder  中,可以 php 单独运行. 
+  - 请使用中文交流
+  - 遇到问题请和我沟通方案. 
