@@ -163,7 +163,7 @@ Stack trace:
     - 给出检查结论. 
       - 没问题.
 
-- [] php 脚本 
+- [x] php 脚本 
   - get  /Volumes/co/github.com/supersongssr/NPanel/app/Http/Controllers/SubscribeController.php 的 redis limit 
   - 提供一个 订阅码, 返回 该订阅码在 redis 中的 limit 值.
     - 15分钟 limit
@@ -172,3 +172,9 @@ Stack trace:
     - 脚本放在 /tests floder  中,可以 php 单独运行. 
   - 请使用中文交流
   - 遇到问题请和我沟通方案. 
+
+
+- [] 分析问题:  生成api接口说明文档
+  - api file path : /Volumes/co/github.com/supersongssr/NPanel/app/Http/Controllers/Api/PingController.php
+    - output 说明文档 path:  /docs
+        - 请仔细核对 post 请求信息的格式
