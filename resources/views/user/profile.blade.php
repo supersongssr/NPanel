@@ -93,7 +93,7 @@
                                                     <input type="text" class="form-control" name="alipay" value="{{Auth::user()->alipay}}" id="alipay" >
                                                     <input type="hidden" name="_token" value="{{csrf_token()}}" />
                                                 </div>
-                                                <p>请使用 <a href="https://edu:img@easyimage2.freessr.bid/" target="_blank">免费图床</a>上传收款码，复制 URL 地址到上面。<br><code>*请务必检查您的收款信息是否正确，如果由于您错误的设置无法收到打款，只能自己承担呦</code><br><code>*手续费由第三方平台手续，具体手续费以第三方平台为准。</code></p>
+                                                <p>请使用 <a href="" target="_blank">免费图床</a>上传收款码，复制 URL 地址到上面。<br><code>*请务必检查您的收款信息是否正确，如果由于您错误的设置无法收到打款，只能自己承担呦</code><br><code>*手续费由第三方平台手续，具体手续费以第三方平台为准。</code></p>
                                                 <p><code>您的微信二维码为：</code><img src="{{Auth::user()->wechat}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 150px; max-height: 150px;">
                                                   <code>您的支付宝二维码为：</code><img src="{{Auth::user()->alipay}}" onerror='this.src="/assets/images/noimage.png"' style="max-width: 150px; max-height: 150px;"> </p>
                                                 <div class="form-actions">
@@ -185,8 +185,6 @@
                                                 <p>
                                                   什么条件下使用它： 直连网速不佳的时候。尤其是移动/电信。<br>
                                                 <br><code>原理：某些用户的网络IP被运营商给限制，无法使用国际带宽，或者国际带宽被限制在500K左右。 设置CF+ 的IP优化，可以避开运营商的IP限制和限速。</code>
-                                                <br>WIN教程: <code><a href="https://www.baipiao.eu.org/batch.zip" target="_blank">点我下载 - 内附使用说明</a></code>
-                                                <br>Linux教程：<code>curl https://www.baipiao.eu.org/cf.sh -o cf.sh && chmod +x cf.sh && ./cf.sh</code>
                                                 </p>
 
 
