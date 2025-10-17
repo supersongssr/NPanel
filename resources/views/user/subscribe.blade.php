@@ -68,7 +68,6 @@
                                                     <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
                                                     <li>一键安装homebrew (如已安装homebrew请略过): <a href="/article?id=53" target="_blank">安装homebrew教程</a></li>
                                                     <li>一键安装v2rayA : <a href="/article?id=55" target="_blank">安装v2rayA教程</a></li>
-                                                    <li>使用 v2rayA : <a href="https://zhuanlan.zhihu.com/p/414998586" target="_blank">如何使用v2rayA</a></li>
                                                 </ol>
                                                 <!-- <ol>【SS-R 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksX-NG-R8-1.4.4.dmg')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
@@ -90,27 +89,11 @@
                                                     <li> 软件界面 - 右键任意节点 - 设为活动的服务器 ； v2rayN软件界面 - 代理 - 自动设置系统代理；打开浏览器上网吧 </li>
                                                     <li> <a href="/article?id=47">没看懂？点我图文教程</a></li>
                                                 </ol>
-                                                <hr>
-                                                <!-- <ol>【 Clash 】
-                                                    <input type="text" id="mt-target-1" class="form-control" value="https://sub.1upsrss.top/sub?target=clash&url={{$link}}?v2ray=64&scv=true" />
-                                                    <li> 订阅地址 <code>https://sub.1upsrss.top/sub?target=clash&url={{$link}}?v2ray=64&scv=true</code> </li>
-                                                </ol> -->
-                                                <hr>
-                                                <!-- <ol>【SS-R 教程】
-                                                    <li> <a href="https://github.com/shadowsocksrr/shadowsocksr-csharp/releases/download/4.9.2/ShadowsocksR-win-4.9.2.zip" target="_blank">点击此处（V4.9.2版本）</a>下载客户端并启动 </li>
-                                                    <li> 运行 ShadowsocksR 文件夹内的 ShadowsocksR.exe </li>
-                                                    <li> 右击桌面右下角状态栏（或系统托盘）纸飞机 -> 服务器订阅 -> SSR服务器订阅设置 </li>
-                                                    <li> 点击窗口左下角 “Add” 新增订阅，完整复制本页上方 “订阅服务” 处地址，将其粘贴至“网址”栏，点击“确定” </li>
-                                                    <li> 右击纸飞机 -> 服务器订阅 -> 更新SSR服务器订阅（不通过代理） </li>
-                                                    <li> 右击纸飞机 -> 服务器，选定合适服务器 </li>
-                                                    <li> 右击纸飞机 -> 系统代理模式 -> 全局模式 </li>
-                                                    <li> 右击纸飞机 -> 代理规则 -> 绕过局域网和大陆 </li>
-                                                    <li> 右击纸飞机，取消勾选“服务器负载均衡” </li>
-                                                </ol> -->
+                                            
+                                                
                                             </div>
                                             <div class="tab-pane" id="tools3">
                                                 <ol>【Qv2ray】
-                                                    <li><a href="https://github.com/jiangxufeng/v2rayL">点此查看Qv2ray的教程</a></li>
                                                 </ol>
                                                 <hr>
                                                 <!-- <ol>【SS-R 教程】

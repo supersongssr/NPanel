@@ -180,3 +180,10 @@ Stack trace:
         - 请仔细核对 post 请求信息的格式
 
 
+- [] 网站 firefox 报告网站诈骗问题
+  - [] 猜测是 外部链接: https://edu:img@easyimage2.freessr.bid/ 导致的, 将外部链接的密钥给删除掉或者这个外部链接给去掉.再看看
+    - [] 猜测是  curl https://www.baipiao.eu.org/cf.sh -o cf.sh && chmod +x cf.sh && ./cf.sh 这个教程导致的
+
+
+- [] 检查所有 resources 中的 html 文件中的 外链,并列出来.
+  - [] 列出来外链中 不安全的 外链.
