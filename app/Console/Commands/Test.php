@@ -47,13 +47,13 @@ class Test extends Command
     private function aTest()
     {
 
-        # 自动获取所有节点 和 节点来自哪里
-        $nodes = SsNode::query()->get();
-        foreach($nodes as $node){
-            $node->v2_fp = "firefox";
-            echo $node->id . "\n";
-            $node->save();
-        }
+        // # 自动获取所有节点 和 节点来自哪里
+        // $nodes = SsNode::query()->get();
+        // foreach($nodes as $node){
+        //     $node->v2_fp = "firefox";
+        //     echo $node->id . "\n";
+        //     $node->save();
+        // }
        
 
 
