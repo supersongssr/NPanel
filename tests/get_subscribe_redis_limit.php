@@ -57,7 +57,7 @@ try {
     $fifteenMinuteCount = Redis::get($fifteenMinuteKey);
     $fifteenMinuteTTL = Redis::ttl($fifteenMinuteKey);
     
-    if ($fifteenMinuteCount === false) {
+    if ($fifteenMinuteCount === null || $fifteenMinuteCount == false) {
         echo "  状态: 无数据 (可能未开始或已过期)\n";
         echo "  当前计数: 0/20\n";
         echo "  剩余时间: 已过期\n";
@@ -75,7 +75,7 @@ try {
     $oneHourCount = Redis::get($oneHourKey);
     $oneHourTTL = Redis::ttl($oneHourKey);
     
-    if ($oneHourCount === false) {
+    if ($oneHourCount === null  || $fifteenMinuteCount == false) {
         echo "  状态: 无数据 (可能未开始或已过期)\n";
         echo "  当前计数: 0/30\n";
         echo "  剩余时间: 已过期\n";

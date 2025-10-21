@@ -362,7 +362,7 @@ class SubscribeController extends Controller
         $fifteenMinuteKey = $subscribeKey . ':15m';
         $fifteenMinuteCount = Redis::get($fifteenMinuteKey);
         
-        if ($fifteenMinuteCount === false) {
+        if ($fifteenMinuteCount == null || $fifteenMinuteCount == false ) {
             // 第一次请求，设置初始值和过期时间
             Redis::setex($fifteenMinuteKey, 900, 1); // 15分钟 = 900秒
         } else {
@@ -377,7 +377,7 @@ class SubscribeController extends Controller
         $oneHourKey = $subscribeKey . ':1h';
         $oneHourCount = Redis::get($oneHourKey);
         
-        if ($oneHourCount === false) {
+        if ($oneHourCount === null  || $fifteenMinuteCount == false ) {
             // 第一次请求，设置初始值和过期时间
             Redis::setex($oneHourKey, 3600, 1); // 1小时 = 3600秒
         } else {

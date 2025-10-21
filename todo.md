@@ -187,3 +187,17 @@ Stack trace:
 
 - [] 检查所有 resources 中的 html 文件中的 外链,并列出来.
   - [] 列出来外链中 不安全的 外链.
+
+
+
+
+## DEBUG
+- [x] app/Http/Controllers/SubscribeController.php checkFrequencyLimit 需要
+  - 在查询不到 key的时候, 添加key, 并设置过期时间
+  - 代码中的设定过期时间不生效! 实际上未设置过期时间.请检查
+
+- 结合代码,解释为什么 tests/get_subscribe_redis_limit.php 55-71行; fifteenMinuteKey 不存在,  但是 依然输出 状态: 活跃\n" 
+  - 查看一下 当 key 不存在的时候, Redis::get 返回的值是什么? 
+    - 做一个测试: 
+      - 一个不存在的。key: SsXa1xx
+      - 一个存在的key: SsXa1
