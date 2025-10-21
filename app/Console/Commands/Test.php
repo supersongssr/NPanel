@@ -48,20 +48,13 @@ class Test extends Command
     {
 
         # 自动获取所有节点 和 节点来自哪里
-        $nodes = SsNode::query()->where('status',1)->where('is_clone',0)->orderBy('node_group','desc')->get();
-        $a='';
+        $nodes = SsNode::query()->get();
         foreach($nodes as $node){
-            $a.= $node->name.' @'.$node->id.' N'.$node->node_group.' from:'.$node->node_from.' ' .$node->desc."\n";
-            echo $node->id.' ';
+            $node->v2_fp = "firefox";
+            echo $node->id . "\n";
+            $node->save();
         }
-        $myfile = fopen("/www/wwwroot/srp-song/public/out.txt", "w") or die("Unable to open file!");
-        fwrite($myfile, $a);
-        fclose($myfile);
-        echo 'done';
-
-
-        # 获取所有节点,遍历所有节点 nodes 
-        
+       
 
 
     }
