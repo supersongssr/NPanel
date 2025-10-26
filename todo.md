@@ -189,7 +189,12 @@ Stack trace:
   - [] 列出来外链中 不安全的 外链.
 
 
+- [v] 帮我分析一下 重置 计算 和 重置 的逻辑
+  - 流量重置的代码在: app/Console/Commands/AutoResetUserTraffic.php
+  - 查看一下 这些逻辑有没有问题
+  
 
+- [v] 检查每月流量重置的BUG
 
 ## DEBUG
 - [x] app/Http/Controllers/SubscribeController.php checkFrequencyLimit 需要

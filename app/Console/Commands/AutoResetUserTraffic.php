@@ -97,10 +97,14 @@ class AutoResetUserTraffic extends Command
     // song 备注 还是按照用户的 购买时间来写比较好，然后，每30天重置一次套餐流量。这个可以有。
 */
                 // 套餐重置日，会把套餐流量重置一下 ，可以有
-                if ($user->d > $user->transfer_monthly ) {
+                if ($user->u + $user->d > $user->transfer_monthly ) {
                     $user->u += $user->d - $user->transfer_monthly;
+                    $user->d = 0;
+                }else{
+                    $user->u = 0;
+                    $user->d = 0;
                 }
-                $user->d = 0;
+                
                 $user->save();
             }
         }
