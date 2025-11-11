@@ -1,5 +1,7 @@
 # NPanel Development Guidelines
 
+使用中文交流
+
 ## Build/Lint/Test Commands
 本地为 macos 环境,无法测试.
 测试环境在 ```ssh root@test.srp``` 服务器

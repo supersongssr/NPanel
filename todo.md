@@ -207,6 +207,73 @@ Stack trace:
 
 
 ## DEBUG
+
+
+- [] 报错: 请在远程服务器调试 
+ UnexpectedValueException
+The stream or file "/www/wwwroot/Npanel/storage/logs/laravel-2025-11-11.log" could not be opened: failed to open stream: Permission denied
+
+
+/www
+/wwwroot
+/Npanel
+/vendor
+/monolog
+/monolog
+/src
+/Monolog
+/Handler
+/StreamHandler.php
+
+        /**
+         * {@inheritdoc}
+         */
+        protected function write(array $record)
+        {
+            if (!is_resource($this->stream)) {
+                if (null === $this->url || '' === $this->url) {
+                    throw new \LogicException('Missing stream url, the stream can not be opened. This may be caused by a premature call to close().');
+                }
+                $this->createDir();
+                $this->errorMessage = null;
+                set_error_handler(array($this, 'customErrorHandler'));
+                $this->stream = fopen($this->url, 'a');
+                if ($this->filePermission !== null) {
+                    @chmod($this->url, $this->filePermission);
+                }
+                restore_error_handler();
+                if (!is_resource($this->stream)) {
+                    $this->stream = null;
+                    throw new \UnexpectedValueException(sprintf('The stream or file "%s" could not be opened: '.$this->errorMessage, $this->url));
+                }
+            }
+     
+            if ($this->useLocking) {
+                // ignoring errors here, there's not much we can do about them
+                flock($this->stream, LOCK_EX);
+            }
+     
+            $this->streamWrite($this->stream, $record);
+     
+            if ($this->useLocking) {
+                flock($this->stream, LOCK_UN);
+            }
+        }
+     
+        /**
+         * Write to stream
+         * @param resource $stream
+         * @param array $record
+         */
+
+Arguments
+
+    "The stream or file "/www/wwwroot/Npanel/storage/logs/laravel-2025-11-11.log" could not be opened: failed to open stream: Permission denied"
+
+
+
+
+
 - [x] app/Http/Controllers/SubscribeController.php checkFrequencyLimit 需要
   - 在查询不到 key的时候, 添加key, 并设置过期时间
   - 代码中的设定过期时间不生效! 实际上未设置过期时间.请检查
