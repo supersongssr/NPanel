@@ -1,6 +1,9 @@
 # NPanel Development Guidelines
 
 ## Build/Lint/Test Commands
+本地为 macos 环境,无法测试.
+测试环境在 ```ssh root@test.srp``` 服务器
+目录是: /www/wwwroot/Npanel 
 
 ### Testing
 - Run all tests: `./vendor/bin/phpunit`
