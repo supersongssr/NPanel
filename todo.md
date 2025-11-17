@@ -196,7 +196,7 @@ Stack trace:
 
 - [v] 检查每月流量重置的BUG
 
-- [] 新增 rsync_test.sh 脚本, 可以循环通过 fswatch 监控文件变化,然后 同步文件夹到远程. 
+- [x] 新增 rsync_test.sh 脚本, 可以循环通过 fswatch 监控文件变化,然后 同步文件夹到远程. 
   - 采用了性能很高的方案, 这样可以配合 opencode 的 ai agent编程.
   - 更换到了 run on save 插件了,看一下效果.
   - 取舍 run on save 和 sync-rsync 两个插件.
@@ -204,6 +204,7 @@ Stack trace:
     - run on save 只能 本地到远程,不能远程到本地.哈哈
       - 这个是需要考虑的.
       - 这个同步也是厉害的.
+  - [x] 这个不必了, 因为 opencode ai cli 会自己知道cp 代码到远程
 
 
 ## DEBUG
