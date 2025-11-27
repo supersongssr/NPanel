@@ -207,6 +207,29 @@ Stack trace:
   - [x] 这个不必了, 因为 opencode ai cli 会自己知道cp 代码到远程
 
 
+
+- [x] panel 有 telegram 通知的设置吗? 在哪里
+
+- [] 为 面板添加 telegram 通知功能. 
+	- what i have :
+		- 缺少 telegram 通知
+	- what i want : 
+		- 添加 telegram 通知
+			- 在 .env 中支持定义 chat id 和 bot token 
+		- 在用户提交提现申请的时候,发送 telegram 通知. 
+			- 位置 app/Http/Controllers/UserController.php ; 如下两个 提现申请时候, 发送通知
+				• ExtractAffMoney() - 邀请返利提现申请
+				• ExtractRefMoney() - 消费返利提现申请
+	- MUST:
+		- 最小化修改
+		- 考虑后续兼容性.
+	- MUST NOT:
+			
+	- 我将如何做验证:
+		- 用户提交提现申请,我会收到 telegram 通知. 
+			- 这个通知提醒的 消息包含: 用户 是谁, 提现金额是多少.  
+			- 我在网站的 /admin/applyList?status=0 页面可以查看到用户的提现申请.
+
 ## DEBUG
 
 

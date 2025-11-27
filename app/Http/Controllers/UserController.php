@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Components\Helpers;
 use App\Components\ServerChan;
+use App\Components\Telegram;
 use App\Http\Models\Article;
 use App\Http\Models\Coupon;
 use App\Http\Models\Goods;
@@ -411,7 +412,7 @@ class UserController extends Controller
             $emailTitle = "新工单提醒";
             $content = "标题：【" . $title . "】<br>内容：" . $content;
 
-/** Song
+/* Song
             // 发邮件通知管理员
             if (self::$systemConfig['crash_warning_email']) {
                 $logId = Helpers::addEmailLog(self::$systemConfig['crash_warning_email'], $emailTitle, $content);
@@ -422,7 +423,7 @@ class UserController extends Controller
             if (self::$systemConfig['is_server_chan'] && self::$systemConfig['server_chan_key']) {
                 ServerChan::send($emailTitle, $content);
             }
-**/
+*/
             return Response::json(['status' => 'success', 'data' => '', 'message' => '提交成功']);
         } else {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '提交失败']);
@@ -468,7 +469,7 @@ class UserController extends Controller
                 $title = $id . "--回复";
                 //
                 $content = "标题：【" . $ticket->title . "】<br> https://web.ssvss.xyz/ticket/replyTicket?id=" .$id. "<br>用户回复：" . $content;
-/**
+/*
                 // 发邮件通知管理员
                 if (self::$systemConfig['crash_warning_email']) {
                     $logId = Helpers::addEmailLog(self::$systemConfig['crash_warning_email'], $title, $content);
@@ -476,7 +477,7 @@ class UserController extends Controller
                 }
 
                 ServerChan::send($title, $content);
-**/
+*/
                 return Response::json(['status' => 'success', 'data' => '', 'message' => '回复成功']);
             } else {
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '回复失败']);
@@ -1036,6 +1037,12 @@ class UserController extends Controller
         $obj->status = 0;
         $obj->save();
 
+        // 发送 Telegram 通知
+        $user = Auth::user();
+        $title = "🎉 邀请返利提现申请";
+        $content = "用户：{$user->username} (ID: {$user->id})\n提现类型：邀请返利\n提现金额：" . ($aff_amount / 100) . " 元\n状态：待审核\n\n请前往管理后台处理：/admin/applyList?status=0";
+        Telegram::send($title, $content);
+
         return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，记得在个人设置中添加收款信息呦']);
     }
 
@@ -1138,6 +1145,12 @@ class UserController extends Controller
         $obj->link_logs = $link_logs;
         $obj->status = 0;
         $obj->save();
+
+        // 发送 Telegram 通知
+        $user = Auth::user();
+        $title = "💰 消费返利提现申请";
+        $content = "用户：{$user->username} (ID: {$user->id})\n提现类型：消费返利\n提现金额：" . ($ref_amount / 100) . " 元\n状态：待审核\n\n请前往管理后台处理：/admin/applyList?status=0";
+        Telegram::send($title, $content);
 
         return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，记得在个人设置中添加收款信息呦']);
     }

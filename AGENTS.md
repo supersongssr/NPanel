@@ -7,20 +7,7 @@
 测试环境在 ```ssh root@test.srp``` 服务器
 目录是: /www/wwwroot/Npanel 
 
-### Testing
-- Run all tests: `./vendor/bin/phpunit`
-- Run single test: `./vendor/bin/phpunit tests/Feature/ExampleTest.php`
-- Run specific test method: `./vendor/bin/phpunit --filter testBasicTest`
-
-### Frontend Assets
-- Development build: `npm run dev`
-- Watch for changes: `npm run watch`
-- Production build: `npm run prod`
-
-### Laravel Commands
-- Generate IDE helpers: `php artisan ide-helper:generate`
-- Clear cache: `php artisan cache:clear`
-- Migrate database: `php artisan migrate`
+请将测试脚本 在测试后放入到 .tests/ 文件夹
 
 ## Code Style Guidelines
 
