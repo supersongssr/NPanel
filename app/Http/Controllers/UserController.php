@@ -376,7 +376,8 @@ class UserController extends Controller
             }
         }
         $view['clonepay'] = self::$systemConfig['clonepay'];
-        $view['clonepays'] = $clonepays;
+        // 确保 $clonepays 始终是数组，避免视图中的 foreach 错误
+        $view['clonepays'] = is_array($clonepays) ? $clonepays : [];
 
         $view['orderList'] = Order::uid()->with(['user', 'goods', 'coupon', 'payment'])->orderBy('oid', 'desc')->paginate(10)->appends($request->except('page'));
         $view['couponList'] = Coupon::where('user_id',Auth::user()->id)->orderBy('updated_at', 'desc')->paginate(10)->appends($request->except('page'));
