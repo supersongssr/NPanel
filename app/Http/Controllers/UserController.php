@@ -359,11 +359,22 @@ class UserController extends Controller
         // $sign = Auth::user()->username . '&' . date('Ymd') . '&'.self::$systemConfig['clonepay_token'];
         // $view['clonepay_url'] = self::$systemConfig['clonepay_homeurl'] .'&regname=user'.Auth::user()->id .'&regemail='.Auth::user()->username.'&regkey='.$key;
         $clonepays = [];
-        foreach($clonepay_webs as $k => $v ){
-            $sign = Auth::user()->username . '&' . date('Ymd') . '&'.$clonepay_apis->$v->logintoken;
-            $clonepays[$v]['name'] = $clonepay_apis->$v->name;
-            $clonepays[$v]['url'] = $clonepay_apis->$v->homeurl .'&regname=user'.Auth::user()->id .'&regemail='.Auth::user()->username.'&regkey='. md5($sign);
-        };
+        
+        // 检查CP代付是否开启且数据有效
+        if (self::$systemConfig['clonepay'] === 'on' && 
+            is_object($clonepay_webs) && 
+            is_object($clonepay_apis)) {
+            foreach($clonepay_webs as $k => $v ){
+                if (isset($clonepay_apis->$v) && 
+                    isset($clonepay_apis->$v->logintoken) && 
+                    isset($clonepay_apis->$v->name) && 
+                    isset($clonepay_apis->$v->homeurl)) {
+                    $sign = Auth::user()->username . '&' . date('Ymd') . '&'.$clonepay_apis->$v->logintoken;
+                    $clonepays[$v]['name'] = $clonepay_apis->$v->name;
+                    $clonepays[$v]['url'] = $clonepay_apis->$v->homeurl .'&regname=user'.Auth::user()->id .'&regemail='.Auth::user()->username.'&regkey='. md5($sign);
+                }
+            }
+        }
         $view['clonepay'] = self::$systemConfig['clonepay'];
         $view['clonepays'] = $clonepays;
 
