@@ -230,6 +230,14 @@ Stack trace:
 			- 这个通知提醒的 消息包含: 用户 是谁, 提现金额是多少.  
 			- 我在网站的 /admin/applyList?status=0 页面可以查看到用户的提现申请.
 
+- [] 为 telegram 通知,添加一个控制开关, 放在 admin/system 页面
+  - 当前是什么状态:
+    - telegram 控制开关在 .env 那里
+  - 想要的状态:
+    - 在 admin/system 页面控制 telegram 通知. 
+      - 在 admin/system 页面配置 chat id 和 bot token 以及 是否 开启 telegram bot 的开关.
+      - .env 中的 telegram 相关配置 删除
+
 ## DEBUG
 
 

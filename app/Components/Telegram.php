@@ -19,7 +19,7 @@ class Telegram
         $systemConfig = Helpers::systemConfig();
         
         // 检查是否启用 Telegram 通知
-        if (empty($systemConfig['telegram_bot_token']) || empty($systemConfig['telegram_chat_id'])) {
+        if (empty($systemConfig['telegram_bot_token']) || empty($systemConfig['telegram_chat_id']) || empty($systemConfig['is_telegram'])) {
             return false;
         }
 

@@ -674,6 +674,42 @@
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div class="form-group">
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="is_telegram" class="col-md-3 control-label">Telegram通知</label>
+                                                            <div class="col-md-9">
+                                                                <input type="checkbox" class="make-switch" @if($is_telegram) checked @endif id="is_telegram" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
+                                                                <span class="help-block"> 启用后通过Telegram发送通知（<a href="https://core.telegram.org/bots#6-botfather" target="_blank">创建Bot</a>） </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="telegram_bot_token" class="col-md-3 control-label">Bot Token</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" name="telegram_bot_token" value="{{$telegram_bot_token}}" id="telegram_bot_token" placeholder="请填入Bot Token" />
+                                                                    <span class="input-group-btn">
+                                                                        <button class="btn btn-success" type="button" onclick="setTelegramBotToken()">修改</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> 从BotFather获取的Bot Token </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="telegram_chat_id" class="col-md-3 control-label">Chat ID</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" name="telegram_chat_id" value="{{$telegram_chat_id}}" id="telegram_chat_id" placeholder="请填入Chat ID" />
+                                                                    <span class="input-group-btn">
+                                                                        <button class="btn btn-success" type="button" onclick="setTelegramChatId()">修改</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> 接收通知的Chat ID（个人或群组） </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6 col-sm-6 col-xs-12"></div>
+                                                    </div>
                                                 </div>
                                             </form>
                                         </div>
@@ -1941,6 +1977,25 @@
             }
         });
 
+        // 启用、禁用Telegram通知
+        $('#is_telegram').on({
+            'switchChange.bootstrapSwitch': function (event, state) {
+                var is_telegram = state ? 1 : 0;
+
+                $.post("/admin/setConfig", {
+                    _token: '{{csrf_token()}}',
+                    name: 'is_telegram',
+                    value: is_telegram
+                }, function (ret) {
+                    layer.msg(ret.message, {time: 1000}, function () {
+                        if (ret.status == 'fail') {
+                            window.location.reload();
+                        }
+                    });
+                });
+            }
+        });
+
         // 流量异常阈值
         function setTrafficBanValue() {
             var traffic_ban_value = $("#traffic_ban_value").val();
@@ -1993,6 +2048,40 @@
                 _token: '{{csrf_token()}}',
                 name: 'crash_warning_email',
                 value: crash_warning_email
+            }, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'fail') {
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+
+        // 设置Telegram Bot Token
+        function setTelegramBotToken() {
+            var telegram_bot_token = $("#telegram_bot_token").val();
+
+            $.post("/admin/setConfig", {
+                _token: '{{csrf_token()}}',
+                name: 'telegram_bot_token',
+                value: telegram_bot_token
+            }, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'fail') {
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+
+        // 设置Telegram Chat ID
+        function setTelegramChatId() {
+            var telegram_chat_id = $("#telegram_chat_id").val();
+
+            $.post("/admin/setConfig", {
+                _token: '{{csrf_token()}}',
+                name: 'telegram_chat_id',
+                value: telegram_chat_id
             }, function (ret) {
                 layer.msg(ret.message, {time: 1000}, function () {
                     if (ret.status == 'fail') {

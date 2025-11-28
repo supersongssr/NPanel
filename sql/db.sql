@@ -1503,3 +1503,10 @@ INSERT INTO `config` VALUES (null, 'clonepay_webs', '','代付站点代号');
 INSERT INTO `config` VALUES (null, 'clonepay_apis', '','代付站点apis');
 
 INSERT INTO `config` VALUES (null, 'sub_rss_url', '','订阅转换地址');
+
+
+-- add telegram config 
+INSERT INTO `config` (`name`, `value`) VALUES
+('is_telegram', '0'),
+('telegram_bot_token', ''),
+('telegram_chat_id', '');
