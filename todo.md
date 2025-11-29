@@ -238,6 +238,16 @@ Stack trace:
       - 在 admin/system 页面配置 chat id 和 bot token 以及 是否 开启 telegram bot 的开关.
       - .env 中的 telegram 相关配置 删除
 
+
+- [] 为api添加响应的值
+  - 当前状态: app/Http/Controllers/Api/PingController.php ssn_sub 函数没有 json返回值, 或者返回值为空
+  - 我想要的:
+    - 为 ssn_sub 函数添加 json 返回值. 
+    - 参考 app/Http/Controllers/Api 中的其他返回值. 
+  - 审核要求:
+    - 最小化修改
+    - 兼容性修改
+
 ## DEBUG
 
 

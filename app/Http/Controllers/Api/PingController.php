@@ -142,38 +142,58 @@ class PingController extends Controller
 
     public function ssn_sub(Request $request, $id)
     {
-        $request->get('token') != env('API_TOKEN') && exit; // 验证 token 防止滥用
+        // 验证 token 防止滥用
+        if ($request->get('token') != env('API_TOKEN')) {
+            return response()->json(['status' => 'error', 'ret'=>0, 'msg'=>'Invalid token' , 'message' => 'Invalid token']);
+        }
 
         $ip = getClientIp();
-        //
-        //获取NODE数据
+        
+        // 获取NODE数据
         $node = SsNode::query()->where('id', $id)->first();
-        $node->heartbeat_at = date('Y-m-d H:i:s');      //节点心跳
-        // 审核上报的IP， 是否和记录的一致 如果记录Ip不匹配， 就不更改，外加报错。
-        if ( $node->ip != $ip && $node->ipv6 != $ip ) {
-            $node->desc .= '_'.$ip;
-            $node->sort -= 100;
-            // $node->save();
-            // exit;
+        if (!$node) {
+            return response()->json(['status' => 'error', 'ret'=>0, 'msg'=>'Node not found' ,'message' => 'Node not found']);
         }
-        $request->get('status') == 0 && $node->status = 0;
-        $request->get('status') == 1 && $node->status = 1;
-        $request->get('health') == 0 && $node->is_subscribe = 0;
-        $request->get('health') == 1 && $node->is_subscribe = 1;
-        $node->node_online = $request->get('online');
-        $node->traffic = $request->get('traffic');
-        $node->traffic_used = $request->get('traffic_used');
-        $node->traffic_used_daily = $request->get('traffic_used_daily');
-        $node->traffic_left = $request->get('traffic_left');
-        $node->traffic_left_daily = $request->get('traffic_left_daily');
-        $node->node_onload = $request->get('daily');
-        $node->save();
-        //写入节点在线人数
-        $online_log = new SsNodeOnlineLog();
-        $online_log->node_id = $id;
-        $online_log->online_user = $request->get('online');
-        $online_log->log_time = time();   
-        $online_log->save();
+
+        try {
+            $node->heartbeat_at = date('Y-m-d H:i:s');      //节点心跳
+            // 审核上报的IP， 是否和记录的一致 如果记录Ip不匹配， 就不更改，外加报错。
+            if ( $node->ip != $ip && $node->ipv6 != $ip ) {
+                $node->desc .= '_'.$ip;
+                $node->sort -= 100;
+                // $node->save();
+                // exit;
+            }
+            $request->get('status') == 0 && $node->status = 0;
+            $request->get('status') == 1 && $node->status = 1;
+            $request->get('health') == 0 && $node->is_subscribe = 0;
+            $request->get('health') == 1 && $node->is_subscribe = 1;
+            $node->node_online = $request->get('online');
+            $node->traffic = $request->get('traffic');
+            $node->traffic_used = $request->get('traffic_used');
+            $node->traffic_used_daily = $request->get('traffic_used_daily');
+            $node->traffic_left = $request->get('traffic_left');
+            $node->traffic_left_daily = $request->get('traffic_left_daily');
+            $node->node_onload = $request->get('daily');
+            
+            if (!$node->save()) {
+                return response()->json(['status' => 'error', 'ret'=>0, 'msg'=>'failed to update node' ,'message' => 'Failed to update node']);
+            }
+
+            //写入节点在线人数
+            $online_log = new SsNodeOnlineLog();
+            $online_log->node_id = $id;
+            $online_log->online_user = $request->get('online');
+            $online_log->log_time = time();   
+            
+            if (!$online_log->save()) {
+                return response()->json([ 'ret'=>0, 'msg'=>'failed to save online log 0190'  ,'status' => 'error', 'message' => 'Failed to save online log']);
+            }
+
+            return response()->json(['ret'=>1, 'msg'=>'node update success 0193' , 'status' => 'success', 'message' => 'Node updated successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['ret'=>0, 'msg'=>'update failed 0195' , 'status' => 'error', 'message' => 'Update failed: ' . $e->getMessage()]);
+        }
     }
 
     public function ssn_v2(Request $request, $id)
