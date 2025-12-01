@@ -49,16 +49,27 @@
                             <span class="caption-subject font-dark bold">充值余额 / 代付充值  (余额:{{ (Auth::user()->balance) / 100}}￥) </span>
                         </div>
                     </div>
+                    @if(config('app.debug'))
+                    <div class="alert alert-info">
+                        <strong>调试信息:</strong> clonepay={{$clonepay}}, clonepays数量={{count($clonepays)}}
+                    </div>
+                    @endif
                     <div class="alert alert-danger" style="display: none;" id="clonepay_msg"></div>
                     <ul class="nav nav-tabs">
                         <li  class="active" >
                             <a href="#info" data-toggle="tab"><i class="fa fa-book"></i> 充值说明 </a>
                         </li>
+                        @if(!empty($clonepays))
                         @foreach($clonepays as $k => $v)
                         <li >
                             <a href="#{{$k}}" data-toggle="tab"><i class="fa fa-credit-card "></i>充值通道: {{$v['name']}} </a>
                         </li>
                         @endforeach
+                        @else
+                        <li>
+                            <a href="#" class="disabled" style="color: #999;"><i class="fa fa-exclamation-triangle"></i> 暂无可用充值通道 </a>
+                        </li>
+                        @endif
                     </ul>
                     <div class="tab-content">
                         <div class="tab-pane fade active in " id="info">

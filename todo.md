@@ -251,6 +251,10 @@ Stack trace:
 ## DEBUG
 
 
+- [] /invoices页面 resources/views/user/invoices.blade.php $clonepays 的标签没有显示出来
+  - 这是个BUG,请帮我检查,问题在哪,并尝试修复
+  
+
 - [] 报错: 请在远程服务器调试 
  UnexpectedValueException
 The stream or file "/www/wwwroot/Npanel/storage/logs/laravel-2025-11-11.log" could not be opened: failed to open stream: Permission denied

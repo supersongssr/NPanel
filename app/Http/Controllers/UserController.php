@@ -362,7 +362,7 @@ class UserController extends Controller
         
         // 检查CP代付是否开启且数据有效
         if (self::$systemConfig['clonepay'] === 'on' && 
-            is_object($clonepay_webs) && 
+            is_array($clonepay_webs) && 
             is_object($clonepay_apis)) {
             foreach($clonepay_webs as $k => $v ){
                 if (isset($clonepay_apis->$v) && 
@@ -378,6 +378,22 @@ class UserController extends Controller
         $view['clonepay'] = self::$systemConfig['clonepay'];
         // 确保 $clonepays 始终是数组，避免视图中的 foreach 错误
         $view['clonepays'] = is_array($clonepays) ? $clonepays : [];
+        
+        // 调试信息 - 仅在调试模式下显示
+        if (config('app.debug')) {
+            \Log::info('ClonePay Debug:', [
+                'clonepay' => self::$systemConfig['clonepay'],
+                'clonepay_webs_raw' => self::$systemConfig['clonepay_webs'],
+                'clonepay_apis_raw' => self::$systemConfig['clonepay_apis'],
+                'clonepay_webs_decoded' => $clonepay_webs,
+                'clonepay_webs_is_array' => is_array($clonepay_webs),
+                'clonepay_webs_is_object' => is_object($clonepay_webs),
+                'clonepay_apis_decoded' => $clonepay_apis,
+                'clonepay_apis_is_object' => is_object($clonepay_apis),
+                'final_clonepays' => $clonepays,
+                'final_clonepays_count' => count($clonepays)
+            ]);
+        }
 
         $view['orderList'] = Order::uid()->with(['user', 'goods', 'coupon', 'payment'])->orderBy('oid', 'desc')->paginate(10)->appends($request->except('page'));
         $view['couponList'] = Coupon::where('user_id',Auth::user()->id)->orderBy('updated_at', 'desc')->paginate(10)->appends($request->except('page'));
