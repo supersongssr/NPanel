@@ -622,6 +622,47 @@ class UserController extends Controller
         $goods_id = intval($id);
         $coupon_sn = $request->get('coupon_sn');
 
+        if ($request->isMethod('GET')) {
+            $goods = Goods::query()->where('status', 1)->where('id', $goods_id)->first();
+            if (!$goods) {
+                return Response::json(['status' => 'fail', 'data' => '', 'message' => '商品不存在或已下架']);
+            }
+
+            // 如果是套餐，检查用户是否已有有效套餐
+            if ($goods->type == 2) {
+                $user = Auth::user();
+                $activePackages = Order::uid()
+                    ->with(['goods'])
+                    ->whereHas('goods', function ($q) {
+                        $q->where('type', 2);
+                    })
+                    ->where('is_expire', 0)
+                    ->where('status', 2)
+                    ->where('expire_at', '>', now())
+                    ->get();
+
+                if ($activePackages->isNotEmpty()) {
+                    foreach ($activePackages as $package) {
+                        $daysRemaining = now()->diffInDays($package->expire_at, false);
+                        if ($daysRemaining > 7) {
+                            return Response::json([
+                                'status' => 'warning',
+                                'data' => [
+                                    'has_active_package' => true,
+                                    'package_name' => $package->goods->name,
+                                    'expire_at' => $package->expire_at,
+                                    'days_remaining' => $daysRemaining
+                                ],
+                                'message' => "您已有套餐【{$package->goods->name}】，剩余有效期{$daysRemaining}天。套餐会同时生效不会叠加，确认继续购买吗？"
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            return Response::json(['status' => 'success', 'data' => '', 'message' => '可以购买']);
+        }
+
         if ($request->isMethod('POST')) {
             $goods = Goods::query()->with(['label'])->where('status', 1)->where('id', $goods_id)->first();
             if (!$goods) {
@@ -1403,6 +1444,7 @@ class UserController extends Controller
         // 查看流量
         $dailyData = [];
         $hourlyData = [];
+        $allNodes = '';
 
         // 节点一个月内的流量
         $nodeTrafficDaily = SsNodeTrafficDaily::query()->with(['info'])->where('node_id', $node->id)->where('created_at', '>=', date('Y-m-d H:i:s', strtotime('-30 days')))->orderBy('created_at', 'asc')->pluck('total')->toArray();

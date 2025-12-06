@@ -220,7 +220,30 @@
 
     <script type="text/javascript">
         function buy(goods_id) {
-            window.location.href = '/buy/' + goods_id;
+            // 先检查是否需要提醒
+            $.ajax({
+                url: '/buy/' + goods_id,
+                type: 'GET',
+                success: function(response) {
+                    if (response.status === 'warning') {
+                        // 显示确认对话框
+                        if (confirm(response.message)) {
+                            // 用户确认，跳转到购买页面
+                            window.location.href = '/buy/' + goods_id;
+                        }
+                    } else if (response.status === 'success') {
+                        // 可以直接购买
+                        window.location.href = '/buy/' + goods_id;
+                    } else {
+                        // 其他错误
+                        alert(response.message);
+                    }
+                },
+                error: function() {
+                    // 请求失败，直接跳转
+                    window.location.href = '/buy/' + goods_id;
+                }
+            });
         }
 
         // 查看商品图片
