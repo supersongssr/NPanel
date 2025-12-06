@@ -124,7 +124,9 @@ Route::group(['middleware' => ['isLogin']], function () {
     Route::post('closeTicket', 'UserController@closeTicket'); // 关闭工单
     Route::get('invoices', 'UserController@invoices'); // 订单列表
     Route::get('invoice/{sn}', 'UserController@invoiceDetail'); // 订单明细
-    Route::any('buy/{id}', 'UserController@buy'); // 购买商品
+    Route::get('buy/{id}', 'UserController@showBuyPage'); // 显示购买页面
+    Route::post('buy/{id}', 'UserController@buy'); // 购买商品
+    Route::get('check/buy/{id}', 'UserController@checkBuy'); // 检查购买条件
     Route::post('redeemCoupon', 'UserController@redeemCoupon'); // 使用优惠券
     Route::get('invite', 'UserController@invite'); // 邀请码
     Route::post('makeInvite', 'UserController@makeInvite'); // 生成邀请码

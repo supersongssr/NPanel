@@ -222,7 +222,7 @@
         function buy(goods_id) {
             // 先检查是否需要提醒
             $.ajax({
-                url: '/buy/' + goods_id,
+                url: '/check/buy/' + goods_id,
                 type: 'GET',
                 success: function(response) {
                     if (response.status === 'warning') {
