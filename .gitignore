@@ -23,3 +23,5 @@ yarn-error.log
 .htaccess
 .history
 .tests/
+.env.v6
+.env.main

@@ -1,5 +1,5 @@
 
-##what's new
+## what's new
 ````
 2022-04-12 系统代码增加部分内容
 2022-02-13 支持trojan vless 后端节点心跳包，health检查，全新的订阅优化
@@ -69,6 +69,12 @@ shell_exec
 force_env
 proc_ 开头函数
 ````
+
+install redis 
+
+dns 解析
+
+set ssl auto script cron 
 
 #### 拉取代码
 这一步也可以使用 sftp 传输的方式. 因为 sftp和 本地是相同的

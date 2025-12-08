@@ -4,8 +4,8 @@
 
 ## Build/Lint/Test Commands
 本地为 macos 环境,无法测试.
-测试环境在 ```ssh root@test.srp``` 服务器
-目录是: /www/wwwroot/Npanel 
+测试环境在 ```ssh root@test.srpv2``` 服务器
+目录是: /www/wwwroot/test-npanel-v2.freessr.bid
 
 请将测试脚本 在测试后放入到 .tests/ 文件夹
 
