@@ -1,5 +1,21 @@
 
-# 2025-01-16
+
+# 5. Version 5
+
+
+## 5.1 Add new 
+
+
+- [] 添加新的api, 返回 v2_host 
+  where: @app/Http/Controllers/Api/PingController.php
+  why: 添加一个快速获取节点的配置信息的api,可以用于查询节点的配置信息
+  how:
+    1. 添加一个api, 
+    2. 请求中附带 node_id 
+    3. 返回json, 其中带有 v2_host 
+  must:
+
+
 
 - [x] 订阅节点,显示倍率
 
@@ -25,7 +41,6 @@
 - [] 防止 rebot 功能无法使用
 - [] 验证码功能无法使用.
 
-# 2024-12-31  这个废弃!
 
 - [x] 废弃! fix一大堆 composer 的报错. 一些github库 私有 或 消失了, 在逐个替换中
     - [x] https://github.com/MIseChow/laravel-geetest项目私有化了, 改为 https://github.com/jormin/laravel-geetest
@@ -248,7 +263,7 @@ Stack trace:
     - 最小化修改
     - 兼容性修改
 
-## DEBUG
+## 5.2 DEBUG
 
 
 - [] /invoices页面 resources/views/user/invoices.blade.php $clonepays 的标签没有显示出来

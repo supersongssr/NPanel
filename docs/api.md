@@ -103,9 +103,104 @@ token=your_api_token&status=1&health=1&online=50&traffic=1073741824&traffic_used
 
 **错误处理:** Token 验证失败时直接终止执行
 
+### 2.2 节点配置信息查询
+
+**接口地址:** `GET /api/node_config`
+
+**接口描述:** 根据节点ID快速获取节点的配置信息，包括v2_host等关键配置参数
+
+**请求参数:**
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| token | string | 是 | API_TOKEN，需在 .env 中配置 |
+| node_id | integer | 是 | 节点ID |
+
+**示例请求:**
+```
+GET /api/node_config?token=your_api_token&node_id=123
+```
+
+**成功响应格式:**
+```json
+{
+    "status": "success",
+    "data": {
+        "node_id": 123,
+        "name": "US-Node-1",
+        "v2_host": "example.com",
+        "server": "server.example.com",
+        "v2_port": 443,
+        "v2_method": "aes-128-gcm",
+        "v2_net": "ws",
+        "v2_type": "none",
+        "v2_path": "/path",
+        "v2_tls": 1,
+        "v2_sni": "sni.example.com",
+        "type": 2
+    }
+}
+```
+
+**响应字段说明:**
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 请求状态：success/error |
+| data | object | 节点配置信息对象 |
+| data.node_id | integer | 节点ID |
+| data.name | string | 节点名称 |
+| data.v2_host | string | **V2ray伪装的域名**（主要查询目标） |
+| data.server | string | 服务器域名地址 |
+| data.v2_port | integer | V2ray端口 |
+| data.v2_method | string | V2ray加密方式 |
+| data.v2_net | string | V2ray传输协议（tcp/ws/grpc等） |
+| data.v2_type | string | V2ray伪装类型 |
+| data.v2_path | string | V2ray WS/H2路径 |
+| data.v2_tls | integer | TLS类型：0=无，1=tls，2=xtls |
+| data.v2_sni | string | SNI服务器名称指示 |
+| data.type | integer | 节点类型：1=SS，2=Vmess，3=Vless，4=Trojan |
+
+**错误响应:**
+
+Token无效：
+```json
+{
+    "status": "error",
+    "message": "Invalid token"
+}
+```
+
+缺少node_id参数：
+```json
+{
+    "status": "error",
+    "message": "node_id is required"
+}
+```
+
+节点不存在：
+```json
+{
+    "status": "error",
+    "message": "Node not found"
+}
+```
+
+**使用场景:**
+- 客户端快速获取节点配置信息
+- 节点管理和监控系统
+- 配置同步和验证
+- 故障排查和诊断
+
+**注意事项:**
+- 该接口只返回配置信息，不进行任何修改操作
+- 请确保API_TOKEN的安全性，避免配置信息泄露
+- 节点必须存在于数据库中才能查询到配置
+
 ---
 
-### 2.2 节点V2信息上报
+### 2.3 节点V2信息上报
 
 **接口地址:** `POST /api/ssn_v2/{id}`
 
@@ -345,4 +440,4 @@ token=5d41402abc4b2a76b9719d911017c592&salt=hello&ip=1&time=1&due_time=1
 
 ---
 
-*文档最后更新时间: 2024-12-11*
+*文档最后更新时间: 2024-12-17*
