@@ -18,4 +18,14 @@ Route::group(['namespace' => 'Api'], function () {
     // sdo2022-04-13 clonepay api
     Route::post('clonepay', 'PingController@clonepay');
     Route::post('simple_api_tools', 'PingController@simpleApiTools'); //sdo 2024-11-12
+
+    // API v2 节点管理
+    Route::group(['prefix' => 'v2', 'namespace' => 'V2'], function () {
+        // 获取可用节点ID
+        Route::get('node/available', 'NodeController@getAvailableNodeId');
+        // 节点配置信息上报
+        Route::post('node/{id}/config', 'NodeController@reportConfig');
+        // 节点状态信息上报
+        Route::post('node/{id}/status', 'NodeController@reportStatus');
+    });
 });
