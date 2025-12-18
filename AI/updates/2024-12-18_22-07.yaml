@@ -1,0 +1,11 @@
+when: 2024-12-18T22:07:00
+where: readme.md
+why: 为节点管理模块指定唯一的英文名称
+how: 将"节点管理模块 (AdminController/NodeController)"改为"NodeManagementModule（节点管理模块）"
+do:
+  - 更新了节点管理模块的名称为 NodeManagementModule
+  - 完善了功能描述，增加了流量统计
+  - 更新了输入输出描述，增加了筛选条件和监控图表
+must:
+  - 模块名称必须唯一且具有描述性
+  - 描述必须准确反映实际功能
