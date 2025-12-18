@@ -1,5 +1,36 @@
 
-# 2025-01-16
+
+# 5. Version 5
+
+
+## 5.1 Add new 
+
+- [x] test脚本请直接使用 @.env 文件 , 并且在远程 ```ssh root@test.srp``` 运行脚本
+  where: /tests
+  why: 方便在远程真实环境中进行测试.远程服务器就是 test服务器. 
+  how:
+    1. 修改 tests/ 所有test的 使用的 .env 为 根目录下的 @.env 
+  must:
+    1. 必须在 远程 ```ssh root@test.srp``` 运行 测试脚本,本地不支持运行测试脚本! 
+
+- [x] 给 api 添加自动测试
+  where: @app/Http/Controllers/Api/PingController.php
+  why: 测试 api 是否正常返回需要的值
+  how:
+    在 tests/目录下给 api 写一个测试脚本 
+    api的地址和 token 怎么处理呢? 从 .env 读取 API_TOKEN  和 TEST_API_URL 
+  must:
+
+- [x] 添加新的api, 返回 v2_host 
+  where: @app/Http/Controllers/Api/PingController.php
+  why: 添加一个快速获取节点的配置信息的api,可以用于查询节点的配置信息
+  how:
+    1. 添加一个api, 
+    2. 请求中附带 node_id 
+    3. 返回json, 其中带有 v2_host 
+  must:
+
+
 
 - [x] 订阅节点,显示倍率
 
@@ -25,7 +56,6 @@
 - [] 防止 rebot 功能无法使用
 - [] 验证码功能无法使用.
 
-# 2024-12-31  这个废弃!
 
 - [x] 废弃! fix一大堆 composer 的报错. 一些github库 私有 或 消失了, 在逐个替换中
     - [x] https://github.com/MIseChow/laravel-geetest项目私有化了, 改为 https://github.com/jormin/laravel-geetest
@@ -248,7 +278,7 @@ Stack trace:
     - 最小化修改
     - 兼容性修改
 
-## DEBUG
+## 5.2 DEBUG
 
 
 - [] /invoices页面 resources/views/user/invoices.blade.php $clonepays 的标签没有显示出来

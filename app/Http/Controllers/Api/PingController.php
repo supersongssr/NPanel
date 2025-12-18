@@ -6,10 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Log;
 //song
-use App\Http\Models\SsNodeTrafficHourly;
-use App\Http\Models\UserTrafficLog;
 use App\Http\Models\SsNode;
-use Illuminate\Console\Command;
 use App\Http\Models\SsNodeOnlineLog;
 use App\Components\Helpers;
 //sdo2022-04-13
@@ -288,6 +285,44 @@ class PingController extends Controller
         }
 
         $node->save();
+    }
+
+    public function getNodeConfig(Request $request)
+    {
+        // 验证TOKEN，防止滥用
+        if ($request->get('token') != env('API_TOKEN')) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid token']);
+        }
+
+        $nodeId = $request->get('node_id');
+        if (empty($nodeId)) {
+            return response()->json(['status' => 'error', 'message' => 'node_id is required']);
+        }
+
+        // 获取节点数据
+        $node = SsNode::query()->where('id', $nodeId)->first();
+        if (!$node) {
+            return response()->json(['status' => 'error', 'message' => 'Node not found']);
+        }
+
+        // 返回节点配置信息
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'node_id' => $node->id,
+                'name' => $node->name,
+                'v2_host' => $node->v2_host,
+                'server' => $node->server,
+                'v2_port' => $node->v2_port,
+                'v2_method' => $node->v2_method,
+                'v2_net' => $node->v2_net,
+                'v2_type' => $node->v2_type,
+                'v2_path' => $node->v2_path,
+                'v2_tls' => $node->v2_tls,
+                'v2_sni' => $node->v2_sni,
+                'type' => $node->type
+            ]
+        ]);
     }
 
     public function clonepay(Request $request){
