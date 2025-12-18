@@ -1,0 +1,108 @@
+module:
+  name: ApiModule
+  chinese_name: API 接口模块
+  description: 提供RESTful API接口，用于第三方集成、客户端接入和数据交互
+
+controller:
+  - Api/LoginController
+  - Api/PingController
+  - Api/*PayController
+model:
+  - User
+  - SsNode
+  - SsNodeInfo
+  - SsNodeOnlineLog
+  - Payback
+
+where:
+  - app/Http/Controllers/Api/
+
+api_endpoints:
+  - POST /api/login - API登录
+  - POST /api/ping - 节点心跳
+  - POST /api/push - 节点数据推送
+  - GET /api/info - 获取节点信息
+  - POST /api/logout - API登出
+  - GET /api/user/info - 获取用户信息
+  - GET /api/nodes - 获取节点列表
+  - POST /api/traffic/report - 流量上报
+
+input:
+  api_key:
+    type: string
+    description: API密钥
+  node_id:
+    type: integer
+    description: 节点ID
+  load:
+    type: float
+    description: 系统负载
+  uptime:
+    type: integer
+    description: 运行时间(秒)
+  online_users:
+    type: integer
+    description: 在线用户数
+  traffic_data:
+    type: object
+    description: 流量数据
+  username:
+    type: string
+    description: 用户名
+  password:
+    type: string
+    description: 密码
+
+in:
+  - API认证信息
+  - 节点监控数据
+  - 用户登录凭证
+  - 流量统计信息
+  - 心跳数据
+
+output:
+  api_response:
+    type: object
+    properties:
+      status: 状态码
+      message: 消息
+      data: 数据
+  node_config:
+    type: object
+    properties:
+      users: 用户列表
+      node_id: 节点ID
+      speed_limit: 速度限制
+  user_info:
+    type: object
+    properties:
+      id: 用户ID
+      username: 用户名
+      level: 用户等级
+      expire_time: 到期时间
+      transfer_enable: 流量额度
+
+out:
+  - JSON格式响应数据
+  - 节点配置信息
+  - 用户权限数据
+  - 操作结果状态码
+
+do:
+  - 处理API认证
+  - 验证请求合法性
+  - 返回节点配置数据
+  - 接收节点心跳信息
+  - 处理流量数据上报
+  - 管理API访问频率
+  - 记录API调用日志
+  - 处理错误响应
+
+must:
+  - API访问需要认证
+  - 请求频率限制
+  - 输入数据验证
+  - 错误处理和日志记录
+  - HTTPS传输（生产环境）
+  - API版本控制
+  - 响应数据格式统一

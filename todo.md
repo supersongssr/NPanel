@@ -5,8 +5,14 @@
 
 ## 5.1 Add new 
 
+- [] 为 模块 生成 @AI/modules 说明
+  where: @AI
+  why: 方便AI了解 项目的架构信息
+  how:
+    参考 @CLAUDE.md 生成 模块的 modules readme.md 和 yaml 
+  must:
 
-- [] 格式化生成 readme.md 
+- [x] 格式化生成 readme.md 
   完成的内容：
 
     1. 项目概述 - 清晰说明了 NPanel 是一个基于 Laravel 的 SSR/V2Ray/Trojan 代理管理面板

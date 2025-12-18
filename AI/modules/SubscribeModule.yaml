@@ -1,0 +1,90 @@
+module:
+  name: SubscribeModule
+  chinese_name: 订阅服务模块
+  description: 生成和管理用户订阅链接，支持多种客户端配置格式，根据用户权限过滤节点
+
+controller: SubscribeController
+model:
+  - UserSubscribe
+  - SsNode
+  - User
+  - SsGroup
+  - SsGroupNode
+
+where:
+  - app/Http/Controllers/SubscribeController.php
+
+api_endpoints:
+  - GET /subscribe/{token} - 获取订阅内容
+  - GET /subscribe/info/{token} - 获取订阅信息
+  - POST /subscribe/reset - 重置订阅码
+  - GET /api/subscribe?token={token} - API订阅接口
+
+input:
+  token:
+    type: string
+    required: true
+    description: 用户订阅令牌
+  client_type:
+    type: string
+    enum: [json, ssr, ss, v2ray, clash, surge, quantumult]
+    description: 客户端类型
+  format:
+    type: string
+    enum: [base64, text, json, yaml]
+    description: 输出格式
+
+in:
+  - 用户订阅令牌
+  - HTTP Accept 头部（用于自动识别客户端类型）
+  - 用户代理信息
+  - 节点筛选条件（来自用户权限）
+
+output:
+  subscription_content:
+    type: string
+    description: 根据客户端类型返回不同格式的订阅内容
+  node_list:
+    type: array
+    items:
+      type: object
+      properties:
+        name: 节点名称
+        server: 服务器地址
+        port: 端口
+        method: 加密方式
+        password: 密码
+        protocol: 协议
+        obfs: 混淆
+        tags: 节点标签
+  subscribe_info:
+    type: object
+    properties:
+      upload: 上传流量
+      download: 下载流量
+      total: 总流量
+      expire: 到期时间
+      node_count: 可用节点数
+
+out:
+  - Base64编码的节点配置
+  - JSON格式节点列表
+  - 客户端专属配置格式
+  - 订阅信息统计
+
+do:
+  - 验证订阅令牌有效性
+  - 根据用户等级和分组过滤节点
+  - 转换节点配置为不同客户端格式
+  - 统计用户流量使用情况
+  - 生成和管理订阅令牌
+  - 处理订阅链接访问日志
+  - 支持多种订阅格式输出
+
+must:
+  - 订阅令牌必须有有效期
+  - 只返回用户有权访问的节点
+  - 节点配置信息必须加密
+  - 支持主流客户端格式
+  - 访问频率限制
+  - 用户权限验证

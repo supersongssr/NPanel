@@ -1,0 +1,19 @@
+when: 2024-12-18T22:09:00
+where: AI/modules/
+why: 为每个模块生成对应的 MD 文档，介绍模块作用和使用方法
+how: 创建了 8 个模块的 MD 文档，每个文档包含模块概述、技术信息、API接口、使用方法、代码示例等详细说明
+do:
+  - 创建了 AuthModule.md - 用户认证模块文档
+  - 创建了 UserManagementModule.md - 用户管理模块文档
+  - 创建了 NodeManagementModule.md - 节点管理模块文档
+  - 创建了 SubscribeModule.md - 订阅服务模块文档
+  - 创建了 ShopModule.md - 商店系统模块文档
+  - 创建了 PaymentModule.md - 支付系统模块文档
+  - 创建了 ApiModule.md - API接口模块文档
+  - 创建了 TicketModule.md - 工单系统模块文档
+must:
+  - 每个 MD 文档必须包含完整的功能说明
+  - 必须提供实际可用的代码示例
+  - API 接口示例必须准确
+  - 使用方法必须清晰易懂
+  - 约束条件和注意事项必须详细说明

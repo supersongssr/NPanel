@@ -1,0 +1,87 @@
+module:
+  name: AuthModule
+  chinese_name: 用户认证模块
+  description: 负责用户注册、登录、密码重置、邮箱验证等认证相关功能
+
+controller: AuthController
+model:
+  - User
+  - EmailLog
+
+where:
+  - app/Http/Controllers/AuthController.php
+
+api_endpoints:
+  - POST /login - 用户登录
+  - POST /register - 用户注册
+  - POST /password/reset - 密码重置
+  - POST /email/verify - 邮箱验证
+  - GET /logout - 退出登录
+
+input:
+  username:
+    type: string
+    required: true
+    description: 用户名或邮箱
+  password:
+    type: string
+    required: true
+    description: 用户密码
+  email:
+    type: string
+    format: email
+    required: for registration
+    description: 邮箱地址
+  captcha:
+    type: string
+    required: true
+    description: 验证码
+  ref_code:
+    type: string
+    required: false
+    description: 推荐人邀请码
+
+in:
+  - 用户提交的登录信息（用户名/密码/验证码）
+  - 用户注册信息（用户名/邮箱/密码/验证码/邀请码）
+  - 密码重置请求（邮箱/验证码）
+  - 邮箱验证令牌
+
+output:
+  token:
+    type: string
+    description: JWT认证令牌
+  user:
+    type: object
+    properties:
+      id: 用户ID
+      username: 用户名
+      email: 邮箱
+      level: 用户等级
+      expire_time: 到期时间
+      transfer_enable: 流量额度
+  message:
+    type: string
+    description: 操作结果消息
+
+out:
+  - 成功时返回认证令牌和用户信息
+  - 失败时返回错误消息和状态码
+  - 注册/重置时发送邮件通知
+
+do:
+  - 验证用户输入的合法性
+  - 检查验证码有效性
+  - 验证用户凭据
+  - 处理密码加密存储
+  - 生成和管理JWT令牌
+  - 发送验证邮件
+  - 处理邀请关系
+
+must:
+  - 密码必须使用 Hash::make() 加密存储
+  - 所有用户输入必须验证和过滤
+  - 必须启用验证码防机制
+  - 登录失败次数限制
+  - JWT令牌必须有有效期
+  - 邮箱验证后才能正常使用

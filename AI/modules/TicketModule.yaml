@@ -1,0 +1,105 @@
+module:
+  name: TicketModule
+  chinese_name: 工单系统模块
+  description: 管理用户工单创建、回复、状态流转和客服支持
+
+controller: TicketController
+model:
+  - Ticket
+  - TicketReply
+  - User
+  - TicketType
+
+where:
+  - app/Http/Controllers/TicketController.php
+
+api_endpoints:
+  - GET /tickets - 获取工单列表
+  - POST /tickets - 创建工单
+  - GET /ticket/{id} - 获取工单详情
+  - POST /ticket/{id}/reply - 回复工单
+  - PUT /ticket/{id}/close - 关闭工单
+  - PUT /ticket/{id}/reopen - 重新打开工单
+  - GET /admin/tickets - 管理员获取所有工单
+  - POST /admin/ticket/{id}/reply - 管理员回复
+
+input:
+  title:
+    type: string
+    required: true
+    min_length: 5
+    description: 工单标题
+  content:
+    type: string
+    required: true
+    min_length: 10
+    description: 工单内容
+  type:
+    type: integer
+    enum: [1,2,3,4]
+    description: 工单类型(1-问题,2-建议,3-投诉,4-其他)
+  level:
+    type: integer
+    enum: [1,2,3]
+    default: 2
+    description: 优先级(1-低,2-中,3-高)
+  reply_content:
+    type: string
+    required: true
+    description: 回复内容
+
+in:
+  - 工单标题和内容
+  - 工单分类和优先级
+  - 回复信息
+  - 状态变更请求
+
+output:
+  ticket:
+    type: object
+    properties:
+      id: 工单ID
+      title: 标题
+      content: 内容
+      status: 状态(0-待处理,1-处理中,2-已完成,3-已关闭)
+      type: 类型
+      level: 优先级
+      user_id: 用户ID
+      created_at: 创建时间
+      updated_at: 更新时间
+      replies: 回复列表
+  ticket_list:
+    type: array
+    items:
+      type: object
+      properties:
+        id: 工单ID
+        title: 标题
+        status: 状态
+        created_at: 创建时间
+        reply_count: 回复数
+
+out:
+  - 工单详细信息
+  - 工单列表（分页）
+  - 回复记录
+  - 状态更新结果
+
+do:
+  - 创建用户工单
+  - 管理工单状态流转
+  - 处理工单回复
+  - 分类和标记工单
+  - 发送工单通知
+  - 统计工单数据
+  - 管理员分配工单
+  - 工单评价和反馈
+
+must:
+  - 工单内容不能为空
+  - 状态流转必须有记录
+  - 用户只能查看自己的工单
+  - 管理员可以查看所有工单
+  - 回复时间必须记录
+  - 工单关闭需要确认
+  - 敏感信息过滤
