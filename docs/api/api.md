@@ -105,7 +105,7 @@ token=your_api_token&status=1&health=1&online=50&traffic=1073741824&traffic_used
 
 ### 2.2 获取可用节点
 
-**接口地址:** `GET /api/get_new_node`
+**接口地址:** `GET /api/node/new`
 
 **接口描述:** 获取一个可用的节点ID用于上传配置。查询符合条件的节点并返回其ID和v2_host信息。
 
@@ -122,7 +122,7 @@ token=your_api_token&status=1&health=1&online=50&traffic=1073741824&traffic_used
 
 **示例请求:**
 ```
-GET /api/get_new_node?token=your_api_token
+GET /api/node/new?token=your_api_token
 ```
 
 **成功响应格式:**
@@ -515,4 +515,4 @@ token=5d41402abc4b2a76b9719d911017c592&salt=hello&ip=1&time=1&due_time=1
 
 ---
 
-*文档最后更新时间: 2024-12-19*
+*文档最后更新时间: 2025-12-19*

@@ -19,5 +19,5 @@ Route::group(['namespace' => 'Api'], function () {
     Route::post('clonepay', 'PingController@clonepay');
     Route::post('simple_api_tools', 'PingController@simpleApiTools'); //sdo 2024-11-12
     Route::get('node_config', 'PingController@getNodeConfig');
-    Route::get('get_new_node', 'PingController@getNewNode'); // Get a new available node
+    Route::get('node/new', 'PingController@getNewNode'); // Get a new available node
 });
