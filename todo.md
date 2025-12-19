@@ -5,7 +5,27 @@
 
 ## 5.1 Add new 
 
-- [] 为 模块 生成 @AI/modules 说明
+
+- [] add api < get new node > 
+  where: @app/Http/Controllers/Api/PingController.php
+  why: 方便后端获取一个可用的节点id用来上传配置
+  how:
+    1. 参考       // 获取一个可用的 nodeid
+        if (!empty($request->get('new_node_id'))) {
+            $node = SsNode::query()->where('id','>',99)->where('heartbeat_at','<', date('Y-m-d H:i:s',time() - 604800))->where('status', 0)->orderBy('id', 'asc')->first();
+            if ($node ) { // 过期7天
+                $node->heartbeat_at = date('Y-m-d H:i:s');
+                $node->save();
+                $res['new_node_id'] = $node->id;
+            }else{
+                $res['err'] = 'node-empty';
+            }
+        }
+    2. 返回:  node.id node.v2_host 
+    3. 更新 @docs/api 文档
+  must:
+
+- [x] 为 模块 生成 @AI/modules 说明
   where: @AI
   why: 方便AI了解 项目的架构信息
   how:

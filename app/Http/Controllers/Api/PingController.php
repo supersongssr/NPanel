@@ -325,6 +325,44 @@ class PingController extends Controller
         ]);
     }
 
+    public function getNewNode(Request $request)
+    {
+        // 验证TOKEN，防止滥用
+        if ($request->get('token') != env('API_TOKEN')) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid token']);
+        }
+
+        // 查找一个可用的节点：ID大于99，心跳超过7天，状态为0（维护中）
+        $node = SsNode::query()
+            ->where('id', '>', 99)
+            ->where('heartbeat_at', '<', date('Y-m-d H:i:s', time() - 604800))
+            ->where('status', 0)
+            ->orderBy('id', 'asc')
+            ->first();
+
+        if (!$node) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No available node found',
+                'err' => 'node-empty'
+            ]);
+        }
+
+        // 更新节点心跳时间
+        $node->heartbeat_at = date('Y-m-d H:i:s');
+        $node->save();
+
+        // 返回节点ID和v2_host信息
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Node found',
+            'data' => [
+                'node_id' => $node->id,
+                'v2_host' => $node->v2_host
+            ]
+        ]);
+    }
+
     public function clonepay(Request $request){
         $sysConf = Helpers::systemConfig();  //获取系统设置
         // 验证是否开启 clonepay

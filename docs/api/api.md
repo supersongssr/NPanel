@@ -103,7 +103,82 @@ token=your_api_token&status=1&health=1&online=50&traffic=1073741824&traffic_used
 
 **错误处理:** Token 验证失败时直接终止执行
 
-### 2.2 节点配置信息查询
+### 2.2 获取可用节点
+
+**接口地址:** `GET /api/get_new_node`
+
+**接口描述:** 获取一个可用的节点ID用于上传配置。查询符合条件的节点并返回其ID和v2_host信息。
+
+**请求参数:**
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| token | string | 是 | API_TOKEN，需在 .env 中配置 |
+
+**查询条件:**
+- 节点ID > 99
+- 节点心跳时间超过7天（604800秒）
+- 节点状态为 0（维护中）
+
+**示例请求:**
+```
+GET /api/get_new_node?token=your_api_token
+```
+
+**成功响应格式:**
+```json
+{
+    "status": "success",
+    "message": "Node found",
+    "data": {
+        "node_id": 100,
+        "v2_host": "n100.3ups.top"
+    }
+}
+```
+
+**响应字段说明:**
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 请求状态：success/error |
+| message | string | 状态描述 |
+| data | object | 节点信息对象 |
+| data.node_id | integer | 可用节点的ID |
+| data.v2_host | string | 节点的v2_host配置值 |
+
+**错误响应:**
+
+Token无效：
+```json
+{
+    "status": "error",
+    "message": "Invalid token"
+}
+```
+
+无可用节点：
+```json
+{
+    "status": "error",
+    "message": "No available node found",
+    "err": "node-empty"
+}
+```
+
+**使用场景:**
+- 后端系统需要获取节点ID用于上传配置
+- 节点分配和负载均衡
+- 自动化节点管理
+
+**注意事项:**
+- 获取节点后会自动更新其心跳时间
+- 按照ID升序返回第一个符合条件的节点
+- 如果没有可用节点，返回node-empty错误
+
+---
+
+### 2.3 节点配置信息查询
 
 **接口地址:** `GET /api/node_config`
 
@@ -440,4 +515,4 @@ token=5d41402abc4b2a76b9719d911017c592&salt=hello&ip=1&time=1&due_time=1
 
 ---
 
-*文档最后更新时间: 2024-12-17*
+*文档最后更新时间: 2024-12-19*
