@@ -34,11 +34,15 @@ remote:
     path : /www/wwwroot/Npanel/
 
 ```
-请将代码在 remote.host 上 test , 使用 rsync 同步到 remote.path 路径
+
 must:
     1. 不能在 macos 本机运行! 因为没有部署环境
     2. 测试前,先 rsync 同步到 remote.host remote.path 
 
+!绝不运行在本机运行测试!
+
+请将代码在 remote.host 上 test , 使用 rsync 同步到 remote.path 路径 在 remote vps 上进行测试
+remote vps 的 地址是: remote.host , 文件夹是 remote.path 
 
 
 ## 完成代码编辑后到记录
