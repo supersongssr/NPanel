@@ -148,13 +148,13 @@ class SubscribeController extends Controller
             $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('订阅请求频繁15分钟后再试')."\n";
             exit(base64_encode($errorResponse));
         }
-        
+
         // 如果1小时频率限制超额，返回特定错误信息
         if ($limitResult === 'one_hour_exceeded') {
             $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('订阅请求频繁1小时后再试')."\n";
             exit(base64_encode($errorResponse));
         }
-        
+
         // 如果IP数量超额，返回错误信息
         if ($limitResult === 'ip_exceeded') {
             $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('订阅ip数量异常请休息一下')."\n";
@@ -201,7 +201,15 @@ class SubscribeController extends Controller
 
             $converted_subscribe = $this->getConvertedSubscribe($app, $subscribe, $query_string);
             if ($converted_subscribe) {
-                exit($converted_subscribe);
+                // 根据不同的订阅类型设置相应的 Content-Type
+                $contentType = 'text/plain; charset=utf-8';
+                if (in_array($app, ['clash', 'singbox'])) {
+                    $contentType = 'text/yaml; charset=utf-8';
+                }
+
+                return Response::make($converted_subscribe)
+                    ->header('Content-Type', $contentType)
+                    ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
             }
         }
 
