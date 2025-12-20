@@ -182,19 +182,19 @@ class SubscribeController extends Controller
         $this->log($subscribe->id, $clientIp, $request->headers);   // 记录每次请求
 
         // 获取查询字符串参数
-        $app = $request->get('app');     // app 参数用于订阅转换
+        $app = $request->get('app') ?? "";     // app 参数用于订阅转换
 
-        $ver = $request->get('ver');  // 1 = sr 2 = v2ray 这个废弃了 旧版本的
-        $ssr_sub = $request->get('ssr'); //ssr现在已经废弃了
-        $v2ray_sub = $request->get('v2ray');  // v2ray 包含 ss vmess vless trojan 三个订阅格式
-        $ss_sub = $request->get('ss');
-        $vmess_sub = $request->get('vmess');
-        $vless_sub = $request->get('vless');
-        $trojan_sub = $request->get('trojan');
-        $rocket_sub = $request->get('rocket');  // 效果等同 v2ray_sub
+        $ver = $request->get('ver') ?? 2;  // 1 = sr 2 = v2ray 这个废弃了 旧版本的
+        $ssr_sub = $request->get('ssr') ?? 128; //ssr现在已经废弃了
+        $v2ray_sub = $request->get('v2ray') ?? 128;  // v2ray 包含 ss vmess vless trojan 三个订阅格式
+        $ss_sub = $request->get('ss') ?? 128;
+        $vmess_sub = $request->get('vmess') ?? 128;
+        $vless_sub = $request->get('vless') ?? 128;
+        $trojan_sub = $request->get('trojan') ?? 128;
+        $rocket_sub = $request->get('rocket') ?? 128;  // 效果等同 v2ray_sub
 
         // Clash 和 Singbox 订阅转换处理（使用 app 参数）
-        if ($app && in_array($app, ['clash', 'singbox', 'surfboard'])) {
+        if ($app && in_array($app, ['clash', 'singbox', 'surfboard', 'loon'])) {
             // 移除 app 参数，保留其他参数构建原始订阅URL
             $query_string = $request->query();
             unset($query_string['app']);
