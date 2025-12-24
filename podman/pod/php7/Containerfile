@@ -1,0 +1,38 @@
+# 基础镜像使用官方 PHP 7.4 FPM
+FROM docker.io/library/php:7.4-fpm
+
+# 1. 安装系统底层依赖库（这是编译 PHP 插件必须的）
+RUN apt-get update && apt-get install -y \
+    libzip-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    libpng-dev \
+    libonig-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. 安装并启用 PHP 插件
+# 官方镜像工具会自动处理编译、安装和在 php.ini 中启用的逻辑
+RUN docker-php-ext-install \
+    zip \
+    xml \
+    curl \
+    gd \
+    mbstring \
+    fileinfo \
+    mysqli \
+    pdo_mysql
+
+# 2. 启用官方推荐的生产环境配置
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+# 3. 将我们自定义的配置文件复制到 php.conf.d 目录下
+# 这样做比直接修改 php.ini 更优雅，且优先级更高
+COPY custom-php.ini $PHP_INI_DIR/conf.d/z-custom.ini
+
+
+# 3. 设置工作目录
+WORKDIR /var/www
+
+# 4. 暴露 FPM 端口
+EXPOSE 9000

@@ -59,7 +59,6 @@ PHP必须开启zip、xml、curl、gd2、fileinfo、openssl、mbstring组件
 找到php.ini
 vim /usr/local/php/etc/php.ini
 搜索disable_function
-删除 proc_ 开头的所有函数 以及 force_env 这个函数
 putenv
 pcntl_alarm
 pcntl_signal

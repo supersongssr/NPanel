@@ -9,61 +9,17 @@ sudo apt install podman -y
 podman --version
 
 
-mkdir -p /opt/pods  # podman pods 容器 目录就在这里了
-cd /opt/pods 
-
-mkdir -p /opt/containers # 存放 镜像
-mkdir -p /opt/containers/php7-npanel
-
-cd /opt/containers/php7-npanel
-nano Containerfile 
-
-```
-Containerfile 
-```yaml
-# 基础镜像使用官方 PHP 7.4 FPM
-FROM docker.io/library/php:7.4-fpm
-
-# 1. 安装系统底层依赖库（这是编译 PHP 插件必须的）
-RUN apt-get update && apt-get install -y \
-    libzip-dev \
-    libxml2-dev \
-    libcurl4-openssl-dev \
-    libpng-dev \
-    libonig-dev \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# 2. 安装并启用 PHP 插件
-# 官方镜像工具会自动处理编译、安装和在 php.ini 中启用的逻辑
-RUN docker-php-ext-install \
-    zip \
-    xml \
-    curl \
-    gd \
-    mbstring \
-    fileinfo \
-    mysqli \
-    pdo_mysql
-
-# 3. 设置工作目录
-WORKDIR /var/www/html
-
-# 4. 暴露 FPM 端口
-EXPOSE 9000
+cd podman/pod/php7
 
 
-```
-run php pod 
-```sh 
 # 生成镜像
 podman build -t php7-npanel -f Containerfile .
 
 # 生成容器 监听 9000 
 podman run -d \
-  --name test-npanel.freessr.bid \
-  -p 9000:9000 \
-  -v /var/www/test-npanel.freessr.bid:/var/www/html:Z \
+  --name php7-npanel \
+  -p 9001:9000 \
+  -v /var/www:/var/www:Z \
   --restart always \
   localhost/php7-npanel
 
