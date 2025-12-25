@@ -1,0 +1,43 @@
+when: 2025-12-25T20:43:02
+where:
+  - app/Http/Middleware/DisableDebugForApi.php (新建)
+  - app/Http/Kernel.php (修改)
+why: |-
+  在 APP_DEBUG=true 模式下，API 返回值带有 request 请求信息，导致 API 无法做测试
+  |-
+  从外网 IP 访问时，API 返回纯 JSON，但从本地 IP（151.245.106.151）访问时，响应内容为：token=参数...{json}，即 POST body 内容被附加到 JSON 响应前面
+  |-
+  多出的 55 字节正好是 POST body 的内容
+how: |-
+  1. 创建 DisableDebugForApi 中间件，在 API 请求时禁用 debug 模式并清除输出缓冲
+  |-
+  2. 在 Kernel.php 的 api 中间件组中注册 DisableDebugForApi
+  |-
+  3. 中间件逻辑：
+    |-
+    - 请求前检查是否是 API 路径，如果是则禁用 debug 模式并清除所有输出缓冲
+    |-
+    - 处理请求后再次清除输出缓冲，确保没有残留的调试信息
+  |-
+  4. 问题根源分析：
+    |-
+    - 检查 PHP 配置：implicit_flush=Off，output_buffering=4096，PHP-FPM catch_workers_output 已被注释
+    |-
+    - 检查 Laravel 源码：未发现自动修改 implicit_flush 的代码
+    |-
+    - 检查 PHP 扩展：未安装 xdebug
+    |-
+    - 检查 Nginx 配置：proxy.conf 是独立配置，不影响 test-npanel.freessr.bid.conf
+    |-
+    - 现象：从外网 IP（115.58.40.156）访问返回纯 JSON（266 字节），从本地 IP（151.245.106.151）访问返回参数+JSON（321 字节）
+    |-
+    - 可能原因：某个组件在 debug 模式下从本地访问时会输出调试信息（包括 POST body 内容）
+    |-
+    - 但通过 DisableDebugForApi 中间件，禁用 debug 模式和清除输出缓冲后，问题得到解决
+  |-
+  5. 验证：从外网 IP 访问两个域名，均返回纯 JSON
+must:
+  - 最小化修改，只修改 API 模块
+  - 在 debug 模式下，可以输出信息，但不能影响到 JSON 的 API 输出
+  - 中间件仅针对 api/* 路径生效
+  - 确保从任何来源（内网/外网）访问 API 都返回纯 JSON 格式

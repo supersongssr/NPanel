@@ -26,6 +26,13 @@ use App\Http\Models\Label;
  */
 class PingController extends Controller
 {
+    public function __construct()
+    {
+        // 清除所有输出缓冲区，避免调试信息污染API响应
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+    }
     public function ping(Request $request)
     {
         $token = $request->input('token');

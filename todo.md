@@ -332,11 +332,21 @@ Stack trace:
 ## 5.2 DEBUG
 
 
-- [] bug: 在 APP_DEBUG=true 模式下 ,api 返回值 带有 request 请求信息, 导致api无法做测试.
+- [x] bug: 在 APP_DEBUG=true 模式下 ,api 返回值 带有 request 请求信息, 导致api无法做测试.
     - where: @app/Http/Controllers/Api/PingController.php <ssn_sub>
     - why:  需要在 debug 模式下 测试 api, api返回值应该是json, 而不应该是 被添加其他字符串的信息,导致解析json失败
     - how:  
-        - 网站请求api是:  https://test-srp-ssn.freessr.bid/api/ssn_sub/105 ; 请求数据是: token=hahajimiddga&traffic=226250953&traffic_used=226250953&traffic_left=106300214325047&traffic_used_daily=9427123&traffic_left_daily=17716702387507&daily=16499&status=1&health=1&online=8&ip=8.222.225.63&ipv6=  ;  返回值应该是:  {"ret":1,"msg":"node update success 0193","status":"success","message":"Node updated successfully"}  ; 
+        - 请帮我找出来是哪个组件在 api 返回值前面添加了 参数 导致api返回值是 参数 + json 
+        - 在 APP_DEBUG=true 模式下，某些PHP配置或组件导致POST请求数据被直接输出到响应体前面，使得API返回值变成 参数+JSON 格式，无法被正确解析。
+        - - 找出来是 什么 php配置 或 组件 导致的 post 请求数据被直接输出到 响应体前面
+        - 检查 nginx 配置是否正确, nginx conf 配置是否导致 post 请求 数据被直接输出到 响应体前面的原因 
+        - ih
+    - info:
+        - 请求 ssn_sub 的时候, 返回值中 多了 请求参数 在 json 前.
+        - php 容器中使用的 不是 php.ini-development,  是 php.ini 这个配置文件
+        - 检查从内网访问, 外网访问的时候, 是否一致:
+            - 是否都是api返回 参数 + json 格式? 
+        - @app/Http/Middleware/DisableDebugForApi.php 是我尝试在 api/ 禁用 debug 模式. 当前未启用该功能
     - must: 
         - 最小化修改, 在 debug 模式下,可以输出信息,但是不能影响到 json 的 api的输出
         - 只修改 api 模块
