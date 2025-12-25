@@ -15,10 +15,10 @@ cd podman/pod/php7
 # 生成镜像
 podman build -t php7-npanel -f Containerfile .
 
-# 生成容器 监听 9000 
+# 生成容器 监听 9001 (仅本地访问)
 podman run -d \
   --name php7-npanel \
-  -p 9001:9000 \
+  -p 127.0.0.1:9001:9000 \
   -v /var/www:/var/www:Z \
   --restart always \
   localhost/php7-npanel
@@ -81,8 +81,8 @@ server {
     # 处理 PHP
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass 127.0.0.1:9000;
-        
+        fastcgi_pass 127.0.0.1:9001;
+
         # 映射到容器内路径
         fastcgi_param SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
     }

@@ -331,6 +331,13 @@ Stack trace:
 
 ## 5.2 DEBUG
 
+- [] 修复 podman 端口监听漏洞, 应该设置为 127.0.0.1:9001:9000
+
+- [] 修复 远程执行漏洞
+    where:
+    why: 很多 RCE 漏洞（如 Ignition 漏洞）是利用了 Laravel 在报错时提供的交互式调试界面; 绝大多数针对 Laravel 的自动化脚本攻击（特别是利用 Ignition 组件的攻击）确实极度依赖 APP_DEBUG=true。
+    how: 
+        要在保持 APP_DEBUG=true 的同时关闭这个交互式界面，有以下几种方案： 1 修改 config/app.php (最直接的方法)  'debug' => (env('APP_DEBUG', false) && (request()->ip() == '127.0.0.1')),     ; 2 在 AppServiceProvider 中禁用 Ignition (针对 CVE-2021-3129) 
 
 - [x] bug: 在 APP_DEBUG=true 模式下 ,api 返回值 带有 request 请求信息, 导致api无法做测试.
     - where: @app/Http/Controllers/Api/PingController.php <ssn_sub>

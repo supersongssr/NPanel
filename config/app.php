@@ -37,9 +37,13 @@ return [
     | stack traces will be shown on every error that occurs within your
     | application. If disabled, a simple generic error page is shown.
     |
+    | Security Fix: Debug mode is restricted to localhost only to prevent
+    | RCE vulnerabilities via Ignition (CVE-2021-3129 and similar attacks).
+    | External requests will not see debug information even if APP_DEBUG=true.
+    |
     */
 
-    'debug' => env('APP_DEBUG', false),
+    'debug' => env('APP_DEBUG', false) && request()->ip() === '127.0.0.1',
 
     /*
     |--------------------------------------------------------------------------
