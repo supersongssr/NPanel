@@ -332,6 +332,17 @@ Stack trace:
 ## 5.2 DEBUG
 
 
+- [] bug: 在 APP_DEBUG=true 模式下 ,api 返回值 带有 request 请求信息, 导致api无法做测试.
+    - where: @app/Http/Controllers/Api/PingController.php <ssn_sub>
+    - why:  需要在 debug 模式下 测试 api, api返回值应该是json, 而不应该是 被添加其他字符串的信息,导致解析json失败
+    - how:  
+        - 网站请求api是:  https://test-srp-ssn.freessr.bid/api/ssn_sub/105 ; 请求数据是: token=hahajimiddga&traffic=226250953&traffic_used=226250953&traffic_left=106300214325047&traffic_used_daily=9427123&traffic_left_daily=17716702387507&daily=16499&status=1&health=1&online=8&ip=8.222.225.63&ipv6=  ;  返回值应该是:  {"ret":1,"msg":"node update success 0193","status":"success","message":"Node updated successfully"}  ; 
+    - must: 
+        - 最小化修改, 在 debug 模式下,可以输出信息,但是不能影响到 json 的 api的输出
+        - 只修改 api 模块
+        - 发送请求,在 debug 模式下,能正常返回值
+    
+
 - [] /invoices页面 resources/views/user/invoices.blade.php $clonepays 的标签没有显示出来
   - 这是个BUG,请帮我检查,问题在哪,并尝试修复
   
