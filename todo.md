@@ -5,6 +5,18 @@
 
 ## 5  Add new 
 
+- [] test 添加 fake user 和 fake node 
+    - where:在 tests/fake_data 目录下创建脚本,
+    - why: 测试站点需要用户 和 节点 虚假的
+    - how: 
+        - 参考数据库字段, 生成 user 和 node 脚本
+            - 脚本的作用是, 生成指定数量的 100个 user 和 10个 node 用于测试
+        - 测试代码不应该污染 项目主代码, 所以不应该使用 Artisan 命令,避免生产环境误操作.
+    - must: 
+        - 必须在 .env APP_ENV=test 时这些脚本才有效
+        - tests/ 文件夹的脚本, 必须在 .env APP_ENV=test  时候才能使用! 
+        - 所有的测试代码都应该保留在 tests/ 文件夹内! , tests/文件夹的访问,必须在 .env APP_ENV=test 时 才能使用
+
 - [v] 完善 apk download 的脚本
 
 - [x] add api < get new node > 

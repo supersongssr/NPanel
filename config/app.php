@@ -43,7 +43,7 @@ return [
     |
     */
 
-    'debug' => env('APP_DEBUG', false) && request()->ip() === '127.0.0.1',
+    'debug' => env('APP_DEBUG', false) && (app()->runningInConsole() || request()->ip() === '127.0.0.1'),
 
     /*
     |--------------------------------------------------------------------------

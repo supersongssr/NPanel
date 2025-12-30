@@ -2,8 +2,16 @@
 
 
 ##  Testing 
+测试文件目录在: tests/ 文件夹
+tests/ 文件夹的脚本, 必须在 .env APP_ENV=test  时候才能使用! 
+coding 完 tests 中的代码, 您应该自动运行脚本,并debug 
 
 
+## Developing 
+开发的测试脚本,应该放在 devs/ 文件夹
+devs/ 文件夹中的脚本, 必须在 .env APP_ENV=dev 时候才能使用
+devs 文件夹中, 存放 在 开发过程中的一些 不严谨的测试脚本,  
+注意 devs/ 和 tests/ 的区别, devs 是做开发调试的脚本 ; tests 文件夹是 测试功能使用的.
 
 ## Code Style Guidelines
 

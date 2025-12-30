@@ -1,0 +1,16 @@
+when: 2025-12-30T00:00:00+08:00
+where:
+  - tests/fake_data/generate_fake_users.php
+  - tests/fake_data/generate_fake_nodes.php
+  - tests/fake_data/generate_all_fake_data.php
+  - tests/fake_data/README.md
+why: 测试站点需要假用户和假节点数据进行功能测试
+how: 创建了测试数据生成脚本,可以批量生成100个假用户和10个假节点
+must:
+  - 必须在 .env APP_ENV=test 时这些脚本才有效
+  - 测试用户名格式: test_user_001 ~ test_user_100
+  - 测试节点名称: Test Node 1 ~ Test Node 10
+  - 默认测试密码: password123
+  - 脚本包含环境检查,防止在生产环境误运行
+  - 支持交互式删除旧的测试数据
+  - 生成包含用户基本信息、订阅记录、节点配置等完整数据

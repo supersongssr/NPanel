@@ -1,0 +1,16 @@
+when: 2025-12-30T12:45:00
+where:
+  - config/app.php
+  - tests/fake_data/generate_fake_users.php
+  - tests/fake_data/generate_fake_nodes.php
+why: 修复 CLI 模式下 Laravel bootstrap 失败的问题，使测试脚本可以使用 Laravel 框架
+how:
+  - 修改 config/app.php 第 46 行，添加 CLI 模式检查
+  - 重写 generate_fake_users.php 使用 Laravel Eloquent 和 Hash facade
+  - 重写 generate_fake_nodes.php 使用 Laravel Eloquent
+  - 删除临时的 PDO 版本脚本
+must:
+  - 所有测试代码保留在 tests/ 目录
+  - 仅在 APP_ENV=test 时可运行
+  - 不污染项目主代码
+  - 使用 Laravel 框架功能
