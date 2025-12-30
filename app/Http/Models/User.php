@@ -21,7 +21,7 @@ class User extends Authenticatable
 
     function scopeUid($query)
     {
-        return $query->where('id', Auth::user()->id);
+        return $query->where('id', \Auth::user()->id);
     }
 
     function levelList()

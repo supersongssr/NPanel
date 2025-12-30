@@ -3,10 +3,11 @@
 # 5. Version 5
 
 
-## 5.1 Add new 
+## 5  Add new 
 
+- [v] 完善 apk download 的脚本
 
-- [] add api < get new node > 
+- [x] add api < get new node > 
   where: @app/Http/Controllers/Api/PingController.php
   why: 方便后端获取一个可用的节点id用来上传配置
   how:

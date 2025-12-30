@@ -1,8 +1,9 @@
 #!/bin/sh
 #
 
-[ command -v wget ] || {
-    apt install wget -y
+command -v wget  || {
+    echo 'error wget 没安装'
+    exit 1
 }
 
 [ -d public/clients ] || {
@@ -28,5 +29,4 @@ wget -N https://github.com/2dust/v2rayN/releases/download/7.16.8/v2rayN-windows-
 
 # v2rayng
 wget -N https://github.com/2dust/v2rayNG/releases/download/1.10.31/v2rayNG_1.10.31_arm64-v8a.apk
-mv -f v2rayNG_arm64-v8a.apk /tmp/v2rayNG_arm64-v8a.apk.bk
-ln v2rayNG_1.10.31_arm64-v8a.apk v2rayNG_arm64-v8a.apk
+ln -f v2rayNG_1.10.31_arm64-v8a.apk v2rayNG_arm64-v8a.apk
