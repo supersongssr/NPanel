@@ -216,12 +216,12 @@ class AdminController extends Controller
     // 用户列表
     public function userList(Request $request)
     {
-        $id = intval($request->get('id'));
+        $id = $request->get('id');
         $username = trim($request->get('username'));
         $wechat = trim($request->get('wechat'));
         $qq = trim($request->get('qq'));
-        $port = intval($request->get('port'));
-        $pay_way = intval($request->get('pay_way'));
+        $port = $request->get('port');
+        $pay_way = $request->get('pay_way');
         $status = $request->get('status');
         $enable = $request->get('enable');
         $online = $request->get('online');
@@ -231,35 +231,35 @@ class AdminController extends Controller
         $largeTraffic = $request->get('largeTraffic');
 
         $query = User::query()->with(['subscribe']);
-        if (!empty($id)) {
-            $query->where('id', $id);
+        if ($id !== null && $id !== '') {
+            $query->where('id', intval($id));
         }
 
-        if (!empty($username)) {
+        if ($username !== '') {
             $query->where('username', 'like', '%' . $username . '%');
         }
 
-        if (!empty($wechat)) {
+        if ($wechat !== '') {
             $query->where('wechat', 'like', '%' . $wechat . '%');
         }
 
-        if (!empty($qq)) {
+        if ($qq !== '') {
             $query->where('qq', 'like', '%' . $qq . '%');
         }
 
-        if ($port != '') {
-            $query->where('port', $port);
+        if ($port !== null && $port !== '') {
+            $query->where('port', intval($port));
         }
 
-        if ($pay_way != '') {
-            $query->where('pay_way', $pay_way);
+        if ($pay_way !== null && $pay_way !== '') {
+            $query->where('pay_way', intval($pay_way));
         }
 
-        if ($status != '') {
+        if ($status !== null && $status !== '') {
             $query->where('status', intval($status));
         }
 
-        if ($enable != '') {
+        if ($enable !== null && $enable !== '') {
             $query->where('enable', intval($enable));
         }
 
@@ -694,11 +694,11 @@ class AdminController extends Controller
     {
         //$status = $request->input('status');
 
-        $id = intval($request->get('id'));
+        $id = $request->get('id');
         $nodename = trim($request->get('nodename'));
         $ipv6 = trim($request->get('ipv6'));
         $node_group = $request->get('node_group');
-        $level = trim($request->get('level'));
+        $level = $request->get('level');
         $type = $request->get('type');
         $sort = $request->get('sort');
         $level_sort = $request->get('level_sort');
@@ -708,30 +708,36 @@ class AdminController extends Controller
 
         $query = SsNode::query()->orderBy('status','desc');
 
+        $is_clone = $request->get('is_clone');
+
+        if ($is_clone !== null && $is_clone !== '') {
+            $query->where('is_clone','=', intval($is_clone));
+        }
+
         /* if ($status != '') {
             $query->where('status', intval($status));
         }*/
 
-        if (!empty($id)) {
-            $query->where('id', $id);
+        if ($id !== null && $id !== '') {
+            $query->where('id', intval($id));
         }
 
-        if (!empty($nodename)) {
+        if ($nodename !== '') {
             $query->where('name', 'like', '%' . $nodename . '%');
         }
 
-        if (!empty($ipv6)) {
+        if ($ipv6 !== '') {
             $query->where('desc', 'like', '%' . $ipv6 . '%');
         }
 
-        if (!empty($node_group)) {
+        if ($node_group !== null && $node_group !== '') {
             $query->where('node_group', $node_group);
         }
-        if (!empty($level)) {
-            $query->where('level',$level);
+        if ($level !== null && $level !== '') {
+            $query->where('level', $level);
         }
 
-        if (!empty($type)) {
+        if ($type !== null && $type !== '') {
             $query->where('type', $type);
         }
 
@@ -1385,28 +1391,28 @@ class AdminController extends Controller
         $port = $request->get('port');
         $user_id = $request->get('user_id');
         $username = trim($request->get('username'));
-        $nodeId = intval($request->get('nodeId'));
+        $nodeId = $request->get('nodeId');
 
         $query = UserTrafficLog::query()->with(['user', 'node']);
 
-        if ($port) {
+        if ($port !== null && $port !== '') {
             $query->whereHas('user', function ($q) use ($port) {
-                $q->where('port', $port);
+                $q->where('port', intval($port));
             });
         }
 
-        if ($user_id) {
+        if ($user_id !== null && $user_id !== '') {
             $query->where('user_id', intval($user_id));
         }
 
-        if ($username) {
+        if ($username !== '') {
             $query->whereHas('user', function ($q) use ($username) {
                 $q->where('username', 'like', '%' . $username . '%');
             });
         }
 
-        if ($nodeId) {
-            $query->where('node_id', $nodeId);
+        if ($nodeId !== null && $nodeId !== '') {
+            $query->where('node_id', intval($nodeId));
         }
 
         // 已使用流量

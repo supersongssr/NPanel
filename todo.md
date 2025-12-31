@@ -5,6 +5,12 @@
 
 ## 5  Add new 
 
+- [] router admin/editNode能区分 0 和 "" 空值;  is_clone=0 is_clone="" 这样的参数
+    - where: @app/Http/Controllers/AdminController.php: 693 - 815 
+    - why: 可以查询 is_clone=0 的节点, 而不是因为 0 值被忽略
+    - how:
+        - 代码中空值被忽略, 0值 按照 0来计算
+
 - [v] 生成 10 个 节点, 同时 $node->heartbeat_at 在一年前
     - where : tests/faka_data 
     - why : 给后端节点 使用
@@ -15,9 +21,6 @@
     - must:
         - 生成完后,自行测试是否成功
 
-- [] 这里规定脚本只能在 test 环境下才能运行, 但是你的判断是 只要不是 prod 环境都能运行, 我觉得这是不严谨的.
-    - where: @tests/fake_data/generate_stale_nodes.php:19-21  @tests/fake_data/generate_offline_nodes.php : 19-21 
-    - how:
 
 - [] node list 页面可以识别 is_clone=0的情况. 
 
@@ -359,6 +362,11 @@ Stack trace:
     - 兼容性修改
 
 ## 5.2 DEBUG
+
+
+- [v] 这里规定脚本只能在 test 环境下才能运行, 但是你的判断是 只要不是 prod 环境都能运行, 我觉得这是不严谨的.
+    - where: @tests/fake_data/generate_stale_nodes.php:19-21  @tests/fake_data/generate_offline_nodes.php : 19-21 
+    - how:
 
 - [] 修复 podman 端口监听漏洞, 应该设置为 127.0.0.1:9001:9000
 

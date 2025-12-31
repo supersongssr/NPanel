@@ -7,8 +7,10 @@ PHP的运行环境是在 podman php-npanel 容器中
 
 ##  Testing 
 测试文件目录在: tests/ 文件夹
-tests/ 文件夹的脚本, 必须在 .env APP_ENV=test  时候才能使用! 
 coding 完 tests 中的代码, 您应该自动运行脚本,并debug 
+
+*must*
+tests/ 文件夹的脚本, 必须在 `.env`文件中  `APP_ENV=test`  才运行,否则 退出脚本! 
 
 
 ## Developing 
