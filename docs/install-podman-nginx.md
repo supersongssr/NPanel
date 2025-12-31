@@ -16,11 +16,13 @@ cd podman/pod/php7
 podman build -t php7-npanel -f Containerfile .
 
 # 生成容器 监听 9001 (仅本地访问)
+work_dir=/var/www/
 podman run -d \
   --name php7-npanel \
   -p 127.0.0.1:9001:9000 \
   -v /var/www:/var/www:Z \
   --restart always \
+  --workdir $work_dir \
   localhost/php7-npanel
 
 

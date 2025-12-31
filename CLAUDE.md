@@ -1,6 +1,10 @@
 # NPanel Development Guidelines
 
 
+## 环境
+PHP的运行环境是在 podman php-npanel 容器中
+`podman exec php-npanel `
+
 ##  Testing 
 测试文件目录在: tests/ 文件夹
 tests/ 文件夹的脚本, 必须在 .env APP_ENV=test  时候才能使用! 
