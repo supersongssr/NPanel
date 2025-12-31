@@ -198,6 +198,13 @@
                                     <option value="1" @if(Request::get('traffic') == '1') selected @endif>低->高</option>
                                 </select>
                             </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="is_clone" id="is_clone" onChange="doSearch()">
+                                    <option value="" @if(Request::get('is_clone') == '') selected @endif>全部节点</option>
+                                    <option value="0" @if(Request::get('is_clone') === '0') selected @endif>仅原始节点</option>
+                                    <option value="1" @if(Request::get('is_clone') === '1') selected @endif>仅克隆节点</option>
+                                </select>
+                            </div>
 
                         </div>
                     </div>
@@ -263,8 +270,9 @@
             var status = $("#status option:checked").val();
             var traffic_rate = $("#traffic_rate option:checked").val();
             var traffic = $("#traffic option:checked").val();
+            var is_clone = $("#is_clone option:checked").val();
 
-            window.location.href = '/admin/nodeList' + '?id=' + id +'&nodename=' + nodename + '&ipv6=' + ipv6 + '&type=' + type + '&sort=' + sort + '&status=' + status + '&traffic_rate=' + traffic_rate + '&traffic=' + traffic + '&node_group=' + node_group + '&level=' + level + '&level_sort=' + level_sort;
+            window.location.href = '/admin/nodeList' + '?id=' + id +'&nodename=' + nodename + '&ipv6=' + ipv6 + '&type=' + type + '&sort=' + sort + '&status=' + status + '&traffic_rate=' + traffic_rate + '&traffic=' + traffic + '&node_group=' + node_group + '&level=' + level + '&level_sort=' + level_sort + '&is_clone=' + is_clone;
         }
 
         // 重置

@@ -1,0 +1,17 @@
+when: 2025-12-31T16-45:00+08:00
+where:
+  - app/Http/Controllers/AdminController.php (lines 711-715)
+  - resources/views/admin/nodeList.blade.php (lines 201-207, 273-275)
+  - tests/Feature/AdminNodeListIsCloneFilterTest.php (new file)
+why: 节点列表页面的 is_clone 参数无法正确区分 0 值和空值，导致无法查询原始节点
+how:
+  1. 简化 AdminController::nodeList() 方法中的 is_clone 参数处理逻辑
+  2. 在视图文件中添加 is_clone 下拉选择器，提供三个选项：全部节点、仅原始节点、仅克隆节点
+  3. 更新 JavaScript doSearch() 函数，包含 is_clone 参数
+  4. 创建单元测试验证过滤功能
+must:
+  - is_clone=0 必须正确过滤出原始节点 (is_clone = 0)
+  - is_clone=1 必须正确过滤出克隆节点 (is_clone = 1)
+  - is_clone 为空或 null 时不进行过滤，显示所有节点
+  - 使用简单直接的判断逻辑，避免过度复杂化
+  - 在测试环境中验证功能正常工作

@@ -5,11 +5,15 @@
 
 ## 5  Add new 
 
-- [] router admin/editNode能区分 0 和 "" 空值;  is_clone=0 is_clone="" 这样的参数
-    - where: @app/Http/Controllers/AdminController.php: 693 - 815 
+- [v] router admin/nodeList能区分 0 和 "" 空值;  is_clone=0 is_clone="" 这样的参数
+    - where: @app/Http/Controllers/AdminController.php: 693 - 815  @resources/views/admin/nodeList.blade.php 
     - why: 可以查询 is_clone=0 的节点, 而不是因为 0 值被忽略
     - how:
         - 代码中空值被忽略, 0值 按照 0来计算
+        - 在 admin/nodeList 页面添加一个 切换 is_clone=0 或 "" 或指定 1 的按钮
+        - is_clone=0 是原始节点 is_clone=1 是克隆节点
+
+
 
 - [v] 生成 10 个 节点, 同时 $node->heartbeat_at 在一年前
     - where : tests/faka_data 
@@ -22,9 +26,9 @@
         - 生成完后,自行测试是否成功
 
 
-- [] node list 页面可以识别 is_clone=0的情况. 
 
-- [] test 添加 fake user 和 fake node 
+
+- [v] test 添加 fake user 和 fake node 
     - where:在 tests/fake_data 目录下创建脚本,
     - why: 测试站点需要用户 和 节点 虚假的
     - how: 
