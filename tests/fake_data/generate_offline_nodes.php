@@ -1,10 +1,10 @@
 <?php
 /**
- * 生成假节点数据脚本 (使用 Laravel 框架)
+ * 生成离线假节点数据脚本 (使用 Laravel 框架)
  *
- * where: tests/fake_data/generate_fake_nodes.php
- * why: 测试站点需要假节点数据
- * how: 使用 Laravel Eloquent 模型生成假节点
+ * where: tests/fake_data/generate_offline_nodes.php
+ * why: 生成 heartbeat_at 在一年前且 status=0 的节点, 用于测试后端离线节点功能
+ * how: 使用 Laravel Eloquent 模型生成假节点, heartbeat_at 设置为一年前, status 设置为 0
  * must: 必须在 .env APP_ENV=test 时才能使用
  */
 
@@ -21,15 +21,15 @@ if (!app()->environment('test')) {
 }
 
 // 检查是否已存在测试节点
-$existingTestNodes = SsNode::where('name', 'like', 'Test Node %')->count();
+$existingTestNodes = SsNode::where('name', 'like', 'Offline Node %')->count();
 if ($existingTestNodes > 0) {
-    echo "Warning: Found {$existingTestNodes} existing test nodes.\n";
+    echo "Warning: Found {$existingTestNodes} existing offline test nodes.\n";
     echo "Do you want to delete them first? (yes/no): ";
     $handle = fopen("php://stdin", "r");
     $line = fgets($handle);
     if (trim(strtolower($line)) === 'yes') {
-        SsNode::where('name', 'like', 'Test Node %')->delete();
-        echo "Old test nodes deleted.\n";
+        SsNode::where('name', 'like', 'Offline Node %')->delete();
+        echo "Old offline test nodes deleted.\n";
     } else {
         echo "Operation cancelled.\n";
         exit(0);
@@ -46,8 +46,9 @@ $v2Types = ['none', 'http', 'srtp'];
 // 生成假节点数据
 $count = 10;
 $now = date('Y-m-d H:i:s');
+$oneYearAgo = date('Y-m-d H:i:s', strtotime('-1 year'));
 
-echo "Generating {$count} fake nodes...\n";
+echo "Generating {$count} offline fake nodes (status=0, heartbeat_at 1 year ago)...\n";
 
 for ($i = 1; $i <= $count; $i++) {
     $type = $nodeTypes[array_rand($nodeTypes)];
@@ -56,13 +57,13 @@ for ($i = 1; $i <= $count; $i++) {
 
     $nodes[] = [
         'type' => $type,
-        'name' => 'Test Node ' . $i,
+        'name' => 'Offline Node ' . $i,
         'group_id' => 1,
         'country_code' => $countryCode,
-        'server' => 'node' . $i . '.test.example.com',
-        'ip' => '192.168.1.' . (100 + $i),
+        'server' => 'offline-node' . $i . '.test.example.com',
+        'ip' => '192.168.3.' . (100 + $i),
         'ipv6' => '',
-        'desc' => 'Test node ' . $i . ' for testing',
+        'desc' => 'Offline test node ' . $i . ' (status=0, heartbeat 1 year ago)',
         'method' => $method,
         'protocol' => 'origin',
         'protocol_param' => '',
@@ -81,7 +82,7 @@ for ($i = 1; $i <= $count; $i++) {
         'compatible' => 0,
         'single' => 0,
         'sort' => $i,
-        'status' => 1,
+        'status' => 0, // 关键: 设置为离线状态
         // V2Ray 配置
         'v2_alter_id' => 16,
         'v2_port' => 443 + $i,
@@ -89,7 +90,7 @@ for ($i = 1; $i <= $count; $i++) {
         'v2_net' => $v2Nets[array_rand($v2Nets)],
         'v2_type' => $v2Types[array_rand($v2Types)],
         'v2_host' => '',
-        'v2_path' => '/' . 'node' . $i,
+        'v2_path' => '/offline-node' . $i,
         'v2_tls' => rand(0, 2),
         'v2_insider_port' => 10550 + $i,
         'v2_outsider_port' => 443,
@@ -105,30 +106,32 @@ for ($i = 1; $i <= $count; $i++) {
         'traffic_left_daily' => rand(50000000000, 1099511627776),
         'is_clone' => 0,
         'node_unlock' => '',
-        'info' => 'Test node info',
+        'info' => 'Offline test node - status=0, last heartbeat 1 year ago',
         'v2_flow' => '',
         'v2_sni' => '',
         'v2_alpn' => '',
         'v2_encryption' => 'none',
         'node_uuid' => '',
-        'heartbeat_at' => null,
+        'heartbeat_at' => $oneYearAgo, // 关键: 设置为一年前
         'v2_mode' => '',
         'v2_servicename' => '',
         'v2_fp' => '',
         'v2_cdn' => '',
         'v2_cdn_ip' => '',
-        'created_at' => $now,
-        'updated_at' => $now,
+        'created_at' => $oneYearAgo, // 创建时间也设为一年前
+        'updated_at' => $oneYearAgo, // 更新时间也设为一年前
     ];
 }
 
 // 批量插入节点 (使用 Laravel Eloquent)
 SsNode::insert($nodes);
-echo "Created {$count} fake nodes.\n";
+echo "Created {$count} offline fake nodes (status=0, heartbeat_at 1 year ago).\n";
 
 echo "\n=== Summary ===\n";
-echo "Total fake nodes created: {$count}\n";
-echo "Node names: Test Node 1 to Test Node {$count}\n";
+echo "Total offline nodes created: {$count}\n";
+echo "Node names: Offline Node 1 to Offline Node {$count}\n";
+echo "Status: 0 (offline)\n";
+echo "Heartbeat timestamp: {$oneYearAgo}\n";
 echo "Countries: " . implode(', ', $countryCodes) . "\n";
 echo "Types: SS, V2Ray, VLESS, Trojan\n";
 echo "\nDone!\n";

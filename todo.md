@@ -5,6 +5,22 @@
 
 ## 5  Add new 
 
+- [v] 生成 10 个 节点, 同时 $node->heartbeat_at 在一年前
+    - where : tests/faka_data 
+    - why : 给后端节点 使用
+    - how :
+        - 参考 @tests/fake_data/generate_fake_nodes.php 
+        - $node->heartbeat_at 设置为 1年前.  
+        - 并且: status=0
+    - must:
+        - 生成完后,自行测试是否成功
+
+- [] 这里规定脚本只能在 test 环境下才能运行, 但是你的判断是 只要不是 prod 环境都能运行, 我觉得这是不严谨的.
+    - where: @tests/fake_data/generate_stale_nodes.php:19-21  @tests/fake_data/generate_offline_nodes.php : 19-21 
+    - how:
+
+- [] node list 页面可以识别 is_clone=0的情况. 
+
 - [] test 添加 fake user 和 fake node 
     - where:在 tests/fake_data 目录下创建脚本,
     - why: 测试站点需要用户 和 节点 虚假的

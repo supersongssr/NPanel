@@ -3,7 +3,7 @@
 
 ## 环境
 PHP的运行环境是在 podman php-npanel 容器中
-`podman exec php-npanel `
+`podman exec php7-npanel `
 
 ##  Testing 
 测试文件目录在: tests/ 文件夹

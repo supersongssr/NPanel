@@ -12,7 +12,7 @@ use App\Components\Helpers;
 //sdo2022-04-13
 use App\Http\Models\User;
 use App\Http\Models\Coupon;
-// song2023-12-21 use for label ! cool way 
+// song2023-12-21 use for label ! cool way
 use App\Http\Models\SsNodeLabel;
 use App\Http\Models\Label;
 
@@ -98,7 +98,7 @@ class PingController extends Controller
     }
 
     public function simpleApiTools(Request $request ){
-        // 验证 token 
+        // 验证 token
         if (!empty($request->get('token')) && !empty($request->get('salt')) ) {
             if (md5(env('API_TOKEN') . $request->get('salt') ) != $request->get('token')) {
                 $res['err'] = 'token-invalid';
@@ -141,7 +141,7 @@ class PingController extends Controller
         }
 
         return response()->json($res);
-        
+
     }
 
     public function ssn_sub(Request $request, $id)
@@ -152,7 +152,7 @@ class PingController extends Controller
         }
 
         $ip = getClientIp();
-        
+
         // 获取NODE数据
         $node = SsNode::query()->where('id', $id)->first();
         if (!$node) {
@@ -179,7 +179,7 @@ class PingController extends Controller
             $node->traffic_left = $request->get('traffic_left');
             $node->traffic_left_daily = $request->get('traffic_left_daily');
             $node->node_onload = $request->get('daily');
-            
+
             if (!$node->save()) {
                 return response()->json(['status' => 'error', 'ret'=>0, 'msg'=>'failed to update node' ,'message' => 'Failed to update node']);
             }
@@ -188,8 +188,8 @@ class PingController extends Controller
             $online_log = new SsNodeOnlineLog();
             $online_log->node_id = $id;
             $online_log->online_user = $request->get('online');
-            $online_log->log_time = time();   
-            
+            $online_log->log_time = time();
+
             if (!$online_log->save()) {
                 return response()->json([ 'ret'=>0, 'msg'=>'failed to save online log 0190'  ,'status' => 'error', 'message' => 'Failed to save online log']);
             }
@@ -233,7 +233,7 @@ class PingController extends Controller
             $_a = $_a = str_replace(',','&',$request->get('node_unlock'));
             $_a = str_replace(':','=',$_a);
             $node->node_unlock = $_a;
-            
+
             if ($request->get('node_info')){  //生成 user Lables
                 SsNodeLabel::query()->where('node_id',$node->id)->delete(); //先删除之前的 label
                 $labels = Label::query()->orderBy('sort', 'desc')->orderBy('id', 'asc')->get();
@@ -247,7 +247,7 @@ class PingController extends Controller
                 }
             }
         }
-        
+
         //node protocol_conf  先判断是否有 vmess vless trojan ss 等标志前缀
         if ( $request->get('v2') ) {
             $request->get('v2') == 'ss' && $node->type = 1;
@@ -262,7 +262,7 @@ class PingController extends Controller
             $node->v2_type = $request->get('v2_type');
             $node->v2_host = $request->get('v2_host');
             $node->v2_path = $request->get('v2_path');
-            // tls : 0 tls xtls 
+            // tls : 0 tls xtls
             empty($request->get('v2_tls')) && $node->v2_tls = 0;
             $request->get('v2_tls') == 'tls' && $node->v2_tls = 1;
             $request->get('v2_tls') == 'xtls' && $node->v2_tls = 2;
@@ -271,12 +271,12 @@ class PingController extends Controller
             // vless 特有
             $node->v2_encryption = $request->get('v2_ecpt');
             $node->v2_encryption || $node->v2_encryption = 'none';
-            // xtls特有 
+            // xtls特有
             $node->v2_flow = $request->get('v2_flow');
             // 个性化
             $node->node_uuid = $request->get('v2_uuid') ;  // node_uuid 独立节点的密码
-            $request->get('v2_cdn') != '' ? $node->v2_cdn = $request->get('v2_cdn') : $node->v2_cdn = '';  // 支持 CDN 
-            $request->get('v2_cdn_ip') && $node->v2_cdn_ip = $request->get('v2_cdn_ip') ;  // 支持 CDN 
+            $request->get('v2_cdn') != '' ? $node->v2_cdn = $request->get('v2_cdn') : $node->v2_cdn = '';  // 支持 CDN
+            $request->get('v2_cdn_ip') && $node->v2_cdn_ip = $request->get('v2_cdn_ip') ;  // 支持 CDN
             //
             $node->v2_mode = $request->get('v2_mode'); // 2023-02-16 新增 grpc mode
             $node->v2_servicename = $request->get('v2_servicename'); // 2023-02-20 新增 grpc serviceName
@@ -341,7 +341,7 @@ class PingController extends Controller
 
         // 查找一个可用的节点：ID大于99，心跳超过7天，状态为0（维护中）
         $node = SsNode::query()
-            ->where('id', '>', 99)
+            ->where('id', '>', 9)
             ->where('heartbeat_at', '<', date('Y-m-d H:i:s', time() - 604800))
             ->where('status', 0)
             ->orderBy('id', 'asc')
@@ -389,7 +389,7 @@ class PingController extends Controller
             exit;
         }
 
-        // 验证 安全ip  
+        // 验证 安全ip
         $ip = $_SERVER["REMOTE_ADDR"]; // 获取请求ip
         if ($ip != $clonepay_apis->$from->safeip && $ip != $clonepay_apis->$from->safeipv6) {
             exit;
@@ -410,7 +410,7 @@ class PingController extends Controller
             exit;
         }
         // 验证订单号是否已存在
-        $exsitcoupon = Coupon::query()->where('sn',$request->get('order'))->first(); 
+        $exsitcoupon = Coupon::query()->where('sn',$request->get('order'))->first();
         if (!empty($exsitcoupon->id)) {  // 7后后可以删除. mark 2024-10-05
             echo '&error=订单已被记录';
             exit;
@@ -445,6 +445,6 @@ class PingController extends Controller
         //写入用户充值记录
         // 写入卡券日志
         Helpers::addCouponLog($obj->id, 0, 0, $user->id, 'CP代付充值使用');
-        
+
     }
 }
