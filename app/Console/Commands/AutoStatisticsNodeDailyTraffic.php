@@ -33,7 +33,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
         //     return $config->value;
         // }
         // function setConfig( $name, $value ){
-        //     return Config::query()->where('name', $name )->update(['value' => $value]); 
+        //     return Config::query()->where('name', $name )->update(['value' => $value]);
         // }
         // // 每日消耗量
         // $all_traffic = SsNode::query()->where('id','>',9)->where('node_cost','>',1)->where('node_group','>',0)->sum('traffic');
@@ -101,20 +101,20 @@ class AutoStatisticsNodeDailyTraffic extends Command
                     continue;
                 }
 
-                $_tt = $node->traffic - $node->traffic_lastday;  # $_tt = trafficToday 
+                $_tt = $node->traffic - $node->traffic_lastday;  # $_tt = trafficToday
                 $_tt > 999*1024*1024*1024 && $_tt = 999*1024*1024*1024;
                 $_tt < 1 && $_tt = 0;  // 限制在 0-999G之间
                 $_u += $_tt;
-                if ($node->status != 1){  // fix the bugs: status = 0 nodes do not count the traffic 
+                if ($node->status != 1){  // fix the bugs: status = 0 nodes do not count the traffic
                     continue;
                 }
-                $_tl = $node->traffic_left_daily;  # $_tl = trafficLeft 
-                $_tl > 100*1024*1024*1024 && $_tl = 100*1024*1024*1024;
+                $_tl = $node->traffic_left_daily;  # $_tl = trafficLeft
+                // $_tl > 100*1024*1024*1024 && $_tl = 100*1024*1024*1024;
                 $_tl < 1 && $_tl = 0;  # limit 0-100G
                 $_l += $_tl;
 
             }
-            $_nv = round($_u / 1024/1024/1024).'+'.round(($_l - $_u)/1024/1024/1024).'G,'.$_r->value; // new value 
+            $_nv = round($_u / 1024/1024/1024).'+'.round(($_l - $_u)/1024/1024/1024).'G,'.$_r->value; // new value
             $_nv = substr($_nv , 0 ,63);
             $_r->value = $_nv .'|'.date("m-d");
             $_r->save();
@@ -127,10 +127,10 @@ class AutoStatisticsNodeDailyTraffic extends Command
             // 判断节点过去2小时 是否存在心跳
             if ( strtotime($node->heartbeat_at) < (time() - 7200)) {
                 $node->status = 0;
-            } 
+            }
             //每日流量
             $traffic_today = $node->traffic - $node->traffic_lastday;
-            
+
             // 写入每天流量差值记录
             $node->monitor_url = round($traffic_today / 1073741824) . ',' . $node->monitor_url;
             $node->monitor_url = substr($node->monitor_url, 0, 32);
@@ -145,7 +145,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
                     $node->node_cost < 1 && $node->node_cost = 1;
                     $node->sort = floor($node->traffic_used_daily /1024/1024/1024 / $node->node_cost); //性价比
                 }
-                
+
             }
 
 
