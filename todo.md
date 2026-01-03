@@ -3,7 +3,7 @@
 # 5. Version 5
 
 
-## 5  Add new 
+## 5.1
 
 - [v] router admin/nodeList能区分 0 和 "" 空值;  is_clone=0 is_clone="" 这样的参数
     - where: @app/Http/Controllers/AdminController.php: 693 - 815  @resources/views/admin/nodeList.blade.php 
@@ -365,7 +365,7 @@ Stack trace:
     - 最小化修改
     - 兼容性修改
 
-## 5.2 DEBUG
+## 5.2 
 
 
 - [v] 这里规定脚本只能在 test 环境下才能运行, 但是你的判断是 只要不是 prod 环境都能运行, 我觉得这是不严谨的.
@@ -479,3 +479,17 @@ Arguments
     - 做一个测试: 
       - 一个不存在的。key: SsXa1xx
       - 一个存在的key: SsXa1
+
+
+## 5.3
+
+- [ ] 订阅直出 sing-box 订阅,不需要第三方转换;  订阅直出 clash verge 订阅,不需要第三方转换; surfboard 也不需要第三方转换; loon也不需要第三方转换; 
+    - where : @app/Http/Controllers/SubscribeController.php 
+    - why: 第三方转换需要消耗 http 耗时, io等待和cpu空转; 直接输出 singbox , clash verge, surfboard , loon  订阅格式,会更方便一些.
+    - how :
+        - singbox 订阅格式参考 json 格式订阅 : https://sing-box.sagernet.org/zh/configuration/
+        - clash verge 订阅格式参考 yaml 格式订阅: https://wiki.metacubex.one/handbook/syntax/
+        - loon订阅格式参考 toml :  https://nsloon.app/docs/intro/
+        - surfboard 订阅格式参考: https://getsurfboard.com/docs/profile-format/overview/
+    - must:
+        - 最大兼容性的方式 处理 订阅

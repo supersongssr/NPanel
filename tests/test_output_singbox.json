@@ -1,0 +1,97 @@
+{
+    "log": {
+        "level": "info",
+        "timestamp": true
+    },
+    "dns": {
+        "servers": [
+            {
+                "tag": "local",
+                "address": "https:\/\/1.1.1.1\/dns-query",
+                "detour": "direct"
+            }
+        ]
+    },
+    "inbounds": [
+        {
+            "type": "tun",
+            "tag": "tun-in",
+            "interface_name": "tun0",
+            "inet4_address": "172.19.0.1\/30",
+            "auto_route": true,
+            "strict_route": false,
+            "sniff": true,
+            "sniff_override_destination": true
+        }
+    ],
+    "outbounds": [
+        {
+            "type": "selector",
+            "tag": "Proxy",
+            "outbounds": [
+                "auto",
+                "Test Node 1",
+                "direct"
+            ],
+            "filter": {
+                "type": "all"
+            }
+        },
+        {
+            "type": "vmess",
+            "tag": "Test Node 1",
+            "server": "vmess.example.com",
+            "server_port": 443,
+            "uuid": "c6effafd-6046-7a84-376e-b0429751c304",
+            "security": "auto",
+            "alter_id": 16,
+            "transport": {
+                "type": "ws",
+                "path": "\/vmess",
+                "headers": {
+                    "Host": [
+                        "vmess.example.com"
+                    ]
+                }
+            },
+            "tls": {
+                "enabled": true,
+                "server_name": "vmess.example.com"
+            }
+        },
+        {
+            "type": "direct",
+            "tag": "direct"
+        },
+        {
+            "type": "block",
+            "tag": "block"
+        },
+        {
+            "type": "dns",
+            "tag": "dns-out"
+        }
+    ],
+    "route": {
+        "rules": [
+            {
+                "protocol": "dns",
+                "outbound": "dns-out"
+            },
+            {
+                "clash_mode": "Direct",
+                "outbound": "direct"
+            },
+            {
+                "private": true,
+                "outbound": "direct"
+            }
+        ],
+        "auto_detect_interface": true
+    },
+    "experimental": {
+        "clash_api": {
+            "external_controller": "127.0.0.1:9090"
+        }
+    }
+}

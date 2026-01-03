@@ -1,0 +1,42 @@
+mixed-port: 7890
+allow-lan: true
+bind-address: *
+mode: rule
+log-level: info
+proxies:
+  -     name: Test Node 1
+    type: vmess
+    server: vmess.example.com
+    port: 443
+    uuid: c6effafd-6046-7a84-376e-b0429751c304
+    alterId: 16
+    cipher: auto
+    network: ws
+    ws-opts:
+      path: /vmess
+      headers:
+        Host:
+          - vmess.example.com
+    tls: true
+    servername: vmess.example.com
+proxy-groups:
+  -     name: Proxy
+    type: select
+    proxies:
+      - auto
+      - Test Node 1
+      - DIRECT
+  -     name: auto
+    type: url-test
+    proxies:
+      - Test Node 1
+    url: "http://www.gstatic.com/generate_204"
+    interval: 300
+rules:
+  - DOMAIN-SUFFIX,local,DIRECT
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - IP-CIDR,172.16.0.0/12,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,Proxy

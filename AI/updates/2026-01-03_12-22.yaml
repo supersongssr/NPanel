@@ -1,0 +1,25 @@
+when: 2026-01-03T12:22:00+08:00
+where: app/Http/Controllers/SubscribeController.php
+why: 第三方订阅转换服务存在 HTTP 请求耗时、IO 等待和 CPU 空转的问题，直接影响用户体验。通过直接在本地生成 sing-box、Clash、Loon 和 Surfboard 订阅配置，可以显著提升订阅响应速度，减少对外部服务的依赖，并提高系统稳定性。
+how:
+  1. 修改 getConvertedSubscribe 方法，将 sing-box、clash、loon、surfboard 都改为直接生成
+  2. 新增 generateDirectSubscribe 方法作为统一入口
+  3. 新增 generateSingboxConfig 方法，生成符合 sing-box 1.8+ 规范的 JSON 配置
+  4. 新增 generateClashConfig 方法，生成符合 Clash Meta/Mihomo 规范的 YAML 配置
+  5. 新增 generateLoonConfig 方法，生成符合 Loon 规范的配置文件格式
+  6. 新增 generateSurfboardConfig 方法，生成符合 Surfboard (Surge 格式) 的配置文件
+  7. 支持 VMess、VLESS、Trojan 三种节点类型
+  8. 支持 WebSocket、HTTP/2、gRPC 等传输协议
+  9. 支持 TLS/XTLS 加密配置，包括 SNI、ALPN 等参数
+  10. 自动处理流量倍率标签（traffic_rate != 1 时显示 _x2 等）
+  11. 生成的配置包含完整的路由规则、DNS 配置和代理组
+
+must:
+  - 必须保持向后兼容，不影响现有的第三方转换方式
+  - 必须生成有效的配置格式，确保客户端能够正确解析
+  - 必须支持所有已存在的节点配置参数
+  - 必须正确处理节点 UUID（优先使用 node_uuid，否则使用用户的 vmess_id）
+  - 必须支持多种传输协议和 TLS 配置
+  - Loon 配置必须包含 [General]、[Proxy]、[Policy]、[Filter] 部分
+  - Surfboard 配置必须包含 #!MANAGED-CONFIG 头部和完整的代理组配置
+  - 所有配置必须包含基本的路由规则（本地、局域网直连等）

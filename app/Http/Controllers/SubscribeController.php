@@ -474,17 +474,17 @@ class SubscribeController extends Controller
      */
     private function getConvertedSubscribe($target, $subscribe, $query_string = [])
     {
-        // 获取系统配置中的订阅转换地址
+        // 所有格式都使用直接生成，不再使用第三方转换
+        if (in_array($target, ['singbox', 'clash', 'loon', 'surfboard'])) {
+            return $this->generateDirectSubscribe($target, $subscribe, $query_string);
+        }
+
+        // 其他格式仍使用第三方转换
         $sub_rss_url = self::$systemConfig['sub_rss_url'] ?? '';
 
         if (empty($sub_rss_url)) {
             return false;
         }
-
-        // // 验证目标类型
-        // if (!in_array($target, ['clash', 'singbox', 'surfboard'])) {
-        //     return false;
-        // }
 
         // 构建订阅URL（保留其他参数）
         $subscribe_domain = self::$systemConfig['subscribe_domain'] ?: self::$systemConfig['website_url'];
@@ -537,5 +537,861 @@ class SubscribeController extends Controller
             Log::error('订阅转换异常: ' . $convert_url . ' - ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * 直接生成订阅配置（sing-box 或 clash）
+     *
+     * @param string $format 订阅格式（singbox/clash）
+     * @param object $subscribe 订阅对象
+     * @param array $query_string 查询字符串参数
+     * @return string|false
+     */
+    private function generateDirectSubscribe($format, $subscribe, $query_string = [])
+    {
+        // 获取用户信息
+        $user = User::query()->where('status', 1)->where('enable', 1)->where('id', $subscribe->user_id)->first();
+        if (!$user) {
+            return false;
+        }
+
+        // 获取节点列表
+        $nodeList = SsNode::query()
+            ->where('status', 1)
+            ->where('is_subscribe', 1)
+            ->where('node_group', $user->node_group)
+            ->where('level', '<=', $user->level)
+            ->orderBy('level', 'desc')
+            ->orderBy('traffic_left_daily', 'desc')
+            ->get();
+
+        if ($nodeList->isEmpty()) {
+            return false;
+        }
+
+        // 根据格式生成配置
+        if ($format === 'singbox') {
+            return $this->generateSingboxConfig($nodeList, $user);
+        } elseif ($format === 'clash') {
+            return $this->generateClashConfig($nodeList, $user);
+        } elseif ($format === 'loon') {
+            return $this->generateLoonConfig($nodeList, $user);
+        } elseif ($format === 'surfboard') {
+            return $this->generateSurfboardConfig($nodeList, $user);
+        }
+
+        return false;
+    }
+
+    /**
+     * 生成 sing-box JSON 配置
+     *
+     * @param \Illuminate\Support\Collection $nodeList 节点列表
+     * @param User $user 用户对象
+     * @return string
+     */
+    private function generateSingboxConfig($nodeList, $user)
+    {
+        $outbounds = [];
+        $outbounds[] = [
+            'type' => 'selector',
+            'tag' => 'Proxy',
+            'outbounds' => ['auto'],
+            'filter' => ['type' => 'all']
+        ];
+
+        $proxyTags = [];
+
+        foreach ($nodeList as $node) {
+            $node_uuid = $node->node_uuid ?: $user->vmess_id;
+            $tagName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '');
+            $proxyTags[] = $tagName;
+
+            // 解析 TLS
+            $tls = '';
+            if ($node->v2_tls == 1) {
+                $tls = 'tls';
+            } elseif ($node->v2_tls == 2) {
+                $tls = 'xtls';
+            }
+
+            // 根据节点类型生成不同的 outbound 配置
+            if ($node->type == 2) {
+                // VMess
+                $outbound = [
+                    'type' => 'vmess',
+                    'tag' => $tagName,
+                    'server' => $node->server,
+                    'server_port' => (int)$node->v2_port,
+                    'uuid' => $node_uuid,
+                    'security' => $node->v2_method,
+                    'alter_id' => (int)$node->v2_alter_id,
+                    'transport' => [
+                        'type' => $node->v2_net,
+                    ]
+                ];
+
+                // 添加传输层配置
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    $outbound['transport']['path'] = $node->v2_path;
+                    if ($node->v2_host) {
+                        $outbound['transport']['headers'] = ['Host' => [$node->v2_host]];
+                    }
+                } elseif ($node->v2_net == 'grpc') {
+                    $outbound['transport']['service_name'] = $node->v2_servicename;
+                }
+
+                // 添加 TLS 配置
+                if ($tls) {
+                    $outbound['tls'] = [
+                        'enabled' => true,
+                        'server_name' => $node->v2_sni,
+                    ];
+                    if ($node->v2_alpn) {
+                        $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
+                        if (!empty($alpnList)) {
+                            $outbound['tls']['alpn'] = $alpnList;
+                        }
+                    }
+                }
+
+                $outbounds[] = $outbound;
+
+            } elseif ($node->type == 3) {
+                // VLESS
+                $outbound = [
+                    'type' => 'vless',
+                    'tag' => $tagName,
+                    'server' => $node->server,
+                    'server_port' => (int)$node->v2_port,
+                    'uuid' => $node_uuid,
+                    'transport' => [
+                        'type' => $node->v2_net,
+                    ]
+                ];
+
+                // 添加传输层配置
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    $outbound['transport']['path'] = $node->v2_path;
+                    if ($node->v2_host) {
+                        $outbound['transport']['headers'] = ['Host' => [$node->v2_host]];
+                    }
+                } elseif ($node->v2_net == 'grpc') {
+                    $outbound['transport']['service_name'] = $node->v2_servicename;
+                }
+
+                // 添加 TLS 配置
+                if ($tls) {
+                    $outbound['tls'] = [
+                        'enabled' => true,
+                        'server_name' => $node->v2_sni,
+                    ];
+                    if ($node->v2_alpn) {
+                        $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
+                        if (!empty($alpnList)) {
+                            $outbound['tls']['alpn'] = $alpnList;
+                        }
+                    }
+                }
+
+                // 添加 flow
+                if ($node->v2_flow) {
+                    $outbound['flow'] = $node->v2_flow;
+                }
+
+                $outbounds[] = $outbound;
+
+            } elseif ($node->type == 4) {
+                // Trojan
+                $outbound = [
+                    'type' => 'trojan',
+                    'tag' => $tagName,
+                    'server' => $node->server,
+                    'server_port' => (int)$node->v2_port,
+                    'password' => $node_uuid,
+                    'transport' => [
+                        'type' => $node->v2_net,
+                    ]
+                ];
+
+                // 添加传输层配置
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    $outbound['transport']['path'] = $node->v2_path;
+                    if ($node->v2_host) {
+                        $outbound['transport']['headers'] = ['Host' => [$node->v2_host]];
+                    }
+                } elseif ($node->v2_net == 'grpc') {
+                    $outbound['transport']['service_name'] = $node->v2_servicename;
+                }
+
+                // 添加 TLS 配置
+                if ($tls) {
+                    $outbound['tls'] = [
+                        'enabled' => true,
+                        'server_name' => $node->v2_sni,
+                    ];
+                    if ($node->v2_alpn) {
+                        $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
+                        if (!empty($alpnList)) {
+                            $outbound['tls']['alpn'] = $alpnList;
+                        }
+                    }
+                }
+
+                $outbounds[] = $outbound;
+            }
+        }
+
+        // 添加其他必要的 outbounds
+        $outbounds[] = ['type' => 'direct', 'tag' => 'direct'];
+        $outbounds[] = ['type' => 'block', 'tag' => 'block'];
+        $outbounds[] = ['type' => 'dns', 'tag' => 'dns-out'];
+
+        // 更新 selector 的 outbounds
+        $outbounds[0]['outbounds'] = array_merge(['auto'], $proxyTags, ['direct']);
+
+        // 构建完整配置
+        $config = [
+            'log' => [
+                'level' => 'info',
+                'timestamp' => true
+            ],
+            'dns' => [
+                'servers' => [
+                    [
+                        'tag' => 'local',
+                        'address' => 'https://1.1.1.1/dns-query',
+                        'detour' => 'direct'
+                    ]
+                ]
+            ],
+            'inbounds' => [
+                [
+                    'type' => 'tun',
+                    'tag' => 'tun-in',
+                    'interface_name' => 'tun0',
+                    'inet4_address' => '172.19.0.1/30',
+                    'auto_route' => true,
+                    'strict_route' => false,
+                    'sniff' => true,
+                    'sniff_override_destination' => true
+                ]
+            ],
+            'outbounds' => $outbounds,
+            'route' => [
+                'rules' => [
+                    [
+                        'protocol' => 'dns',
+                        'outbound' => 'dns-out'
+                    ],
+                    [
+                        'clash_mode' => 'Direct',
+                        'outbound' => 'direct'
+                    ],
+                    [
+                        'private' => true,
+                        'outbound' => 'direct'
+                    ]
+                ],
+                'auto_detect_interface' => true
+            ],
+            'experimental' => [
+                'clash_api' => [
+                    'external_controller' => '127.0.0.1:9090'
+                ]
+            ]
+        ];
+
+        return json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * 生成 Clash YAML 配置
+     *
+     * @param \Illuminate\Support\Collection $nodeList 节点列表
+     * @param User $user 用户对象
+     * @return string
+     */
+    private function generateClashConfig($nodeList, $user)
+    {
+        $proxies = [];
+        $proxyNames = [];
+
+        foreach ($nodeList as $node) {
+            $node_uuid = $node->node_uuid ?: $user->vmess_id;
+            $proxyName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '');
+            $proxyNames[] = $proxyName;
+
+            // 解析 TLS
+            $tls = '';
+            if ($node->v2_tls == 1) {
+                $tls = 'tls';
+            } elseif ($node->v2_tls == 2) {
+                $tls = 'xtls';
+            }
+
+            // 根据节点类型生成不同的 proxy 配置
+            if ($node->type == 2) {
+                // VMess
+                $proxy = [
+                    'name' => $proxyName,
+                    'type' => 'vmess',
+                    'server' => $node->server,
+                    'port' => (int)$node->v2_port,
+                    'uuid' => $node_uuid,
+                    'alterId' => (int)$node->v2_alter_id,
+                    'cipher' => $node->v2_method,
+                    'network' => $node->v2_net,
+                ];
+
+                // 添加传输层配置
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    if ($node->v2_path) {
+                        $proxy['ws-opts']['path'] = $node->v2_path;
+                    }
+                    if ($node->v2_host) {
+                        $proxy['ws-opts']['headers']['Host'] = [$node->v2_host];
+                    }
+                } elseif ($node->v2_net == 'grpc') {
+                    $proxy['grpc-opts']['grpc-service-name'] = $node->v2_servicename;
+                }
+
+                // 添加 TLS 配置
+                if ($tls) {
+                    $proxy['tls'] = true;
+                    if ($node->v2_sni) {
+                        $proxy['servername'] = $node->v2_sni;
+                    }
+                    if ($node->v2_alpn) {
+                        $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
+                        if (!empty($alpnList)) {
+                            $proxy['alpn'] = $alpnList;
+                        }
+                    }
+                }
+
+                $proxies[] = $proxy;
+
+            } elseif ($node->type == 3) {
+                // VLESS
+                $proxy = [
+                    'name' => $proxyName,
+                    'type' => 'vless',
+                    'server' => $node->server,
+                    'port' => (int)$node->v2_port,
+                    'uuid' => $node_uuid,
+                    'network' => $node->v2_net,
+                ];
+
+                // 添加传输层配置
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    if ($node->v2_path) {
+                        $proxy['ws-opts']['path'] = $node->v2_path;
+                    }
+                    if ($node->v2_host) {
+                        $proxy['ws-opts']['headers']['Host'] = [$node->v2_host];
+                    }
+                } elseif ($node->v2_net == 'grpc') {
+                    $proxy['grpc-opts']['grpc-service-name'] = $node->v2_servicename;
+                }
+
+                // 添加 TLS 配置
+                if ($tls) {
+                    $proxy['tls'] = true;
+                    if ($node->v2_sni) {
+                        $proxy['servername'] = $node->v2_sni;
+                    }
+                    if ($node->v2_alpn) {
+                        $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
+                        if (!empty($alpnList)) {
+                            $proxy['alpn'] = $alpnList;
+                        }
+                    }
+                }
+
+                // 添加 flow
+                if ($node->v2_flow) {
+                    $proxy['flow'] = $node->v2_flow;
+                }
+
+                $proxies[] = $proxy;
+
+            } elseif ($node->type == 4) {
+                // Trojan
+                $proxy = [
+                    'name' => $proxyName,
+                    'type' => 'trojan',
+                    'server' => $node->server,
+                    'port' => (int)$node->v2_port,
+                    'password' => $node_uuid,
+                    'network' => $node->v2_net,
+                ];
+
+                // 添加传输层配置
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    if ($node->v2_path) {
+                        $proxy['ws-opts']['path'] = $node->v2_path;
+                    }
+                    if ($node->v2_host) {
+                        $proxy['ws-opts']['headers']['Host'] = [$node->v2_host];
+                    }
+                } elseif ($node->v2_net == 'grpc') {
+                    $proxy['grpc-opts']['grpc-service-name'] = $node->v2_servicename;
+                }
+
+                // 添加 TLS 配置
+                if ($tls) {
+                    $proxy['tls'] = true;
+                    if ($node->v2_sni) {
+                        $proxy['servername'] = $node->v2_sni;
+                    }
+                    if ($node->v2_alpn) {
+                        $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
+                        if (!empty($alpnList)) {
+                            $proxy['alpn'] = $alpnList;
+                        }
+                    }
+                }
+
+                $proxies[] = $proxy;
+            }
+        }
+
+        // 构建完整配置
+        $config = [
+            'mixed-port' => 7890,
+            'allow-lan' => true,
+            'bind-address' => '*',
+            'mode' => 'rule',
+            'log-level' => 'info',
+            'proxies' => $proxies,
+            'proxy-groups' => [
+                [
+                    'name' => 'Proxy',
+                    'type' => 'select',
+                    'proxies' => array_merge(['auto'], $proxyNames, ['DIRECT'])
+                ],
+                [
+                    'name' => 'auto',
+                    'type' => 'url-test',
+                    'proxies' => $proxyNames,
+                    'url' => 'http://www.gstatic.com/generate_204',
+                    'interval' => 300
+                ]
+            ],
+            'rules' => [
+                'DOMAIN-SUFFIX,local,DIRECT',
+                'IP-CIDR,127.0.0.0/8,DIRECT',
+                'IP-CIDR,172.16.0.0/12,DIRECT',
+                'IP-CIDR,192.168.0.0/16,DIRECT',
+                'IP-CIDR,10.0.0.0/8,DIRECT',
+                'GEOIP,CN,DIRECT',
+                'MATCH,Proxy'
+            ]
+        ];
+
+        // 转换为 YAML
+        return $this->toYaml($config);
+    }
+
+    /**
+     * 将数组转换为 YAML 格式
+     *
+     * @param array $data
+     * @return string
+     */
+    private function toYaml($data)
+    {
+        $yaml = '';
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                // 检查是否是关联数组（对象）
+                if ($this->isAssociativeArray($value)) {
+                    $yaml .= $key . ':' . "\n";
+                    $yaml .= $this->arrayToYaml($value, 1);
+                } else {
+                    // 索引数组
+                    $yaml .= $key . ':' . "\n";
+                    foreach ($value as $item) {
+                        if (is_array($item)) {
+                            $yaml .= str_repeat('  ', 1) . '- ' . $this->arrayToYaml($item, 2);
+                        } else {
+                            $yaml .= str_repeat('  ', 1) . '- ' . $this->yamlValue($item) . "\n";
+                        }
+                    }
+                }
+            } else {
+                $yaml .= $key . ': ' . $this->yamlValue($value) . "\n";
+            }
+        }
+        return $yaml;
+    }
+
+    /**
+     * 将数组转换为 YAML 格式（递归）
+     *
+     * @param array $data
+     * @param int $indent
+     * @return string
+     */
+    private function arrayToYaml($data, $indent = 0)
+    {
+        $yaml = '';
+        $indentStr = str_repeat('  ', $indent);
+
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                if ($this->isAssociativeArray($value)) {
+                    // 关联数组
+                    $yaml .= $indentStr . $key . ':' . "\n";
+                    $yaml .= $this->arrayToYaml($value, $indent + 1);
+                } else {
+                    // 索引数组
+                    $yaml .= $indentStr . $key . ':' . "\n";
+                    foreach ($value as $item) {
+                        if (is_array($item)) {
+                            if ($this->isAssociativeArray($item)) {
+                                $yaml .= $indentStr . '  ' . '- ' . $this->arrayToYaml($item, $indent + 2);
+                            } else {
+                                $yaml .= $indentStr . '  ' . '- ' . "\n";
+                                $yaml .= $this->arrayToYaml($item, $indent + 2);
+                            }
+                        } else {
+                            $yaml .= $indentStr . '  ' . '- ' . $this->yamlValue($item) . "\n";
+                        }
+                    }
+                }
+            } else {
+                $yaml .= $indentStr . $key . ': ' . $this->yamlValue($value) . "\n";
+            }
+        }
+
+        return $yaml;
+    }
+
+    /**
+     * 判断是否是关联数组
+     *
+     * @param array $arr
+     * @return bool
+     */
+    private function isAssociativeArray($arr)
+    {
+        if (!is_array($arr)) {
+            return false;
+        }
+        return array_keys($arr) !== range(0, count($arr) - 1);
+    }
+
+    /**
+     * 将值转换为 YAML 格式
+     *
+     * @param mixed $value
+     * @return string
+     */
+    private function yamlValue($value)
+    {
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        } elseif (is_null($value)) {
+            return 'null';
+        } elseif (is_numeric($value)) {
+            return (string)$value;
+        } else {
+            // 字符串需要引号的情况
+            if (strpos($value, ':') !== false || strpos($value, '#') !== false || strpos($value, '[') !== false) {
+                return '"' . $value . '"';
+            }
+            return $value;
+        }
+    }
+
+    /**
+     * 生成 Loon 配置
+     *
+     * @param \Illuminate\Support\Collection $nodeList 节点列表
+     * @param User $user 用户对象
+     * @return string
+     */
+    private function generateLoonConfig($nodeList, $user)
+    {
+        $config = [];
+        $proxies = [];
+        $proxyNames = [];
+
+        foreach ($nodeList as $node) {
+            $node_uuid = $node->node_uuid ?: $user->vmess_id;
+            $proxyName = str_replace([' ', ',', '[', ']'], '_', $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : ''));
+            $proxyNames[] = $proxyName;
+
+            // 解析 TLS
+            $tls = '';
+            $sni = '';
+            $alpn = '';
+            if ($node->v2_tls == 1) {
+                $tls = true;
+                $sni = $node->v2_sni;
+                $alpn = $node->v2_alpn;
+            }
+
+            // 根据节点类型生成不同的 proxy 配置
+            if ($node->type == 2) {
+                // VMess
+                $vmess_aead = 'true';
+                $ws_opts = '';
+                $tls_opts = '';
+
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    $ws_path = $node->v2_path ?: '/';
+                    $ws_headers = '';
+                    if ($node->v2_host) {
+                        $ws_headers = ", ws-headers=Host:{$node->v2_host}";
+                    }
+                    $ws_opts = ", ws=true, ws-path={$ws_path}{$ws_headers}";
+                }
+
+                if ($tls) {
+                    $sni_opt = $sni ? ", sni={$sni}" : '';
+                    $skip_cert = ', skip-cert-verify=true';
+                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                }
+
+                $proxies[] = "{$proxyName} = vmess, {$node->server}, {$node->v2_port}, username={$node_uuid}, udp-relay=false, vmess-aead={$vmess_aead}{$ws_opts}{$tls_opts}";
+
+            } elseif ($node->type == 3) {
+                // VLESS (Loon uses vmess-like format)
+                $ws_opts = '';
+                $tls_opts = '';
+                $flow = $node->v2_flow ? ", flow={$node->v2_flow}" : '';
+
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    $ws_path = $node->v2_path ?: '/';
+                    $ws_headers = '';
+                    if ($node->v2_host) {
+                        $ws_headers = ", ws-headers=Host:{$node->v2_host}";
+                    }
+                    $ws_opts = ", ws=true, ws-path={$ws_path}{$ws_headers}";
+                }
+
+                if ($tls) {
+                    $sni_opt = $sni ? ", sni={$sni}" : '';
+                    $skip_cert = ', skip-cert-verify=true';
+                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                }
+
+                $proxies[] = "{$proxyName} = vless, {$node->server}, {$node->v2_port}, username={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}{$flow}";
+
+            } elseif ($node->type == 4) {
+                // Trojan
+                $ws_opts = '';
+                $tls_opts = '';
+
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    $ws_path = $node->v2_path ?: '/';
+                    $ws_headers = '';
+                    if ($node->v2_host) {
+                        $ws_headers = ", ws-headers=Host:{$node->v2_host}";
+                    }
+                    $ws_opts = ", ws=true, ws-path={$ws_path}{$ws_headers}";
+                }
+
+                if ($tls) {
+                    $sni_opt = $sni ? ", sni={$sni}" : '';
+                    $skip_cert = ', skip-cert-verify=true';
+                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                }
+
+                $proxies[] = "{$proxyName} = trojan, {$node->server}, {$node->v2_port}, password={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}";
+            }
+        }
+
+        // 构建 [General] 部分
+        $general_lines = [
+            '[General]',
+            'dns-server = system, 223.5.5.5, 119.29.29.29',
+            'doh-server = https://1.1.1.1/dns-query',
+            'skip-proxy = 127.0.0.1, 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, localhost, *.local',
+            'bypass-tun = 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12',
+            'proxy-test-url = http://www.gstatic.com/generate_204',
+            'test-timeout = 5',
+            'internet-test-url = http://www.gstatic.cn/generate_204',
+            '',
+        ];
+
+        // 构建 [Proxy] 部分
+        $proxy_lines = [
+            '[Proxy]',
+            // 内置策略
+            'DIRECT = direct',
+            'REJECT = reject',
+        ];
+        $proxy_lines = array_merge($proxy_lines, $proxies);
+        $proxy_lines[] = '';
+
+        // 构建 [Policy] 部分
+        $proxy_group_lines = [
+            '[Policy]',
+            'static = ' . implode(', ', array_merge($proxyNames, ['DIRECT', 'REJECT'])),
+            '',
+        ];
+
+        // 构建 [Filter] 部分 (基本规则)
+        $filter_lines = [
+            '[Filter]',
+            'DOMAIN-KEYWORD,google,DIRECT',
+            'DOMAIN-KEYWORD,facebook,DIRECT',
+            'DOMAIN,google.cn,DIRECT',
+            'DOMAIN,baidu.com,DIRECT',
+            'DOMAIN-SUFFIX,cn,DIRECT',
+            'GEOIP,CN,DIRECT',
+            'FINAL,static',
+            '',
+        ];
+
+        return implode("\n", array_merge($general_lines, $proxy_lines, $proxy_group_lines, $filter_lines));
+    }
+
+    /**
+     * 生成 Surfboard 配置
+     *
+     * @param \Illuminate\Support\Collection $nodeList 节点列表
+     * @param User $user 用户对象
+     * @return string
+     */
+    private function generateSurfboardConfig($nodeList, $user)
+    {
+        $subscribe_domain = self::$systemConfig['subscribe_domain'] ?: self::$systemConfig['website_url'];
+        $subscribe_url = $subscribe_domain . '/s/' . $user->subscribe->code ?? '';
+
+        $config = [];
+        $proxies = [];
+        $proxyNames = [];
+
+        foreach ($nodeList as $node) {
+            $node_uuid = $node->node_uuid ?: $user->vmess_id;
+            $proxyName = str_replace([' ', ',', '[', ']'], '_', $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : ''));
+            $proxyNames[] = $proxyName;
+
+            // 解析 TLS
+            $tls = '';
+            $sni = '';
+            if ($node->v2_tls == 1) {
+                $tls = true;
+                $sni = $node->v2_sni;
+            }
+
+            // 根据节点类型生成不同的 proxy 配置
+            if ($node->type == 2) {
+                // VMess
+                $vmess_aead = 'true';
+                $ws_opts = '';
+                $tls_opts = '';
+
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    $ws_path = $node->v2_path ?: '/';
+                    $ws_headers = '';
+                    if ($node->v2_host) {
+                        $ws_headers = ", ws-headers=X-Header-1:{$node->v2_host}";
+                    }
+                    $ws_opts = ", ws=true, ws-path={$ws_path}{$ws_headers}";
+                }
+
+                if ($tls) {
+                    $sni_opt = $sni ? ", sni={$sni}" : '';
+                    $skip_cert = ', skip-cert-verify=true';
+                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                }
+
+                $proxies[] = "{$proxyName} = vmess, {$node->server}, {$node->v2_port}, username={$node_uuid}, udp-relay=false, vmess-aead={$vmess_aead}{$ws_opts}{$tls_opts}";
+
+            } elseif ($node->type == 3) {
+                // VLESS
+                $ws_opts = '';
+                $tls_opts = '';
+                $flow = $node->v2_flow ? ", flow={$node->v2_flow}" : '';
+
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    $ws_path = $node->v2_path ?: '/';
+                    $ws_headers = '';
+                    if ($node->v2_host) {
+                        $ws_headers = ", ws-headers=X-Header-1:{$node->v2_host}";
+                    }
+                    $ws_opts = ", ws=true, ws-path={$ws_path}{$ws_headers}";
+                }
+
+                if ($tls) {
+                    $sni_opt = $sni ? ", sni={$sni}" : '';
+                    $skip_cert = ', skip-cert-verify=true';
+                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                }
+
+                $proxies[] = "{$proxyName} = vless, {$node->server}, {$node->v2_port}, username={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}{$flow}";
+
+            } elseif ($node->type == 4) {
+                // Trojan
+                $ws_opts = '';
+                $tls_opts = '';
+
+                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                    $ws_path = $node->v2_path ?: '/';
+                    $ws_headers = '';
+                    if ($node->v2_host) {
+                        $ws_headers = ", ws-headers=X-Header-1:{$node->v2_host}";
+                    }
+                    $ws_opts = ", ws=true, ws-path={$ws_path}{$ws_headers}";
+                }
+
+                if ($tls) {
+                    $sni_opt = $sni ? ", sni={$sni}" : '';
+                    $skip_cert = ', skip-cert-verify=true';
+                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                }
+
+                $proxies[] = "{$proxyName} = trojan, {$node->server}, {$node->v2_port}, password={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}";
+            }
+        }
+
+        // 构建配置头部
+        $header_lines = [
+            '#!MANAGED-CONFIG ' . $subscribe_url . ' interval=3600 strict=true',
+            '[General]',
+            'dns-server = system, 8.8.8.8, 8.8.4.4',
+            'skip-proxy = 127.0.0.1, 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, localhost, *.local',
+            'proxy-test-url = http://www.gstatic.com/generate_204',
+            'test-timeout = 5',
+            '',
+        ];
+
+        // 构建 [Proxy] 部分
+        $proxy_lines = [
+            '[Proxy]',
+            // 内置策略
+            'On = direct',
+            'Off = reject',
+        ];
+        $proxy_lines = array_merge($proxy_lines, $proxies);
+        $proxy_lines[] = '';
+
+        // 构建 [Proxy Group] 部分
+        $proxy_group_lines = [
+            '[Proxy Group]',
+            'Proxy = select, ' . implode(', ', array_merge(['On'], $proxyNames, ['Off'])),
+            'AutoTest = url-test, ' . implode(', ', $proxyNames) . ', url=http://www.gstatic.com/generate_204, interval=600, timeout=5',
+            '',
+        ];
+
+        // 构建 [Rule] 部分
+        $rule_lines = [
+            '[Rule]',
+            'DOMAIN-SUFFIX,local,On',
+            'IP-CIDR,192.168.0.0/16,On',
+            'IP-CIDR,10.0.0.0/8,On',
+            'IP-CIDR,172.16.0.0/12,On',
+            'GEOIP,CN,On',
+            'FINAL,Proxy',
+            '',
+        ];
+
+        return implode("\n", array_merge($header_lines, $proxy_lines, $proxy_group_lines, $rule_lines));
     }
 }
