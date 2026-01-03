@@ -15,10 +15,14 @@ cd podman/pod/php7
 # 生成镜像
 podman build -t php7-npanel -f Containerfile .
 
+# 创建网络; 如果需要互相访问的服务器都需要加入这个网络
+podman network create main 
+
 # 生成容器 监听 9001 (仅本地访问)
 work_dir=/var/www/
 podman run -d \
   --name php7-npanel \
+  --network main \
   -p 127.0.0.1:9001:9000 \
   -v /var/www:/var/www:Z \
   --restart always \
@@ -26,8 +30,12 @@ podman run -d \
   localhost/php7-npanel
 
 
+
 # 查看是否运行
 podman ps  
+
+# 添加容器到网络
+# podman network connect main php7-npanel 
 
 
 # nginx config 
@@ -39,9 +47,19 @@ nano /etc/nginx/conf.d/test-npanel.freessr.bid.conf
 
 echo >> ~/host.env 
 
-# download ssl
-
+# podman 安装 redis 
+# mkdir -p /opt/redis/data
+podman run -d \
+  --name redis \
+  --network main \
+  -p 127.0.0.1:6379:6379 \
+  --restart always \
+  --sysctl net.core.somaxconn=1024 \
+  -v /opt/redis/data:/data:Z \
+  docker.io/library/redis:alpine redis-server --appendonly yes
 ```
+
+
 
 
 写一个脚本 自动获取 证书! 

@@ -479,3 +479,33 @@ Arguments
     - 做一个测试: 
       - 一个不存在的。key: SsXa1xx
       - 一个存在的key: SsXa1
+
+
+
+## 5.3 
+- [] fix rss link error ; 在访问 网站订阅: /s/ZecXb 时候报错, 但是不显示具体的报错信息,只是显示: “
+Whoops, looks like something went wrong.
+”
+    - where: @app/Http/Controllers/SubscribeController.php
+    - why:
+    - how :
+        - [] 在 @.env 环境变量 APP_DEBUG=true 且 APP_ENV=test 状态下, 显示完整的 报错信息.
+        - 根据报错信息,再确定问题原因,针对性的修复.
+        - 请在 检测不到 redis的时候,直接报错.
+        - [] 需要现实详细的报错信息,在报错的时候
+
+- [] fix 容器内 php7-npanel 无法监听系统的 redis 的问题
+    - where: 
+    - why:
+        - 我在 .env 中设置了 REDIS_HOST=redis ; redis 和  php7-npanel 在同一个 podman 网络 main下.   理论上讲,可以访问,但是报错: Connection refused [tcp://127.0.0.1:6379] ; 
+    - how: 
+        - 检查 项目是否支持 容器内通过容器名字进行映射
+        - 检查 redis 和 php7-npanel 是否在同一个 podman网络下,是否可以通过 容器名字 + 端口访问到? 
+
+    - [v] 解决容器内 php 访问 redis  的两个解决方案分析: 请帮我分析这两个解决方案,哪个适合我.
+        - 方案A: redis改为 unix socket , 通过目录映射,容器内 php 可以访问到 redis . 同时需要修改项目的代码进行兼容
+            - 不采纳: 原因是违反容器原则:一次构建,到处可用.
+        -  方案B: 将 redis 和 php 放在一个 podman 的 pod中,这样就可以实现 127.0.0.1:6379 访问了. 这是一个最大兼容的问题. 可以实现 不改变代码的情况下, 实现兼容.
+            - 采纳, 容器的标准做法,尤其是做测试的时候.redis非常轻量
+        - ✨ 方案C: 将 php7-spanel php7-npanel redis 都放在容器中,通过容器地址来互相访问, 像 docker那样   
+            - 采纳
