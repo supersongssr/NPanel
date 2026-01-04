@@ -509,3 +509,12 @@ Whoops, looks like something went wrong.
             - 采纳, 容器的标准做法,尤其是做测试的时候.redis非常轻量
         - ✨ 方案C: 将 php7-spanel php7-npanel redis 都放在容器中,通过容器地址来互相访问, 像 docker那样   
             - 采纳
+
+
+- [v] get new node 时候,没有可用节点id时候,自动创建一个节点
+    - where:@app/Http/Controllers/Api/PingController.php <getNewNode>
+    - why : 在 后端请求 get new node 的时候, 如果符合条件的节点耗尽了, 那么就自动 创建一个节点, 返回; 避免后端节点报错. 
+    - how :
+        - edit getNewNode 方法, 当没有可用节点的时候,自动创建新节点返回
+        - 创建节点的时候,会自动生成新的节点id,不需要手动创建,执行 save() 操作后,会自动保存并生成一个节点id node->id 
+    - must :

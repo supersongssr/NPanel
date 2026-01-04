@@ -2,7 +2,7 @@
 
 
 ## 环境
-PHP的运行环境是在 podman php-npanel 容器中
+PHP的运行环境是在 podman php7-npanel 容器中
 `podman exec php7-npanel `
 
 ##  Testing 
@@ -11,13 +11,9 @@ coding 完 tests 中的代码, 您应该自动运行脚本,并debug
 
 *must*
 tests/ 文件夹的脚本, 必须在 `.env`文件中  `APP_ENV=test`  才运行,否则 退出脚本! 
-
+生成 tests 目录下的脚本的时候,应该自动测试
 
 ## Developing 
-开发的测试脚本,应该放在 devs/ 文件夹
-devs/ 文件夹中的脚本, 必须在 .env APP_ENV=dev 时候才能使用
-devs 文件夹中, 存放 在 开发过程中的一些 不严谨的测试脚本,  
-注意 devs/ 和 tests/ 的区别, devs 是做开发调试的脚本 ; tests 文件夹是 测试功能使用的.
 
 ## Code Style Guidelines
 

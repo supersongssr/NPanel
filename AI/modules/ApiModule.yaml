@@ -26,6 +26,7 @@ api_endpoints:
   - GET /api/user/info - 获取用户信息
   - GET /api/nodes - 获取节点列表
   - POST /api/traffic/report - 流量上报
+  - GET /api/getNewNode - 获取可用节点ID，无可用节点时自动创建新节点
 
 input:
   api_key:
@@ -97,6 +98,7 @@ do:
   - 管理API访问频率
   - 记录API调用日志
   - 处理错误响应
+  - 自动创建节点（当无可用节点时）
 
 must:
   - API访问需要认证
