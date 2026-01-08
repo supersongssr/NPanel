@@ -355,7 +355,7 @@ class PingController extends Controller
             $node->type = 2; // 默认为vmess类型
             $node->status = 0; // 维护中状态
             $node->level = 0;
-            $node->group_id = 1;
+            $node->node_group = 1;
             $node->country_code = 'un';
             $node->method = 'aes-256-cfb';
             $node->protocol = 'origin';

@@ -113,7 +113,7 @@ class GetNewNodeTest extends TestCase
         $oldNode->status = 0;
         $oldNode->type = 2;
         $oldNode->level = 0;
-        $oldNode->group_id = 1;
+        $oldNode->node_group = 1;
         $oldNode->country_code = 'un';
         $oldNode->method = 'aes-256-cfb';
         $oldNode->protocol = 'origin';
@@ -204,7 +204,7 @@ class GetNewNodeTest extends TestCase
         $this->assertEquals(2, $node->type, 'Type should be 2 (vmess)');
         $this->assertEquals(0, $node->status, 'Status should be 0 (maintenance)');
         $this->assertEquals(0, $node->level, 'Level should be 0');
-        $this->assertEquals(1, $node->group_id, 'Group ID should be 1');
+        $this->assertEquals(1, $node->node_group, 'Node group should be 1');
         $this->assertEquals('un', $node->country_code, 'Country code should be "un"');
         $this->assertEquals('aes-256-cfb', $node->method, 'Method should be aes-256-cfb');
         $this->assertEquals('origin', $node->protocol, 'Protocol should be origin');
