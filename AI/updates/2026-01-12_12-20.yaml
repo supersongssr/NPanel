@@ -1,0 +1,19 @@
+when: 2026-01-12T12:20:26
+where:
+  - app/Http/Controllers/SubscribeController.php
+why:
+  - 按 Sing-box 官方标准修复 DNS Loopback 问题
+  - 解决代理服务器使用域名时 DNS 解析死循环
+  - 对齐最新 Sing-box 规范
+how:
+  - 移除旧的 source_ip_cidr 路由规则 (172.19.0.0/30)
+  - 在 dns.rules 添加官方标准规则：{ "outbound": "any", "server": "dns-direct" }
+  - 确保配置符合官方推荐的 Outbound 解析隔离方案
+  - 开启 strict_route: true 避免路由泄漏
+  - 保持 auto_detect_interface: true 防止环路
+must:
+  - 必须使用 dns.rules 的 outbound 字段而非传统的 source_ip_cidr
+  - dns-remote: 1.1.1.1 (detour: Proxy) 用于代理流量解析
+  - dns-direct: 223.5.5.5 (detour: direct) 用于代理服务器域名解析
+  - TUN strict_route 必须为 true
+  - route.auto_detect_interface 必须为 true

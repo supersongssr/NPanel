@@ -206,8 +206,10 @@ class SubscribeController extends Controller
             if ($converted_subscribe) {
                 // 根据不同的订阅类型设置相应的 Content-Type
                 $contentType = 'text/plain; charset=utf-8';
-                if (in_array($app, ['clash', 'singbox'])) {
+                if ($app == 'clash') {
                     $contentType = 'text/yaml; charset=utf-8';
+                } elseif ($app == 'singbox') {
+                    $contentType = 'application/json; charset=utf-8';
                 }
 
                 return Response::make($converted_subscribe)
@@ -596,31 +598,22 @@ class SubscribeController extends Controller
     private function generateSingboxConfig($nodeList, $user)
     {
         $outbounds = [];
-        $outbounds[] = [
-            'type' => 'selector',
-            'tag' => 'Proxy',
-            'outbounds' => ['auto'],
-            'filter' => ['type' => 'all']
-        ];
-
         $proxyTags = [];
 
+        // 先收集所有节点信息并生成 outbound
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
-            $tagName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '');
-            $proxyTags[] = $tagName;
+            // 使用与 Clash 一致的命名格式："节点名称 | #ID"
+            $tagName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . ' | #' . $node->id;
 
             // 解析 TLS
-            $tls = '';
-            if ($node->v2_tls == 1) {
-                $tls = 'tls';
-            } elseif ($node->v2_tls == 2) {
-                $tls = 'xtls';
-            }
+            $tlsEnabled = ($node->v2_tls == 1 || $node->v2_tls == 2);
 
             // 根据节点类型生成不同的 outbound 配置
             if ($node->type == 2) {
                 // VMess
+                $proxyTags[] = $tagName; // 只在成功生成节点时添加
+
                 $outbound = [
                     'type' => 'vmess',
                     'tag' => $tagName,
@@ -629,26 +622,40 @@ class SubscribeController extends Controller
                     'uuid' => $node_uuid,
                     'security' => $node->v2_method,
                     'alter_id' => (int)$node->v2_alter_id,
-                    'transport' => [
-                        'type' => $node->v2_net,
-                    ]
                 ];
 
-                // 添加传输层配置
-                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
-                    $outbound['transport']['path'] = $node->v2_path;
-                    if ($node->v2_host) {
-                        $outbound['transport']['headers'] = ['Host' => [$node->v2_host]];
+                // 仅在非 TCP 时添加 transport 配置
+                if ($node->v2_net && $node->v2_net != 'tcp') {
+                    $transport = ['type' => $node->v2_net];
+
+                    // WebSocket 传输配置
+                    if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                        if ($node->v2_path) {
+                            $transport['path'] = $node->v2_path;
+                        }
+                        if ($node->v2_host) {
+                            $transport['headers'] = ['Host' => $node->v2_host];
+                        }
                     }
-                } elseif ($node->v2_net == 'grpc') {
-                    $outbound['transport']['service_name'] = $node->v2_servicename;
+                    // gRPC 传输配置
+                    elseif ($node->v2_net == 'grpc') {
+                        if ($node->v2_servicename) {
+                            $transport['service_name'] = $node->v2_servicename;
+                        }
+                    }
+
+                    $outbound['transport'] = $transport;
                 }
 
                 // 添加 TLS 配置
-                if ($tls) {
+                if ($tlsEnabled) {
                     $outbound['tls'] = [
                         'enabled' => true,
                         'server_name' => $node->v2_sni,
+                        'utls' => [
+                            'enabled' => true,
+                            'fingerprint' => 'ios'
+                        ]
                     ];
                     if ($node->v2_alpn) {
                         $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
@@ -662,32 +669,49 @@ class SubscribeController extends Controller
 
             } elseif ($node->type == 3) {
                 // VLESS
+                $proxyTags[] = $tagName; // 只在成功生成节点时添加
+
                 $outbound = [
                     'type' => 'vless',
                     'tag' => $tagName,
                     'server' => $node->server,
                     'server_port' => (int)$node->v2_port,
                     'uuid' => $node_uuid,
-                    'transport' => [
-                        'type' => $node->v2_net,
-                    ]
+                    'packet_encoding' => 'xudp'
                 ];
 
-                // 添加传输层配置
-                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
-                    $outbound['transport']['path'] = $node->v2_path;
-                    if ($node->v2_host) {
-                        $outbound['transport']['headers'] = ['Host' => [$node->v2_host]];
+                // 仅在非 TCP 时添加 transport 配置
+                if ($node->v2_net && $node->v2_net != 'tcp') {
+                    $transport = ['type' => $node->v2_net];
+
+                    // WebSocket 传输配置
+                    if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                        if ($node->v2_path) {
+                            $transport['path'] = $node->v2_path;
+                        }
+                        if ($node->v2_host) {
+                            $transport['headers'] = ['Host' => $node->v2_host];
+                        }
                     }
-                } elseif ($node->v2_net == 'grpc') {
-                    $outbound['transport']['service_name'] = $node->v2_servicename;
+                    // gRPC 传输配置
+                    elseif ($node->v2_net == 'grpc') {
+                        if ($node->v2_servicename) {
+                            $transport['service_name'] = $node->v2_servicename;
+                        }
+                    }
+
+                    $outbound['transport'] = $transport;
                 }
 
                 // 添加 TLS 配置
-                if ($tls) {
+                if ($tlsEnabled) {
                     $outbound['tls'] = [
                         'enabled' => true,
                         'server_name' => $node->v2_sni,
+                        'utls' => [
+                            'enabled' => true,
+                            'fingerprint' => 'ios'
+                        ]
                     ];
                     if ($node->v2_alpn) {
                         $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
@@ -706,32 +730,48 @@ class SubscribeController extends Controller
 
             } elseif ($node->type == 4) {
                 // Trojan
+                $proxyTags[] = $tagName; // 只在成功生成节点时添加
+
                 $outbound = [
                     'type' => 'trojan',
                     'tag' => $tagName,
                     'server' => $node->server,
                     'server_port' => (int)$node->v2_port,
                     'password' => $node_uuid,
-                    'transport' => [
-                        'type' => $node->v2_net,
-                    ]
                 ];
 
-                // 添加传输层配置
-                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
-                    $outbound['transport']['path'] = $node->v2_path;
-                    if ($node->v2_host) {
-                        $outbound['transport']['headers'] = ['Host' => [$node->v2_host]];
+                // 仅在非 TCP 时添加 transport 配置
+                if ($node->v2_net && $node->v2_net != 'tcp') {
+                    $transport = ['type' => $node->v2_net];
+
+                    // WebSocket 传输配置
+                    if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                        if ($node->v2_path) {
+                            $transport['path'] = $node->v2_path;
+                        }
+                        if ($node->v2_host) {
+                            $transport['headers'] = ['Host' => $node->v2_host];
+                        }
                     }
-                } elseif ($node->v2_net == 'grpc') {
-                    $outbound['transport']['service_name'] = $node->v2_servicename;
+                    // gRPC 传输配置
+                    elseif ($node->v2_net == 'grpc') {
+                        if ($node->v2_servicename) {
+                            $transport['service_name'] = $node->v2_servicename;
+                        }
+                    }
+
+                    $outbound['transport'] = $transport;
                 }
 
                 // 添加 TLS 配置
-                if ($tls) {
+                if ($tlsEnabled) {
                     $outbound['tls'] = [
                         'enabled' => true,
                         'server_name' => $node->v2_sni,
+                        'utls' => [
+                            'enabled' => true,
+                            'fingerprint' => 'ios'
+                        ]
                     ];
                     if ($node->v2_alpn) {
                         $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
@@ -745,13 +785,35 @@ class SubscribeController extends Controller
             }
         }
 
+        // 添加 selector（纯手动选择模式）
+        $selectorOutbound = [
+            'type' => 'selector',
+            'tag' => 'Proxy',
+            'outbounds' => array_merge($proxyTags, ['direct'])
+        ];
+        $outbounds[] = $selectorOutbound;
+
         // 添加其他必要的 outbounds
         $outbounds[] = ['type' => 'direct', 'tag' => 'direct'];
         $outbounds[] = ['type' => 'block', 'tag' => 'block'];
         $outbounds[] = ['type' => 'dns', 'tag' => 'dns-out'];
 
-        // 更新 selector 的 outbounds
-        $outbounds[0]['outbounds'] = array_merge(['auto'], $proxyTags, ['direct']);
+        // 重组 outbounds：将 selector 移到数组开头
+        $finalOutbounds = [$selectorOutbound];
+
+        // 添加所有代理节点
+        foreach ($outbounds as $outbound) {
+            if (isset($outbound['type']) && in_array($outbound['type'], ['vmess', 'vless', 'trojan'])) {
+                $finalOutbounds[] = $outbound;
+            }
+        }
+
+        // 添加系统节点
+        $finalOutbounds[] = ['type' => 'direct', 'tag' => 'direct'];
+        $finalOutbounds[] = ['type' => 'block', 'tag' => 'block'];
+        $finalOutbounds[] = ['type' => 'dns', 'tag' => 'dns-out'];
+
+        $outbounds = $finalOutbounds;
 
         // 构建完整配置
         $config = [
@@ -762,9 +824,22 @@ class SubscribeController extends Controller
             'dns' => [
                 'servers' => [
                     [
-                        'tag' => 'local',
+                        'tag' => 'dns-remote',
                         'address' => 'https://1.1.1.1/dns-query',
+                        'detour' => 'Proxy'
+                    ],
+                    [
+                        'tag' => 'dns-direct',
+                        'address' => '223.5.5.5',
                         'detour' => 'direct'
+                    ]
+                ],
+                'rules' => [
+                    [
+                        // 官方标准：解决 Outbound 域名解析死循环
+                        // 所有 outbound 的域名解析都走直连 DNS，避免环路
+                        'outbound' => 'any',
+                        'server' => 'dns-direct'
                     ]
                 ]
             ],
@@ -775,7 +850,7 @@ class SubscribeController extends Controller
                     'interface_name' => 'tun0',
                     'inet4_address' => '172.19.0.1/30',
                     'auto_route' => true,
-                    'strict_route' => false,
+                    'strict_route' => true,
                     'sniff' => true,
                     'sniff_override_destination' => true
                 ]
@@ -788,24 +863,41 @@ class SubscribeController extends Controller
                         'outbound' => 'dns-out'
                     ],
                     [
-                        'clash_mode' => 'Direct',
+                        'ip_is_private' => true,
                         'outbound' => 'direct'
                     ],
                     [
-                        'private' => true,
-                        'outbound' => 'direct'
+                        'domain_suffix' => [
+                            'google.com',
+                            'facebook.com',
+                            'youtube.com',
+                            'github.com',
+                            'twitter.com',
+                            'instagram.com',
+                            'telegram.org',
+                            'openai.com',
+                            'anthropic.com',
+                            'claude.ai',
+                            'chatgpt.com'
+                        ],
+                        'outbound' => 'Proxy'
+                    ],
+                    [
+                        'outbound' => 'Proxy'
                     ]
                 ],
                 'auto_detect_interface' => true
             ],
             'experimental' => [
-                'clash_api' => [
-                    'external_controller' => '127.0.0.1:9090'
+                'cache_file' => [
+                    'enabled' => true,
+                    'path' => 'cache.db',
+                    'store_fakeip' => true
                 ]
             ]
         ];
 
-        return json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        return json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /**
