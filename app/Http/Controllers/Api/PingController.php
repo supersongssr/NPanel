@@ -347,12 +347,31 @@ class PingController extends Controller
             ->orderBy('id', 'asc')
             ->first();
 
+        // 如果没有可用节点，自动创建一个新节点
         if (!$node) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'No available node found',
-                'err' => 'node-empty'
-            ]);
+            // 创建新节点（不指定ID，让数据库自动生成）
+            $node = new SsNode();
+            $node->name = '自动创建节点';
+            $node->type = 2; // 默认为vmess类型
+            $node->status = 0; // 维护中状态
+            $node->level = 0;
+            $node->node_group = 1;
+            $node->country_code = 'un';
+            $node->method = 'aes-256-cfb';
+            $node->protocol = 'origin';
+            $node->obfs = 'plain';
+            $node->traffic_rate = 1;
+            $node->bandwidth = 1000;
+            $node->traffic_limit = 1000 * 1024 * 1024 * 1024; // 1000GB
+            $node->is_subscribe = 0;
+            $node->is_nat = 0;
+            $node->sort = 0;
+            $node->heartbeat_at = date('Y-m-d H:i:s');
+            $node->save();
+
+            // save() 后自动生成的ID会填充到 $node->id
+            $node->name = '自动创建节点-' . $node->id;
+            $node->save();
         }
 
         // 更新节点心跳时间

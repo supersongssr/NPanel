@@ -1,0 +1,33 @@
+when: 2026-01-04T20:51:00
+where:
+  - app/Http/Controllers/Api/PingController.php
+  - AI/modules/ApiModule.yaml
+  - tests/Feature/GetNewNodeTest.php
+  - devs/test_get_new_node.php
+why: 在后端请求 get new node 的时候, 如果符合条件的节点耗尽了, 那么就自动 创建一个节点, 返回; 避免后端节点报错
+how:
+  1. 修改了 PingController 的 getNewNode 方法 (line 335-393)
+  2. 当查询不到可用节点时 (ID>9, 心跳>7天, status=0), 自动创建新节点
+  3. 使用Laravel的自动增量ID机制, save()后自动生成ID
+  4. 创建节点时只设置数据库中实际存在的字段, 避免字段不存在的错误
+  5. 新节点设置合理的默认值:
+     - name: 自动创建节点-{ID} (ID在第一次save后获取)
+     - type: 2 (vmess)
+     - status: 0 (维护中)
+     - level: 0
+     - group_id: 1
+     - country_code: un
+     - traffic_limit: 1000GB
+     - 其他字段使用安全的默认值
+  6. 更新了 AI/modules/ApiModule.yaml, 添加 getNewNode API 端点说明
+  7. 创建了完整的测试套件:
+     - tests/Feature/GetNewNodeTest.php: PHPUnit测试类
+     - devs/test_get_new_node.php: PHP命令行测试脚本
+     - devs/verify_nodes.php: 节点验证脚本
+must:
+  - API访问必须通过token验证 (API_TOKEN)
+  - 新节点创建后立即更新heartbeat_at时间戳
+  - 新节点默认为维护状态(status=0), 需要通过其他API更新配置后才能使用
+  - 节点ID由数据库AUTO_INCREMENT自动分配
+  - 只设置数据库中实际存在的字段, 避免SQL错误
+  - 所有测试必须通过 (已验证: 4/4测试通过)

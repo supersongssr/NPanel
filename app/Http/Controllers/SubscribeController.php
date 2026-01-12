@@ -136,7 +136,10 @@ class SubscribeController extends Controller
         if (empty($code)) {
             return Redirect::to('login');
         }
-        
+
+        // 获取请求的域名（不包含协议）
+        $requestDomain = $request->getHttpHost();
+
         // 获取客户端IP
         $clientIp = getClientIp();
         
@@ -145,31 +148,31 @@ class SubscribeController extends Controller
         
         // 如果15分钟频率限制超额，返回特定错误信息
         if ($limitResult === 'fifteen_min_exceeded') {
-            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('订阅请求频繁15分钟后再试')."\n";
+            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443'.'#'.urlencode('订阅请求频繁15分钟后再试')."\n";
             exit(base64_encode($errorResponse));
         }
 
         // 如果1小时频率限制超额，返回特定错误信息
         if ($limitResult === 'one_hour_exceeded') {
-            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('订阅请求频繁1小时后再试')."\n";
+            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443'.'#'.urlencode('订阅请求频繁1小时后再试')."\n";
             exit(base64_encode($errorResponse));
         }
 
         // 如果IP数量超额，返回错误信息
         if ($limitResult === 'ip_exceeded') {
-            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('订阅ip数量异常请休息一下')."\n";
+            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443'.'#'.urlencode('订阅ip数量异常请休息一下')."\n";
             exit(base64_encode($errorResponse));
         }
         
         // 校验合法性
         $subscribe = UserSubscribe::query()->with('user')->where('status', 1)->where('code', $code)->first();
         if (!$subscribe) {
-            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('error167')."\n";
+            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443'.'#'.urlencode('error167')."\n";
             exit(base64_encode($errorResponse));
         }
         $user = User::query()->where('status', 1)->where('enable', 1)->where('id', $subscribe->user_id)->first();
         if (!$user) {
-            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('error172')."\n";
+            $errorResponse = 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443'.'#'.urlencode('error172')."\n";
             exit(base64_encode($errorResponse));
         }
 
@@ -222,17 +225,17 @@ class SubscribeController extends Controller
         $rocket_count = 0;
         // 开始获取节点 ：
         $scheme = '';
-        $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443'.'#'.urlencode('有效期：'.$user->expire_time)."\n";
+        $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443'.'#'.urlencode('有效期：'.$user->expire_time)."\n";
         $newsList = SsNode::query()->where('status',1)->where('node_group',0)->orderBy('level', 'desc')->get();     //获取等级为0的news节点，新闻通知节点。
         foreach ($newsList as $key => $node) {
             if ( $node->type == 1 && ($ss_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {
-                $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@google.com:443';
+                $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443';
                 $scheme .= '#'.urlencode($node->name) ."\n";
-            } elseif ( $node->type == 2 && ($vmess_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {       // 获取 vmess节点   
+            } elseif ( $node->type == 2 && ($vmess_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {       // 获取 vmess节点
                 $v2_json = [
                     "v"    => "2",
                     "ps"   => $node->name ,
-                    "add"  => 'google.com' ,
+                    "add"  => $requestDomain ,
                     "port" => 443 ,
                     "id"   => '11886d96-252e-4166-9535-ec72467ad095' ,
                     "aid"  => 0 ,
@@ -243,16 +246,16 @@ class SubscribeController extends Controller
                     "path" => '' ,
                     "tls"  => '' ,
                     "sni"  => '' ,
-                    "alpn" => ''  
+                    "alpn" => ''
                 ];
                 $scheme .= 'vmess://' . base64_encode(json_encode($v2_json)) . "\n";
             } elseif ( $node->type == 3 && ($vless_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {   // vless节点获取
-                $scheme .= 'vless://11886d96-252e-4166-9535-ec72467ad095@google.com:443?encryption=none';
+                $scheme .= 'vless://11886d96-252e-4166-9535-ec72467ad095@'.$requestDomain.':443?encryption=none';
                 $scheme .= '#'.urlencode($node->name) . "\n";
             } elseif ( $node->type == 4 && ($trojan_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {  // trojan节点获取
-                $scheme .= 'trojan://33216f76-f96d-417d-855a-7bd40bb3b884@google.com:443';
+                $scheme .= 'trojan://33216f76-f96d-417d-855a-7bd40bb3b884@'.$requestDomain.':443';
                 $scheme .= '#'.urlencode($node->name) . "\n";
-            }       
+            }
         }
         // 获取正式节点。
         $nodeList = SsNode::query()->where('status',1)->where('is_subscribe',1)->where('node_group',$user->node_group)->where('level', '<=' ,$user->level)->orderBy('level', 'desc')->orderBy('traffic_left_daily', 'desc')->get();
