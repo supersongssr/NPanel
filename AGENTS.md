@@ -1,17 +1,23 @@
 # NPanel Development Guidelines
 
 
-## 环境
-PHP的运行环境是在 podman php7-npanel 容器中
-`podman exec php7-npanel `
+## 环境说明
 
-##  Testing 
-测试文件目录在: tests/ 文件夹
-coding 完 tests 中的代码, 您应该自动运行脚本,并debug 
+> 📌 **详细配置**: 项目特定的环境配置、容器信息、测试规范等信息已移至 `.claude/PROJECT_CONTEXT.md` 文件中,该文件不会被提交到公共仓库。
 
-*must*
-tests/ 文件夹的脚本, 必须在 `.env`文件中  `APP_ENV=test`  才运行,否则 退出脚本! 
-生成 tests 目录下的脚本的时候,应该自动测试
+### 基本信息
+- PHP 运行环境: Podman 容器
+- 测试目录: `tests/`
+- 环境配置文件: `.claude/ENVIRONMENT.md`
+- 项目上下文: `.claude/PROJECT_CONTEXT.md`
+
+### Testing
+测试文件位于 `tests/` 文件夹。
+
+**重要约束**:
+- `tests/` 文件夹的脚本必须在 `.env` 文件中设置 `APP_ENV=test` 才能运行
+- 编写测试代码后应该自动运行脚本并调试
+- 详细的测试规范请参考 `.claude/PROJECT_CONTEXT.md`
 
 ## Developing 
 

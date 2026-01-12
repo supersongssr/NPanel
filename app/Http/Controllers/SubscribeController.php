@@ -811,190 +811,235 @@ class SubscribeController extends Controller
     /**
      * 生成 Clash YAML 配置
      *
+     * 参考 Mihomo (Clash Meta) 规范: https://wiki.metacubex.one/config/proxies/
+     *
      * @param \Illuminate\Support\Collection $nodeList 节点列表
      * @param User $user 用户对象
      * @return string
      */
     private function generateClashConfig($nodeList, $user)
     {
-        $proxies = [];
-        $proxyNames = [];
+        // 使用原生字符串拼接生成标准 YAML
+        $yaml = '';
+
+        // 全局配置
+        $yaml .= "mixed-port: 7890\n";
+        $yaml .= "allow-lan: true\n";
+        $yaml .= "bind-address: \"*\"\n";
+        $yaml .= "mode: rule\n";
+        $yaml .= "log-level: info\n";
+        $yaml .= "ipv6: false\n";
+        $yaml .= "external-controller: 127.0.0.1:9090\n";
+
+        // 生成节点列表
+        $yaml .= "proxies:\n";
+
+        $proxyNames = []; // 用于在 proxy-groups 中引用
 
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
-            $proxyName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '');
-            $proxyNames[] = $proxyName;
 
-            // 解析 TLS
-            $tls = '';
-            if ($node->v2_tls == 1) {
-                $tls = 'tls';
-            } elseif ($node->v2_tls == 2) {
-                $tls = 'xtls';
+            // 节点名称：确保特殊字符转义，并添加节点 ID 避免同名冲突
+            $proxyName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . ' | #' . $node->id;
+            // 对节点名称进行引号包裹，避免 YAML 解析问题
+            $quotedName = '"' . str_replace(['"', '\\'], ['\\"', '\\\\'], $proxyName) . '"';
+
+            // TLS 状态判断
+            $tlsEnabled = ($node->v2_tls == 1 || $node->v2_tls == 2);
+
+            // 网络类型
+            $network = $node->v2_net ?: 'tcp';
+
+            // VMess 节点
+            if ($node->type == 2) {
+                // 只有在实际输出节点时才添加到 proxyNames
+                $proxyNames[] = $quotedName;
+                $yaml .= "  - name: " . $quotedName . "\n";
+                $yaml .= "    type: vmess\n";
+                $yaml .= "    server: " . $node->server . "\n";
+                $yaml .= "    port: " . (int)$node->v2_port . "\n";
+                $yaml .= "    uuid: " . $node_uuid . "\n";
+                $yaml .= "    alterId: " . (int)$node->v2_alter_id . "\n";
+                $yaml .= "    cipher: " . $node->v2_method . "\n";
+                $yaml .= "    udp: true\n";
+                $yaml .= "    network: " . $network . "\n";
+
+                // WebSocket 传输
+                if ($network == 'ws' || $network == 'http') {
+                    if ($node->v2_path) {
+                        $yaml .= "    ws-opts:\n";
+                        $yaml .= "      path: \"" . $node->v2_path . "\"\n";
+                    }
+                    if ($node->v2_host) {
+                        if (!$node->v2_path) {
+                            $yaml .= "    ws-opts:\n";
+                        }
+                        $yaml .= "      headers:\n";
+                        $yaml .= "        Host: \"" . $node->v2_host . "\"\n";
+                    }
+                }
+
+                // gRPC 传输
+                elseif ($network == 'grpc') {
+                    if ($node->v2_servicename) {
+                        $yaml .= "    grpc-opts:\n";
+                        $yaml .= "      grpc-service-name: " . $node->v2_servicename . "\n";
+                    }
+                }
+
+                // TLS 配置
+                if ($tlsEnabled) {
+                    $yaml .= "    tls: true\n";
+                    if ($node->v2_sni) {
+                        $yaml .= "    servername: " . $node->v2_sni . "\n";
+                    }
+                    if ($node->v2_alpn) {
+                        $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
+                        if (!empty($alpnList)) {
+                            $yaml .= "    alpn:\n";
+                            foreach ($alpnList as $alpn) {
+                                $yaml .= "      - " . $alpn . "\n";
+                            }
+                        }
+                    }
+                }
             }
 
-            // 根据节点类型生成不同的 proxy 配置
-            if ($node->type == 2) {
-                // VMess
-                $proxy = [
-                    'name' => $proxyName,
-                    'type' => 'vmess',
-                    'server' => $node->server,
-                    'port' => (int)$node->v2_port,
-                    'uuid' => $node_uuid,
-                    'alterId' => (int)$node->v2_alter_id,
-                    'cipher' => $node->v2_method,
-                    'network' => $node->v2_net,
-                ];
+            // VLESS 节点 - 严格按照 Mihomo 规范
+            elseif ($node->type == 3) {
+                // 只有在实际输出节点时才添加到 proxyNames
+                $proxyNames[] = $quotedName;
+                $yaml .= "  - name: " . $quotedName . "\n";
+                $yaml .= "    type: vless\n";
+                $yaml .= "    server: " . $node->server . "\n";
+                $yaml .= "    port: " . (int)$node->v2_port . "\n";
+                $yaml .= "    uuid: " . $node_uuid . "\n";
+                $yaml .= "    udp: true\n";
+                $yaml .= "    skip-cert-verify: " . ($node->v2_sni ? 'false' : 'true') . "\n";
 
-                // 添加传输层配置
-                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                // gRPC 传输
+                if ($network == 'grpc') {
+                    $yaml .= "    network: grpc\n";
+                    if ($node->v2_servicename) {
+                        $yaml .= "    grpc-opts:\n";
+                        $yaml .= "      grpc-service-name: " . $node->v2_servicename . "\n";
+                    }
+                }
+                // WebSocket 传输
+                elseif ($network == 'ws') {
+                    $yaml .= "    network: ws\n";
                     if ($node->v2_path) {
-                        $proxy['ws-opts']['path'] = $node->v2_path;
+                        $yaml .= "    ws-opts:\n";
+                        $yaml .= "      path: \"" . $node->v2_path . "\"\n";
                     }
                     if ($node->v2_host) {
-                        $proxy['ws-opts']['headers']['Host'] = [$node->v2_host];
+                        $yaml .= "      headers:\n";
+                        $yaml .= "        Host: \"" . $node->v2_host . "\"\n";
                     }
-                } elseif ($node->v2_net == 'grpc') {
-                    $proxy['grpc-opts']['grpc-service-name'] = $node->v2_servicename;
+                }
+                // TCP 传输（默认）
+                else {
+                    $yaml .= "    network: tcp\n";
                 }
 
-                // 添加 TLS 配置
-                if ($tls) {
-                    $proxy['tls'] = true;
+                // TLS 配置
+                if ($tlsEnabled) {
+                    $yaml .= "    tls: true\n";
                     if ($node->v2_sni) {
-                        $proxy['servername'] = $node->v2_sni;
+                        $yaml .= "    servername: " . $node->v2_sni . "\n";
                     }
+                    // Mihomo 建议始终添加 client-fingerprint
+                    $yaml .= "    client-fingerprint: chrome\n";
                     if ($node->v2_alpn) {
                         $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
                         if (!empty($alpnList)) {
-                            $proxy['alpn'] = $alpnList;
+                            $yaml .= "    alpn:\n";
+                            foreach ($alpnList as $alpn) {
+                                $yaml .= "      - " . $alpn . "\n";
+                            }
                         }
                     }
                 }
 
-                $proxies[] = $proxy;
+                // flow (XTLS 流控) - 严格检查：必须是 TCP 且有 TLS
+                if ($node->v2_flow && $tlsEnabled && $network == 'tcp') {
+                    $yaml .= "    flow: " . $node->v2_flow . "\n";
+                }
+            }
 
-            } elseif ($node->type == 3) {
-                // VLESS
-                $proxy = [
-                    'name' => $proxyName,
-                    'type' => 'vless',
-                    'server' => $node->server,
-                    'port' => (int)$node->v2_port,
-                    'uuid' => $node_uuid,
-                    'network' => $node->v2_net,
-                ];
+            // Trojan 节点
+            elseif ($node->type == 4) {
+                // 只有在实际输出节点时才添加到 proxyNames
+                $proxyNames[] = $quotedName;
+                $yaml .= "  - name: " . $quotedName . "\n";
+                $yaml .= "    type: trojan\n";
+                $yaml .= "    server: " . $node->server . "\n";
+                $yaml .= "    port: " . (int)$node->v2_port . "\n";
+                $yaml .= "    password: " . $node_uuid . "\n";
+                $yaml .= "    udp: true\n";
+                $yaml .= "    network: " . $network . "\n";
 
-                // 添加传输层配置
-                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
+                // WebSocket 传输
+                if ($network == 'ws' || $network == 'http') {
                     if ($node->v2_path) {
-                        $proxy['ws-opts']['path'] = $node->v2_path;
+                        $yaml .= "    ws-opts:\n";
+                        $yaml .= "      path: \"" . $node->v2_path . "\"\n";
                     }
                     if ($node->v2_host) {
-                        $proxy['ws-opts']['headers']['Host'] = [$node->v2_host];
+                        $yaml .= "      headers:\n";
+                        $yaml .= "        Host: \"" . $node->v2_host . "\"\n";
                     }
-                } elseif ($node->v2_net == 'grpc') {
-                    $proxy['grpc-opts']['grpc-service-name'] = $node->v2_servicename;
                 }
 
-                // 添加 TLS 配置
-                if ($tls) {
-                    $proxy['tls'] = true;
+                // gRPC 传输
+                elseif ($network == 'grpc') {
+                    if ($node->v2_servicename) {
+                        $yaml .= "    grpc-opts:\n";
+                        $yaml .= "      grpc-service-name: " . $node->v2_servicename . "\n";
+                    }
+                }
+
+                // TLS 配置
+                if ($tlsEnabled) {
+                    $yaml .= "    tls: true\n";
                     if ($node->v2_sni) {
-                        $proxy['servername'] = $node->v2_sni;
-                    }
-                    if ($node->v2_alpn) {
-                        $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
-                        if (!empty($alpnList)) {
-                            $proxy['alpn'] = $alpnList;
-                        }
+                        $yaml .= "    servername: " . $node->v2_sni . "\n";
                     }
                 }
-
-                // 添加 flow
-                if ($node->v2_flow) {
-                    $proxy['flow'] = $node->v2_flow;
-                }
-
-                $proxies[] = $proxy;
-
-            } elseif ($node->type == 4) {
-                // Trojan
-                $proxy = [
-                    'name' => $proxyName,
-                    'type' => 'trojan',
-                    'server' => $node->server,
-                    'port' => (int)$node->v2_port,
-                    'password' => $node_uuid,
-                    'network' => $node->v2_net,
-                ];
-
-                // 添加传输层配置
-                if ($node->v2_net == 'ws' || $node->v2_net == 'http') {
-                    if ($node->v2_path) {
-                        $proxy['ws-opts']['path'] = $node->v2_path;
-                    }
-                    if ($node->v2_host) {
-                        $proxy['ws-opts']['headers']['Host'] = [$node->v2_host];
-                    }
-                } elseif ($node->v2_net == 'grpc') {
-                    $proxy['grpc-opts']['grpc-service-name'] = $node->v2_servicename;
-                }
-
-                // 添加 TLS 配置
-                if ($tls) {
-                    $proxy['tls'] = true;
-                    if ($node->v2_sni) {
-                        $proxy['servername'] = $node->v2_sni;
-                    }
-                    if ($node->v2_alpn) {
-                        $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
-                        if (!empty($alpnList)) {
-                            $proxy['alpn'] = $alpnList;
-                        }
-                    }
-                }
-
-                $proxies[] = $proxy;
             }
         }
 
-        // 构建完整配置
-        $config = [
-            'mixed-port' => 7890,
-            'allow-lan' => true,
-            'bind-address' => '*',
-            'mode' => 'rule',
-            'log-level' => 'info',
-            'proxies' => $proxies,
-            'proxy-groups' => [
-                [
-                    'name' => 'Proxy',
-                    'type' => 'select',
-                    'proxies' => array_merge(['auto'], $proxyNames, ['DIRECT'])
-                ],
-                [
-                    'name' => 'auto',
-                    'type' => 'url-test',
-                    'proxies' => $proxyNames,
-                    'url' => 'http://www.gstatic.com/generate_204',
-                    'interval' => 300
-                ]
-            ],
-            'rules' => [
-                'DOMAIN-SUFFIX,local,DIRECT',
-                'IP-CIDR,127.0.0.0/8,DIRECT',
-                'IP-CIDR,172.16.0.0/12,DIRECT',
-                'IP-CIDR,192.168.0.0/16,DIRECT',
-                'IP-CIDR,10.0.0.0/8,DIRECT',
-                'GEOIP,CN,DIRECT',
-                'MATCH,Proxy'
-            ]
-        ];
+        // 策略组
+        $yaml .= "proxy-groups:\n";
+        $yaml .= "  - name: \"Proxy\"\n";
+        $yaml .= "    type: select\n";
+        $yaml .= "    proxies:\n";
+        $yaml .= "      - \"auto\"\n";
+        foreach ($proxyNames as $name) {
+            $yaml .= "      - " . $name . "\n";
+        }
+        $yaml .= "      - \"DIRECT\"\n";
 
-        // 转换为 YAML
-        return $this->toYaml($config);
+        $yaml .= "  - name: \"auto\"\n";
+        $yaml .= "    type: url-test\n";
+        $yaml .= "    proxies:\n";
+        foreach ($proxyNames as $name) {
+            $yaml .= "      - " . $name . "\n";
+        }
+        $yaml .= "    url: \"http://www.gstatic.com/generate_204\"\n";
+        $yaml .= "    interval: 300\n";
+
+        // 规则
+        $yaml .= "rules:\n";
+        $yaml .= "  - DOMAIN-SUFFIX,local,DIRECT\n";
+        $yaml .= "  - IP-CIDR,127.0.0.0/8,DIRECT\n";
+        $yaml .= "  - IP-CIDR,172.16.0.0/12,DIRECT\n";
+        $yaml .= "  - IP-CIDR,192.168.0.0/16,DIRECT\n";
+        $yaml .= "  - IP-CIDR,10.0.0.0/8,DIRECT\n";
+        $yaml .= "  - GEOIP,CN,DIRECT\n";
+        $yaml .= "  - MATCH,Proxy\n";
+
+        return $yaml;
     }
 
     /**
