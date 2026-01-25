@@ -2,6 +2,7 @@
 FROM docker.io/library/php:7.4-fpm
 
 # 1. 安装系统底层依赖库（这是编译 PHP 插件必须的）
+# 注意：需要保留 libssl-dev 用于编译 Redis 扩展
 RUN apt-get update && apt-get install -y \
     libzip-dev \
     libxml2-dev \
@@ -22,6 +23,10 @@ RUN docker-php-ext-install \
     fileinfo \
     mysqli \
     pdo_mysql
+
+# 2.1 安装 Redis 扩展（通过 PECL）
+RUN pecl install redis-5.3.7 && \
+    docker-php-ext-enable redis
 
 # 2. 启用官方推荐的生产环境配置
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
