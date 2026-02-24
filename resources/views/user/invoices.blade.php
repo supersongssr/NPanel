@@ -74,13 +74,13 @@
                     <div class="tab-content">
                         <div class="tab-pane fade active in " id="info">
                             <form enctype="multipart/form-data" class="form-bordered" >
-                                
+
                                 <div class="form-group">
                                     <br>
                                     <div>
                                         亲爱的用户您好！
                                         我们已与一些支付网站达成合作。您可通过以下方式完成账户充值：
-                                        <p>1️⃣ 点击 <code>右侧标签页 充值通道</code> 合作的充值网站</p>
+                                        <p>1️⃣ 点击 <code>右侧标签 充值通道</code> 合作的充值网站</p>
                                         <p>2️⃣ 充值优势说明: <br>
                                             实时同步: 您在 合作网站的任何充值将自动同步到本站; <br>
                                             资源互通: 您在 本站的充值,既可以购买本站资源,也可以购买合作网站资源;  <br>
@@ -118,7 +118,7 @@
                         </div>
                         @endforeach
                     </div>
-                </div>          
+                </div>
             </div>
             @endif
 
@@ -262,7 +262,7 @@
                 </div>
                 <!-- END EXAMPLE TABLE PORTLET-->
 
-                
+
             </div>
         </div>
         <!-- END PAGE BASE CONTENT -->
