@@ -139,7 +139,7 @@ class AutoStatisticsNodeDailyTraffic extends Command
 
             # 流量统计和节点故障预警 ，排除一种情况，流量少，但是实际上是 流量已用超那种
             if ( $node->id > 9 && $node->is_clone == 0 ) {
-                if ( $node->traffic_used_daily < $node->traffic_left_daily / 4 && $traffic_today < 4*1024*1024*1024){
+                if ( $node->traffic_used_daily < $node->traffic_left_daily / 3){
                     $node->sort -= 100; //故障值
                 } else {
                     $node->node_cost < 1 && $node->node_cost = 1;
