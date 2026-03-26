@@ -172,16 +172,13 @@ class AuthController extends Controller
                 return Redirect::back()->withErrors('系统维护，暂停注册');
             }
 
-            // 临时放开邮箱域名限制，允许所有邮箱注册
             // 校验域名邮箱是否在黑名单中
             // 使用黑名单模式：只在 sensitive_words 表中的域名才会被拒绝
-            /*
             $sensitiveWords = $this->sensitiveWords();
             $usernameSuffix = explode('@', $request->username); // 提取邮箱后缀
             if (in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
-                return Redirect::back()->withInput()->withErrors('抱歉，该邮箱域名暂时不支持注册，请更换主流邮箱（如 Gmail, QQ, 163）再试。');
+                return Redirect::back()->withInput()->withErrors('抱歉，该邮箱域名已被系统封禁，请换用常用邮箱注册。');
             }
-            */
 
 
 
@@ -697,16 +694,13 @@ class AuthController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => $validator->getMessageBag()->first()]);
         }
 
-        // 临时放开邮箱域名限制，允许所有邮箱注册
         // 校验域名邮箱是否在黑名单中
         // 使用黑名单模式：只在 sensitive_words 表中的域名才会被拒绝
-        /*
         $sensitiveWords = $this->sensitiveWords();
         $usernameSuffix = explode('@', $request->username); // 提取邮箱后缀
         if (in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '抱歉，该邮箱域名暂时不支持注册，请更换主流邮箱（如 Gmail, QQ, 163）再试。']);
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '抱歉，该邮箱域名已被系统封禁，请换用常用邮箱注册。']);
         }
-        */
 
         // 是否开启注册发送验证码
         if (!self::$systemConfig['is_verify_register']) {
