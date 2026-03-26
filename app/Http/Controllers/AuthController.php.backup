@@ -172,12 +172,20 @@ class AuthController extends Controller
                 return Redirect::back()->withErrors('系统维护，暂停注册');
             }
 
-            // 校验域名邮箱是否在黑名单中
-            // 使用黑名单模式：只在 sensitive_words 表中的域名才会被拒绝
+            //sdo2022-04-25 禁止某些邮箱注册
+            if ( stripos($request->username, 'ssmail.win') ) {
+                return Redirect::back()->withInput()->withErrors('呃，邮箱不常见呢，请联系管理员将邮箱添加到白名单！');
+            }
+
+            // 校验域名邮箱是否在敏感词中
+            //Song 检查是否白名单邮箱，这个可以有
             $sensitiveWords = $this->sensitiveWords();
             $usernameSuffix = explode('@', $request->username); // 提取邮箱后缀
-            if (in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
-                return Redirect::back()->withInput()->withErrors('抱歉，该邮箱域名暂时不支持注册，请更换主流邮箱（如 Gmail, QQ, 163）再试。');
+            if (!in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
+                return Redirect::back()->withInput()->withErrors('呃，邮箱不常见呢，请联系管理员将邮箱添加到白名单！');
+                //Session::flash('errorMsg', '呃，陌生的邮箱，请联系管理员将邮箱添加到白名单！');
+
+                // return Redirect::back()->withInput();
             }
 
 
@@ -478,13 +486,7 @@ class AuthController extends Controller
             $resetPasswordUrl = self::$systemConfig['website_url'] . '/reset/' . $token;
 
             $logId = Helpers::addEmailLog($request->username, '重置密码', '请求地址：' . $resetPasswordUrl);
-
-            try {
-                Mail::to($request->username)->send(new resetPassword($logId, $resetPasswordUrl));
-            } catch (\Exception $e) {
-                Log::error('重置密码邮件发送失败: ' . $e->getMessage());
-                return Redirect::back()->withErrors('邮件发送失败，请稍后重试或联系管理员');
-            }
+            Mail::to($request->username)->send(new resetPassword($logId, $resetPasswordUrl));
 
             Cache::put('resetPassword_' . md5($request->username), $resetTimes + 1, 1440);
 
@@ -602,13 +604,7 @@ class AuthController extends Controller
             $activeUserUrl = self::$systemConfig['website_url'] . '/active/' . $token;
 
             $logId = Helpers::addEmailLog($request->username, '激活账号', '请求地址：' . $activeUserUrl);
-
-            try {
-                Mail::to($request->username)->send(new activeUser($logId, $activeUserUrl));
-            } catch (\Exception $e) {
-                Log::error('激活账号邮件发送失败: ' . $e->getMessage());
-                return Redirect::back()->withErrors('邮件发送失败，请稍后重试或联系管理员');
-            }
+            Mail::to($request->username)->send(new activeUser($logId, $activeUserUrl));
 
             Cache::put('activeUser_' . md5($request->username), $activeTimes + 1, 1440);
 
@@ -694,12 +690,12 @@ class AuthController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => $validator->getMessageBag()->first()]);
         }
 
-        // 校验域名邮箱是否在黑名单中
-        // 使用黑名单模式：只在 sensitive_words 表中的域名才会被拒绝
+        // 校验域名邮箱是否在敏感词中
         $sensitiveWords = $this->sensitiveWords();
         $usernameSuffix = explode('@', $request->username); // 提取邮箱后缀
-        if (in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '抱歉，该邮箱域名暂时不支持注册，请更换主流邮箱（如 Gmail, QQ, 163）再试。']);
+        if (!in_array(strtolower($usernameSuffix[1]), $sensitiveWords)) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '呃，一个陌生的邮箱呢，联系客服！']);
+
         }
 
         // 是否开启注册发送验证码
@@ -715,13 +711,7 @@ class AuthController extends Controller
         // 发送邮件
         $code = makeRandStr(6, true);
         $logId = Helpers::addEmailLog($request->username, '发送注册验证码', '验证码：' . $code);
-
-        try {
-            Mail::to($request->username)->send(new sendVerifyCode($logId, $code));
-        } catch (\Exception $e) {
-            Log::error('注册验证码邮件发送失败: ' . $e->getMessage());
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '邮件发送失败，请稍后重试或联系管理员']);
-        }
+        Mail::to($request->username)->send(new sendVerifyCode($logId, $code));
 
         $this->addVerifyCode($request->username, $code);
 
