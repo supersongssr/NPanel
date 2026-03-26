@@ -286,7 +286,7 @@ class AuthController extends Controller
             $user->referral_uid = $referral_uid;
             //$user->level = 1; //默认是0 不过现在默认为1 也是不错的
             //song 混淆参数
-            $user->obfs_param = $usernameSuffix[0].'.edu.cn';
+            $user->obfs_param = explode('@', $request->username)[0].'.edu.cn';
             // Song 教育计划支持 edu.cn自动获取到 50余额支持
             //$user->balance = 0.99; //注册赠送的余额
             //$eduSupport = 'edu.cn';
@@ -714,7 +714,7 @@ class AuthController extends Controller
         }
 
         // 防刷机制
-        if (Cache::has('send_verify_code_' . md5(getClientIP()))) {
+        if (Cache::has('send_verify_code_' . md5(getClientIp()))) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '系统已开启防刷机制，请勿频繁请求']);
         }
 
