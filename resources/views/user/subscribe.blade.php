@@ -121,6 +121,14 @@
                                                     <li> 在<code>美区</code>苹果商店 搜索 <code>Loon</code> 7.99$   </li>
                                                 </ol>
                                                 <hr>
+                                                <ol>【Quantumult X】
+                                                    <input type="text" id="mt-target-1" class="form-control" value="{{$link}}?format=quanx-b64&vless=128&ss=64&vmess=64" />
+                                                    <li> 在 App Store 登录<code>非国区</code> Apple ID，搜索 <code>Quantumult X</code> 下载安装</li>
+                                                    <li> 点击下方按钮一键导入节点配置，或复制上方链接后在 App 内手动添加 <a href="quantumult-x:///update-configuration?remote-resource={{ urlencode($link.'?format=quanx-b64&vless=128&ss=64&vmess=64') }}" class="btn green">一键导入</a></li>
+                                                    <li> 在 App 首页点击右下角<code>风车</code>图标，展开"节点"列表并选择可用节点</li>
+                                                    <li> 开启顶部<code>主开关</code>即可使用</li>
+                                                </ol>
+                                                <hr>
                                                 <!-- <ol>【SS-R 教程】
                                                     <li> 1 下载软件：推荐使用 shadowrocket </li>
                                                     <li> 2 下载软件：网站帮助中心有提供用于下载 shadowrocket的 苹果商店的账号和密码。请务必注意此商店账号米处吗，只能用于登录苹果商店，不能用户登录设置中的appleid！ </li>

@@ -48,6 +48,16 @@
 - Sanitize user-generated content
 - Never commit sensitive data to repository
 
+### 跨环境权限法则
+- 由于宿主机与 Podman 容器的 UID 隔离，你（Agent）在宿主机创建或大量修改新文件后，**必须**执行以下命令，防止容器内的 PHP-FPM 遭遇 Permission Denied：
+  ```bash
+  podman exec php7-npanel chown -R www-data:www-data /var/www/test-npanel.freessr.bid/app/
+  podman exec php7-npanel chmod -R 755 /var/www/test-npanel.freessr.bid/app/
+  podman exec php7-npanel php /var/www/test-npanel.freessr.bid/composer.phar dump-autoload
+  ```
+- 此规则适用于：新建 PHP 类文件、移动文件目录、批量修改 namespace 等场景。
+- 如果 `tests/` 目录也有新文件，应对 `tests/` 目录执行同样的 `chown` + `chmod` 操作。
+
 
 
 

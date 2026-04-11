@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Log;
 // cncdn
 use App\Http\Models\Cncdn;
 
+use App\Services\Subscribe\Formatters\QuanXFormatter;
 use Redirect;
 use Response;
 
@@ -195,6 +196,20 @@ class SubscribeController extends Controller
         $vless_sub = $request->get('vless') ?? 128;
         $trojan_sub = $request->get('trojan') ?? 128;
         $rocket_sub = $request->get('rocket') ?? 128;  // 效果等同 v2ray_sub
+
+        // QuanX 订阅处理（使用 format 参数）
+        $format = $request->get('format') ?? "";
+        if ($format && in_array($format, ['quanx', 'quanx-b64'])) {
+            $query_string = $request->query();
+            // 保留 format 参数，让 generateQuanxConfig 判断 Base64 模式
+
+            $quanxResult = $this->getConvertedSubscribe('quanx', $subscribe, $query_string);
+            if ($quanxResult !== false) {
+                return Response::make($quanxResult)
+                    ->header('Content-Type', 'text/plain; charset=utf-8')
+                    ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+            }
+        }
 
         // Clash 和 Singbox 订阅转换处理（使用 app 参数）
         if ($app && in_array($app, ['clash', 'singbox', 'surfboard', 'loon'])) {
@@ -480,7 +495,7 @@ class SubscribeController extends Controller
     private function getConvertedSubscribe($target, $subscribe, $query_string = [])
     {
         // 所有格式都使用直接生成，不再使用第三方转换
-        if (in_array($target, ['singbox', 'clash', 'loon', 'surfboard'])) {
+        if (in_array($target, ['singbox', 'clash', 'loon', 'surfboard', 'quanx'])) {
             return $this->generateDirectSubscribe($target, $subscribe, $query_string);
         }
 
@@ -583,6 +598,8 @@ class SubscribeController extends Controller
             return $this->generateLoonConfig($nodeList, $user);
         } elseif ($format === 'surfboard') {
             return $this->generateSurfboardConfig($nodeList, $user);
+        } elseif ($format === 'quanx') {
+            return $this->generateQuanxConfig($nodeList, $user, $query_string);
         }
 
         return false;
@@ -1535,5 +1552,25 @@ class SubscribeController extends Controller
         ];
 
         return implode("\n", array_merge($header_lines, $proxy_lines, $proxy_group_lines, $rule_lines));
+    }
+
+    /**
+     * 生成 Quantumult X 配置
+     *
+     * 支持 format=quanx (明文) 和 format=quanx-b64 (Base64) 两种模式。
+     * query_string 中会携带原始的 format 参数，用于判断是否 Base64 编码。
+     *
+     * @param \Illuminate\Support\Collection $nodeList 节点列表
+     * @param User $user 用户对象
+     * @param array $query_string 查询字符串参数
+     * @return string
+     */
+    private function generateQuanxConfig($nodeList, $user, $query_string = [])
+    {
+        $formatter = new QuanXFormatter();
+        // 根据 format 参数判断是否 Base64 编码
+        $isBase64 = isset($query_string['format']) && $query_string['format'] === 'quanx-b64';
+
+        return $formatter->format($nodeList, $user, $isBase64);
     }
 }
