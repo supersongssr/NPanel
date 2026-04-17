@@ -1505,8 +1505,12 @@ INSERT INTO `config` VALUES (null, 'clonepay_apis', '','代付站点apis');
 INSERT INTO `config` VALUES (null, 'sub_rss_url', '','订阅转换地址');
 
 
--- add telegram config 
+-- add telegram config
 INSERT INTO `config` (`name`, `value`) VALUES
 ('is_telegram', '0'),
 ('telegram_bot_token', ''),
 ('telegram_chat_id', '');
+
+-- 2026-04-17 add server telemetry fields
+ALTER TABLE `ss_node` ADD COLUMN `server_uptime` BIGINT(20) UNSIGNED DEFAULT 0 COMMENT '服务器运行时间（秒）' AFTER `heartbeat_at`;
+ALTER TABLE `ss_node` ADD COLUMN `server_total_traffic` BIGINT(20) UNSIGNED DEFAULT 0 COMMENT '服务器累计流量（字节）' AFTER `server_uptime`;

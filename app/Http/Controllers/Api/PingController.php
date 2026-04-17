@@ -291,6 +291,9 @@ class PingController extends Controller
             }
         }
 
+        $node->server_uptime = $request->get('server_uptime', $node->server_uptime);
+        $node->server_total_traffic = $request->get('server_total_traffic', $node->server_total_traffic);
+
         $node->save();
     }
 
