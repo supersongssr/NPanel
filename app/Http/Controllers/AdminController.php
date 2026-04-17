@@ -887,7 +887,7 @@ class AdminController extends Controller
                 $ssNode->single_protocol = intval($request->get('single')) ? $request->get('single_protocol') : '';
                 $ssNode->single_obfs = intval($request->get('single')) ? $request->get('single_obfs') : '';
                 $ssNode->sort = $request->get('sort') ? intval($request->get('sort')) : 0;
-                $ssNode->node_cost= $request->get('node_cost') ? intval($request->get('node_cost')) : 0;
+                $ssNode->node_cost = $request->get('node_cost') ? floatval($request->get('node_cost')) : 0;
                 $ssNode->level = $request->get('level') ? intval($request->get('level')) : 0;
                 $ssNode->node_group = $request->get('node_group') ? intval($request->get('node_group')) : 0;
                 $ssNode->status = $request->get('status') ? intval($request->get('status')) : 1;

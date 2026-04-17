@@ -16,6 +16,11 @@ class SsNode extends Model
     protected $table = 'ss_node';
     protected $primaryKey = 'id';
 
+    protected $casts = [
+        'node_cost' => 'float',
+        'traffic_rate' => 'float',
+    ];
+
     function label()
     {
         return $this->hasMany(SsNodeLabel::class, 'node_id', 'id');
