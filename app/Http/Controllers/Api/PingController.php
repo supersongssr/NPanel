@@ -254,6 +254,9 @@ class PingController extends Controller
             $request->get('v2') == 'vmess' && $node->type = 2;
             $request->get('v2') == 'vless' && $node->type = 3;
             $request->get('v2') == 'trojan' && $node->type = 4;
+            if ($request->get('v2') === 'hysteria2') {
+                $node->type = 5;
+            }
             $node->server = $request->get('v2_add');
             $node->v2_port = $request->get('v2_port');
             $node->v2_alter_id = $request->get('v2_aid');
