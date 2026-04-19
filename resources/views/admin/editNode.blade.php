@@ -278,6 +278,10 @@
                                                                 <input type="radio" name="service" value="4" @if($node->type == 4) checked @endif> Trojan
                                                                 <span></span>
                                                             </label>
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="service" value="5" @if($node->type == 5) checked @endif> Hysteria2
+                                                                <span></span>
+                                                            </label>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -491,6 +495,7 @@
                                                                 <option value="h2" @if($node->v2_net == 'h2') selected @endif>HTTP/2（h2）</option>
                                                                 <option value="quic" @if($node->v2_net == 'quic') selected @endif>Quic</option>
                                                                 <option value="grpc" @if($node->v2_net == 'grpc') selected @endif>Grpc</option>
+                                                                <option value="xhttp" @if($node->v2_net == 'xhttp') selected @endif>XHTTP</option>
                                                             </select>
                                                             <span class="help-block"> 传输协议  </span>
                                                         </div>

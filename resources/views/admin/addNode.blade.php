@@ -240,11 +240,23 @@
                                                     <div class="col-md-8">
                                                         <div class="mt-radio-inline">
                                                             <label class="mt-radio">
-                                                                <input type="radio" name="service" value="1" checked> SR
+                                                                <input type="radio" name="service" value="1" checked> SS
                                                                 <span></span>
                                                             </label>
                                                             <label class="mt-radio">
-                                                                <input type="radio" name="service" value="2"> V2
+                                                                <input type="radio" name="service" value="2"> VMess
+                                                                <span></span>
+                                                            </label>
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="service" value="3"> VLESS
+                                                                <span></span>
+                                                            </label>
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="service" value="4"> Trojan
+                                                                <span></span>
+                                                            </label>
+                                                            <label class="mt-radio">
+                                                                <input type="radio" name="service" value="5"> Hysteria2
                                                                 <span></span>
                                                             </label>
                                                         </div>
@@ -451,6 +463,9 @@
                                                                 <option value="kcp">mKCP（kcp）</option>
                                                                 <option value="ws">WebSocket（ws）</option>
                                                                 <option value="h2">HTTP/2（h2）</option>
+                                                                <option value="quic">Quic</option>
+                                                                <option value="grpc">Grpc</option>
+                                                                <option value="xhttp">XHTTP</option>
                                                             </select>
                                                             <span class="help-block"> 使用WebSocket传输协议时请启用TLS </span>
                                                         </div>

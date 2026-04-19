@@ -731,6 +731,17 @@ class SubscribeController extends Controller
                             $transport['service_name'] = $node->v2_servicename;
                         }
                     }
+                    // XHTTP 传输配置
+                    elseif ($node->v2_net == 'xhttp') {
+                        $transport['type'] = 'xhttp';
+                        if ($node->v2_path) {
+                            $transport['path'] = $node->v2_path;
+                        }
+                        if ($node->v2_host) {
+                            $transport['host'] = $node->v2_host;
+                        }
+                        $transport['mode'] = 'auto';
+                    }
 
                     $outbound['transport'] = $transport;
                 }
@@ -814,6 +825,25 @@ class SubscribeController extends Controller
                 }
 
                 $outbounds[] = $outbound;
+
+            } elseif ($node->type == 5) {
+                // Hysteria2
+                $proxyTags[] = $tagName;
+
+                $outbounds[] = [
+                    "type" => "hysteria2",
+                    "tag" => $tagName,
+                    "server" => $node->server,
+                    "server_port" => (int)$node->v2_port,
+                    "password" => $node_uuid,
+                    "tls" => [
+                        "enabled" => true,
+                        "server_name" => $node->v2_sni,
+                        "insecure" => true
+                    ],
+                    "up_mbps" => 100,
+                    "down_mbps" => 100
+                ];
             }
         }
 
@@ -835,7 +865,7 @@ class SubscribeController extends Controller
 
         // 添加所有代理节点
         foreach ($outbounds as $outbound) {
-            if (isset($outbound['type']) && in_array($outbound['type'], ['vmess', 'vless', 'trojan'])) {
+            if (isset($outbound['type']) && in_array($outbound['type'], ['vmess', 'vless', 'trojan', 'hysteria2'])) {
                 $finalOutbounds[] = $outbound;
             }
         }

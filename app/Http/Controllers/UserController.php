@@ -1636,6 +1636,24 @@ class UserController extends Controller
             $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni.'&serviceName='.$node->v2_servicename. '&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
             $scheme .= '#'.urlencode($node->name.'_'.$node->traffic_rate.'_'.$node->bandwidth.'M') . "\n";
             $node->v2_scheme = $scheme;
+        } elseif ($node->type == 5) {
+            $hy2Uuid = $node->node_uuid ?: Auth::user()->vmess_id;
+            $suffix = ($node->traffic_rate != 1) ? '_x' . $node->traffic_rate : '';
+            $encodedName = rawurlencode($node->name . $suffix);
+            $scheme = sprintf(
+                "hy2://%s@%s:%s?sni=%s&insecure=1#%s",
+                $hy2Uuid,
+                $node->server,
+                $node->v2_port,
+                rawurlencode($node->v2_sni),
+                $encodedName
+            );
+            $node->txt = "节点技术: Hysteria2 " . PHP_EOL;
+            $node->txt .= "服务器：" . ($node->server ? $node->server : $node->ip) . PHP_EOL;
+            $node->txt .= "端口：" . $node->v2_port . PHP_EOL;
+            $node->txt .= "SNI：" . $node->v2_sni . PHP_EOL;
+            $node->txt .= "insecure: true" . PHP_EOL;
+            $node->v2_scheme = $scheme;
         }
 
         // 节点在线状态
