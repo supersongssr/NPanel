@@ -117,6 +117,9 @@
                                                     <div class="mt-comment-text"> {{$node->info}}</div>
                                                     <div class="mt-comment-details">
                                                             <span class="mt-comment-status mt-comment-status-pending">
+                                                                @if($node->type == 5)
+                                                                    <span class="badge badge-danger">Hysteria2</span>
+                                                                @endif
                                                                 @if($node->labels)
                                                                     @foreach($node->labels as $vo)
                                                                         <span class="badge badge-info">{{$vo->labelInfo->name}}</span>

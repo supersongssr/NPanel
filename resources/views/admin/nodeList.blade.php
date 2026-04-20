@@ -86,7 +86,7 @@
                                                     @elseif($node->type == 4)
                                                         <span class="label {{$node->status ? 'label-info' : 'label-default'}}">Tr</span>
                                                     @elseif($node->type == 5)
-                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">Hy2</span>
+                                                        <span class="label {{$node->status ? 'label-info' : 'label-default'}}">Hysteria2</span>
                                                     @else
                                                         <span class="label {{$node->status ? 'label-info' : 'label-default'}}">?</span>
                                                     @endif
@@ -163,7 +163,7 @@
                                     <option value="2" @if(Request::get('type') == '2') selected @endif>VM</option>
                                     <option value="3" @if(Request::get('type') == '3') selected @endif>VL</option>
                                     <option value="4" @if(Request::get('type') == '4') selected @endif>Tr</option>
-                                    <option value="5" @if(Request::get('type') == '5') selected @endif>Hy2</option>
+                                    <option value="5" @if(Request::get('type') == '5') selected @endif>Hysteria2</option>
                                 </select>
                             </div>
                             <div class="col-md-3 col-sm-4 col-xs-12">
