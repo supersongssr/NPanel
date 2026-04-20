@@ -31,8 +31,8 @@
                                 <div class="mt-clipboard-container">
                                     <!-- Song -->
                                     <div class="alert alert-danger">
-                                        <p>支持技术：ss ssr vmess vless trojan .您可以修改 ?ss=64&vmess=64&vless=64&trojan=64 的数值，来控制获取节点的数量。 =0时为不获取相应节点。
-                                            <br> 如部分路由器不支持ss节点，获取会报错，可设置： ?ss=0&vmess=64&vless=64&trojan=64 即不获取ss节点。</p>
+                                        <p>支持技术：ss ssr vmess vless trojan hysteria2 .您可以修改 ?ss=64&vmess=64&vless=64&trojan=64&hysteria2=64 的数值，来控制获取节点的数量。 =0时为不获取相应节点。
+                                            <br> 如部分路由器不支持ss节点，获取会报错，可设置： ?ss=0&vmess=64&vless=64&trojan=64&hysteria2=64 即不获取ss节点。</p>
                                     </div>
                                     <div class="tabbable-line">
                                         <ul class="nav nav-tabs ">

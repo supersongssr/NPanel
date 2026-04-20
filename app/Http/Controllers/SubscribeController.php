@@ -196,6 +196,7 @@ class SubscribeController extends Controller
         $vless_sub = $request->get('vless') ?? 128;
         $trojan_sub = $request->get('trojan') ?? 128;
         $rocket_sub = $request->get('rocket') ?? 128;  // 效果等同 v2ray_sub
+        $hysteria2_sub = $request->get('hysteria2') ?? $request->get('hysteria') ?? 128;  // Hysteria2 节点，兼容旧 hysteria 参数
 
         // QuanX 订阅处理（使用 format 参数）
         $format = $request->get('format') ?? "";
@@ -240,6 +241,7 @@ class SubscribeController extends Controller
         $vless_count = 0;
         $trojan_count = 0;
         $rocket_count = 0;
+        $hysteria2_count = 0;
         // 开始获取节点 ：
         $scheme = '';
         $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443'.'#'.urlencode('有效期：'.$user->expire_time)."\n";
@@ -340,7 +342,10 @@ class SubscribeController extends Controller
                 $trojan_count += 1;
                 $v2ray_count += 1;
                 $rocket_count += 1;
-            } elseif ( $node->type == 5 && ($v2ray_sub || $ver == "2" || $rocket_sub) ) {  // hysteria2节点获取
+            } elseif ( $node->type == 5 && ($hysteria2_sub || $v2ray_sub || $ver == "2" || $rocket_sub) ) {  // Hysteria2节点获取
+                if ($hysteria2_count >= $hysteria2_sub) {  // 数量限流
+                    continue;
+                }
                 $suffix = ($node->traffic_rate != 1) ? '_x' . $node->traffic_rate : '';
                 $encodedName = rawurlencode($node->name . $suffix);
                 $hy2Url = sprintf(
@@ -352,6 +357,7 @@ class SubscribeController extends Controller
                     $encodedName
                 );
                 $scheme .= $hy2Url;
+                $hysteria2_count += 1;
                 $v2ray_count += 1;
                 $rocket_count += 1;
             }

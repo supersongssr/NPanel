@@ -901,6 +901,12 @@ class AdminController extends Controller
                 $ssNode->v2_tls = $request->get('v2_tls') ? intval($request->get('v2_tls')) : 0;
                 $ssNode->v2_insider_port = $request->get('v2_insider_port') ? intval($request->get('v2_insider_port')) : '';
                 $ssNode->v2_outsider_port = $request->get('v2_outsider_port') ? intval($request->get('v2_outsider_port')) : '';
+
+                // 防御性逻辑：Hysteria2 节点强制覆盖 v2_net
+                if ($ssNode->type == 5) {
+                    $ssNode->v2_net = 'hysteria2';
+                }
+
                 $ssNode->save();
 
                 // 建立分组关联
@@ -1035,6 +1041,11 @@ class AdminController extends Controller
                     'v2_alpn'          => $request->get('v2_alpn'),
                     'v2_encryption'    => $request->get('v2_encryption')
                 ];
+
+                // 防御性逻辑：Hysteria2 节点强制覆盖 v2_net
+                if (intval($request->get('type')) == 5) {
+                    $data['v2_net'] = 'hysteria2';
+                }
 
                 SsNode::query()->where('id', $id)->update($data);
 
