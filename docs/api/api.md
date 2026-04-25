@@ -99,9 +99,19 @@ Content-Type: application/x-www-form-urlencoded
 token=your_api_token&status=1&health=1&online=50&traffic=1073741824&traffic_used=536870912
 ```
 
-**响应:** 无内容返回（HTTP 200）
+**成功响应格式:**
+```json
+{
+    "ret": 1,
+    "msg": "node update success 0193",
+    "status": "success",
+    "message": "Node updated successfully"
+}
+```
 
-**错误处理:** Token 验证失败时直接终止执行
+**错误处理:** Token 验证失败或节点不存在时返回错误 JSON。
+
+---
 
 ### 2.2 获取可用节点
 
@@ -116,7 +126,7 @@ token=your_api_token&status=1&health=1&online=50&traffic=1073741824&traffic_used
 | token | string | 是 | API_TOKEN，需在 .env 中配置 |
 
 **查询条件:**
-- 节点ID > 99
+- 节点ID > 9
 - 节点心跳时间超过7天（604800秒）
 - 节点状态为 0（维护中）
 
@@ -147,34 +157,10 @@ GET /api/node/new?token=your_api_token
 | data.node_id | integer | 可用节点的ID |
 | data.v2_host | string | 节点的v2_host配置值 |
 
-**错误响应:**
-
-Token无效：
-```json
-{
-    "status": "error",
-    "message": "Invalid token"
-}
-```
-
-无可用节点：
-```json
-{
-    "status": "error",
-    "message": "No available node found",
-    "err": "node-empty"
-}
-```
-
-**使用场景:**
-- 后端系统需要获取节点ID用于上传配置
-- 节点分配和负载均衡
-- 自动化节点管理
-
 **注意事项:**
 - 获取节点后会自动更新其心跳时间
 - 按照ID升序返回第一个符合条件的节点
-- 如果没有可用节点，返回node-empty错误
+- **如果没有可用节点，系统会自动创建一个新的维护状态节点。**
 
 ---
 
@@ -225,7 +211,7 @@ GET /api/node_config?token=your_api_token&node_id=123
 | data | object | 节点配置信息对象 |
 | data.node_id | integer | 节点ID |
 | data.name | string | 节点名称 |
-| data.v2_host | string | **V2ray伪装的域名**（主要查询目标） |
+| data.v2_host | string | **V2ray伪装的域名** |
 | data.server | string | 服务器域名地址 |
 | data.v2_port | integer | V2ray端口 |
 | data.v2_method | string | V2ray加密方式 |
@@ -234,48 +220,11 @@ GET /api/node_config?token=your_api_token&node_id=123
 | data.v2_path | string | V2ray WS/H2路径 |
 | data.v2_tls | integer | TLS类型：0=无，1=tls，2=xtls |
 | data.v2_sni | string | SNI服务器名称指示 |
-| data.type | integer | 节点类型：1=SS，2=Vmess，3=Vless，4=Trojan |
-
-**错误响应:**
-
-Token无效：
-```json
-{
-    "status": "error",
-    "message": "Invalid token"
-}
-```
-
-缺少node_id参数：
-```json
-{
-    "status": "error",
-    "message": "node_id is required"
-}
-```
-
-节点不存在：
-```json
-{
-    "status": "error",
-    "message": "Node not found"
-}
-```
-
-**使用场景:**
-- 客户端快速获取节点配置信息
-- 节点管理和监控系统
-- 配置同步和验证
-- 故障排查和诊断
-
-**注意事项:**
-- 该接口只返回配置信息，不进行任何修改操作
-- 请确保API_TOKEN的安全性，避免配置信息泄露
-- 节点必须存在于数据库中才能查询到配置
+| data.type | integer | 节点类型：1=SS，2=Vmess，3=Vless，4=Trojan，5=Hysteria2 |
 
 ---
 
-### 2.3 节点V2信息上报
+### 2.4 节点V2信息上报
 
 **接口地址:** `POST /api/ssn_v2/{id}`
 
@@ -310,11 +259,13 @@ Token无效：
 | node_ip | string | 否 | IPv4地址 |
 | node_ipv6 | string | 否 | IPv6地址 |
 | node_unlock | string | 否 | 解锁信息 |
+| server_uptime | string | 否 | 服务器运行时间 |
+| server_total_traffic | string | 否 | 服务器总流量 |
 
 #### V2协议参数
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
-| v2 | string | 否 | 协议类型：ss/vmess/vless/trojan |
+| v2 | string | 否 | 协议类型：ss/vmess/vless/trojan/hysteria2 |
 | v2_add | string | 否 | 服务器地址 |
 | v2_port | integer | 否 | 端口 |
 | v2_aid | integer | 否 | VMess额外ID |
@@ -333,7 +284,7 @@ Token无效：
 | v2_cdn_ip | string | 否 | CDN IP |
 | v2_mode | string | 否 | GRPC模式 |
 | v2_servicename | string | 否 | GRPC服务名 |
-| v2_fp | string | 否 | 指纹 |
+| v2_fp | string | 否 | 指纹 (fingerprint) |
 | v2_id | integer | 否 | 克隆源节点ID |
 
 **示例请求:**
@@ -394,12 +345,6 @@ from=alipay&order=20241211001&money=10.00&email=user@example.com&time=1702310400
 - 成功：无内容返回（HTTP 200）
 - 失败：返回错误信息，如 `&error=订单已被记录`
 
-**错误处理:** 
-- 系统未开启clonepay：直接退出
-- IP不在安全列表：直接退出
-- 签名验证失败：直接退出
-- 订单已存在：返回错误信息
-
 ---
 
 ## 4. 工具类 API
@@ -412,7 +357,7 @@ from=alipay&order=20241211001&money=10.00&email=user@example.com&time=1702310400
 
 **接口描述:** 提供多种实用工具功能，包括获取IP、时间、节点ID等
 
-**认证方式:** MD5(token + salt)
+**认证方式:** MD5(API_TOKEN + salt) == token
 
 **请求参数:**
 
@@ -423,7 +368,7 @@ from=alipay&order=20241211001&money=10.00&email=user@example.com&time=1702310400
 | ip | string | 否 | 任意值表示获取客户端IP |
 | time | string | 否 | 任意值表示获取当前时间戳 |
 | due_time | string | 否 | 任意值表示获取有效期时间戳 |
-| new_node_id | string | 否 | 任意值表示获取新节点ID |
+| new_node_id | string | 否 | 任意值表示获取新节点ID (ID > 99) |
 
 **示例请求:**
 ```
@@ -440,36 +385,6 @@ token=5d41402abc4b2a76b9719d911017c592&salt=hello&ip=1&time=1&due_time=1
     "time": 1702310400,
     "due_time": 1702310700,
     "new_node_id": 123
-}
-```
-
-**响应字段说明:**
-
-| 字段名 | 类型 | 描述 |
-|--------|------|------|
-| ip | string | 客户端IP地址 |
-| time | integer | 当前时间戳 |
-| due_time | integer | 有效期时间戳（当前时间+300秒） |
-| new_node_id | integer | 可用节点ID |
-
-**错误响应:**
-```json
-{
-    "err": "token-invalid"
-}
-```
-
-或
-```json
-{
-    "err": "token-empty"
-}
-```
-
-或
-```json
-{
-    "err": "node-empty"
 }
 ```
 
@@ -493,26 +408,15 @@ token=5d41402abc4b2a76b9719d911017c592&salt=hello&ip=1&time=1&due_time=1
 | no-param | 无有效参数 | 请提供至少一个功能参数 |
 | 订单已被记录 | 订单号重复 | 检查订单号是否已处理 |
 
-### HTTP状态码
-
-| 状态码 | 描述 |
-|--------|------|
-| 200 | 请求成功 |
-| 400 | 请求参数错误 |
-| 401 | 认证失败 |
-| 500 | 服务器内部错误 |
-
 ---
 
 ## 6. 开发注意事项
 
 1. **Token安全:** 请妥善保管API_TOKEN，避免泄露
 2. **IP限制:** clonepay接口有IP白名单限制
-3. **参数验证:** 所有接口都进行了严格的参数验证
-4. **日志记录:** 重要操作都会记录到系统日志
-5. **流量单位:** 流量相关参数统一使用字节作为单位
-6. **时间格式:** 时间戳统一使用Unix时间戳
+3. **流量单位:** 流量相关参数统一使用字节作为单位
+4. **时间格式:** 时间戳统一使用Unix时间戳
 
 ---
 
-*文档最后更新时间: 2025-12-19*
+*文档最后更新时间: 2026-04-23*
