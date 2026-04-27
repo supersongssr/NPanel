@@ -152,7 +152,7 @@ class NodeApiController extends Controller
     /**
      * Domain Affinity Resolution:
      * Priority 1: Reuse reported root_domain if its dns_records count < 180.
-     * Priority 2: Pick first backup domain from node_domain_pool with count < 180.
+     * Priority 2: Pick first available domain from pool if count < 180.
      * Fallback: Use node_root_domain from config.
      */
     private function resolveDomainAffinity($reportedDomain, $sysConf)
@@ -167,8 +167,8 @@ class NodeApiController extends Controller
         }
         $domainPool = array_unique(array_filter($domainPool));
 
-        // Priority 1: Check reported domain first
-        if ($reportedDomain && in_array($reportedDomain, $domainPool)) {
+        // Priority 1: Check reported domain first (Allow custom affinity)
+        if ($reportedDomain) {
             $count = DnsRecord::where('root_domain', $reportedDomain)->count();
             if ($count < self::DOMAIN_CAPACITY_LIMIT) {
                 return $reportedDomain;
@@ -210,7 +210,7 @@ class NodeApiController extends Controller
         $targetSubdomain = $targetParts['subdomain'];
         $targetRootDomain = $targetParts['root_domain'];
 
-        $dnsProvider = new \App\Components\DNS\CloudflareProvider();
+        $dnsProvider = app(\App\Components\DNS\CloudflareProvider::class);
         $results = [];
 
         // Process each IP type the node has
@@ -245,7 +245,7 @@ class NodeApiController extends Controller
      *
      * Scene A: Same domain + same IP → skip CF entirely.
      * Scene B: Same domain + diff IP → PUT update via CF.
-     * Scene C: Diff domain → DELETE old + POST new via CF.
+     * Scene C: Diff domain → POST new + DELETE old via CF (Atomic swap).
      */
     private function reconcileDnsRecord($nodeId, $dnsProvider, $targetSubdomain, $targetRootDomain, $type, $targetIp)
     {
@@ -271,7 +271,7 @@ class NodeApiController extends Controller
             return $this->updateDnsRecordIp($dnsProvider, $oldRecord, $targetIp);
         }
 
-        // Scene C: Domain changed — DELETE old + POST new
+        // Scene C: Domain changed — POST new + DELETE old
         return $this->swapDnsRecord($dnsProvider, $oldRecord, $nodeId, $targetSubdomain, $targetRootDomain, $type, $targetIp);
     }
 
@@ -324,28 +324,25 @@ class NodeApiController extends Controller
     }
 
     /**
-     * Scene C: Domain changed. DELETE old from CF, POST new to CF, then swap dns_records row.
-     * All three steps must succeed — if DELETE fails, we abort without touching local state.
+     * Scene C: Domain changed. POST new to CF first, then DELETE old.
+     * This ensures the target survives if deletion fails.
      */
     private function swapDnsRecord($dnsProvider, $oldRecord, $nodeId, $newSubdomain, $newRootDomain, $type, $newIp)
     {
-        // Step 1: Delete old record from CF
-        $deleteOk = $dnsProvider->deleteRecord($oldRecord->cf_record_id);
-        if (!$deleteOk) {
-            Log::error("resolve_dns: CF DELETE failed for record {$oldRecord->cf_record_id}, aborting swap");
-            return ['action' => 'swap_failed', 'success' => false, 'message' => 'CF delete failed, swap aborted'];
-        }
-
-        // Step 2: Create new record in CF
+        // Step 1: Create new record in CF (POST first to ensure target survives failure)
         $cfResult = $dnsProvider->createRecord($newRootDomain, $newSubdomain, $newIp, $type);
         if (!$cfResult) {
-            Log::error("resolve_dns: CF POST failed after successful DELETE — orphan state possible for node {$nodeId}");
-            // Old CF record is gone but new one failed. Remove local record to allow retry.
-            $oldRecord->delete();
-            return ['action' => 'swap_partial', 'success' => false, 'message' => 'CF delete succeeded but create failed'];
+            Log::error("resolve_dns: CF POST failed for node {$nodeId}, aborting swap to preserve old record");
+            return ['action' => 'swap_failed', 'success' => false, 'message' => 'CF create failed, swap aborted'];
         }
 
-        // Step 3: Both CF ops succeeded — atomically replace local record
+        // Step 2: Delete old record from CF (POST succeeded, so old is now redundant)
+        $deleteOk = $dnsProvider->deleteRecord($oldRecord->cf_record_id);
+        if (!$deleteOk) {
+            Log::warning("resolve_dns: CF DELETE failed for record {$oldRecord->cf_record_id} after successful POST. Orphan left on CF.");
+        }
+
+        // Step 3: Atomic replacement in local DB
         $oldRecord->delete();
         DnsRecord::create([
             'node_id' => $nodeId,

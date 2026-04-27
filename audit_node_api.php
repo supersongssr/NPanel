@@ -96,7 +96,7 @@ if ($res['code'] !== 200) {
 }
 
 echo "\n--- Case 04: Traffic Formula Audit ---\n";
-$mainNode->billing_mode = 'rxtx';
+$mainNode->node_traffic_rxtx_mode = 'rxtx';
 $mainNode->traffic_used = 0;
 $mainNode->last_raw_total = 0;
 $mainNode->save();
