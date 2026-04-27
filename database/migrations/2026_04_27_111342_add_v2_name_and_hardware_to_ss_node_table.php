@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class AddServerUptimeAndTotalTrafficToSsNodeTable extends Migration
+class AddV2NameAndHardwareToSsNodeTable extends Migration
 {
     /**
      * Run the migrations.
@@ -14,8 +14,10 @@ class AddServerUptimeAndTotalTrafficToSsNodeTable extends Migration
     public function up()
     {
         Schema::table('ss_node', function (Blueprint $table) {
-            $table->unsignedBigInteger('server_uptime')->default(0)->after('heartbeat_at')->comment('服务器运行时间（秒）');
-            $table->unsignedBigInteger('server_total_traffic')->default(0)->after('server_uptime')->comment('服务器累计流量（字节）');
+            $table->string('v2_name')->default('vision-hy2-ws-grpc')->after('name');
+            $table->string('cpu')->nullable()->after('info');
+            $table->float('memory')->nullable()->after('cpu');
+            $table->float('disk')->nullable()->after('memory');
         });
     }
 
@@ -27,7 +29,7 @@ class AddServerUptimeAndTotalTrafficToSsNodeTable extends Migration
     public function down()
     {
         Schema::table('ss_node', function (Blueprint $table) {
-            $table->dropColumn(['server_uptime', 'server_total_traffic']);
+            $table->dropColumn(['v2_name', 'cpu', 'memory', 'disk']);
         });
     }
 }

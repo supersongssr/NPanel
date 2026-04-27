@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class AddServerUptimeAndTotalTrafficToSsNodeTable extends Migration
+class AddRxtxModeToSsNodeTable extends Migration
 {
     /**
      * Run the migrations.
@@ -14,8 +14,8 @@ class AddServerUptimeAndTotalTrafficToSsNodeTable extends Migration
     public function up()
     {
         Schema::table('ss_node', function (Blueprint $table) {
-            $table->unsignedBigInteger('server_uptime')->default(0)->after('heartbeat_at')->comment('服务器运行时间（秒）');
-            $table->unsignedBigInteger('server_total_traffic')->default(0)->after('server_uptime')->comment('服务器累计流量（字节）');
+            // rx_tx: 'rx' = downstream only, 'tx' = upstream only, 'rxtx' = (rx+tx)/2
+            $table->string('rxtx_mode')->default('tx')->after('disk')->comment('流量计费模式: rx, tx, rxtx');
         });
     }
 
@@ -27,7 +27,7 @@ class AddServerUptimeAndTotalTrafficToSsNodeTable extends Migration
     public function down()
     {
         Schema::table('ss_node', function (Blueprint $table) {
-            $table->dropColumn(['server_uptime', 'server_total_traffic']);
+            $table->dropColumn(['rxtx_mode']);
         });
     }
 }

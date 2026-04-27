@@ -19,7 +19,28 @@ class SsNode extends Model
     protected $casts = [
         'node_cost' => 'float',
         'traffic_rate' => 'float',
+        'is_clone' => 'integer',
+        'health' => 'integer',
+        'status' => 'integer',
+        'memory' => 'float',
+        'disk' => 'float',
     ];
+
+    /**
+     * Get all clone nodes belonging to this main node.
+     */
+    function clones()
+    {
+        return $this->hasMany(SsNode::class, 'is_clone', 'id');
+    }
+
+    /**
+     * Get the parent main node if this is a clone.
+     */
+    function parent()
+    {
+        return $this->belongsTo(SsNode::class, 'is_clone', 'id');
+    }
 
     function label()
     {

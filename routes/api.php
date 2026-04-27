@@ -20,4 +20,13 @@ Route::group(['namespace' => 'Api'], function () {
     Route::post('simple_api_tools', 'PingController@simpleApiTools'); //sdo 2024-11-12
     Route::get('node_config', 'PingController@getNodeConfig');
     Route::get('node/new', 'PingController@getNewNode'); // Get a new available node
+
+    // New Node API for thin node, fat panel architecture
+    Route::group(['prefix' => 'node'], function () {
+        Route::post('apply_id', 'NodeApiController@applyId');
+        Route::post('register', 'NodeApiController@register');
+        Route::post('resolve_dns', 'NodeApiController@resolveDns');
+        Route::get('config', 'NodeApiController@config');
+        Route::post('status', 'NodeApiController@status');
+    });
 });
