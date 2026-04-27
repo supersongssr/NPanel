@@ -13,6 +13,15 @@ use App\Components\Helpers;
 
 class NodeApiController extends Controller
 {
+    private function validateToken(Request $request)
+    {
+        $token = $request->input('token') ?: $request->header('X-API-Token');
+        if (!$token || $token !== env('API_TOKEN')) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized: invalid or missing token'], 401);
+        }
+        return null;
+    }
+
     public function __construct()
     {
         while (ob_get_level() > 0) {
@@ -137,6 +146,8 @@ class NodeApiController extends Controller
 
     public function resolveDns(Request $request)
     {
+        if ($err = $this->validateToken($request)) return $err;
+
         $nodeId = $request->input('node_id');
         $node = SsNode::find($nodeId);
         if (!$node) return response()->json(['status' => 'error', 'message' => 'Node not found'], 404);
@@ -158,6 +169,8 @@ class NodeApiController extends Controller
      */
     public function config(Request $request)
     {
+        if ($err = $this->validateToken($request)) return $err;
+
         $nodeId = $request->input('node_id');
         $node = SsNode::find($nodeId);
         if (!$node) return response()->json(['status' => 'error', 'message' => 'Node not found'], 404);
@@ -246,6 +259,8 @@ class NodeApiController extends Controller
      */
     public function status(Request $request)
     {
+        if ($err = $this->validateToken($request)) return $err;
+
         $nodeId = $request->input('node_id');
         $rawRx = (float)$request->input('raw_rx', 0);
         $rawTx = (float)$request->input('raw_tx', 0);
@@ -260,7 +275,18 @@ class NodeApiController extends Controller
             $rawTotal = $rawTx;
         }
 
-        $incremental = ($rawTotal < $node->last_raw_total) ? $rawTotal : ($rawTotal - $node->last_raw_total);
+        // Three-state increment calculation
+        $lastRaw = $node->last_raw_total ?: 0;
+        if ($lastRaw == 0) {
+            // Scene A: First report, establish baseline — zero increment
+            $incremental = 0;
+        } elseif ($rawTotal < $lastRaw) {
+            // Scene B: NIC reboot, counter reset
+            $incremental = $rawTotal;
+        } else {
+            // Scene C: Normal accumulation
+            $incremental = $rawTotal - $lastRaw;
+        }
         $node->last_raw_total = $rawTotal;
 
         // Reset check
