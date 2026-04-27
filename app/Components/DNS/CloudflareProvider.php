@@ -26,11 +26,11 @@ class CloudflareProvider implements DnsProviderInterface
         }
 
         $url = "https://api.cloudflare.com/client/v4/zones/{$this->zoneId}/dns_records";
-        
+
         // Check if record exists
         $searchUrl = $url . "?name={$host}.{$domain}&type={$type}";
         $response = $this->sendRequest($searchUrl, 'GET');
-        
+
         if ($response && $response['success'] && !empty($response['result'])) {
             $recordId = $response['result'][0]['id'];
             // Update
@@ -56,6 +56,62 @@ class CloudflareProvider implements DnsProviderInterface
             $res = $this->sendRequest($url, 'POST', $data);
             return $res && $res['success'];
         }
+    }
+
+    /**
+     * Create a new DNS record via CF API. Returns full response on success, false on failure.
+     */
+    public function createRecord($domain, $host, $value, $type = 'A')
+    {
+        $url = "https://api.cloudflare.com/client/v4/zones/{$this->zoneId}/dns_records";
+        $data = [
+            'type' => $type,
+            'name' => "{$host}.{$domain}",
+            'content' => $value,
+            'ttl' => 120,
+            'proxied' => false,
+        ];
+        $res = $this->sendRequest($url, 'POST', $data);
+        if ($res && $res['success']) {
+            return $res['result'];
+        }
+        Log::error("CF createRecord failed: " . json_encode($res));
+        return false;
+    }
+
+    /**
+     * Update an existing DNS record by CF record ID. Returns full response on success, false on failure.
+     */
+    public function updateRecordById($cfRecordId, $domain, $host, $value, $type = 'A')
+    {
+        $url = "https://api.cloudflare.com/client/v4/zones/{$this->zoneId}/dns_records/{$cfRecordId}";
+        $data = [
+            'type' => $type,
+            'name' => "{$host}.{$domain}",
+            'content' => $value,
+            'ttl' => 120,
+            'proxied' => false,
+        ];
+        $res = $this->sendRequest($url, 'PUT', $data);
+        if ($res && $res['success']) {
+            return $res['result'];
+        }
+        Log::error("CF updateRecordById failed: " . json_encode($res));
+        return false;
+    }
+
+    /**
+     * Delete a DNS record by CF record ID. Returns true on success.
+     */
+    public function deleteRecord($cfRecordId)
+    {
+        $url = "https://api.cloudflare.com/client/v4/zones/{$this->zoneId}/dns_records/{$cfRecordId}";
+        $res = $this->sendRequest($url, 'DELETE');
+        if ($res && $res['success']) {
+            return true;
+        }
+        Log::error("CF deleteRecord failed: " . json_encode($res));
+        return false;
     }
 
     private function sendRequest($url, $method, $data = null)
@@ -84,7 +140,7 @@ class CloudflareProvider implements DnsProviderInterface
             return json_decode($response, true);
         }
 
-        Log::error("Cloudflare API error: " . $response);
+        Log::error("Cloudflare API error (HTTP {$httpCode}): " . $response);
         return false;
     }
 }

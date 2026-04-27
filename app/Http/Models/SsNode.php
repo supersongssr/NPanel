@@ -16,14 +16,23 @@ class SsNode extends Model
     protected $table = 'ss_node';
     protected $primaryKey = 'id';
 
+    protected $fillable = [
+        'name', 'v2_name', 'node_traffic_rxtx_mode', 'node_cpu', 'node_memory', 'node_disk',
+        'bandwidth', 'node_unlock', 'info', 'level', 'node_group', 'node_cost',
+        'traffic_limit', 'reset_day', 'sort', 'traffic_rate', 'country_code',
+        'node_country', 'node_city', 'ip', 'ipv6', 'server', 'status',
+        'is_clone', 'type', 'node_health', 'last_raw_total', 'traffic_used',
+        'server_uptime', 'heartbeat_at',
+    ];
+
     protected $casts = [
         'node_cost' => 'float',
         'traffic_rate' => 'float',
         'is_clone' => 'integer',
-        'health' => 'integer',
+        'node_health' => 'integer',
         'status' => 'integer',
-        'memory' => 'float',
-        'disk' => 'float',
+        'node_memory' => 'float',
+        'node_disk' => 'float',
     ];
 
     /**
@@ -45,6 +54,11 @@ class SsNode extends Model
     function label()
     {
         return $this->hasMany(SsNodeLabel::class, 'node_id', 'id');
+    }
+
+    function dnsRecords()
+    {
+        return $this->hasMany(DnsRecord::class, 'node_id', 'id');
     }
 
     function isotoemoji($iso)

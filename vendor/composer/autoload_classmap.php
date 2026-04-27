@@ -84,6 +84,7 @@ return array(
     'App\\Http\\Models\\Coupon' => $baseDir . '/app/Http/Models/Coupon.php',
     'App\\Http\\Models\\CouponLog' => $baseDir . '/app/Http/Models/CouponLog.php',
     'App\\Http\\Models\\Device' => $baseDir . '/app/Http/Models/Device.php',
+    'App\\Http\\Models\\DnsRecord' => $baseDir . '/app/Http/Models/DnsRecord.php',
     'App\\Http\\Models\\EmailLog' => $baseDir . '/app/Http/Models/EmailLog.php',
     'App\\Http\\Models\\Goods' => $baseDir . '/app/Http/Models/Goods.php',
     'App\\Http\\Models\\GoodsLabel' => $baseDir . '/app/Http/Models/GoodsLabel.php',

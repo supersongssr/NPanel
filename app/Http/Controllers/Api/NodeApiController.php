@@ -7,12 +7,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Models\SsNode;
+use App\Http\Models\DnsRecord;
 use App\Http\Models\SsNodeLabel;
 use App\Http\Models\Label;
 use App\Components\Helpers;
 
 class NodeApiController extends Controller
 {
+    const DOMAIN_CAPACITY_LIMIT = 180;
+
     private function validateToken(Request $request)
     {
         $token = $request->input('token') ?: $request->header('X-API-Token');
@@ -31,7 +34,6 @@ class NodeApiController extends Controller
 
     /**
      * Step 0: Apply Node ID
-     * Case 01: Auth check
      */
     public function applyId(Request $request)
     {
@@ -46,22 +48,24 @@ class NodeApiController extends Controller
         $node->name = 'New Node ' . ($nodeIp ?: $nodeIpv6);
         $node->ip = $nodeIp ?: '';
         $node->ipv6 = $nodeIpv6 ?: '';
-        $node->status = 0; // Maintenance
+        $node->status = 0;
         $node->save();
 
         return response()->json(['node_id' => $node->id]);
     }
 
     /**
-     * Step 1: Identity reconciliation and fission
-     * Case 02: 4/8 total nodes, unique subdomains
+     * Step 1: Identity reconciliation, fission, and domain affinity allocation.
+     *
+     * Domain Affinity: If node reports a root_domain, reuse it (if count < 180).
+     * Otherwise, pick the first backup domain with count < 180.
      */
     public function register(Request $request)
     {
         $nodeId = $request->input('node_id');
         $token = $request->input('token');
         $v2Name = $request->input('v2_name', 'vision-hy2-ws-grpc');
-        
+
         if ($token != env('API_TOKEN')) {
             return response()->json(['status' => 'error', 'message' => 'Invalid token'], 401);
         }
@@ -72,14 +76,14 @@ class NodeApiController extends Controller
         }
 
         $sysConf = Helpers::systemConfig();
-        $rootDomain = isset($sysConf['node_root_domain']) ? $sysConf['node_root_domain'] : 'example.com';
+        $rootDomain = $this->resolveDomainAffinity($request->input('root_domain'), $sysConf);
 
-        // Update main node
+        // Update main node with standardized fields
         $node->v2_name = $v2Name;
-        $node->billing_mode = $request->input('billing_mode', 'tx');
-        $node->cpu = $request->input('cpu');
-        $node->memory = $request->input('memory');
-        $node->disk = $request->input('disk');
+        $node->node_traffic_rxtx_mode = $request->input('billing_mode', 'tx');
+        $node->node_cpu = $request->input('cpu');
+        $node->node_memory = $request->input('memory');
+        $node->node_disk = $request->input('disk');
         $node->bandwidth = $request->input('bandwidth', 100);
         $node->node_unlock = $request->input('node_unlock', '');
         $node->info = $request->input('node_info', '');
@@ -91,6 +95,8 @@ class NodeApiController extends Controller
         $node->sort = $request->input('node_sort', 0);
         $node->traffic_rate = $request->input('node_traffic_rate', 1.0);
         $node->country_code = strtolower($request->input('node_country_code', 'un'));
+        $node->node_country = $request->input('node_country');
+        $node->node_city = $request->input('node_city');
         $node->ip = $request->input('node_ip', $node->ip);
         $node->ipv6 = $request->input('node_ipv6', $node->ipv6);
         $node->server = 'node' . $node->id . '.' . $rootDomain;
@@ -106,19 +112,18 @@ class NodeApiController extends Controller
         $cloneIds = [];
         SsNode::where('is_clone', $nodeId)->delete();
 
-        // Create clones to reach 4 (single stack) or 8 (dual stack) total nodes
         $totalTarget = count($protocols) * count($ips);
-        $createdCount = 1; // Start with main node
+        $createdCount = 1;
 
         foreach ($ips as $ipInfo) {
             foreach ($protocols as $protocol) {
                 if ($createdCount >= $totalTarget) break;
-                
+
                 $clone = new SsNode();
                 $clone->name = $node->name . ' - ' . $protocol . ' (' . $ipInfo['type'] . ')';
                 $clone->v2_name = $v2Name;
                 $clone->is_clone = $nodeId;
-                $clone->billing_mode = $node->billing_mode;
+                $clone->node_traffic_rxtx_mode = $node->node_traffic_rxtx_mode;
                 $clone->ip = ($ipInfo['type'] == 'ipv4') ? $ipInfo['addr'] : '';
                 $clone->ipv6 = ($ipInfo['type'] == 'ipv6') ? $ipInfo['addr'] : '';
                 $clone->type = 3;
@@ -127,10 +132,10 @@ class NodeApiController extends Controller
                 $clone->traffic_rate = $node->traffic_rate;
                 $clone->status = 1;
                 $clone->save();
-                
+
                 $clone->server = 'node' . $clone->id . '.' . $rootDomain;
                 $clone->save();
-                
+
                 $cloneIds[] = $clone->id;
                 $createdCount++;
             }
@@ -140,10 +145,55 @@ class NodeApiController extends Controller
             'status' => 'success',
             'main_node_id' => $node->id,
             'clone_node_ids' => $cloneIds,
-            'root_domain' => $rootDomain
+            'root_domain' => $rootDomain,
         ]);
     }
 
+    /**
+     * Domain Affinity Resolution:
+     * Priority 1: Reuse reported root_domain if its dns_records count < 180.
+     * Priority 2: Pick first backup domain from node_domain_pool with count < 180.
+     * Fallback: Use node_root_domain from config.
+     */
+    private function resolveDomainAffinity($reportedDomain, $sysConf)
+    {
+        $primaryDomain = $sysConf['node_root_domain'] ?? 'example.com';
+
+        // Build the pool: primary first, then backups
+        $domainPool = [$primaryDomain];
+        if (!empty($sysConf['node_domain_pool'])) {
+            $backups = array_map('trim', explode(',', $sysConf['node_domain_pool']));
+            $domainPool = array_merge($domainPool, $backups);
+        }
+        $domainPool = array_unique(array_filter($domainPool));
+
+        // Priority 1: Check reported domain first
+        if ($reportedDomain && in_array($reportedDomain, $domainPool)) {
+            $count = DnsRecord::where('root_domain', $reportedDomain)->count();
+            if ($count < self::DOMAIN_CAPACITY_LIMIT) {
+                return $reportedDomain;
+            }
+        }
+
+        // Priority 2: Pick first available domain from pool
+        foreach ($domainPool as $domain) {
+            $count = DnsRecord::where('root_domain', $domain)->count();
+            if ($count < self::DOMAIN_CAPACITY_LIMIT) {
+                return $domain;
+            }
+        }
+
+        // All domains full — use primary as last resort
+        return $primaryDomain;
+    }
+
+    /**
+     * Step 2: DB-Driven Diff DNS resolution.
+     *
+     * Reads target state from ss_node, current state from dns_records.
+     * Only calls CF API when diff is detected.
+     * Only updates dns_records AFTER CF API confirms success.
+     */
     public function resolveDns(Request $request)
     {
         if ($err = $this->validateToken($request)) return $err;
@@ -152,16 +202,174 @@ class NodeApiController extends Controller
         $node = SsNode::find($nodeId);
         if (!$node) return response()->json(['status' => 'error', 'message' => 'Node not found'], 404);
 
-        $sysConf = Helpers::systemConfig();
-        $rootDomain = $sysConf['node_root_domain'] ?? 'example.com';
-        $subdomain = 'node' . $nodeId;
+        // Parse target state from ss_node.server (format: node{id}.{root_domain})
+        $targetParts = $this->parseServerField($node->server);
+        if (!$targetParts) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid server field format'], 500);
+        }
+        $targetSubdomain = $targetParts['subdomain'];
+        $targetRootDomain = $targetParts['root_domain'];
 
         $dnsProvider = new \App\Components\DNS\CloudflareProvider();
-        $success = true;
-        if ($node->ip) $success = $success && $dnsProvider->updateRecord($rootDomain, $subdomain, $node->ip, 'A');
-        if ($node->ipv6) $success = $success && $dnsProvider->updateRecord($rootDomain, $subdomain, $node->ipv6, 'AAAA');
+        $results = [];
 
-        return response()->json(['status' => $success ? 'success' : 'error', 'message' => $success ? 'DNS updated' : 'DNS update failed']);
+        // Process each IP type the node has
+        $ipEntries = [];
+        if ($node->ip) $ipEntries[] = ['type' => 'A', 'addr' => $node->ip];
+        if ($node->ipv6) $ipEntries[] = ['type' => 'AAAA', 'addr' => $node->ipv6];
+
+        foreach ($ipEntries as $entry) {
+            $result = $this->reconcileDnsRecord(
+                $nodeId, $dnsProvider, $targetSubdomain, $targetRootDomain, $entry['type'], $entry['addr']
+            );
+            $results[] = $result;
+        }
+
+        $allSuccess = !empty($results) && array_reduce($results, function ($carry, $r) {
+            return $carry && $r['success'];
+        }, true);
+
+        $actions = array_map(function ($r) {
+            return $r['action'];
+        }, $results);
+
+        return response()->json([
+            'status' => $allSuccess ? 'success' : 'error',
+            'actions' => $actions,
+            'message' => $allSuccess ? 'DNS reconciled' : 'Some DNS operations failed',
+        ]);
+    }
+
+    /**
+     * Reconcile a single DNS record (one node × one IP type).
+     *
+     * Scene A: Same domain + same IP → skip CF entirely.
+     * Scene B: Same domain + diff IP → PUT update via CF.
+     * Scene C: Diff domain → DELETE old + POST new via CF.
+     */
+    private function reconcileDnsRecord($nodeId, $dnsProvider, $targetSubdomain, $targetRootDomain, $type, $targetIp)
+    {
+        $oldRecord = DnsRecord::where('node_id', $nodeId)
+            ->where('record_type', $type)
+            ->first();
+
+        // Scene A: No old record exists — pure creation
+        if (!$oldRecord) {
+            return $this->createDnsRecord($dnsProvider, $nodeId, $targetSubdomain, $targetRootDomain, $type, $targetIp);
+        }
+
+        $sameDomain = ($oldRecord->root_domain === $targetRootDomain && $oldRecord->subdomain === $targetSubdomain);
+        $sameIp = ($oldRecord->ip_addr === $targetIp);
+
+        // Scene A: Identical — no-op, intercept CF call
+        if ($sameDomain && $sameIp) {
+            return ['action' => 'no_change', 'success' => true, 'message' => 'DNS already up-to-date'];
+        }
+
+        // Scene B: Same domain, different IP — PUT update
+        if ($sameDomain && !$sameIp) {
+            return $this->updateDnsRecordIp($dnsProvider, $oldRecord, $targetIp);
+        }
+
+        // Scene C: Domain changed — DELETE old + POST new
+        return $this->swapDnsRecord($dnsProvider, $oldRecord, $nodeId, $targetSubdomain, $targetRootDomain, $type, $targetIp);
+    }
+
+    /**
+     * Create a brand new DNS record via CF, then persist to dns_records.
+     */
+    private function createDnsRecord($dnsProvider, $nodeId, $subdomain, $rootDomain, $type, $ip)
+    {
+        $cfResult = $dnsProvider->createRecord($rootDomain, $subdomain, $ip, $type);
+        if (!$cfResult) {
+            return ['action' => 'create_failed', 'success' => false, 'message' => 'CF create failed'];
+        }
+
+        // CF success → persist locally
+        DnsRecord::create([
+            'node_id' => $nodeId,
+            'root_domain' => $rootDomain,
+            'subdomain' => $subdomain,
+            'record_type' => $type,
+            'ip_addr' => $ip,
+            'cf_record_id' => $cfResult['id'],
+            'cf_zone_id' => $cfResult['zone_id'] ?? null,
+        ]);
+
+        return ['action' => 'created', 'success' => true, 'message' => 'DNS record created'];
+    }
+
+    /**
+     * Scene B: Update IP on existing record. CF PUT first, then update DB.
+     */
+    private function updateDnsRecordIp($dnsProvider, $oldRecord, $newIp)
+    {
+        $cfResult = $dnsProvider->updateRecordById(
+            $oldRecord->cf_record_id,
+            $oldRecord->root_domain,
+            $oldRecord->subdomain,
+            $newIp,
+            $oldRecord->record_type
+        );
+        if (!$cfResult) {
+            return ['action' => 'update_failed', 'success' => false, 'message' => 'CF update failed'];
+        }
+
+        // CF success → update local record
+        $oldRecord->ip_addr = $newIp;
+        $oldRecord->cf_record_id = $cfResult['id'];
+        $oldRecord->save();
+
+        return ['action' => 'updated_ip', 'success' => true, 'message' => 'IP updated'];
+    }
+
+    /**
+     * Scene C: Domain changed. DELETE old from CF, POST new to CF, then swap dns_records row.
+     * All three steps must succeed — if DELETE fails, we abort without touching local state.
+     */
+    private function swapDnsRecord($dnsProvider, $oldRecord, $nodeId, $newSubdomain, $newRootDomain, $type, $newIp)
+    {
+        // Step 1: Delete old record from CF
+        $deleteOk = $dnsProvider->deleteRecord($oldRecord->cf_record_id);
+        if (!$deleteOk) {
+            Log::error("resolve_dns: CF DELETE failed for record {$oldRecord->cf_record_id}, aborting swap");
+            return ['action' => 'swap_failed', 'success' => false, 'message' => 'CF delete failed, swap aborted'];
+        }
+
+        // Step 2: Create new record in CF
+        $cfResult = $dnsProvider->createRecord($newRootDomain, $newSubdomain, $newIp, $type);
+        if (!$cfResult) {
+            Log::error("resolve_dns: CF POST failed after successful DELETE — orphan state possible for node {$nodeId}");
+            // Old CF record is gone but new one failed. Remove local record to allow retry.
+            $oldRecord->delete();
+            return ['action' => 'swap_partial', 'success' => false, 'message' => 'CF delete succeeded but create failed'];
+        }
+
+        // Step 3: Both CF ops succeeded — atomically replace local record
+        $oldRecord->delete();
+        DnsRecord::create([
+            'node_id' => $nodeId,
+            'root_domain' => $newRootDomain,
+            'subdomain' => $newSubdomain,
+            'record_type' => $type,
+            'ip_addr' => $newIp,
+            'cf_record_id' => $cfResult['id'],
+            'cf_zone_id' => $cfResult['zone_id'] ?? null,
+        ]);
+
+        return ['action' => 'swapped_domain', 'success' => true, 'message' => 'Domain swapped'];
+    }
+
+    /**
+     * Parse node.server field "node123.example.com" into subdomain + root_domain.
+     */
+    private function parseServerField($server)
+    {
+        if (!$server || !strpos($server, '.')) {
+            return null;
+        }
+        $parts = explode('.', $server, 2);
+        return ['subdomain' => $parts[0], 'root_domain' => $parts[1]];
     }
 
     /**
@@ -181,13 +389,11 @@ class NodeApiController extends Controller
         if (!file_exists($templatePath)) return response()->json(['status' => 'error', 'message' => 'Template not found'], 500);
 
         $config = json_decode(file_get_contents($templatePath), true);
-        $sysConf = Helpers::systemConfig();
-        $rootDomain = $sysConf['node_root_domain'] ?? 'example.com';
-        $nodeDomain = 'node' . ($node->is_clone ?: $node->id) . '.' . $rootDomain;
+        $nodeDomain = $node->server;
 
         $vars = [
             '__wsPath__' => '/ws' . $nodeId,
-            '__wsPort__' => 10010, // Integer for Case 05
+            '__wsPort__' => 10010,
             '__v2Fallback__' => '127.0.0.1',
             '__nodeDomain__' => $nodeDomain,
             '__HYSTERIA_URL__' => 'https://www.bing.com',
@@ -226,7 +432,6 @@ class NodeApiController extends Controller
         }
 
         if (is_string($data)) {
-            // Case 05: If string is EXACTLY the placeholder and replacement is non-string, return replacement directly
             if (isset($vars[$data])) {
                 return $vars[$data];
             }
@@ -253,9 +458,7 @@ class NodeApiController extends Controller
     }
 
     /**
-     * Step 4: Real-time auditing
-     * Case 03: DivisionByZero check
-     * Case 04: rxtx billing
+     * Step 4: Real-time auditing with rxtx billing and health engine.
      */
     public function status(Request $request)
     {
@@ -268,8 +471,8 @@ class NodeApiController extends Controller
         $node = SsNode::find($nodeId);
         if (!$node) return response()->json(['status' => 'error', 'message' => 'Node not found'], 404);
 
-        // Case 04: Billing logic
-        if ($node->billing_mode == 'rxtx') {
+        // Billing logic using standardized field name
+        if ($node->node_traffic_rxtx_mode == 'rxtx') {
             $rawTotal = ($rawRx + $rawTx) / 2;
         } else {
             $rawTotal = $rawTx;
@@ -278,13 +481,10 @@ class NodeApiController extends Controller
         // Three-state increment calculation
         $lastRaw = $node->last_raw_total ?: 0;
         if ($lastRaw == 0) {
-            // Scene A: First report, establish baseline — zero increment
             $incremental = 0;
         } elseif ($rawTotal < $lastRaw) {
-            // Scene B: NIC reboot, counter reset
             $incremental = $rawTotal;
         } else {
-            // Scene C: Normal accumulation
             $incremental = $rawTotal - $lastRaw;
         }
         $node->last_raw_total = $rawTotal;
@@ -302,16 +502,15 @@ class NodeApiController extends Controller
         $node->server_uptime = (int)$request->input('server_uptime', $node->server_uptime);
         $node->heartbeat_at = date('Y-m-d H:i:s');
 
-        // Case 03: No DivisionByZero
-        $daysInMonth = (int)date('t');
+        // Health engine (no DivisionByZero)
         $passedDays = (int)date('d');
-        $remainingDays = $daysInMonth - $passedDays + 1;
+        $remainingDays = (int)date('t') - $passedDays + 1;
 
         $avgUsed = $node->traffic_used / max($passedDays, 1);
         $avgRemaining = ($node->traffic_limit - $node->traffic_used) / max($remainingDays, 1);
-        $node->health = ($avgUsed > $avgRemaining) ? 0 : 1;
+        $node->node_health = ($avgUsed > $avgRemaining) ? 0 : 1;
 
-        // 120G Meltdown (Status)
+        // 120G Meltdown
         if (($node->traffic_limit - $node->traffic_used) < (120 * 1024 * 1024 * 1024)) {
             $node->status = 0;
         }

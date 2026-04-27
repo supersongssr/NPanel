@@ -686,6 +686,7 @@ class ComposerStaticInitafff032aeb9b4610f8ed2f20cc405693
         'App\\Http\\Models\\Coupon' => __DIR__ . '/../..' . '/app/Http/Models/Coupon.php',
         'App\\Http\\Models\\CouponLog' => __DIR__ . '/../..' . '/app/Http/Models/CouponLog.php',
         'App\\Http\\Models\\Device' => __DIR__ . '/../..' . '/app/Http/Models/Device.php',
+        'App\\Http\\Models\\DnsRecord' => __DIR__ . '/../..' . '/app/Http/Models/DnsRecord.php',
         'App\\Http\\Models\\EmailLog' => __DIR__ . '/../..' . '/app/Http/Models/EmailLog.php',
         'App\\Http\\Models\\Goods' => __DIR__ . '/../..' . '/app/Http/Models/Goods.php',
         'App\\Http\\Models\\GoodsLabel' => __DIR__ . '/../..' . '/app/Http/Models/GoodsLabel.php',
