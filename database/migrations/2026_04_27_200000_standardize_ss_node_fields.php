@@ -24,12 +24,16 @@ class StandardizeSsNodeFields extends Migration
             ['memory', 'node_memory'],
             ['disk', 'node_disk'],
             ['health', 'node_health'],
-            ['billing_mode', 'node_traffic_rxtx_mode'],
+            ['billing_mode', 'node_rxtx_mode'],
         ];
 
         foreach ($renames as $pair) {
             if ($this->columnExists('ss_node', $pair[0]) && !$this->columnExists('ss_node', $pair[1])) {
-                DB::statement("ALTER TABLE ss_node CHANGE COLUMN `{$pair[0]}` `{$pair[1]}` " . $this->getColumnDefinition($pair[0]));
+                $definition = $this->getColumnDefinition($pair[0]);
+                if ($pair[1] === 'node_cpu') {
+                    $definition = "INT(11) NULL";
+                }
+                DB::statement("ALTER TABLE ss_node CHANGE COLUMN `{$pair[0]}` `{$pair[1]}` " . $definition);
             }
         }
 

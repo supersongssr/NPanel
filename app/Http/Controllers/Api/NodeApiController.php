@@ -80,10 +80,10 @@ class NodeApiController extends Controller
 
         // Update main node with standardized fields
         $node->v2_name = $v2Name;
-        $node->node_traffic_rxtx_mode = $request->input('billing_mode', 'tx');
-        $node->node_cpu = $request->input('cpu');
-        $node->node_memory = $request->input('memory');
-        $node->node_disk = $request->input('disk');
+        $node->node_rxtx_mode = $request->input('node_rxtx_mode', $request->input('billing_mode', 'tx'));
+        $node->node_cpu = $request->input('node_cpu', $request->input('cpu'));
+        $node->node_memory = $request->input('node_memory', $request->input('memory'));
+        $node->node_disk = $request->input('node_disk', $request->input('disk'));
         $node->bandwidth = $request->input('bandwidth', 100);
         $node->node_unlock = $request->input('node_unlock', '');
         $node->info = $request->input('node_info', '');
@@ -123,7 +123,7 @@ class NodeApiController extends Controller
                 $clone->name = $node->name . ' - ' . $protocol . ' (' . $ipInfo['type'] . ')';
                 $clone->v2_name = $v2Name;
                 $clone->is_clone = $nodeId;
-                $clone->node_traffic_rxtx_mode = $node->node_traffic_rxtx_mode;
+                $clone->node_rxtx_mode = $node->node_rxtx_mode;
                 $clone->ip = ($ipInfo['type'] == 'ipv4') ? $ipInfo['addr'] : '';
                 $clone->ipv6 = ($ipInfo['type'] == 'ipv6') ? $ipInfo['addr'] : '';
                 $clone->type = 3;
@@ -469,7 +469,7 @@ class NodeApiController extends Controller
         if (!$node) return response()->json(['status' => 'error', 'message' => 'Node not found'], 404);
 
         // Billing logic using standardized field name
-        if ($node->node_traffic_rxtx_mode == 'rxtx') {
+        if ($node->node_rxtx_mode == 'rxtx') {
             $rawTotal = ($rawRx + $rawTx) / 2;
         } else {
             $rawTotal = $rawTx;

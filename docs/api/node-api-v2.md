@@ -12,9 +12,9 @@ apply_id → register → resolve_dns → config → status(循环)
 
 **Base URL:** `http://your-domain.com/api/node`
 
-**认证方式:** Token 认证 — 所有接口均需携带 `token` 参数（或 `X-API-Token` 请求头），值为 `.env` 中配置的 `API_TOKEN`。
+**认证方式:** Token 认证 — 所有接口均需携带 `token` 参数（或 `X-API-Token` 请求头），值为 `.env` 中配置前缀为 `API_TOKEN` 的变量。
 
-**适用版本:** commit `4600a679` (2026-04-27) 及之后。
+**适用版本:** commit `454647f7` (2026-04-27) 及之后。
 
 ---
 
@@ -48,14 +48,15 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `v2_name` | string | `vision-hy2-ws-grpc` | 协议模板名称，决定裂变协议组合 |
-| `node_traffic_rxtx_mode` | string | `tx` | 流量计费模式：`tx`（仅上行）或 `rxtx`（双向均值） |
-| `node_cpu` | string | nullable | CPU 型号/核心数 |
+| `node_rxtx_mode` | string | `tx` | 流量计费模式：`tx`（仅上行）或 `rxtx`（双向均值） |
+| `node_cpu` | integer | nullable | CPU 核心数 |
 | `node_memory` | float | nullable | 内存大小（GB） |
 | `node_disk` | float | nullable | 磁盘大小（GB） |
+| `node_group` | integer | 1 | 节点分组 ID |
 | `node_country` | string | nullable | 国家名称（如 Japan） |
 | `node_city` | string | nullable | 城市名称（如 Tokyo） |
-| `node_health` | integer | 1 | 健康状态：0=不健康（拥塞），1=健康 |
-| `is_clone` | integer | - | 克隆源节点 ID，`0` 表示主节点 |
+| `node_health` | integer | 1 | 健康状态：0=拥塞，1=健康 |
+| `is_clone` | integer | 0 | 克隆源节点 ID，`0` 表示主节点 |
 | `last_raw_total` | float | 0 | 上一次上报的原始流量总值，用于增量计算 |
 | `server_uptime` | integer | 0 | 服务器运行时间（秒） |
 
@@ -92,7 +93,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 **接口地址:** `POST /api/node/register`
 
-**请求参数:**
+**请求参数 (全量契约):**
 
 | 参数名 | 类型 | 必填 | 默认值 | 说明 |
 |--------|------|------|--------|------|
@@ -100,14 +101,26 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 | node_id | integer | 是 | - | Step 0 返回的节点 ID |
 | root_domain | string | 否 | - | 期望使用的根域名（域名亲和性） |
 | v2_name | string | 否 | `vision-hy2-ws-grpc` | 协议模板名称 |
-| billing_mode | string | 否 | `tx` | 计费模式：`tx` 或 `rxtx` |
-| cpu | string | 否 | - | CPU 信息 |
-| memory | float | 否 | - | 内存（GB） |
-| disk | float | 否 | - | 磁盘（GB） |
-| node_country | string | 否 | - | 国家名称 |
-| node_city | string | 否 | - | 城市名称 |
-| node_country_code | string | 否 | `un` | ISO 国家代码 |
-| ... | ... | ... | ... | 其他业务参数（bandwidth, level, group 等） |
+| node_rxtx_mode | string | 否 | `tx` | 计费模式：`tx` 或 `rxtx` |
+| node_cpu | integer | 否 | - | CPU 核心数 |
+| node_memory | float | 否 | - | 内存大小（GB） |
+| node_disk | float | 否 | - | 磁盘大小（GB） |
+| bandwidth | integer | 否 | 100 | 带宽（Mbps） |
+| node_unlock | string | 否 | - | 解锁信息（逗号分隔键值对，如 Netflix=1,Disney=1） |
+| node_info | string | 否 | - | 节点描述信息 |
+| node_level | integer | 否 | 1 | 节点访问等级 |
+| node_group | integer | 否 | 1 | 节点分组 ID |
+| node_cost | float | 否 | 0 | 节点每 GB 流量成本 |
+| node_traffic_limit | integer | 否 | 1000 | 每月流量额度（GB） |
+| node_traffic_resetday | integer | 否 | 1 | 每月流量重置日期 |
+| node_sort | integer | 否 | 0 | 节点排序权重 |
+| node_traffic_rate | float | 否 | 1.0 | 流量计费倍率 |
+| node_country_code | string | 否 | `un` | ISO 国家代码 (如 JP, US) |
+| node_country | string | 否 | - | 国家全称 |
+| node_city | string | 否 | - | 城市全称 |
+| node_health | integer | 否 | 1 | 初始健康状态 (0=不健康, 1=健康) |
+| node_ip | string | 否 | - | 节点 IPv4 地址 |
+| node_ipv6 | string | 否 | - | 节点 IPv6 地址 |
 
 **成功响应 (200):**
 ```json
@@ -149,7 +162,6 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
     "message": "DNS reconciled"
 }
 ```
-*`actions` 可能包含: `no_change`, `updated_ip`, `swapped_domain`, `created`*
 
 ---
 
@@ -166,7 +178,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 **接口地址:** `POST /api/node/status`
 
 #### 计费与健康引擎
-- **计费模式**：依据 `node_traffic_rxtx_mode` 字段执行 `tx` 或 `rxtx` 逻辑。
+- **计费模式**：依据 `node_rxtx_mode` 字段执行 `tx` 或 `rxtx` 逻辑。
 - **三态增量计算**：支持网卡重启归零检测（`rawTotal < lastRaw`），防止流量异常回滚。
 - **健康引擎**：依据月度剩余流量自动判定 `node_health`（0=拥塞，1=健康）。
 - **120G 融断**：剩余流量 < 120GB 时强制设置 `status = 0`。
@@ -181,4 +193,4 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 ---
 
-*文档生成时间: 2026-04-27 | 基于 commit: 4600a679*
+*文档生成时间: 2026-04-27 | 基于 commit: 454647f7*

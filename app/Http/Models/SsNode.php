@@ -17,7 +17,7 @@ class SsNode extends Model
     protected $primaryKey = 'id';
 
     protected $fillable = [
-        'name', 'v2_name', 'node_traffic_rxtx_mode', 'node_cpu', 'node_memory', 'node_disk',
+        'name', 'v2_name', 'node_rxtx_mode', 'node_cpu', 'node_memory', 'node_disk',
         'bandwidth', 'node_unlock', 'info', 'level', 'node_group', 'node_cost',
         'traffic_limit', 'reset_day', 'sort', 'traffic_rate', 'country_code',
         'node_country', 'node_city', 'ip', 'ipv6', 'server', 'status',
@@ -31,6 +31,7 @@ class SsNode extends Model
         'is_clone' => 'integer',
         'node_health' => 'integer',
         'status' => 'integer',
+        'node_cpu' => 'integer',
         'node_memory' => 'float',
         'node_disk' => 'float',
     ];
