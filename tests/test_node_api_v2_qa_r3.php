@@ -278,6 +278,8 @@ assert_test('initDnsRecords does NOT touch TXT', strpos($commandCode, "'TXT'") =
 assert_test('initDnsRecords does NOT touch MX', strpos($commandCode, "'MX'") === false);
 assert_test('initDnsRecords does NOT touch CNAME', strpos($commandCode, "'CNAME'") === false);
 assert_test('initDnsRecords listRecords only A/AAAA', strpos($commandCode, "['A', 'AAAA']") !== false);
+assert_test('initDnsRecords matches by subdomain (server field), not IP', strpos($commandCode, "where('server'") !== false && strpos($commandCode, "where('ip'") === false, 'Must use server-based matching');
+assert_test('initDnsRecords no IP-based matching', strpos($commandCode, "where('ipv6'") === false, 'Must not use ipv6-based matching');
 
 // =====================================================
 // Cleanup & Summary

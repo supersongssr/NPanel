@@ -84,24 +84,20 @@ class InitDnsRecords extends Command
             }
             $this->info("  Cleaned {$orphansDeleted} orphaned local records");
 
-            // --- Phase 2: Upsert CF records that match known node IPs ---
+            // --- Phase 2: Upsert CF records that match nodes by subdomain ---
+            // Match CF record FQDN against ss_node.server (e.g. "n156.ssmail.win")
+            // This avoids ambiguity from shared IPs across clones.
             $upserted = 0;
             foreach ($cfRecords as $cfRecord) {
                 $ip = $cfRecord['content'];
                 $type = $cfRecord['type'];
+                $fullName = $cfRecord['name'];
 
-                // Find a node that has this IP
-                $node = null;
-                if ($type === 'A') {
-                    $node = SsNode::where('ip', $ip)->first();
-                } elseif ($type === 'AAAA') {
-                    $node = SsNode::where('ipv6', $ip)->first();
-                }
-
+                // Find node by matching server field (= subdomain.root_domain)
+                $node = SsNode::where('server', $fullName)->first();
                 if (!$node) continue;
 
-                // Parse subdomain from CF record name (e.g. "node123.example.com" → "node123")
-                $fullName = $cfRecord['name'];
+                // Parse subdomain from CF record name (e.g. "n156.ssmail.win" → "n156")
                 $subdomain = $fullName;
                 if (strpos($fullName, '.' . $domain) !== false) {
                     $subdomain = str_replace('.' . $domain, '', $fullName);
@@ -138,7 +134,7 @@ class InitDnsRecords extends Command
                 }
                 $upserted++;
             }
-            $this->info("  Upserted {$upserted} records linked to nodes");
+            $this->info("  Upserted {$upserted} records linked to nodes by subdomain");
         }
 
         $this->info('DNS reconciliation complete.');
