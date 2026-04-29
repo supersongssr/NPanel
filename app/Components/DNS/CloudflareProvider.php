@@ -101,6 +101,24 @@ class CloudflareProvider implements DnsProviderInterface
     }
 
     /**
+     * List DNS records for a domain, optionally filtered by type.
+     * Returns array of CF record objects or false on failure.
+     */
+    public function listRecords($domain, $type = null)
+    {
+        $url = "https://api.cloudflare.com/client/v4/zones/{$this->zoneId}/dns_records?name=.{$domain}";
+        if ($type) {
+            $url .= "&type={$type}";
+        }
+        $res = $this->sendRequest($url, 'GET');
+        if ($res && $res['success']) {
+            return $res['result'];
+        }
+        Log::error("CF listRecords failed: " . json_encode($res));
+        return false;
+    }
+
+    /**
      * Delete a DNS record by CF record ID. Returns true on success.
      */
     public function deleteRecord($cfRecordId)

@@ -17,11 +17,11 @@ class SsNode extends Model
     protected $primaryKey = 'id';
 
     protected $fillable = [
-        'name', 'v2_name', 'node_rxtx_mode', 'node_cpu', 'node_memory', 'node_disk',
+        'name', 'v2_name', 'node_rxtx', 'node_cpu', 'node_memory', 'node_disk',
         'bandwidth', 'node_unlock', 'info', 'level', 'node_group', 'node_cost',
         'traffic_limit', 'reset_day', 'sort', 'traffic_rate', 'country_code',
         'node_country', 'node_city', 'ip', 'ipv6', 'server', 'status',
-        'is_clone', 'type', 'node_health', 'last_raw_total', 'traffic_used',
+        'is_clone', 'node_ids', 'type', 'node_health', 'last_raw_total', 'traffic_used',
         'server_uptime', 'heartbeat_at',
     ];
 

@@ -254,6 +254,32 @@
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div class="form-group">
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="node_domain_pool" class="col-md-3 control-label">节点域名池</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" name="node_domain_pool" value="{{$node_domain_pool}}" id="node_domain_pool" placeholder='["example.com", "test.net"]' />
+                                                                    <span class="input-group-btn">
+                                                                        <button class="btn btn-success" type="button" onclick="setNodeDomainPool()">保存</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> JSON数组格式，用于节点注册时自动分配域名。主域名在 node_root_domain 中设置，此处填写备用域名池 </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="node_protocol_presets" class="col-md-3 control-label">协议预设</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" name="node_protocol_presets" value="{{$node_protocol_presets}}" id="node_protocol_presets" placeholder='{"threshold_mb":2048,"high":"xhttp-hy2-ws-grpc","low":"vision-hy2-ws-grpc"}' />
+                                                                    <span class="input-group-btn">
+                                                                        <button class="btn btn-success" type="button" onclick="setNodeProtocolPresets()">保存</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> JSON格式：threshold_mb=内存阈值(MB)，high=高配协议组，low=低配协议组 </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                     <!--
                                                     <div class="form-group">
                                                         <label for="is_user_rand_port" class="col-md-2 control-label">自定义端口</label>
@@ -2121,6 +2147,36 @@
                     if (ret.status == 'fail') {
                         window.location.reload();
                     }
+                });
+            });
+        }
+
+        function setNodeDomainPool() {
+            var val = $("#node_domain_pool").val();
+            try { JSON.parse(val); } catch(e) { layer.msg('JSON格式错误', {time: 1500}); return; }
+
+            $.post("/admin/setConfig", {
+                _token: '{{csrf_token()}}',
+                name: 'node_domain_pool',
+                value: val
+            }, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'fail') { window.location.reload(); }
+                });
+            });
+        }
+
+        function setNodeProtocolPresets() {
+            var val = $("#node_protocol_presets").val();
+            try { JSON.parse(val); } catch(e) { layer.msg('JSON格式错误', {time: 1500}); return; }
+
+            $.post("/admin/setConfig", {
+                _token: '{{csrf_token()}}',
+                name: 'node_protocol_presets',
+                value: val
+            }, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'fail') { window.location.reload(); }
                 });
             });
         }

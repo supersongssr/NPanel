@@ -8,8 +8,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Models\SsNode;
 use App\Http\Models\DnsRecord;
-use App\Http\Models\SsNodeLabel;
-use App\Http\Models\Label;
 use App\Components\Helpers;
 
 class NodeApiController extends Controller
@@ -57,14 +55,14 @@ class NodeApiController extends Controller
     /**
      * Step 1: Identity reconciliation, fission, and domain affinity allocation.
      *
-     * Domain Affinity: If node reports a root_domain, reuse it (if count < 180).
-     * Otherwise, pick the first backup domain with count < 180.
+     * Dynamic protocol assignment based on memory and DB config.
+     * Clone reuse (anti-proliferation): revives old clone records instead of blind insert.
+     * Tiered level engine: main node level = floor(cost), clones >= main level.
      */
     public function register(Request $request)
     {
         $nodeId = $request->input('node_id');
         $token = $request->input('token');
-        $v2Name = $request->input('v2_name', 'vision-hy2-ws-grpc');
 
         if ($token != env('API_TOKEN')) {
             return response()->json(['status' => 'error', 'message' => 'Invalid token'], 401);
@@ -76,20 +74,34 @@ class NodeApiController extends Controller
         }
 
         $sysConf = Helpers::systemConfig();
+
+        // --- Dynamic protocol presets from config (anti-hardcoding) ---
+        $presets = json_decode($sysConf['node_protocol_presets'] ?? '{}', true);
+        $thresholdMb = $presets['threshold_mb'] ?? 2048;
+        $highProto = $presets['high'] ?? 'xhttp-hy2-ws-grpc';
+        $lowProto = $presets['low'] ?? 'vision-hy2-ws-grpc';
+
+        $nodeMemory = (float)$request->input('node_memory', $request->input('memory', 0));
+        $v2Name = ($nodeMemory > $thresholdMb) ? $highProto : $lowProto;
+
         $rootDomain = $this->resolveDomainAffinity($request->input('root_domain'), $sysConf);
 
-        // Update main node with standardized fields
+        // --- Tiered level engine: main node level = max(1, floor(cost)) ---
+        $nodeCost = (float)$request->input('node_cost', 0);
+        $mainLevel = max(1, (int)floor($nodeCost));
+
+        // --- Update main node with standardized fields ---
         $node->v2_name = $v2Name;
-        $node->node_rxtx_mode = $request->input('node_rxtx_mode', $request->input('billing_mode', 'tx'));
+        $node->node_rxtx = $request->input('node_rxtx', $request->input('node_rxtx_mode', $request->input('billing_mode', 'tx')));
         $node->node_cpu = $request->input('node_cpu', $request->input('cpu'));
-        $node->node_memory = $request->input('node_memory', $request->input('memory'));
+        $node->node_memory = $nodeMemory;
         $node->node_disk = $request->input('node_disk', $request->input('disk'));
         $node->bandwidth = $request->input('bandwidth', 100);
-        $node->node_unlock = $request->input('node_unlock', '');
+        $node->node_unlock = (string)$request->input('node_unlock', ''); // Force raw string storage
         $node->info = $request->input('node_info', '');
-        $node->level = $request->input('node_level', 1);
+        $node->level = $mainLevel;
         $node->node_group = $request->input('node_group', 1);
-        $node->node_cost = $request->input('node_cost', 0);
+        $node->node_cost = $nodeCost;
         $node->traffic_limit = $request->input('node_traffic_limit', 1000) * 1024 * 1024 * 1024;
         $node->reset_day = (int)$request->input('node_traffic_resetday', 1);
         $node->sort = $request->input('node_sort', 0);
@@ -103,31 +115,72 @@ class NodeApiController extends Controller
         $node->status = 1;
         $node->save();
 
-        // Fission logic
-        $protocols = ($v2Name == 'xhttp-hy2-ws-grpc') ? ['xhttp', 'hy2', 'ws', 'grpc'] : ['vision', 'hy2', 'ws', 'grpc'];
+        // --- Fission matrix: build protocol × IP slots ---
+        $protocols = $this->expandProtocols($v2Name);
+        shuffle($protocols); // randomize protocol assignment across nodes
+
         $ips = [];
         if ($node->ip) $ips[] = ['type' => 'ipv4', 'addr' => $node->ip];
         if ($node->ipv6) $ips[] = ['type' => 'ipv6', 'addr' => $node->ipv6];
 
-        $cloneIds = [];
-        SsNode::where('is_clone', $nodeId)->delete();
-
-        $totalTarget = count($protocols) * count($ips);
-        $createdCount = 1;
-
+        // Build the full target slot list: (protocol, ipType, ipAddr)
+        $slots = [];
         foreach ($ips as $ipInfo) {
             foreach ($protocols as $protocol) {
-                if ($createdCount >= $totalTarget) break;
+                $slots[] = ['protocol' => $protocol, 'ip_type' => $ipInfo['type'], 'addr' => $ipInfo['addr']];
+            }
+        }
 
-                $clone = new SsNode();
-                $clone->name = $node->name . ' - ' . $protocol . ' (' . $ipInfo['type'] . ')';
-                $clone->v2_name = $v2Name;
-                $clone->is_clone = $nodeId;
-                $clone->node_rxtx_mode = $node->node_rxtx_mode;
-                $clone->ip = ($ipInfo['type'] == 'ipv4') ? $ipInfo['addr'] : '';
-                $clone->ipv6 = ($ipInfo['type'] == 'ipv6') ? $ipInfo['addr'] : '';
+        $totalTarget = count($slots);
+        if ($totalTarget === 0) {
+            return response()->json([
+                'status' => 'success',
+                'main_node_id' => $node->id,
+                'clone_node_ids' => [],
+                'root_domain' => $rootDomain,
+                'v2_name' => $v2Name,
+            ]);
+        }
+
+        // --- Clone reuse (anti-proliferation) ---
+        $existingClones = SsNode::where('is_clone', $nodeId)->get()->values();
+
+        $cloneIds = [];
+
+        // Slot 0 = main node itself (first protocol, first IP)
+        $mainSlot = array_shift($slots);
+        $node->v2_name = $mainSlot['protocol'];
+        $node->save();
+        $allNodeIds = [$node->id];
+
+        // Reuse existing clones for remaining slots
+        foreach ($slots as $i => $slot) {
+            if ($i < $existingClones->count()) {
+                // Revive existing clone
+                $clone = $existingClones[$i];
+                $clone->name = $node->name . ' - ' . $slot['protocol'] . ' (' . $slot['ip_type'] . ')';
+                $clone->v2_name = $slot['protocol'];
+                $clone->node_rxtx = $node->node_rxtx;
+                $clone->ip = ($slot['ip_type'] == 'ipv4') ? $slot['addr'] : '';
+                $clone->ipv6 = ($slot['ip_type'] == 'ipv6') ? $slot['addr'] : '';
                 $clone->type = 3;
-                $clone->level = $node->level;
+                $clone->level = rand($mainLevel, min(5, $mainLevel + 2)); // Staircase level engine [floor, floor+1, floor+2]
+                $clone->node_group = $node->node_group;
+                $clone->traffic_rate = $node->traffic_rate;
+                $clone->status = 1;
+                $clone->server = 'node' . $clone->id . '.' . $rootDomain;
+                $clone->save();
+            } else {
+                // Need to create new clone
+                $clone = new SsNode();
+                $clone->name = $node->name . ' - ' . $slot['protocol'] . ' (' . $slot['ip_type'] . ')';
+                $clone->v2_name = $slot['protocol'];
+                $clone->is_clone = $nodeId;
+                $clone->node_rxtx = $node->node_rxtx;
+                $clone->ip = ($slot['ip_type'] == 'ipv4') ? $slot['addr'] : '';
+                $clone->ipv6 = ($slot['ip_type'] == 'ipv6') ? $slot['addr'] : '';
+                $clone->type = 3;
+                $clone->level = rand($mainLevel, min(5, $mainLevel + 2)); // Staircase level engine
                 $clone->node_group = $node->node_group;
                 $clone->traffic_rate = $node->traffic_rate;
                 $clone->status = 1;
@@ -135,18 +188,40 @@ class NodeApiController extends Controller
 
                 $clone->server = 'node' . $clone->id . '.' . $rootDomain;
                 $clone->save();
+            }
 
-                $cloneIds[] = $clone->id;
-                $createdCount++;
+            $cloneIds[] = $clone->id;
+            $allNodeIds[] = $clone->id;
+        }
+
+        // Delete excess old clones if any
+        if ($existingClones->count() > count($slots)) {
+            foreach ($existingClones->skip(count($slots)) as $excess) {
+                $excess->delete();
             }
         }
+
+        // --- Seal node_ids into main node ---
+        $node->node_ids = json_encode($allNodeIds);
+        $node->save();
 
         return response()->json([
             'status' => 'success',
             'main_node_id' => $node->id,
             'clone_node_ids' => $cloneIds,
+            'node_ids' => $allNodeIds,
             'root_domain' => $rootDomain,
+            'v2_name' => $v2Name,
         ]);
+    }
+
+    /**
+     * Expand a protocol group string into individual protocol names.
+     * e.g. "vision-hy2-ws-grpc" → ["vision", "hy2", "ws", "grpc"]
+     */
+    private function expandProtocols($v2Name)
+    {
+        return explode('-', $v2Name);
     }
 
     /**
@@ -159,11 +234,13 @@ class NodeApiController extends Controller
     {
         $primaryDomain = $sysConf['node_root_domain'] ?? 'example.com';
 
-        // Build the pool: primary first, then backups
+        // Build pool: primary first, then JSON array backups
         $domainPool = [$primaryDomain];
         if (!empty($sysConf['node_domain_pool'])) {
-            $backups = array_map('trim', explode(',', $sysConf['node_domain_pool']));
-            $domainPool = array_merge($domainPool, $backups);
+            $decoded = json_decode($sysConf['node_domain_pool'], true);
+            if (is_array($decoded)) {
+                $domainPool = array_merge($domainPool, $decoded);
+            }
         }
         $domainPool = array_unique(array_filter($domainPool));
 
@@ -349,7 +426,7 @@ class NodeApiController extends Controller
             'root_domain' => $newRootDomain,
             'subdomain' => $newSubdomain,
             'record_type' => $type,
-            'ip_addr' => $newIp,
+            'ip_addr' => $ip,
             'cf_record_id' => $cfResult['id'],
             'cf_zone_id' => $cfResult['zone_id'] ?? null,
         ]);
@@ -444,12 +521,24 @@ class NodeApiController extends Controller
     private function applyUnlocks(&$config, $unlockStr)
     {
         $unlocks = [];
+        // Support both comma-separated and query-string formats
         parse_str(str_replace(',', '&', $unlockStr), $unlocks);
+        
         foreach ($unlocks as $key => $value) {
-            if ($value == 1) {
-                $tag = str_replace('unlock', '', $key);
-                $config['outbounds'][] = ['protocol' => 'freedom', 'settings' => ['domainStrategy' => 'UseIPv4'], 'tag' => 'outbound-' . $tag];
-                $config['routing']['rules'][] = ['type' => 'field', 'outboundTag' => 'outbound-' . $tag, 'domain' => ["geosite:" . strtolower($tag)]];
+            // Support 1, "1", "Yes", "true"
+            $isEnabled = in_array(strtolower((string)$value), ['1', 'yes', 'true', 'on']);
+            if ($isEnabled) {
+                $tag = str_replace(['unlock', ' '], '', $key);
+                $config['outbounds'][] = [
+                    'protocol' => 'freedom', 
+                    'settings' => ['domainStrategy' => 'UseIPv4'], 
+                    'tag' => 'outbound-' . $tag
+                ];
+                $config['routing']['rules'][] = [
+                    'type' => 'field', 
+                    'outboundTag' => 'outbound-' . $tag, 
+                    'domain' => ["geosite:" . strtolower($tag)]
+                ];
             }
         }
     }
@@ -468,8 +557,8 @@ class NodeApiController extends Controller
         $node = SsNode::find($nodeId);
         if (!$node) return response()->json(['status' => 'error', 'message' => 'Node not found'], 404);
 
-        // Billing logic using standardized field name
-        if ($node->node_rxtx_mode == 'rxtx') {
+        // Billing logic
+        if ($node->node_rxtx == 'rxtx') {
             $rawTotal = ($rawRx + $rawTx) / 2;
         } else {
             $rawTotal = $rawTx;

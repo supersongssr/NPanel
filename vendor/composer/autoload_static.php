@@ -634,6 +634,7 @@ class ComposerStaticInitafff032aeb9b4610f8ed2f20cc405693
         'App\\Console\\Commands\\AutoStatisticsUserDailyTraffic' => __DIR__ . '/../..' . '/app/Console/Commands/AutoStatisticsUserDailyTraffic.php',
         'App\\Console\\Commands\\AutoStatisticsUserHourlyTraffic' => __DIR__ . '/../..' . '/app/Console/Commands/AutoStatisticsUserHourlyTraffic.php',
         'App\\Console\\Commands\\ClearRateLimitCommand' => __DIR__ . '/../..' . '/app/Console/Commands/ClearRateLimitCommand.php',
+        'App\\Console\\Commands\\InitDnsRecords' => __DIR__ . '/../..' . '/app/Console/Commands/InitDnsRecords.php',
         'App\\Console\\Commands\\Test' => __DIR__ . '/../..' . '/app/Console/Commands/Test.php',
         'App\\Console\\Commands\\UserExpireAutoWarning' => __DIR__ . '/../..' . '/app/Console/Commands/UserExpireAutoWarning.php',
         'App\\Console\\Commands\\UserTrafficAbnormalAutoWarning' => __DIR__ . '/../..' . '/app/Console/Commands/UserTrafficAbnormalAutoWarning.php',

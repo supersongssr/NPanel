@@ -32,6 +32,7 @@ return array(
     'App\\Console\\Commands\\AutoStatisticsUserDailyTraffic' => $baseDir . '/app/Console/Commands/AutoStatisticsUserDailyTraffic.php',
     'App\\Console\\Commands\\AutoStatisticsUserHourlyTraffic' => $baseDir . '/app/Console/Commands/AutoStatisticsUserHourlyTraffic.php',
     'App\\Console\\Commands\\ClearRateLimitCommand' => $baseDir . '/app/Console/Commands/ClearRateLimitCommand.php',
+    'App\\Console\\Commands\\InitDnsRecords' => $baseDir . '/app/Console/Commands/InitDnsRecords.php',
     'App\\Console\\Commands\\Test' => $baseDir . '/app/Console/Commands/Test.php',
     'App\\Console\\Commands\\UserExpireAutoWarning' => $baseDir . '/app/Console/Commands/UserExpireAutoWarning.php',
     'App\\Console\\Commands\\UserTrafficAbnormalAutoWarning' => $baseDir . '/app/Console/Commands/UserTrafficAbnormalAutoWarning.php',
