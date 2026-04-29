@@ -66,7 +66,7 @@ $req1 = Request::create('/api/node/register', 'POST', [
     'token' => $apiToken,
     'node_id' => $node1->id,
     'node_ip' => '10.0.0.100',
-    'node_memory' => 1024,
+    'node_memory' => 1,
     'node_cost' => 1.5,
 ]);
 $resp1 = $controller->register($req1);
@@ -103,7 +103,7 @@ $req2 = Request::create('/api/node/register', 'POST', [
     'token' => $apiToken,
     'node_id' => $node2->id,
     'node_ip' => '10.0.0.200',
-    'node_memory' => 4096,
+    'node_memory' => 4,
     'node_cost' => 1.5,
 ]);
 $resp2 = $controller->register($req2);
@@ -129,7 +129,7 @@ $req3 = Request::create('/api/node/register', 'POST', [
     'token' => $apiToken,
     'node_id' => $node3->id,
     'node_ip' => '10.0.0.300',
-    'node_memory' => 1024,
+    'node_memory' => 1,
     'node_cost' => 2.8,
 ]);
 $resp3 = $controller->register($req3);
@@ -161,12 +161,48 @@ $req3b = Request::create('/api/node/register', 'POST', [
     'token' => $apiToken,
     'node_id' => $node3b->id,
     'node_ip' => '10.0.0.301',
-    'node_memory' => 1024,
+    'node_memory' => 1,
     'node_cost' => 0,
 ]);
 $resp3b = $controller->register($req3b);
 $mainNode3b = SsNode::find($node3b->id);
 assert_test('node_cost=0 → level = 1 (minimum)', $mainNode3b->level === 1, "Got: {$mainNode3b->level}");
+
+// Test: client-reported node_level overrides tiered engine
+$node3c = new SsNode();
+$node3c->name = 'QA_TEST_Level_Client';
+$node3c->ip = '10.0.0.302';
+$node3c->status = 0;
+$node3c->save();
+
+$req3c = Request::create('/api/node/register', 'POST', [
+    'token' => $apiToken,
+    'node_id' => $node3c->id,
+    'node_ip' => '10.0.0.302',
+    'node_memory' => 1,
+    'node_cost' => 2.8,
+    'node_level' => 4,
+]);
+$resp3c = $controller->register($req3c);
+$mainNode3c = SsNode::find($node3c->id);
+assert_test('Client node_level=4 overrides floor(2.8)=2', $mainNode3c->level === 4, "Got: {$mainNode3c->level}");
+
+// Test: client-reported v2_name overrides dynamic allocation
+$node3d = new SsNode();
+$node3d->name = 'QA_TEST_V2Name_Client';
+$node3d->ip = '10.0.0.303';
+$node3d->status = 0;
+$node3d->save();
+
+$req3d = Request::create('/api/node/register', 'POST', [
+    'token' => $apiToken,
+    'node_id' => $node3d->id,
+    'node_ip' => '10.0.0.303',
+    'node_memory' => 1,
+    'v2_name' => 'xhttp-hy2-ws-grpc',
+]);
+$resp3d = $controller->register($req3d);
+assert_test('Client v2_name overrides dynamic allocation (1GB gets xhttp)', ($resp3d->getData()->v2_name ?? '') === 'xhttp-hy2-ws-grpc', "Got: " . ($resp3d->getData()->v2_name ?? 'null'));
 
 // =====================================================
 echo "\n=== QA Assertion 4: Clone Reuse (Anti-Proliferation) ===\n";
@@ -179,7 +215,7 @@ $req4 = Request::create('/api/node/register', 'POST', [
     'token' => $apiToken,
     'node_id' => $node1->id,
     'node_ip' => '10.0.0.100',
-    'node_memory' => 1024,
+    'node_memory' => 1,
     'node_cost' => 1.5,
 ]);
 $resp4 = $controller->register($req4);
@@ -235,7 +271,7 @@ $req5 = Request::create('/api/node/register', 'POST', [
     'token' => $apiToken,
     'node_id' => $node5->id,
     'node_ip' => '10.0.0.50',
-    'node_memory' => 1024,
+    'node_memory' => 1,
     'node_unlock' => $unlockStr,
 ]);
 $controller->register($req5);
@@ -255,6 +291,7 @@ assert_test('Config has low protocol', isset($presets['low']) && $presets['low']
 $controllerCode = file_get_contents(base_path('app/Http/Controllers/Api/NodeApiController.php'));
 assert_test('No hardcoded "2G" in controller', strpos($controllerCode, '"2G"') === false && strpos($controllerCode, "'2G'") === false);
 assert_test('No hardcoded > 2048 comparison in controller', strpos($controllerCode, '> 2048') === false);
+assert_test('Controller converts threshold_mb to GB for comparison', strpos($controllerCode, 'thresholdMb / 1024') !== false);
 assert_test('No hardcoded "vision-hy2-ws-grpc" in controller logic (only defaults)', substr_count($controllerCode, 'vision-hy2-ws-grpc') <= 3, 'Found ' . substr_count($controllerCode, 'vision-hy2-ws-grpc') . ' occurrences');
 
 // =====================================================

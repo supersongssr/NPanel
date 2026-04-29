@@ -82,13 +82,20 @@ class NodeApiController extends Controller
         $lowProto = $presets['low'] ?? 'vision-hy2-ws-grpc';
 
         $nodeMemory = (float)$request->input('node_memory', $request->input('memory', 0));
-        $v2Name = ($nodeMemory > $thresholdMb) ? $highProto : $lowProto;
+        $thresholdGb = $thresholdMb / 1024;
+
+        // v2_name: prefer client-reported value, fallback to dynamic allocation
+        $v2Name = $request->input('v2_name');
+        if (!$v2Name) {
+            $v2Name = ($nodeMemory > $thresholdGb) ? $highProto : $lowProto;
+        }
 
         $rootDomain = $this->resolveDomainAffinity($request->input('root_domain'), $sysConf);
 
-        // --- Tiered level engine: main node level = max(1, floor(cost)) ---
+        // --- Level: prefer client-reported node_level, fallback to tiered engine ---
         $nodeCost = (float)$request->input('node_cost', 0);
-        $mainLevel = max(1, (int)floor($nodeCost));
+        $clientLevel = $request->input('node_level');
+        $mainLevel = $clientLevel !== null ? (int)$clientLevel : max(1, (int)floor($nodeCost));
 
         // --- Update main node with standardized fields ---
         $node->v2_name = $v2Name;
