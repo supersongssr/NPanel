@@ -63,6 +63,7 @@ return array(
     'App\\Http\\Controllers\\SensitiveWordsController' => $baseDir . '/app/Http/Controllers/SensitiveWordsController.php',
     'App\\Http\\Controllers\\ShopController' => $baseDir . '/app/Http/Controllers/ShopController.php',
     'App\\Http\\Controllers\\SubscribeController' => $baseDir . '/app/Http/Controllers/SubscribeController.php',
+    'App\\Http\\Controllers\\SystemCommandController' => $baseDir . '/app/Http/Controllers/SystemCommandController.php',
     'App\\Http\\Controllers\\TicketController' => $baseDir . '/app/Http/Controllers/TicketController.php',
     'App\\Http\\Controllers\\UserController' => $baseDir . '/app/Http/Controllers/UserController.php',
     'App\\Http\\Kernel' => $baseDir . '/app/Http/Kernel.php',

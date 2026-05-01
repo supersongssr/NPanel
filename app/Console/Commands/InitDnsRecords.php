@@ -11,7 +11,7 @@ use App\Http\Models\SsNode;
 
 class InitDnsRecords extends Command
 {
-    protected $signature = 'initDnsRecords';
+    protected $signature = 'initDnsRecords {--execute : 确认执行DNS同步}';
     protected $description = 'Sync DNS records from Cloudflare: clean orphans, upsert matched A/AAAA records';
 
     /**
@@ -84,7 +84,9 @@ class InitDnsRecords extends Command
             // Build a lookup: cf_record_id => cf record data
             $cfById = [];
             foreach ($cfRecords as $r) {
-                $cfById[$r['id']] = $r;
+                if (is_array($r) && isset($r['id'])) {
+                    $cfById[$r['id']] = $r;
+                }
             }
 
             // --- Phase 1: Clean orphaned local records ---
@@ -103,18 +105,24 @@ class InitDnsRecords extends Command
             }
             $this->info("  Cleaned {$orphansDeleted} orphaned local records");
 
-            // --- Phase 2: Upsert CF records that match nodes by subdomain ---
-            // Match CF record FQDN against ss_node.server (e.g. "n156.ssmail.win")
-            // This avoids ambiguity from shared IPs across clones.
+            // --- Phase 2: Upsert ALL CF A/AAAA records into dns_records ---
+            // node_id is linked when a matching ss_node.server is found, otherwise 0 (orphan).
             $upserted = 0;
+            $linked = 0;
+            $orphan = 0;
             foreach ($cfRecords as $cfRecord) {
-                $ip = $cfRecord['content'];
-                $type = $cfRecord['type'];
-                $fullName = $cfRecord['name'];
+                if (!is_array($cfRecord)) continue;
 
-                // Find node by matching server field (= subdomain.root_domain)
+                $ip = $cfRecord['content'] ?? null;
+                $type = $cfRecord['type'] ?? null;
+                $fullName = $cfRecord['name'] ?? null;
+                $cfId = $cfRecord['id'] ?? null;
+
+                if (!$ip || !$type || !$fullName || !$cfId) continue;
+
+                // Link to node if server field matches, otherwise node_id = 0
                 $node = SsNode::where('server', $fullName)->first();
-                if (!$node) continue;
+                $nodeId = $node ? $node->id : 0;
 
                 // Parse subdomain from CF record name (e.g. "n156.ssmail.win" → "n156")
                 $subdomain = $fullName;
@@ -122,8 +130,8 @@ class InitDnsRecords extends Command
                     $subdomain = str_replace('.' . $domainName, '', $fullName);
                 }
 
-                // Upsert into dns_records
-                $existing = DnsRecord::where('cf_record_id', $cfRecord['id'])->first();
+                // Upsert into dns_records by cf_record_id (CF unique key)
+                $existing = DnsRecord::where('cf_record_id', $cfId)->first();
                 if (!$existing) {
                     $existing = DnsRecord::where('root_domain', $domainName)
                         ->where('subdomain', $subdomain)
@@ -132,28 +140,27 @@ class InitDnsRecords extends Command
                 }
 
                 if ($existing) {
-                    $existing->node_id = $node->id;
+                    $existing->node_id = $nodeId;
                     $existing->root_domain = $domainName;
                     $existing->subdomain = $subdomain;
                     $existing->record_type = $type;
                     $existing->ip_addr = $ip;
-                    $existing->cf_record_id = $cfRecord['id'];
-                    $existing->cf_zone_id = $cfRecord['zone_id'] ?? $zoneId;
+                    $existing->cf_record_id = $cfId;
                     $existing->save();
                 } else {
                     DnsRecord::create([
-                        'node_id' => $node->id,
+                        'node_id' => $nodeId,
                         'root_domain' => $domainName,
                         'subdomain' => $subdomain,
                         'record_type' => $type,
                         'ip_addr' => $ip,
-                        'cf_record_id' => $cfRecord['id'],
-                        'cf_zone_id' => $cfRecord['zone_id'] ?? $zoneId,
+                        'cf_record_id' => $cfId,
                     ]);
                 }
                 $upserted++;
+                if ($nodeId > 0) { $linked++; } else { $orphan++; }
             }
-            $this->info("  Upserted {$upserted} records linked to nodes by subdomain");
+            $this->info("  Upserted {$upserted} records (linked: {$linked}, orphan: {$orphan})");
         }
 
         $this->info('DNS reconciliation complete.');

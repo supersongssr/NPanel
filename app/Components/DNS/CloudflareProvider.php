@@ -7,19 +7,17 @@ use Illuminate\Support\Facades\Log;
 
 class CloudflareProvider implements DnsProviderInterface
 {
-    protected $email;
-    protected $apiKey;
+    protected $token;
 
     public function __construct()
     {
-        $this->email = env('CLOUDFLARE_EMAIL');
-        $this->apiKey = env('CLOUDFLARE_API_KEY');
+        $this->token = env('CLOUDFLARE_TOKEN');
     }
 
     public function updateRecord($domain, $host, $value, $type = 'A', $zoneId = null)
     {
-        if (empty($this->email) || empty($this->apiKey)) {
-            Log::error('Cloudflare credentials missing in .env');
+        if (empty($this->token)) {
+            Log::error('Cloudflare token missing in .env');
             return false;
         }
 
@@ -109,9 +107,9 @@ class CloudflareProvider implements DnsProviderInterface
      */
     public function listRecords($domain, $type = null, $zoneId = null)
     {
-        $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records?name=.{$domain}";
+        $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records";
         if ($type) {
-            $url .= "&type={$type}";
+            $url .= "?type={$type}";
         }
         $res = $this->sendRequest($url, 'GET');
         if ($res && $res['success']) {
@@ -137,14 +135,13 @@ class CloudflareProvider implements DnsProviderInterface
 
     private function sendRequest($url, $method, $data = null)
     {
-        if (empty($this->email) || empty($this->apiKey)) {
-            Log::error('Cloudflare credentials missing in .env');
+        if (empty($this->token)) {
+            Log::error('Cloudflare token missing in .env');
             return false;
         }
 
         $headers = [
-            "X-Auth-Email: {$this->email}",
-            "X-Auth-Key: {$this->apiKey}",
+            "Authorization: Bearer {$this->token}",
             "Content-Type: application/json"
         ];
 

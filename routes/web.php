@@ -107,6 +107,8 @@ Route::group(['middleware' => ['isLogin', 'isAdmin']], function () {
     Route::get('logs', '\Rap2hpoutre\LaravelLogViewer\LogViewerController@index'); // 系统运行日志
     Route::any('admin/profile', 'AdminController@profile'); // 修改个人信息
     Route::get('admin/makePort', 'AdminController@makePort'); // 生成端口
+    Route::get('admin/commands', 'SystemCommandController@index'); // 系统任务调度
+    Route::post('admin/artisan/run', 'SystemCommandController@run'); // 执行Artisan命令
 });
 
 Route::group(['middleware' => ['isLogin']], function () {

@@ -307,7 +307,7 @@
                         </li>
                     </ul>
                 </li>
-                <li class="nav-item {{in_array(Request::path(), ['admin/config', 'admin/addConfig', 'admin/system']) ? 'active open' : ''}}">
+                <li class="nav-item {{in_array(Request::path(), ['admin/config', 'admin/addConfig', 'admin/system', 'admin/commands']) ? 'active open' : ''}}">
                     <a href="javascript:;" class="nav-link nav-toggle">
                         <i class="fa fa-gear"></i>
                         <span class="title">设置</span>
@@ -324,6 +324,12 @@
                             <a href="/admin/system" class="nav-link ">
                                 <i class="fa fa-cogs"></i>
                                 <span class="title">系统设置</span>
+                            </a>
+                        </li>
+                        <li class="nav-item {{in_array(Request::path(), ['admin/commands']) ? 'active open' : ''}}">
+                            <a href="/admin/commands" class="nav-link ">
+                                <i class="fa fa-terminal"></i>
+                                <span class="title">系统任务调度</span>
                             </a>
                         </li>
                     </ul>

@@ -52,7 +52,7 @@ assert_test('node_cpu column exists', in_array('node_cpu', $colNames));
 assert_test('node_memory column exists', in_array('node_memory', $colNames));
 assert_test('node_disk column exists', in_array('node_disk', $colNames));
 assert_test('node_health column exists', in_array('node_health', $colNames));
-assert_test('node_rxtx_mode column exists', in_array('node_rxtx_mode', $colNames));
+assert_test('node_rxtx column exists', in_array('node_rxtx', $colNames));
 assert_test('node_country column exists', in_array('node_country', $colNames));
 assert_test('node_city column exists', in_array('node_city', $colNames));
 assert_test('Old "cpu" column removed', !in_array('cpu', $colNames));
@@ -75,7 +75,6 @@ assert_test('dns_records.subdomain exists', in_array('subdomain', $dnsColNames))
 assert_test('dns_records.record_type exists', in_array('record_type', $dnsColNames));
 assert_test('dns_records.ip_addr exists', in_array('ip_addr', $dnsColNames));
 assert_test('dns_records.cf_record_id exists', in_array('cf_record_id', $dnsColNames));
-assert_test('dns_records.cf_zone_id exists', in_array('cf_zone_id', $dnsColNames));
 
 // =====================================================
 echo "\n=== QA Assertion 3: SsNode Model Field Mapping ===\n";
@@ -93,22 +92,22 @@ $node->save();
 assert_test('Node created with ID', $node->id > 0);
 
 // Test new field writes
-$node->node_cpu = '4 cores';
+$node->node_cpu = 4;
 $node->node_memory = 8.0;
 $node->node_disk = 100.0;
 $node->node_health = 1;
-$node->node_rxtx_mode = 'rxtx';
+$node->node_rxtx = 'rxtx';
 $node->node_country = 'US';
 $node->node_city = 'Los Angeles';
 $node->save();
 
 // Reload from DB
 $reloaded = SsNode::find($node->id);
-assert_test('node_cpu read/write', $reloaded->node_cpu === '4 cores');
+assert_test('node_cpu read/write', $reloaded->node_cpu === 4);
 assert_test('node_memory read/write', $reloaded->node_memory == 8.0);
 assert_test('node_disk read/write', $reloaded->node_disk == 100.0);
 assert_test('node_health read/write', $reloaded->node_health == 1);
-assert_test('node_rxtx_mode read/write', $reloaded->node_rxtx_mode === 'rxtx');
+assert_test('node_rxtx read/write', $reloaded->node_rxtx === 'rxtx');
 assert_test('node_country read/write', $reloaded->node_country === 'US');
 assert_test('node_city read/write', $reloaded->node_city === 'Los Angeles');
 
@@ -197,7 +196,6 @@ $dnsRec = DnsRecord::create([
     'record_type' => 'A',
     'ip_addr' => '5.6.7.8',
     'cf_record_id' => 'cf-12345',
-    'cf_zone_id' => 'zone-abc',
 ]);
 
 assert_test('DnsRecord created', $dnsRec->id > 0);

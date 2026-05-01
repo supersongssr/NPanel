@@ -665,6 +665,7 @@ class ComposerStaticInitafff032aeb9b4610f8ed2f20cc405693
         'App\\Http\\Controllers\\SensitiveWordsController' => __DIR__ . '/../..' . '/app/Http/Controllers/SensitiveWordsController.php',
         'App\\Http\\Controllers\\ShopController' => __DIR__ . '/../..' . '/app/Http/Controllers/ShopController.php',
         'App\\Http\\Controllers\\SubscribeController' => __DIR__ . '/../..' . '/app/Http/Controllers/SubscribeController.php',
+        'App\\Http\\Controllers\\SystemCommandController' => __DIR__ . '/../..' . '/app/Http/Controllers/SystemCommandController.php',
         'App\\Http\\Controllers\\TicketController' => __DIR__ . '/../..' . '/app/Http/Controllers/TicketController.php',
         'App\\Http\\Controllers\\UserController' => __DIR__ . '/../..' . '/app/Http/Controllers/UserController.php',
         'App\\Http\\Kernel' => __DIR__ . '/../..' . '/app/Http/Kernel.php',

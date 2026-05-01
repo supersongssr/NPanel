@@ -79,10 +79,15 @@ class NodeApiController extends Controller
 
     /**
      * Get the zone_id for a specific domain from pool metadata.
+     * Logs error if missing.
      */
-    private function getDomainZoneId(array $meta)
+    private function getDomainZoneId(array $meta, $domain = 'unknown')
     {
-        return $meta['zone_id'] ?? null;
+        $zoneId = $meta['zone_id'] ?? null;
+        if (!$zoneId) {
+            Log::error("[Node API] 未能从配置池中找到域名 {$domain} 的 Zone ID");
+        }
+        return $zoneId;
     }
 
     /**
@@ -379,7 +384,11 @@ class NodeApiController extends Controller
         // Look up zone_id from domain pool for this root domain
         $sysConf = Helpers::systemConfig();
         $parsed = $this->parseDomainPool($sysConf);
-        $zoneId = $this->getDomainZoneId($parsed['domainPool'][$targetRootDomain] ?? []);
+        $zoneId = $this->getDomainZoneId($parsed['domainPool'][$targetRootDomain] ?? [], $targetRootDomain);
+
+        if (!$zoneId) {
+            return response()->json(['status' => 'error', 'message' => "Zone ID missing for domain {$targetRootDomain}"], 500);
+        }
 
         $dnsProvider = app(\App\Components\DNS\CloudflareProvider::class);
         $results = [];
@@ -451,6 +460,9 @@ class NodeApiController extends Controller
 
         // Scene C: Domain changed — POST new + DELETE old
         $oldZoneId = $this->getDomainZoneIdForRecord($oldRecord);
+        if (!$oldZoneId) {
+            return ['action' => 'swap_failed', 'success' => false, 'message' => "Old domain Zone ID missing: {$oldRecord->root_domain}"];
+        }
         return $this->swapDnsRecord($dnsProvider, $oldRecord, $nodeId, $targetSubdomain, $targetRootDomain, $type, $targetIp, $oldZoneId, $zoneId);
     }
 
@@ -461,7 +473,7 @@ class NodeApiController extends Controller
     {
         $sysConf = Helpers::systemConfig();
         $parsed = $this->parseDomainPool($sysConf);
-        return $this->getDomainZoneId($parsed['domainPool'][$record->root_domain] ?? []);
+        return $this->getDomainZoneId($parsed['domainPool'][$record->root_domain] ?? [], $record->root_domain);
     }
 
     /**
@@ -488,7 +500,6 @@ class NodeApiController extends Controller
             'record_type' => $type,
             'ip_addr' => $ip,
             'cf_record_id' => $cfResult['id'],
-            'cf_zone_id' => $cfResult['zone_id'] ?? $zoneId,
         ]);
 
         Log::info('[Node API] DNS 记录创建成功', [
@@ -583,7 +594,6 @@ class NodeApiController extends Controller
             'record_type' => $type,
             'ip_addr' => $newIp,
             'cf_record_id' => $cfResult['id'],
-            'cf_zone_id' => $cfResult['zone_id'] ?? $newZoneId,
         ]);
 
         return ['action' => 'swapped_domain', 'success' => true, 'message' => 'Domain swapped'];

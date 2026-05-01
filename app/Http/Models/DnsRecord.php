@@ -11,7 +11,7 @@ class DnsRecord extends Model
 
     protected $fillable = [
         'node_id', 'root_domain', 'subdomain', 'record_type',
-        'ip_addr', 'cf_record_id', 'cf_zone_id',
+        'ip_addr', 'cf_record_id',
     ];
 
     function node()
