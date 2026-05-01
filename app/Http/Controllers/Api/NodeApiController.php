@@ -43,7 +43,7 @@ class NodeApiController extends Controller
         if (!empty($raw)) {
             $decoded = json_decode($raw, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                Log::warning("node_domain_pool JSON parse error: " . json_last_error_msg());
+                Log::warning('node_domain_pool JSON parse error', ['error' => json_last_error_msg()]);
                 $decoded = null;
             }
 
@@ -103,6 +103,11 @@ class NodeApiController extends Controller
         $node->ipv6 = $nodeIpv6 ?: '';
         $node->status = 0;
         $node->save();
+
+        Log::info('[Node API] ID 申请成功', [
+            'ip' => $request->ip(),
+            'new_node_id' => $node->id
+        ]);
 
         return response()->json(['node_id' => $node->id]);
     }
@@ -269,6 +274,17 @@ class NodeApiController extends Controller
         $node->node_ids = $nodeIdsStr;
         $node->save();
 
+        Log::info('[Node API] 节点注册成功', [
+            'main_node_id' => $node->id,
+            'protocol_group' => $v2Name,
+            'domain_decision' => $rootDomain,
+            'node_ids' => $allNodeIds,
+            'total_nodes_generated' => count($allNodeIds),
+            'deleted_count' => $existingClones->count() > count($slots) ? $existingClones->count() - count($slots) : 0,
+            'ip' => $node->ip,
+            'ipv6' => $node->ipv6
+        ]);
+
         $response = [
             'status' => 'success',
             'main_node_id' => $node->id,
@@ -418,6 +434,13 @@ class NodeApiController extends Controller
 
         // Scene A: Identical — no-op, intercept CF call
         if ($sameDomain && $sameIp) {
+            Log::info('[Node API] DNS 对账跳过', [
+                'node_id' => $nodeId,
+                'domain' => $targetRootDomain,
+                'subdomain' => $targetSubdomain,
+                'ip' => $targetIp,
+                'reason' => 'Identical'
+            ]);
             return ['action' => 'no_change', 'success' => true, 'message' => 'DNS already up-to-date'];
         }
 
@@ -448,6 +471,12 @@ class NodeApiController extends Controller
     {
         $cfResult = $dnsProvider->createRecord($rootDomain, $subdomain, $ip, $type, $zoneId);
         if (!$cfResult) {
+            Log::error("[Node API] DNS 创建失败 (CF API Error)", [
+                'node_id' => $nodeId,
+                'domain' => $subdomain . '.' . $rootDomain,
+                'type' => $type,
+                'ip' => $ip
+            ]);
             return ['action' => 'create_failed', 'success' => false, 'message' => 'CF create failed'];
         }
 
@@ -460,6 +489,14 @@ class NodeApiController extends Controller
             'ip_addr' => $ip,
             'cf_record_id' => $cfResult['id'],
             'cf_zone_id' => $cfResult['zone_id'] ?? $zoneId,
+        ]);
+
+        Log::info('[Node API] DNS 记录创建成功', [
+            'node_id' => $nodeId,
+            'domain' => $subdomain . '.' . $rootDomain,
+            'type' => $type,
+            'ip' => $ip,
+            'cf_id' => $cfResult['id']
         ]);
 
         return ['action' => 'created', 'success' => true, 'message' => 'DNS record created'];
@@ -479,8 +516,21 @@ class NodeApiController extends Controller
             $zoneId
         );
         if (!$cfResult) {
+            Log::error("[Node API] DNS 更新失败 (CF API Error)", [
+                'node_id' => $oldRecord->node_id,
+                'domain' => $oldRecord->subdomain . '.' . $oldRecord->root_domain,
+                'old_ip' => $oldRecord->ip_addr,
+                'new_ip' => $newIp
+            ]);
             return ['action' => 'update_failed', 'success' => false, 'message' => 'CF update failed'];
         }
+
+        Log::info('[Node API] DNS IP 更新成功', [
+            'node_id' => $oldRecord->node_id,
+            'domain' => $oldRecord->subdomain . '.' . $oldRecord->root_domain,
+            'old_ip' => $oldRecord->ip_addr,
+            'new_ip' => $newIp
+        ]);
 
         // CF success → update local record
         $oldRecord->ip_addr = $newIp;
@@ -499,15 +549,30 @@ class NodeApiController extends Controller
         // Step 1: Create new record in CF (POST first to ensure target survives failure)
         $cfResult = $dnsProvider->createRecord($newRootDomain, $newSubdomain, $newIp, $type, $newZoneId);
         if (!$cfResult) {
-            Log::error("resolve_dns: CF POST failed for node {$nodeId}, aborting swap to preserve old record");
+            Log::error("[Node API] DNS 跨域迁移失败 (CF POST Error)", [
+                'node_id' => $nodeId,
+                'old_domain' => $oldRecord->subdomain . '.' . $oldRecord->root_domain,
+                'new_domain' => $newSubdomain . '.' . $newRootDomain,
+                'ip' => $newIp
+            ]);
             return ['action' => 'swap_failed', 'success' => false, 'message' => 'CF create failed, swap aborted'];
         }
 
         // Step 2: Delete old record from CF (POST succeeded, so old is now redundant)
         $deleteOk = $dnsProvider->deleteRecord($oldRecord->cf_record_id, $oldZoneId);
         if (!$deleteOk) {
-            Log::warning("resolve_dns: CF DELETE failed for record {$oldRecord->cf_record_id} after successful POST. Orphan left on CF.");
+            Log::warning("[Node API] DNS 旧记录清理失败 (Orphan left on CF)", [
+                'cf_id' => $oldRecord->cf_record_id,
+                'domain' => $oldRecord->subdomain . '.' . $oldRecord->root_domain
+            ]);
         }
+
+        Log::info('[Node API] DNS 跨域迁移成功', [
+            'node_id' => $nodeId,
+            'old_domain' => $oldRecord->subdomain . '.' . $oldRecord->root_domain,
+            'new_domain' => $newSubdomain . '.' . $newRootDomain,
+            'ip' => $newIp
+        ]);
 
         // Step 3: Atomic replacement in local DB
         $oldRecord->delete();
@@ -574,6 +639,17 @@ class NodeApiController extends Controller
         $config = $this->injectVariables($config, $vars);
         if (isset($config['ssrpanel'])) $config['ssrpanel']['nodeId'] = (int)$node->id;
         if ($node->node_unlock) $this->applyUnlocks($config, $node->node_unlock);
+
+        // Mask sensitive data for logging
+        $logVars = $vars;
+        $logVars['__dbPassword__'] = '******';
+
+        Log::debug('[Node API] 配置下发', [
+            'node_id' => $node->id,
+            'template' => $v2Name,
+            'variables' => $logVars,
+            'unlocks' => $node->node_unlock ? count(explode(',', $node->node_unlock)) : 0
+        ]);
 
         return response()->json($config);
     }
@@ -692,6 +768,30 @@ class NodeApiController extends Controller
         }
 
         $node->save();
+
+        $logData = [
+            'node_id' => $nodeId,
+            'raw_rx' => $rawRx,
+            'raw_tx' => $rawTx,
+            'incremental' => $incremental,
+            'used' => $node->traffic_used,
+            'limit' => $node->traffic_limit,
+            'health' => $node->node_health
+        ];
+
+        if ($node->status == 0) {
+            Log::warning('[Node API] 节点熔断下线', array_merge($logData, [
+                'reason' => 'Remaining traffic < 120GB',
+                'remaining' => $node->traffic_limit - $node->traffic_used
+            ]));
+        } elseif ($node->node_health == 0) {
+            Log::warning('[Node API] 节点健康度预警', array_merge($logData, [
+                'reason' => 'Consumption rate exceeds remaining budget'
+            ]));
+        } else {
+            Log::info('[Node API] 状态上报', $logData);
+        }
+
         return response()->json(['status' => 'success', 'node_status' => $node->status]);
     }
 }
