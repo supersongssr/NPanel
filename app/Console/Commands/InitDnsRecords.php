@@ -14,33 +14,19 @@ class InitDnsRecords extends Command
     protected $signature = 'initDnsRecords {--execute : 确认执行DNS同步}';
     protected $description = 'Sync DNS records from Cloudflare: clean orphans, upsert matched A/AAAA records';
 
-    /**
-     * where: dns_records table + Cloudflare API
-     * why: Keep local DNS state in sync with cloud truth. Clean stale records, capture new ones.
-     * how: For each domain in the pool, fetch A/AAAA from CF, diff against local, reconcile.
-     *
-     * must: Only touch A and AAAA records. Never delete TXT, MX, CNAME, etc.
-     */
     public function handle()
     {
         $sysConf = Helpers::systemConfig();
 
-        // Build domain pool from node_domain_pool (dict or legacy array)
+        // Build domain pool
         $domains = [];
         if (!empty($sysConf['node_domain_pool'])) {
             $pool = json_decode($sysConf['node_domain_pool'], true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->error('node_domain_pool JSON parse error: ' . json_last_error_msg());
-                return 1;
-            }
-
-            if (is_array($pool)) {
+            if (json_last_error() === JSON_ERROR_NONE && is_array($pool)) {
                 $firstKey = array_key_first($pool);
                 if ($firstKey !== null && is_string($firstKey) && is_array($pool[$firstKey])) {
-                    // New dict format: {"domain.com": {"zone_id": "...", ...}}
                     $domains = $pool;
                 } else {
-                    // Legacy array format: ["domain.com", ...]
                     foreach (array_values(array_unique(array_filter($pool))) as $domain) {
                         if (is_string($domain) && $domain !== '') {
                             $domains[$domain] = [];
@@ -50,28 +36,57 @@ class InitDnsRecords extends Command
             }
         }
 
-        // Fallback to node_root_domain if pool is empty
         if (empty($domains) && !empty($sysConf['node_root_domain'])) {
             $domains[$sysConf['node_root_domain']] = [];
         }
 
         if (empty($domains)) {
-            $this->error('No domains configured. Set node_domain_pool in config.');
+            $this->error('No domains configured.');
             return 1;
         }
 
         $dnsProvider = app(CloudflareProvider::class);
+        $configUpdated = false;
 
         foreach ($domains as $domainName => $meta) {
             $zoneId = $meta['zone_id'] ?? null;
-            $this->info("Processing domain: {$domainName}" . ($zoneId ? " (zone: {$zoneId})" : ''));
 
-            // Fetch A and AAAA records from CF using zone_id from config
+            // --- Auto-Discovery Logic ---
+            if (empty($zoneId) || strpos($zoneId, '8d8f') !== false) {
+                $this->warn("  Zone ID missing or suspicious for {$domainName}. Attempting auto-discovery...");
+                $discoveredId = $dnsProvider->getZoneIdByName($domainName);
+                if ($discoveredId) {
+                    $this->info("  Discovered Zone ID for {$domainName}: {$discoveredId}");
+                    $zoneId = $discoveredId;
+                    $domains[$domainName]['zone_id'] = $discoveredId;
+                    $configUpdated = true;
+                } else {
+                    $this->error("  Failed to discover Zone ID for {$domainName}. Skipping.");
+                    continue;
+                }
+            }
+
+            $this->info("Processing domain: {$domainName} (zone: {$zoneId})");
+
             $cfRecords = [];
             foreach (['A', 'AAAA'] as $type) {
                 $records = $dnsProvider->listRecords($domainName, $type, $zoneId);
+
+                // Retry discovery on 403
+                if ($records === false && !empty($zoneId)) {
+                    $this->warn("  Access denied with Zone ID {$zoneId}. Retrying with fresh discovery...");
+                    $discoveredId = $dnsProvider->getZoneIdByName($domainName);
+                    if ($discoveredId && $discoveredId !== $zoneId) {
+                        $this->info("  Discovered NEW Zone ID: {$discoveredId}");
+                        $zoneId = $discoveredId;
+                        $domains[$domainName]['zone_id'] = $discoveredId;
+                        $configUpdated = true;
+                        $records = $dnsProvider->listRecords($domainName, $type, $zoneId);
+                    }
+                }
+
                 if ($records === false) {
-                    $this->warn("  Failed to fetch {$type} records from Cloudflare for {$domainName}");
+                    $this->warn("  Failed to fetch {$type} records for {$domainName}");
                     continue;
                 }
                 foreach ($records as $r) {
@@ -81,7 +96,6 @@ class InitDnsRecords extends Command
 
             $this->info("  Found " . count($cfRecords) . " A/AAAA records on Cloudflare");
 
-            // Build a lookup: cf_record_id => cf record data
             $cfById = [];
             foreach ($cfRecords as $r) {
                 if (is_array($r) && isset($r['id'])) {
@@ -89,8 +103,7 @@ class InitDnsRecords extends Command
                 }
             }
 
-            // --- Phase 1: Clean orphaned local records ---
-            // Only touch A and AAAA type records
+            // Phase 1: Clean orphans
             $localRecords = DnsRecord::where('root_domain', $domainName)
                 ->whereIn('record_type', ['A', 'AAAA'])
                 ->get();
@@ -98,21 +111,18 @@ class InitDnsRecords extends Command
             $orphansDeleted = 0;
             foreach ($localRecords as $local) {
                 if ($local->cf_record_id && !isset($cfById[$local->cf_record_id])) {
-                    $this->warn("  Deleting orphan: {$local->subdomain}.{$domainName} ({$local->record_type}) - CF record missing");
+                    $this->warn("  Deleting orphan: {$local->subdomain}.{$domainName} ({$local->record_type})");
                     $local->delete();
                     $orphansDeleted++;
                 }
             }
             $this->info("  Cleaned {$orphansDeleted} orphaned local records");
 
-            // --- Phase 2: Upsert ALL CF A/AAAA records into dns_records ---
-            // node_id is linked when a matching ss_node.server is found, otherwise 0 (orphan).
+            // Phase 2: Upsert
             $upserted = 0;
             $linked = 0;
             $orphan = 0;
             foreach ($cfRecords as $cfRecord) {
-                if (!is_array($cfRecord)) continue;
-
                 $ip = $cfRecord['content'] ?? null;
                 $type = $cfRecord['type'] ?? null;
                 $fullName = $cfRecord['name'] ?? null;
@@ -120,17 +130,14 @@ class InitDnsRecords extends Command
 
                 if (!$ip || !$type || !$fullName || !$cfId) continue;
 
-                // Link to node if server field matches, otherwise node_id = 0
                 $node = SsNode::where('server', $fullName)->first();
                 $nodeId = $node ? $node->id : 0;
 
-                // Parse subdomain from CF record name (e.g. "n156.ssmail.win" → "n156")
                 $subdomain = $fullName;
                 if (strpos($fullName, '.' . $domainName) !== false) {
                     $subdomain = str_replace('.' . $domainName, '', $fullName);
                 }
 
-                // Upsert into dns_records by cf_record_id (CF unique key)
                 $existing = DnsRecord::where('cf_record_id', $cfId)->first();
                 if (!$existing) {
                     $existing = DnsRecord::where('root_domain', $domainName)
@@ -161,6 +168,15 @@ class InitDnsRecords extends Command
                 if ($nodeId > 0) { $linked++; } else { $orphan++; }
             }
             $this->info("  Upserted {$upserted} records (linked: {$linked}, orphan: {$orphan})");
+        }
+
+        if ($configUpdated) {
+            $configModel = Config::where('name', 'node_domain_pool')->first();
+            if ($configModel) {
+                $configModel->value = json_encode($domains);
+                $configModel->save();
+                $this->info('Configuration updated with discovered Zone IDs.');
+            }
         }
 
         $this->info('DNS reconciliation complete.');

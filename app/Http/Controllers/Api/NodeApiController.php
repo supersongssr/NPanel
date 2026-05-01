@@ -102,16 +102,37 @@ class NodeApiController extends Controller
         $nodeIp = $request->input('node_ip');
         $nodeIpv6 = $request->input('node_ipv6');
 
-        $node = new SsNode();
+        // Recycle logic: find nodes with no heartbeat for > 32 days (ordered by most recent)
+        $cutoff = date('Y-m-d H:i:s', strtotime('-32 days'));
+        $node = SsNode::where(function($query) use ($cutoff) {
+                $query->where('heartbeat_at', '<', $cutoff)
+                      ->orWhere(function($q) use ($cutoff) {
+                          $q->whereNull('heartbeat_at')->where('created_at', '<', $cutoff);
+                      });
+            })
+            ->orderBy('heartbeat_at', 'desc')
+            ->first();
+
+        $recycled = false;
+        if ($node) {
+            $recycled = true;
+            // Clear legacy DNS records for recycled ID
+            DnsRecord::where('node_id', $node->id)->delete();
+        } else {
+            $node = new SsNode();
+        }
+
         $node->name = 'New Node ' . ($nodeIp ?: $nodeIpv6);
         $node->ip = $nodeIp ?: '';
         $node->ipv6 = $nodeIpv6 ?: '';
         $node->status = 0;
+        $node->is_clone = 0; // Reset to main node
         $node->save();
 
-        Log::info('[Node API] ID 申请成功', [
+        Log::info('[Node API] ID 分配成功', [
             'ip' => $request->ip(),
-            'new_node_id' => $node->id
+            'node_id' => $node->id,
+            'recycled' => $recycled
         ]);
 
         return response()->json(['node_id' => $node->id]);
@@ -168,7 +189,7 @@ class NodeApiController extends Controller
         $node->node_cpu = $request->input('node_cpu', $request->input('cpu'));
         $node->node_memory = $nodeMemory;
         $node->node_disk = $request->input('node_disk', $request->input('disk'));
-        $node->bandwidth = $request->input('bandwidth', 100);
+        $node->bandwidth = (int)$request->input('node_bandwidth', $request->input('bandwidth', 100));
         $node->node_unlock = (string)$request->input('node_unlock', ''); // Force raw string storage
         $node->info = $request->input('node_info', '');
         $node->level = $mainLevel;
@@ -216,6 +237,20 @@ class NodeApiController extends Controller
 
         // --- Clone reuse (anti-proliferation) ---
         $existingClones = SsNode::where('is_clone', $nodeId)->get()->values();
+        $cutoff = date('Y-m-d H:i:s', strtotime('-32 days'));
+
+        // Pre-fetch available dead nodes for recycling (to avoid duplicate selection in loop)
+        $deadNodes = SsNode::where(function($query) use ($cutoff) {
+                $query->where('heartbeat_at', '<', $cutoff)
+                      ->orWhere(function($q) use ($cutoff) {
+                          $q->whereNull('heartbeat_at')->where('created_at', '<', $cutoff);
+                      });
+            })
+            ->where('id', '!=', $nodeId)
+            ->where('is_clone', '!=', $nodeId) // exclude nodes we are already reusing
+            ->orderBy('heartbeat_at', 'desc')
+            ->get();
+        $deadIdx = 0;
 
         $cloneIds = [];
 
@@ -244,8 +279,16 @@ class NodeApiController extends Controller
                 $clone->server = 'node' . $clone->id . '.' . $rootDomain;
                 $clone->save();
             } else {
-                // Need to create new clone
-                $clone = new SsNode();
+                // Need to create new clone - but first try to recycle dead nodes
+                $clone = null;
+                if ($deadIdx < $deadNodes->count()) {
+                    $clone = $deadNodes[$deadIdx++];
+                    // Clear legacy DNS records for recycled ID
+                    DnsRecord::where('node_id', $clone->id)->delete();
+                } else {
+                    $clone = new SsNode();
+                }
+
                 $clone->name = $node->name . ' - ' . $slot['protocol'] . ' (' . $slot['ip_type'] . ')';
                 $clone->v2_name = $slot['protocol'];
                 $clone->is_clone = $nodeId;
@@ -267,10 +310,14 @@ class NodeApiController extends Controller
             $allNodeIds[] = $clone->id;
         }
 
-        // Delete excess old clones if any
+        // --- Recycle excess old clones into the public pool ---
         if ($existingClones->count() > count($slots)) {
             foreach ($existingClones->skip(count($slots)) as $excess) {
-                $excess->delete();
+                $excess->is_clone = 0;
+                $excess->status = 0;
+                $excess->save();
+                // Clear DNS records for released node
+                DnsRecord::where('node_id', $excess->id)->delete();
             }
         }
 
@@ -309,6 +356,13 @@ class NodeApiController extends Controller
             $response['grpc_port'] = 10012;
             $response['xhttp_path'] = '/xhttp' . $nodeId;
             $response['xhttp_port'] = 10013;
+        }
+
+        if (in_array('hy2', $expanded)) {
+            $response['hy2_port'] = 443;
+        }
+        if (in_array('vision', $expanded)) {
+            $response['vision_port'] = 443;
         }
 
         return response()->json($response);
@@ -630,16 +684,23 @@ class NodeApiController extends Controller
         $config = json_decode(file_get_contents($templatePath), true);
         $nodeDomain = $node->server;
 
+        $expanded = $this->expandProtocols($v2Name);
+        $inboundTags = array_map(function($proto) {
+            return 'proxy-' . $proto;
+        }, $expanded);
+
         $vars = [
-            '__wsPath__' => '/ws' . $nodeId,
-            '__wsPort__' => 10010,
+            '__wsPath__' => 'ws' . $nodeId,
+            '__wsPort__' => 10011,
             '__v2Fallback__' => '127.0.0.1',
             '__nodeDomain__' => $nodeDomain,
             '__HYSTERIA_URL__' => 'https://www.bing.com',
             '__v2ServiceName__' => 'grpc' . $nodeId,
-            '__inboundTags__' => ['proxy-vision', 'proxy-hy2', 'proxy-ws', 'proxy-grpc'],
-            '__vlessVisionTag__' => 'proxy-vision',
-            '__v2Flow__' => 'xtls-rprx-vision',
+            '__grpcPort__' => 10012,
+            '__xhttpPath__' => 'xhttp' . $nodeId,
+            '__xhttpPort__' => 10013,
+            '__hy2Port__' => 443,
+            '__visionPort__' => 443,
             '__dbHost__' => env('DB_HOST', '127.0.0.1'),
             '__dbUser__' => env('DB_USERNAME', 'root'),
             '__dbPassword__' => env('DB_PASSWORD', ''),
@@ -647,7 +708,21 @@ class NodeApiController extends Controller
         ];
 
         $config = $this->injectVariables($config, $vars);
-        if (isset($config['ssrpanel'])) $config['ssrpanel']['nodeId'] = (int)$node->id;
+        
+        if (isset($config['ssrpanel'])) {
+            $config['ssrpanel']['nodeId'] = (int)$node->id;
+            $config['ssrpanel']['user']['inboundTags'] = $inboundTags;
+            
+            // Dynamic flows allocation
+            if (in_array('vision', $expanded)) {
+                $config['ssrpanel']['user']['flows'] = [
+                    'proxy-vision' => 'xtls-rprx-vision'
+                ];
+            } else {
+                unset($config['ssrpanel']['user']['flows']);
+            }
+        }
+
         if ($node->node_unlock) $this->applyUnlocks($config, $node->node_unlock);
 
         // Mask sensitive data for logging
@@ -661,22 +736,14 @@ class NodeApiController extends Controller
             'unlocks' => $node->node_unlock ? count(explode(',', $node->node_unlock)) : 0
         ]);
 
-        return response()->json($config);
+        return response()->json($config, 200, [], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
 
     private function injectVariables($data, $vars)
     {
         if (is_array($data)) {
             foreach ($data as $key => $value) {
-                if ($key === 'inboundTags' && is_array($value) && count($value) === 1 && $value[0] === '__inboundTags__') {
-                    $data[$key] = $vars['__inboundTags__'];
-                    continue;
-                }
                 $data[$key] = $this->injectVariables($value, $vars);
-            }
-            if (isset($data['flows']) && isset($data['flows']['__vlessVisionTag__'])) {
-                $data['flows'][$vars['__vlessVisionTag__']] = $vars['__v2Flow__'];
-                unset($data['flows']['__vlessVisionTag__']);
             }
             return $data;
         }
@@ -762,6 +829,7 @@ class NodeApiController extends Controller
 
         $node->traffic_used += $incremental;
         $node->server_uptime = (int)$request->input('server_uptime', $node->server_uptime);
+        $node->bandwidth = (int)$request->input('node_bandwidth', $node->bandwidth);
         $node->heartbeat_at = date('Y-m-d H:i:s');
 
         // Health engine (no DivisionByZero)

@@ -4,7 +4,7 @@
     },
     "inbounds": [
         {
-            "port": 443,
+            "port": "__visionPort__",
             "protocol": "vless",
             "settings": {
                 "decryption": "none",
@@ -44,7 +44,7 @@
             "tag": "proxy-vision"
         },
         {
-            "port": 443,
+            "port": "__hy2Port__",
             "protocol": "hysteria",
             "settings": {
                 "version": 2
@@ -83,7 +83,7 @@
         },
         {
             "listen": "127.0.0.1",
-            "port": 10010,
+            "port": "__wsPort__",
             "protocol": "vmess",
             "settings": {},
             "streamSettings": {
@@ -100,7 +100,7 @@
             "tag": "proxy-ws"
         },
         {
-            "port": 2053,
+            "port": "__grpcPort__",
             "protocol": "vless",
             "settings": {
                 "decryption": "none"

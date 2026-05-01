@@ -8,16 +8,20 @@ use Illuminate\Support\Facades\Log;
 class CloudflareProvider implements DnsProviderInterface
 {
     protected $token;
+    protected $email;
+    protected $apiKey;
 
     public function __construct()
     {
         $this->token = env('CLOUDFLARE_TOKEN');
+        $this->email = env('CLOUDFLARE_EMAIL');
+        $this->apiKey = env('CLOUDFLARE_API_KEY');
     }
 
     public function updateRecord($domain, $host, $value, $type = 'A', $zoneId = null)
     {
-        if (empty($this->token)) {
-            Log::error('Cloudflare token missing in .env');
+        if (empty($this->token) && (empty($this->email) || empty($this->apiKey))) {
+            Log::error('Cloudflare credentials missing in .env (Need CLOUDFLARE_TOKEN or EMAIL+API_KEY)');
             return false;
         }
 
@@ -133,17 +137,32 @@ class CloudflareProvider implements DnsProviderInterface
         return false;
     }
 
+    /**
+     * Search for a Zone ID by domain name.
+     */
+    public function getZoneIdByName($domain)
+    {
+        $url = "https://api.cloudflare.com/client/v4/zones?name={$domain}";
+        $res = $this->sendRequest($url, 'GET');
+        if ($res && $res['success'] && !empty($res['result'])) {
+            return $res['result'][0]['id'];
+        }
+        return false;
+    }
+
     private function sendRequest($url, $method, $data = null)
     {
-        if (empty($this->token)) {
-            Log::error('Cloudflare token missing in .env');
+        $headers = ["Content-Type: application/json"];
+        
+        if (!empty($this->token)) {
+            $headers[] = "Authorization: Bearer {$this->token}";
+        } elseif (!empty($this->email) && !empty($this->apiKey)) {
+            $headers[] = "X-Auth-Email: {$this->email}";
+            $headers[] = "X-Auth-Key: {$this->apiKey}";
+        } else {
+            Log::error('Cloudflare sendRequest: No valid credentials found');
             return false;
         }
-
-        $headers = [
-            "Authorization: Bearer {$this->token}",
-            "Content-Type: application/json"
-        ];
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -163,7 +182,16 @@ class CloudflareProvider implements DnsProviderInterface
             return json_decode($response, true);
         }
 
-        Log::error("Cloudflare API error (HTTP {$httpCode}): " . $response);
+        $authType = !empty($this->token) ? 'Token' : 'GlobalKey';
+        $preview = !empty($this->token) ? substr($this->token, 0, 5) . '...' : substr($this->email, 0, 5) . '...';
+
+        Log::error("Cloudflare API error (HTTP {$httpCode})", [
+            'url' => $url,
+            'method' => $method,
+            'response' => $response,
+            'auth_type' => $authType,
+            'auth_preview' => $preview
+        ]);
         return false;
     }
 }

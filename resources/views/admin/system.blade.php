@@ -1246,7 +1246,23 @@
 $dp = json_decode($node_domain_pool ?? '', true);
 echo empty($dp) ? json_encode(["ssmail.win" => ["provider" => "cloudflare", "records_limit" => 1000, "zone_id" => "", "expire_date" => ""], "freessr.bid" => ["provider" => "cloudflare", "records_limit" => 180, "zone_id" => "", "expire_date" => ""]], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : json_encode($dp, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 ?></textarea>
-                                                                <span class="help-block"> JSON 对象，键为根域名，值为元数据。第一个键为主域名（兜底）。<code>records_limit</code> 为该域名 DNS 记录容量上限（默认 180），<code>zone_id</code> 为 Cloudflare Zone ID（避免每次查询），节点注册后自动生成 node{id}.域名 的子域名 </span>
+                                                                <span class="help-block">
+                                                                    <b>JSON 结构说明：</b><br>
+                                                                    - <code>Key</code>: 根域名 (必须在 CF 托管)<br>
+                                                                    - <code>provider</code>: 服务商，固定 <code>"cloudflare"</code><br>
+                                                                    - <code>records_limit</code>: 解析记录上限 (默认 180)<br>
+                                                                    - <code>zone_id</code>: CF 区域 ID (留空可自动补全)<br>
+                                                                    - <code>expire_date</code>: 到期日期 (仅展示, 示例 <code>"2099-12-31"</code>)<br>
+                                                                    <b>标准示例：</b>
+                                                                    <pre style="font-size: 11px; background: #f7f7f7; padding: 5px; margin-top: 5px;">{
+    "example.com": {
+        "provider": "cloudflare",
+        "records_limit": 1000,
+        "zone_id": "kjdfoahis92398fdshfdbe141b28",
+        "expire_date": "2099-12-31"
+    }
+}</pre>
+                                                                </span>
                                                                 <button class="btn btn-success" type="button" onclick="saveNodeConfig('node_domain_pool')">保存域名列表</button>
                                                             </div>
                                                         </div>
@@ -1350,6 +1366,24 @@ echo empty($pp) ? json_encode(["threshold_mb" => 2048, "high" => "xhttp-hy2-ws-g
     <script src="/assets/global/plugins/select2/js/select2.full.min.js" type="text/javascript"></script>
 
     <script type="text/javascript">
+        // Tab 自动定位与持久化
+        $(function() {
+            var hash = window.location.hash;
+            if (hash) {
+                $('.nav-tabs a[href="' + hash + '"]').tab('show');
+            }
+
+            // 监听标签切换，更新 URL Hash
+            $('.nav-tabs a').on('shown.bs.tab', function (e) {
+                var currentHash = e.target.hash;
+                if (history.replaceState) {
+                    history.replaceState(null, null, currentHash);
+                } else {
+                    window.location.hash = currentHash;
+                }
+            });
+        });
+
         // 注册的默认标签
         $('#initial_labels_for_user').select2({
             theme: 'bootstrap',
@@ -2475,12 +2509,12 @@ echo empty($pp) ? json_encode(["threshold_mb" => 2048, "high" => "xhttp-hy2-ws-g
             $(this).val($(this).val().replace(/(\s+)/g, ''));
         });
 
-        //sdo2022-04-12 设置 system config 
+        //sdo2022-04-12 设置 system config
         function setConfig(confname) {
             var confvalue = $('#'+confname).val();
             $.post("/admin/setConfig", {
-                _token:'{{csrf_token()}}', 
-                name:confname, 
+                _token:'{{csrf_token()}}',
+                name:confname,
                 value:confvalue
             }, function (ret) {
                 layer.msg(ret.message, {time:1000}, function() {

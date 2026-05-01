@@ -5,7 +5,7 @@
     "inbounds": [
         {
             "listen": "127.0.0.1",
-            "port": 12345,
+            "port": "__xhttpPort__",
             "protocol": "vless",
             "settings": {
                 "decryption": "none"
@@ -25,7 +25,7 @@
             "tag": "proxy-xhttp"
         },
         {
-            "port": 443,
+            "port": "__hy2Port__",
             "protocol": "hysteria",
             "settings": {
                 "version": 2
@@ -64,7 +64,7 @@
         },
         {
             "listen": "127.0.0.1",
-            "port": 23456,
+            "port": "__wsPort__",
             "protocol": "vmess",
             "settings": {},
             "streamSettings": {
@@ -82,7 +82,7 @@
         },
         {
             "listen": "127.0.0.1",
-            "port": 34567,
+            "port": "__grpcPort__",
             "protocol": "vless",
             "settings": {
                 "decryption": "none"
