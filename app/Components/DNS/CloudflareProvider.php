@@ -9,23 +9,26 @@ class CloudflareProvider implements DnsProviderInterface
 {
     protected $email;
     protected $apiKey;
-    protected $zoneId;
 
     public function __construct()
     {
         $this->email = env('CLOUDFLARE_EMAIL');
         $this->apiKey = env('CLOUDFLARE_API_KEY');
-        $this->zoneId = env('CLOUDFLARE_ZONE_ID');
     }
 
-    public function updateRecord($domain, $host, $value, $type = 'A')
+    public function updateRecord($domain, $host, $value, $type = 'A', $zoneId = null)
     {
-        if (empty($this->email) || empty($this->apiKey) || empty($this->zoneId)) {
+        if (empty($this->email) || empty($this->apiKey)) {
             Log::error('Cloudflare credentials missing in .env');
             return false;
         }
 
-        $url = "https://api.cloudflare.com/client/v4/zones/{$this->zoneId}/dns_records";
+        if (empty($zoneId)) {
+            Log::error('Cloudflare updateRecord: zone_id is required');
+            return false;
+        }
+
+        $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records";
 
         // Check if record exists
         $searchUrl = $url . "?name={$host}.{$domain}&type={$type}";
@@ -61,9 +64,9 @@ class CloudflareProvider implements DnsProviderInterface
     /**
      * Create a new DNS record via CF API. Returns full response on success, false on failure.
      */
-    public function createRecord($domain, $host, $value, $type = 'A')
+    public function createRecord($domain, $host, $value, $type = 'A', $zoneId = null)
     {
-        $url = "https://api.cloudflare.com/client/v4/zones/{$this->zoneId}/dns_records";
+        $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records";
         $data = [
             'type' => $type,
             'name' => "{$host}.{$domain}",
@@ -82,9 +85,9 @@ class CloudflareProvider implements DnsProviderInterface
     /**
      * Update an existing DNS record by CF record ID. Returns full response on success, false on failure.
      */
-    public function updateRecordById($cfRecordId, $domain, $host, $value, $type = 'A')
+    public function updateRecordById($cfRecordId, $domain, $host, $value, $type = 'A', $zoneId = null)
     {
-        $url = "https://api.cloudflare.com/client/v4/zones/{$this->zoneId}/dns_records/{$cfRecordId}";
+        $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records/{$cfRecordId}";
         $data = [
             'type' => $type,
             'name' => "{$host}.{$domain}",
@@ -104,9 +107,9 @@ class CloudflareProvider implements DnsProviderInterface
      * List DNS records for a domain, optionally filtered by type.
      * Returns array of CF record objects or false on failure.
      */
-    public function listRecords($domain, $type = null)
+    public function listRecords($domain, $type = null, $zoneId = null)
     {
-        $url = "https://api.cloudflare.com/client/v4/zones/{$this->zoneId}/dns_records?name=.{$domain}";
+        $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records?name=.{$domain}";
         if ($type) {
             $url .= "&type={$type}";
         }
@@ -121,9 +124,9 @@ class CloudflareProvider implements DnsProviderInterface
     /**
      * Delete a DNS record by CF record ID. Returns true on success.
      */
-    public function deleteRecord($cfRecordId)
+    public function deleteRecord($cfRecordId, $zoneId = null)
     {
-        $url = "https://api.cloudflare.com/client/v4/zones/{$this->zoneId}/dns_records/{$cfRecordId}";
+        $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records/{$cfRecordId}";
         $res = $this->sendRequest($url, 'DELETE');
         if ($res && $res['success']) {
             return true;
@@ -134,6 +137,11 @@ class CloudflareProvider implements DnsProviderInterface
 
     private function sendRequest($url, $method, $data = null)
     {
+        if (empty($this->email) || empty($this->apiKey)) {
+            Log::error('Cloudflare credentials missing in .env');
+            return false;
+        }
+
         $headers = [
             "X-Auth-Email: {$this->email}",
             "X-Auth-Key: {$this->apiKey}",

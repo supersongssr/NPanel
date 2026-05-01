@@ -12,7 +12,7 @@ use App\Components\Helpers;
 
 class NodeApiController extends Controller
 {
-    const DOMAIN_CAPACITY_LIMIT = 180;
+    const DEFAULT_RECORDS_LIMIT = 180;
 
     private function validateToken(Request $request)
     {
@@ -28,6 +28,61 @@ class NodeApiController extends Controller
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
+    }
+
+    /**
+     * Parse node_domain_pool from config.
+     * Supports both new dict format {domain: {zone_id, records_limit}} and legacy array format [domain].
+     * Returns ['domainPool' => [domain => meta, ...], 'primaryDomain' => string]
+     */
+    private function parseDomainPool($sysConf)
+    {
+        $domainPool = [];
+        $raw = $sysConf['node_domain_pool'] ?? '';
+
+        if (!empty($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::warning("node_domain_pool JSON parse error: " . json_last_error_msg());
+                $decoded = null;
+            }
+
+            if (is_array($decoded)) {
+                // Detect format: dict (associative with string keys) vs legacy flat array
+                $firstKey = array_key_first($decoded);
+                if ($firstKey !== null && is_string($firstKey) && is_array($decoded[$firstKey])) {
+                    // New dict format: {"domain.com": {"zone_id": "...", "records_limit": 180}}
+                    $domainPool = $decoded;
+                } else {
+                    // Legacy array format: ["domain.com", ...] → convert to dict
+                    foreach (array_values(array_unique(array_filter($decoded))) as $domain) {
+                        if (is_string($domain) && $domain !== '') {
+                            $domainPool[$domain] = [];
+                        }
+                    }
+                }
+            }
+        }
+
+        $primaryDomain = array_key_first($domainPool) ?: ($sysConf['node_root_domain'] ?? 'example.com');
+
+        return ['domainPool' => $domainPool, 'primaryDomain' => $primaryDomain];
+    }
+
+    /**
+     * Get the records_limit for a specific domain from pool metadata.
+     */
+    private function getDomainLimit(array $meta)
+    {
+        return isset($meta['records_limit']) ? (int)$meta['records_limit'] : self::DEFAULT_RECORDS_LIMIT;
+    }
+
+    /**
+     * Get the zone_id for a specific domain from pool metadata.
+     */
+    private function getDomainZoneId(array $meta)
+    {
+        return $meta['zone_id'] ?? null;
     }
 
     /**
@@ -155,8 +210,9 @@ class NodeApiController extends Controller
         $cloneIds = [];
 
         // Slot 0 = main node itself (first protocol, first IP)
+        // Keep original v2_name (e.g. "xhttp-hy2-ws-grpc") on main node for template lookup.
+        // Only clone nodes get single-protocol v2_name.
         $mainSlot = array_shift($slots);
-        $node->v2_name = $mainSlot['protocol'];
         $node->save();
         $allNodeIds = [$node->id];
 
@@ -209,17 +265,32 @@ class NodeApiController extends Controller
         }
 
         // --- Seal node_ids into main node ---
-        $node->node_ids = json_encode($allNodeIds);
+        $nodeIdsStr = implode(',', $allNodeIds);
+        $node->node_ids = $nodeIdsStr;
         $node->save();
 
-        return response()->json([
+        $response = [
             'status' => 'success',
             'main_node_id' => $node->id,
             'clone_node_ids' => $cloneIds,
-            'node_ids' => $allNodeIds,
+            'node_ids' => $nodeIdsStr,
             'root_domain' => $rootDomain,
             'v2_name' => $v2Name,
-        ]);
+            'proxy_host' => 'npanel-nav.freessr.bid',
+        ];
+
+        // --- xhttp-hy2-ws-grpc mode: emit paths and fixed ports ---
+        $expanded = $this->expandProtocols($v2Name);
+        if (in_array('xhttp', $expanded) || in_array('ws', $expanded) || in_array('grpc', $expanded)) {
+            $response['ws_path'] = '/ws' . $nodeId;
+            $response['ws_port'] = 10011;
+            $response['grpc_service_name'] = 'grpc' . $nodeId;
+            $response['grpc_port'] = 10012;
+            $response['xhttp_path'] = '/xhttp' . $nodeId;
+            $response['xhttp_port'] = 10013;
+        }
+
+        return response()->json($response);
     }
 
     /**
@@ -233,37 +304,32 @@ class NodeApiController extends Controller
 
     /**
      * Domain Affinity Resolution:
-     * Priority 1: Reuse reported root_domain if its dns_records count < 180.
-     * Priority 2: Pick first available domain from pool if count < 180.
-     * Fallback: Use node_root_domain from config.
+     * Reads node_domain_pool (JSON dict or legacy array) from config.
+     * Priority 1: Reuse reported root_domain if its dns_records count < its records_limit.
+     * Priority 2: Pick first available domain from pool with count < records_limit.
+     * Fallback: Use primary domain (first key in pool).
      */
     private function resolveDomainAffinity($reportedDomain, $sysConf)
     {
-        $primaryDomain = $sysConf['node_root_domain'] ?? 'example.com';
-
-        // Build pool: primary first, then JSON array backups
-        $domainPool = [$primaryDomain];
-        if (!empty($sysConf['node_domain_pool'])) {
-            $decoded = json_decode($sysConf['node_domain_pool'], true);
-            if (is_array($decoded)) {
-                $domainPool = array_merge($domainPool, $decoded);
-            }
-        }
-        $domainPool = array_unique(array_filter($domainPool));
+        $parsed = $this->parseDomainPool($sysConf);
+        $domainPool = $parsed['domainPool'];
+        $primaryDomain = $parsed['primaryDomain'];
 
         // Priority 1: Check reported domain first (Allow custom affinity)
         if ($reportedDomain) {
+            $limit = $this->getDomainLimit($domainPool[$reportedDomain] ?? []);
             $count = DnsRecord::where('root_domain', $reportedDomain)->count();
-            if ($count < self::DOMAIN_CAPACITY_LIMIT) {
+            if ($count < $limit) {
                 return $reportedDomain;
             }
         }
 
         // Priority 2: Pick first available domain from pool
-        foreach ($domainPool as $domain) {
-            $count = DnsRecord::where('root_domain', $domain)->count();
-            if ($count < self::DOMAIN_CAPACITY_LIMIT) {
-                return $domain;
+        foreach ($domainPool as $domainName => $meta) {
+            $limit = $this->getDomainLimit($meta);
+            $count = DnsRecord::where('root_domain', $domainName)->count();
+            if ($count < $limit) {
+                return $domainName;
             }
         }
 
@@ -294,6 +360,11 @@ class NodeApiController extends Controller
         $targetSubdomain = $targetParts['subdomain'];
         $targetRootDomain = $targetParts['root_domain'];
 
+        // Look up zone_id from domain pool for this root domain
+        $sysConf = Helpers::systemConfig();
+        $parsed = $this->parseDomainPool($sysConf);
+        $zoneId = $this->getDomainZoneId($parsed['domainPool'][$targetRootDomain] ?? []);
+
         $dnsProvider = app(\App\Components\DNS\CloudflareProvider::class);
         $results = [];
 
@@ -304,7 +375,7 @@ class NodeApiController extends Controller
 
         foreach ($ipEntries as $entry) {
             $result = $this->reconcileDnsRecord(
-                $nodeId, $dnsProvider, $targetSubdomain, $targetRootDomain, $entry['type'], $entry['addr']
+                $nodeId, $dnsProvider, $targetSubdomain, $targetRootDomain, $entry['type'], $entry['addr'], $zoneId
             );
             $results[] = $result;
         }
@@ -331,7 +402,7 @@ class NodeApiController extends Controller
      * Scene B: Same domain + diff IP → PUT update via CF.
      * Scene C: Diff domain → POST new + DELETE old via CF (Atomic swap).
      */
-    private function reconcileDnsRecord($nodeId, $dnsProvider, $targetSubdomain, $targetRootDomain, $type, $targetIp)
+    private function reconcileDnsRecord($nodeId, $dnsProvider, $targetSubdomain, $targetRootDomain, $type, $targetIp, $zoneId)
     {
         $oldRecord = DnsRecord::where('node_id', $nodeId)
             ->where('record_type', $type)
@@ -339,7 +410,7 @@ class NodeApiController extends Controller
 
         // Scene A: No old record exists — pure creation
         if (!$oldRecord) {
-            return $this->createDnsRecord($dnsProvider, $nodeId, $targetSubdomain, $targetRootDomain, $type, $targetIp);
+            return $this->createDnsRecord($dnsProvider, $nodeId, $targetSubdomain, $targetRootDomain, $type, $targetIp, $zoneId);
         }
 
         $sameDomain = ($oldRecord->root_domain === $targetRootDomain && $oldRecord->subdomain === $targetSubdomain);
@@ -352,19 +423,30 @@ class NodeApiController extends Controller
 
         // Scene B: Same domain, different IP — PUT update
         if ($sameDomain && !$sameIp) {
-            return $this->updateDnsRecordIp($dnsProvider, $oldRecord, $targetIp);
+            return $this->updateDnsRecordIp($dnsProvider, $oldRecord, $targetIp, $zoneId);
         }
 
         // Scene C: Domain changed — POST new + DELETE old
-        return $this->swapDnsRecord($dnsProvider, $oldRecord, $nodeId, $targetSubdomain, $targetRootDomain, $type, $targetIp);
+        $oldZoneId = $this->getDomainZoneIdForRecord($oldRecord);
+        return $this->swapDnsRecord($dnsProvider, $oldRecord, $nodeId, $targetSubdomain, $targetRootDomain, $type, $targetIp, $oldZoneId, $zoneId);
+    }
+
+    /**
+     * Look up zone_id for an existing DnsRecord's root_domain from the domain pool.
+     */
+    private function getDomainZoneIdForRecord($record)
+    {
+        $sysConf = Helpers::systemConfig();
+        $parsed = $this->parseDomainPool($sysConf);
+        return $this->getDomainZoneId($parsed['domainPool'][$record->root_domain] ?? []);
     }
 
     /**
      * Create a brand new DNS record via CF, then persist to dns_records.
      */
-    private function createDnsRecord($dnsProvider, $nodeId, $subdomain, $rootDomain, $type, $ip)
+    private function createDnsRecord($dnsProvider, $nodeId, $subdomain, $rootDomain, $type, $ip, $zoneId)
     {
-        $cfResult = $dnsProvider->createRecord($rootDomain, $subdomain, $ip, $type);
+        $cfResult = $dnsProvider->createRecord($rootDomain, $subdomain, $ip, $type, $zoneId);
         if (!$cfResult) {
             return ['action' => 'create_failed', 'success' => false, 'message' => 'CF create failed'];
         }
@@ -377,7 +459,7 @@ class NodeApiController extends Controller
             'record_type' => $type,
             'ip_addr' => $ip,
             'cf_record_id' => $cfResult['id'],
-            'cf_zone_id' => $cfResult['zone_id'] ?? null,
+            'cf_zone_id' => $cfResult['zone_id'] ?? $zoneId,
         ]);
 
         return ['action' => 'created', 'success' => true, 'message' => 'DNS record created'];
@@ -386,14 +468,15 @@ class NodeApiController extends Controller
     /**
      * Scene B: Update IP on existing record. CF PUT first, then update DB.
      */
-    private function updateDnsRecordIp($dnsProvider, $oldRecord, $newIp)
+    private function updateDnsRecordIp($dnsProvider, $oldRecord, $newIp, $zoneId)
     {
         $cfResult = $dnsProvider->updateRecordById(
             $oldRecord->cf_record_id,
             $oldRecord->root_domain,
             $oldRecord->subdomain,
             $newIp,
-            $oldRecord->record_type
+            $oldRecord->record_type,
+            $zoneId
         );
         if (!$cfResult) {
             return ['action' => 'update_failed', 'success' => false, 'message' => 'CF update failed'];
@@ -411,17 +494,17 @@ class NodeApiController extends Controller
      * Scene C: Domain changed. POST new to CF first, then DELETE old.
      * This ensures the target survives if deletion fails.
      */
-    private function swapDnsRecord($dnsProvider, $oldRecord, $nodeId, $newSubdomain, $newRootDomain, $type, $newIp)
+    private function swapDnsRecord($dnsProvider, $oldRecord, $nodeId, $newSubdomain, $newRootDomain, $type, $newIp, $oldZoneId, $newZoneId)
     {
         // Step 1: Create new record in CF (POST first to ensure target survives failure)
-        $cfResult = $dnsProvider->createRecord($newRootDomain, $newSubdomain, $newIp, $type);
+        $cfResult = $dnsProvider->createRecord($newRootDomain, $newSubdomain, $newIp, $type, $newZoneId);
         if (!$cfResult) {
             Log::error("resolve_dns: CF POST failed for node {$nodeId}, aborting swap to preserve old record");
             return ['action' => 'swap_failed', 'success' => false, 'message' => 'CF create failed, swap aborted'];
         }
 
         // Step 2: Delete old record from CF (POST succeeded, so old is now redundant)
-        $deleteOk = $dnsProvider->deleteRecord($oldRecord->cf_record_id);
+        $deleteOk = $dnsProvider->deleteRecord($oldRecord->cf_record_id, $oldZoneId);
         if (!$deleteOk) {
             Log::warning("resolve_dns: CF DELETE failed for record {$oldRecord->cf_record_id} after successful POST. Orphan left on CF.");
         }
@@ -433,9 +516,9 @@ class NodeApiController extends Controller
             'root_domain' => $newRootDomain,
             'subdomain' => $newSubdomain,
             'record_type' => $type,
-            'ip_addr' => $ip,
+            'ip_addr' => $newIp,
             'cf_record_id' => $cfResult['id'],
-            'cf_zone_id' => $cfResult['zone_id'] ?? null,
+            'cf_zone_id' => $cfResult['zone_id'] ?? $newZoneId,
         ]);
 
         return ['action' => 'swapped_domain', 'success' => true, 'message' => 'Domain swapped'];
@@ -530,20 +613,20 @@ class NodeApiController extends Controller
         $unlocks = [];
         // Support both comma-separated and query-string formats
         parse_str(str_replace(',', '&', $unlockStr), $unlocks);
-        
+
         foreach ($unlocks as $key => $value) {
             // Support 1, "1", "Yes", "true"
             $isEnabled = in_array(strtolower((string)$value), ['1', 'yes', 'true', 'on']);
             if ($isEnabled) {
                 $tag = str_replace(['unlock', ' '], '', $key);
                 $config['outbounds'][] = [
-                    'protocol' => 'freedom', 
-                    'settings' => ['domainStrategy' => 'UseIPv4'], 
+                    'protocol' => 'freedom',
+                    'settings' => ['domainStrategy' => 'UseIPv4'],
                     'tag' => 'outbound-' . $tag
                 ];
                 $config['routing']['rules'][] = [
-                    'type' => 'field', 
-                    'outboundTag' => 'outbound-' . $tag, 
+                    'type' => 'field',
+                    'outboundTag' => 'outbound-' . $tag,
                     'domain' => ["geosite:" . strtolower($tag)]
                 ];
             }

@@ -52,6 +52,9 @@
                                         <li>
                                             <a href="#tab_11" data-toggle="tab"> 支付 </a>
                                         </li>
+                                        <li>
+                                            <a href="#tab_node" data-toggle="tab"> 节点配置 </a>
+                                        </li>
                                         <li id="li_tab_geetest" class="tab_captcha" style="display:none;">
                                             <a href="#tab_geetest" data-toggle="tab"> Geetest 极验 </a>
                                         </li>
@@ -251,32 +254,6 @@
                                                                     </span>
                                                                 </div>
                                                                 <span class="help-block"> 域名必须是<a href="https://www.namesilo.com/?rid=326ec20pa" target="_blank">www.namesilo.com</a>上购买的 </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="node_domain_pool" class="col-md-3 control-label">节点域名池</label>
-                                                            <div class="col-md-9">
-                                                                <div class="input-group">
-                                                                    <input class="form-control" type="text" name="node_domain_pool" value="{{$node_domain_pool}}" id="node_domain_pool" placeholder='["example.com", "test.net"]' />
-                                                                    <span class="input-group-btn">
-                                                                        <button class="btn btn-success" type="button" onclick="setNodeDomainPool()">保存</button>
-                                                                    </span>
-                                                                </div>
-                                                                <span class="help-block"> JSON数组格式，用于节点注册时自动分配域名。主域名在 node_root_domain 中设置，此处填写备用域名池 </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="node_protocol_presets" class="col-md-3 control-label">协议预设</label>
-                                                            <div class="col-md-9">
-                                                                <div class="input-group">
-                                                                    <input class="form-control" type="text" name="node_protocol_presets" value="{{$node_protocol_presets}}" id="node_protocol_presets" placeholder='{"threshold_mb":2048,"high":"xhttp-hy2-ws-grpc","low":"vision-hy2-ws-grpc"}' />
-                                                                    <span class="input-group-btn">
-                                                                        <button class="btn btn-success" type="button" onclick="setNodeProtocolPresets()">保存</button>
-                                                                    </span>
-                                                                </div>
-                                                                <span class="help-block"> JSON格式：threshold_mb=内存阈值(MB)，high=高配协议组，low=低配协议组 </span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1258,6 +1235,36 @@
                                                 </div>
                                             </form>
                                         </div>
+                                        <div class="tab-pane" id="tab_node">
+                                            <form action="#" method="post" class="form-horizontal">
+                                                <div class="portlet-body">
+                                                    <div class="form-group">
+                                                        <div class="col-md-6">
+                                                            <label class="col-md-4 control-label">域名列表</label>
+                                                            <div class="col-md-8">
+                                                                <textarea id="input_domain_pool" class="form-control" rows="10"><?php
+$dp = json_decode($node_domain_pool ?? '', true);
+echo empty($dp) ? json_encode(["ssmail.win" => ["provider" => "cloudflare", "records_limit" => 1000, "zone_id" => "", "expire_date" => ""], "freessr.bid" => ["provider" => "cloudflare", "records_limit" => 180, "zone_id" => "", "expire_date" => ""]], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : json_encode($dp, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+?></textarea>
+                                                                <span class="help-block"> JSON 对象，键为根域名，值为元数据。第一个键为主域名（兜底）。<code>records_limit</code> 为该域名 DNS 记录容量上限（默认 180），<code>zone_id</code> 为 Cloudflare Zone ID（避免每次查询），节点注册后自动生成 node{id}.域名 的子域名 </span>
+                                                                <button class="btn btn-success" type="button" onclick="saveNodeConfig('node_domain_pool')">保存域名列表</button>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="col-md-4 control-label">协议预设</label>
+                                                            <div class="col-md-8">
+                                                                <textarea id="input_protocol_presets" class="form-control" rows="6"><?php
+$pp = json_decode($node_protocol_presets ?? '', true);
+echo empty($pp) ? json_encode(["threshold_mb" => 2048, "high" => "xhttp-hy2-ws-grpc", "low" => "vision-hy2-ws-grpc"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : json_encode($pp, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+?></textarea>
+                                                                <span class="help-block"> threshold_mb=内存阈值（节点内存超过此值用 high 协议组，否则用 low）。协议组用 - 分隔协议名，注册时自动拆分并随机分配给裂变节点 </span>
+                                                                <button class="btn btn-success" type="button" onclick="saveNodeConfig('node_protocol_presets')">保存协议预设</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
                                         <div class="tab-pane" id="tab_geetest">
                                             <form action="#" method="post" class="form-horizontal">
                                                 <div class="portlet-body">
@@ -2151,32 +2158,32 @@
             });
         }
 
-        function setNodeDomainPool() {
-            var val = $("#node_domain_pool").val();
-            try { JSON.parse(val); } catch(e) { layer.msg('JSON格式错误', {time: 1500}); return; }
+        // --- Node Config Tab ---
+        function saveNodeConfig(name) {
+            var val;
+            if (name === 'node_domain_pool') {
+                val = $('#input_domain_pool').val().trim();
+            } else if (name === 'node_protocol_presets') {
+                val = $('#input_protocol_presets').val().trim();
+            } else {
+                return;
+            }
+
+            try {
+                var parsed = JSON.parse(val);
+                if (name === 'node_domain_pool' && (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed))) {
+                    layer.msg('域名列表必须是 JSON 对象 {"域名": {...}}', {time: 2000});
+                    return;
+                }
+            } catch (e) { layer.msg('JSON格式错误: ' + e.message, {time: 2000}); return; }
 
             $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
-                name: 'node_domain_pool',
+                name: name,
                 value: val
             }, function (ret) {
                 layer.msg(ret.message, {time: 1000}, function () {
-                    if (ret.status == 'fail') { window.location.reload(); }
-                });
-            });
-        }
-
-        function setNodeProtocolPresets() {
-            var val = $("#node_protocol_presets").val();
-            try { JSON.parse(val); } catch(e) { layer.msg('JSON格式错误', {time: 1500}); return; }
-
-            $.post("/admin/setConfig", {
-                _token: '{{csrf_token()}}',
-                name: 'node_protocol_presets',
-                value: val
-            }, function (ret) {
-                layer.msg(ret.message, {time: 1000}, function () {
-                    if (ret.status == 'fail') { window.location.reload(); }
+                    if (ret.status == 'fail') window.location.reload();
                 });
             });
         }

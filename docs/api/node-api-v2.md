@@ -14,7 +14,7 @@ apply_id → register → resolve_dns → config → status(循环)
 
 **认证方式:** Token 认证 — 所有接口均需携带 `token` 参数（或 `X-API-Token` 请求头），值为 `.env` 中 `API_TOKEN` 变量。
 
-**适用版本:** commit `f6b34029` (2026-04-29) 及之后。
+**适用版本:** commit `bde5649a` (2026-04-29) 及之后。
 
 ---
 
@@ -47,10 +47,10 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `v2_name` | string | 动态分配 | 单个协议名（如 `ws`、`hy2`），由 register 时根据内存自动分配协议组后拆分 |
+| `v2_name` | string | 动态分配 | 协议名（如 `ws`、`hy2`），由 register 时动态分配或客户端指定协议组后拆分 |
 | `node_rxtx` | string | `tx` | 流量计费模式：`tx`（仅上行）或 `rxtx`（双向均值） |
 | `node_cpu` | integer | nullable | CPU 核心数 |
-| `node_memory` | float | nullable | 内存大小（MB） |
+| `node_memory` | float | nullable | 内存大小（GB） |
 | `node_disk` | float | nullable | 磁盘大小（GB） |
 | `node_group` | integer | 1 | 节点分组 ID |
 | `node_country` | string | nullable | 国家名称（如 Japan） |
@@ -82,7 +82,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 }
 ```
 
-- `threshold_mb`：内存阈值（MB），大于此值使用 `high` 协议组，否则使用 `low`
+- `threshold_mb`：内存阈值（MB），内部自动除以 1024 转换为 GB 后与 `node_memory`（GB）比较
 - `high`：高配协议组名称
 - `low`：低配协议组名称
 
@@ -126,14 +126,16 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 | token | string | 是 | - | API Token |
 | node_id | integer | 是 | - | Step 0 返回的节点 ID |
 | root_domain | string | 否 | - | 期望使用的根域名（域名亲和性） |
+| v2_name | string | 否 | 动态分配 | **可选** 协议组名称（如 `xhttp-hy2-ws-grpc`），若提供则覆盖动态分配 |
+| node_level | integer | 否 | 阶梯引擎 | **可选** 节点访问等级，若提供则覆盖阶梯引擎计算 |
 | node_rxtx | string | 否 | `tx` | 计费模式：`tx` 或 `rxtx`（向后兼容 `node_rxtx_mode`、`billing_mode`） |
 | node_cpu | integer | 否 | - | CPU 核心数 |
-| node_memory | float | 是 | - | 内存大小（MB），**决定协议组分配** |
+| node_memory | float | 否 | 0 | 内存大小（**GB**），未提供 `v2_name` 时决定协议组分配 |
 | node_disk | float | 否 | - | 磁盘大小（GB） |
 | bandwidth | integer | 否 | 100 | 带宽（Mbps） |
 | node_unlock | string | 否 | - | 解锁信息，原始 Query String 格式（如 `Netflix=Yes&Gemini=No`） |
 | node_info | string | 否 | - | 节点描述信息 |
-| node_cost | float | 否 | 0 | 节点每 GB 流量成本，**决定节点等级** |
+| node_cost | float | 否 | 0 | 节点每 GB 流量成本，未提供 `node_level` 时决定节点等级 |
 | node_group | integer | 否 | 1 | 节点分组 ID |
 | node_traffic_limit | integer | 否 | 1000 | 每月流量额度（GB） |
 | node_traffic_resetday | integer | 否 | 1 | 每月流量重置日期 |
@@ -159,12 +161,13 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 #### 动态协议分配
 
-协议组**不再由客户端指定**，而是由面板根据 `node_memory` 和 config 表的 `node_protocol_presets` 自动决定：
-
-1. 读取 `node_protocol_presets.threshold_mb`（默认 2048 MB）
-2. 若 `node_memory > threshold_mb` → 使用 `high` 协议组（如 `xhttp-hy2-ws-grpc`）
-3. 否则 → 使用 `low` 协议组（如 `vision-hy2-ws-grpc`）
-4. 协议组拆分为单个协议后随机打乱分配给各节点
+协议组按以下优先级决定：
+1. **客户端指定**：若请求携带 `v2_name` 参数，直接使用该协议组。
+2. **动态分配**：否则由面板根据 `node_memory`（GB）和 config 表的 `node_protocol_presets` 自动决定：
+   - 读取 `threshold_mb`（默认 2048），除以 1024 转换为 GB
+   - 若 `node_memory > threshold_gb` → 使用 `high` 协议组
+   - 否则 → 使用 `low` 协议组
+3. 协议组拆分为单个协议后随机打乱分配给各节点
 
 #### 裂变矩阵
 
@@ -183,10 +186,11 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 #### 阶梯等级引擎
 
-节点等级由 `node_cost` 自动计算，**不接受客户端传入**：
-
-- **主节点等级** = `max(1, floor(node_cost))`，最低为 1
-- **克隆节点等级** = `rand(主节点等级, min(5, 主节点等级+2))`，保证克隆等级 ≥ 主节点
+节点等级按以下优先级决定：
+- **客户端指定**：若请求携带 `node_level` 参数，直接使用该等级。
+- **自动计算**：否则由 `node_cost` 驱动：
+  - **主节点等级** = `max(1, floor(node_cost))`，最低为 1
+  - **克隆节点等级** = `rand(主节点等级, min(5, 主节点等级+2))`，保证克隆等级 ≥ 主节点
 
 #### 域名亲和性分配策略 (Domain Affinity)
 
@@ -303,4 +307,4 @@ php artisan initDnsRecords
 
 ---
 
-*文档更新时间: 2026-04-29 | 基于 commit: f6b34029*
+*文档更新时间: 2026-04-29 | 基于 commit: bde5649a*

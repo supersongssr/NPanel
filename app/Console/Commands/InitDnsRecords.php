@@ -25,34 +25,53 @@ class InitDnsRecords extends Command
     {
         $sysConf = Helpers::systemConfig();
 
-        // Build domain pool: primary + JSON pool
+        // Build domain pool from node_domain_pool (dict or legacy array)
         $domains = [];
-        $primary = $sysConf['node_root_domain'] ?? null;
-        if ($primary) $domains[] = $primary;
-
         if (!empty($sysConf['node_domain_pool'])) {
             $pool = json_decode($sysConf['node_domain_pool'], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $this->error('node_domain_pool JSON parse error: ' . json_last_error_msg());
+                return 1;
+            }
+
             if (is_array($pool)) {
-                $domains = array_unique(array_merge($domains, $pool));
+                $firstKey = array_key_first($pool);
+                if ($firstKey !== null && is_string($firstKey) && is_array($pool[$firstKey])) {
+                    // New dict format: {"domain.com": {"zone_id": "...", ...}}
+                    $domains = $pool;
+                } else {
+                    // Legacy array format: ["domain.com", ...]
+                    foreach (array_values(array_unique(array_filter($pool))) as $domain) {
+                        if (is_string($domain) && $domain !== '') {
+                            $domains[$domain] = [];
+                        }
+                    }
+                }
             }
         }
 
+        // Fallback to node_root_domain if pool is empty
+        if (empty($domains) && !empty($sysConf['node_root_domain'])) {
+            $domains[$sysConf['node_root_domain']] = [];
+        }
+
         if (empty($domains)) {
-            $this->error('No domains configured. Set node_root_domain and/or node_domain_pool in config.');
+            $this->error('No domains configured. Set node_domain_pool in config.');
             return 1;
         }
 
         $dnsProvider = app(CloudflareProvider::class);
 
-        foreach ($domains as $domain) {
-            $this->info("Processing domain: {$domain}");
+        foreach ($domains as $domainName => $meta) {
+            $zoneId = $meta['zone_id'] ?? null;
+            $this->info("Processing domain: {$domainName}" . ($zoneId ? " (zone: {$zoneId})" : ''));
 
-            // Fetch A and AAAA records from CF
+            // Fetch A and AAAA records from CF using zone_id from config
             $cfRecords = [];
             foreach (['A', 'AAAA'] as $type) {
-                $records = $dnsProvider->listRecords($domain, $type);
+                $records = $dnsProvider->listRecords($domainName, $type, $zoneId);
                 if ($records === false) {
-                    $this->warn("  Failed to fetch {$type} records from Cloudflare for {$domain}");
+                    $this->warn("  Failed to fetch {$type} records from Cloudflare for {$domainName}");
                     continue;
                 }
                 foreach ($records as $r) {
@@ -70,14 +89,14 @@ class InitDnsRecords extends Command
 
             // --- Phase 1: Clean orphaned local records ---
             // Only touch A and AAAA type records
-            $localRecords = DnsRecord::where('root_domain', $domain)
+            $localRecords = DnsRecord::where('root_domain', $domainName)
                 ->whereIn('record_type', ['A', 'AAAA'])
                 ->get();
 
             $orphansDeleted = 0;
             foreach ($localRecords as $local) {
                 if ($local->cf_record_id && !isset($cfById[$local->cf_record_id])) {
-                    $this->warn("  Deleting orphan: {$local->subdomain}.{$domain} ({$local->record_type}) - CF record missing");
+                    $this->warn("  Deleting orphan: {$local->subdomain}.{$domainName} ({$local->record_type}) - CF record missing");
                     $local->delete();
                     $orphansDeleted++;
                 }
@@ -99,14 +118,14 @@ class InitDnsRecords extends Command
 
                 // Parse subdomain from CF record name (e.g. "n156.ssmail.win" → "n156")
                 $subdomain = $fullName;
-                if (strpos($fullName, '.' . $domain) !== false) {
-                    $subdomain = str_replace('.' . $domain, '', $fullName);
+                if (strpos($fullName, '.' . $domainName) !== false) {
+                    $subdomain = str_replace('.' . $domainName, '', $fullName);
                 }
 
                 // Upsert into dns_records
                 $existing = DnsRecord::where('cf_record_id', $cfRecord['id'])->first();
                 if (!$existing) {
-                    $existing = DnsRecord::where('root_domain', $domain)
+                    $existing = DnsRecord::where('root_domain', $domainName)
                         ->where('subdomain', $subdomain)
                         ->where('record_type', $type)
                         ->first();
@@ -114,22 +133,22 @@ class InitDnsRecords extends Command
 
                 if ($existing) {
                     $existing->node_id = $node->id;
-                    $existing->root_domain = $domain;
+                    $existing->root_domain = $domainName;
                     $existing->subdomain = $subdomain;
                     $existing->record_type = $type;
                     $existing->ip_addr = $ip;
                     $existing->cf_record_id = $cfRecord['id'];
-                    $existing->cf_zone_id = $cfRecord['zone_id'] ?? null;
+                    $existing->cf_zone_id = $cfRecord['zone_id'] ?? $zoneId;
                     $existing->save();
                 } else {
                     DnsRecord::create([
                         'node_id' => $node->id,
-                        'root_domain' => $domain,
+                        'root_domain' => $domainName,
                         'subdomain' => $subdomain,
                         'record_type' => $type,
                         'ip_addr' => $ip,
                         'cf_record_id' => $cfRecord['id'],
-                        'cf_zone_id' => $cfRecord['zone_id'] ?? null,
+                        'cf_zone_id' => $cfRecord['zone_id'] ?? $zoneId,
                     ]);
                 }
                 $upserted++;
