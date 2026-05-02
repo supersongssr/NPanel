@@ -1,0 +1,28 @@
+{
+    "outbounds": [
+        {
+            "protocol": "shadowsocks",
+            "settings": {
+                "servers": [
+                    {
+                        "address": "__address__",
+                        "port": 10010,
+                        "method": "__method__",
+                        "password": "__password__"
+                    }
+                ]
+            },
+            "tag": "ssbahamut"
+        }
+    ],
+
+    "routing": {
+        "rules": [
+            {
+                "type": "field",
+                "outboundTag": "ssbahamut",
+                "domain": ["geosite:bahamut"]
+            }
+        ]
+    }
+}

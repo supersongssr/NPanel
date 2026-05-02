@@ -106,6 +106,20 @@ class CloudflareProvider implements DnsProviderInterface
     }
 
     /**
+     * Search for a specific DNS record by name and type.
+     * Returns the record object if found, null if not found, or false on error.
+     */
+    public function getRecordByNameAndType($domain, $host, $type, $zoneId)
+    {
+        $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records?name={$host}.{$domain}&type={$type}";
+        $res = $this->sendRequest($url, 'GET');
+        if ($res && $res['success']) {
+            return !empty($res['result']) ? $res['result'][0] : null;
+        }
+        return false;
+    }
+
+    /**
      * List DNS records for a domain, optionally filtered by type.
      * Returns array of CF record objects or false on failure.
      */

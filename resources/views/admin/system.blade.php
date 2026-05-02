@@ -55,6 +55,9 @@
                                         <li>
                                             <a href="#tab_node" data-toggle="tab"> 节点配置 </a>
                                         </li>
+                                        <li>
+                                            <a href="#tab_unlock" data-toggle="tab"> 解锁配置 </a>
+                                        </li>
                                         <li id="li_tab_geetest" class="tab_captcha" style="display:none;">
                                             <a href="#tab_geetest" data-toggle="tab"> Geetest 极验 </a>
                                         </li>
@@ -1281,7 +1284,52 @@ echo empty($pp) ? json_encode(["threshold_mb" => 2048, "high" => "xhttp-hy2-ws-g
                                                 </div>
                                             </form>
                                         </div>
+                                        <div class="tab-pane" id="tab_unlock">
+                                            <div class="portlet-body">
+                                                <div class="table-scrollable">
+                                                    <table class="table table-hover table-light">
+                                                        <thead>
+                                                            <tr>
+                                                                <th> 服务 </th>
+                                                                <th> 地址 (Address) </th>
+                                                                <th> 端口 (Port) </th>
+                                                                <th> 密码 (Password) </th>
+                                                                <th> 加密方式 (Method) </th>
+                                                                <th> 操作 </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach(['netflix' => 'Netflix', 'openai' => 'OpenAI / ChatGPT', 'disney' => 'Disney+', 'tiktok' => 'TikTok', 'bahamut' => '动画疯 (Bahamut)', 'claude' => 'Claude', 'google_scholar' => 'Google Scholar'] as $key => $name)
+                                                            <tr>
+                                                                <td> <b>{{$name}}</b> </td>
+                                                                <td> <input type="text" class="form-control input-sm" id="unlock_{{$key}}_address" value="{{${'unlock_'.$key.'_address'} ?? ''}}"> </td>
+                                                                <td> <input type="number" class="form-control input-sm" style="width: 80px;" id="unlock_{{$key}}_port" value="{{${'unlock_'.$key.'_port'} ?? '8388'}}"> </td>
+                                                                <td> <input type="text" class="form-control input-sm" id="unlock_{{$key}}_password" value="{{${'unlock_'.$key.'_password'} ?? ''}}"> </td>
+                                                                <td>
+                                                                    <select class="form-control input-sm" id="unlock_{{$key}}_method">
+                                                                        @foreach(['chacha20-ietf-poly1305', 'aes-128-gcm', 'aes-256-gcm', 'rc4-md5'] as $m)
+                                                                            <option value="{{$m}}" @if((${'unlock_'.$key.'_method'} ?? '') == $m) selected @endif>{{$m}}</option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                </td>
+                                                                <td>
+                                                                    <button class="btn btn-sm btn-success" type="button" onclick="saveUnlockConfig('{{$key}}')">保存</button>
+                                                                </td>
+                                                            </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div class="alert alert-info">
+                                                    <b>说明：</b><br>
+                                                    1. 只有在节点配置的 <code>node_unlock</code> 包含对应服务（如 <code>netflix=1</code>）时，才会下发对应的解锁配置。<br>
+                                                    2. 地址通常为解锁机 IP 或中转域名。加密方式推荐使用 <code>chacha20-ietf-poly1305</code>。<br>
+                                                    3. 修改后对所有使用该解锁服务的节点立即生效（节点拉取新配置后）。
+                                                </div>
+                                            </div>
+                                        </div>
                                         <div class="tab-pane" id="tab_geetest">
+
                                             <form action="#" method="post" class="form-horizontal">
                                                 <div class="portlet-body">
                                                     <div class="form-group">
@@ -3162,6 +3210,42 @@ echo empty($pp) ? json_encode(["threshold_mb" => 2048, "high" => "xhttp-hy2-ws-g
                 layer.msg(ret.message, {time: 1000}, function () {
                     if (ret.status == 'fail') {
                         window.location.reload();
+                    }
+                });
+            });
+        }
+
+        // 保存解锁配置
+        function saveUnlockConfig(service) {
+            var address = $("#unlock_" + service + "_address").val();
+            var port = $("#unlock_" + service + "_port").val();
+            var password = $("#unlock_" + service + "_password").val();
+            var method = $("#unlock_" + service + "_method").val();
+
+            var configs = [
+                {name: "unlock_" + service + "_address", value: address},
+                {name: "unlock_" + service + "_port", value: port},
+                {name: "unlock_" + service + "_password", value: password},
+                {name: "unlock_" + service + "_method", value: method}
+            ];
+
+            var total = configs.length;
+            var count = 0;
+            var success = true;
+
+            configs.forEach(function(cfg) {
+                $.post("/admin/setConfig", {
+                    _token: '{{csrf_token()}}',
+                    name: cfg.name,
+                    value: cfg.value
+                }, function (ret) {
+                    count++;
+                    if (ret.status == 'fail') {
+                        success = false;
+                        layer.msg(ret.message);
+                    }
+                    if (count == total && success) {
+                        layer.msg('保存成功', {time: 1000});
                     }
                 });
             });

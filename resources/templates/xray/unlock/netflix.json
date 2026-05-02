@@ -1,0 +1,28 @@
+{
+    "outbounds": [
+        {
+            "protocol": "shadowsocks",
+            "settings": {
+                "servers": [
+                    {
+                        "address": "__address__",
+                        "port": 8388,
+                        "method": "__method__",
+                        "password": "__password__"
+                    }
+                ]
+            },
+            "tag": "ssnetflix"
+        }
+    ],
+
+    "routing": {
+        "rules": [
+            {
+                "type": "field",
+                "outboundTag": "ssnetflix",
+                "domain": ["geosite:netflix"]
+            }
+        ]
+    }
+}

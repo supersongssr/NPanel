@@ -520,248 +520,189 @@ class NodeApiController extends Controller
     }
 
     /**
-     * Step 2: DB-Driven Diff DNS resolution.
+     * Step 2: DB-Driven Status Synchronization (Three-way Reconciliation).
      *
-     * Reads target state from ss_node, current state from dns_records.
-     * Only calls CF API when diff is detected.
-     * Only updates dns_records AFTER CF API confirms success.
+     * Logic:
+     * 1. Get latest node state from ss_node (Source of Truth).
+     * 2. Calculate expected DNS records (Blueprints).
+     * 3. Compare with local dns_records (Cache).
+     * 4. Perform atomic CF operations ONLY when a diff is detected.
+     * 5. Handle ID recycling (DELETE + POST) and IP updates (PUT).
      */
     public function resolveDns(Request $request)
     {
         if ($err = $this->validateToken($request)) return $err;
 
-        $nodeId = $request->input('node_id');
-        $node = SsNode::find($nodeId);
-        if (!$node) return response()->json(['status' => 'error', 'message' => 'Node not found'], 404);
+        $mainNodeId = $request->input('node_id');
+        $force = (bool)$request->input('force', false);
+        $mainNode = SsNode::find($mainNodeId);
+        if (!$mainNode) return response()->json(['status' => 'error', 'message' => 'Node not found'], 404);
 
-        // Parse target state from ss_node.server (format: node{id}.{root_domain})
-        $targetParts = $this->parseServerField($node->server);
-        if (!$targetParts) {
-            return response()->json(['status' => 'error', 'message' => 'Invalid server field format'], 500);
-        }
-        $targetSubdomain = $targetParts['subdomain'];
-        $targetRootDomain = $targetParts['root_domain'];
-
-        // Look up zone_id from domain pool for this root domain
-        $sysConf = Helpers::systemConfig();
-        $parsed = $this->parseDomainPool($sysConf);
-        $zoneId = $this->getDomainZoneId($parsed['domainPool'][$targetRootDomain] ?? [], $targetRootDomain);
-
-        if (!$zoneId) {
-            return response()->json(['status' => 'error', 'message' => "Zone ID missing for domain {$targetRootDomain}"], 500);
-        }
-
+        $nodeIds = explode(',', $mainNode->node_ids ?: $mainNodeId);
         $dnsProvider = app(\App\Components\DNS\CloudflareProvider::class);
+        $sysConf = Helpers::systemConfig();
+        $parsedPool = $this->parseDomainPool($sysConf);
+
         $results = [];
+        foreach ($nodeIds as $id) {
+            $node = SsNode::find($id);
+            if (!$node) continue;
 
-        // Process each IP type the node has
-        $ipEntries = [];
-        if ($node->ip) $ipEntries[] = ['type' => 'A', 'addr' => $node->ip];
-        if ($node->ipv6) $ipEntries[] = ['type' => 'AAAA', 'addr' => $node->ipv6];
+            $serverParts = $this->parseServerField($node->server);
+            $targetRootDomain = $serverParts ? $serverParts['root_domain'] : '';
+            if (!$targetRootDomain) {
+                Log::warning("[Node API] Skip DNS sync for node {$id}: Invalid server field '{$node->server}'");
+                continue;
+            }
 
-        foreach ($ipEntries as $entry) {
-            $result = $this->reconcileDnsRecord(
-                $nodeId, $dnsProvider, $targetSubdomain, $targetRootDomain, $entry['type'], $entry['addr'], $zoneId
-            );
-            $results[] = $result;
+            $zoneId = $this->getDomainZoneId($parsedPool['domainPool'][$targetRootDomain] ?? [], $targetRootDomain);
+            if (!$zoneId) {
+                Log::error("[Node API] Skip DNS sync for node {$id}: Zone ID missing for {$targetRootDomain}");
+                continue;
+            }
+
+            // Expected blueprints for this node
+            $blueprints = [];
+            if ($node->ip) {
+                $blueprints[] = [
+                    'type' => 'A',
+                    'subdomain' => 'node' . $node->id,
+                    'content' => $node->ip,
+                    'root_domain' => $targetRootDomain,
+                    'zone_id' => $zoneId
+                ];
+            }
+            if ($node->ipv6) {
+                $blueprints[] = [
+                    'type' => 'AAAA',
+                    'subdomain' => 'ipv6node' . $node->id,
+                    'content' => $node->ipv6,
+                    'root_domain' => $targetRootDomain,
+                    'zone_id' => $zoneId
+                ];
+            }
+
+            foreach ($blueprints as $blueprint) {
+                $results[] = $this->reconcileThreeWay(
+                    $node->id, $blueprint, $dnsProvider, $force
+                );
+            }
+
+            // Cleanup orphaned records in DB (e.g. node previously had IPv4, now only IPv6)
+            $expectedTypes = array_column($blueprints, 'type');
+            $orphans = DnsRecord::where('node_id', $node->id)
+                ->whereNotIn('record_type', $expectedTypes)
+                ->get();
+            
+            foreach ($orphans as $orphan) {
+                $orphanZoneId = $this->getDomainZoneId($parsedPool['domainPool'][$orphan->root_domain] ?? [], $orphan->root_domain);
+                if ($orphanZoneId) {
+                    $dnsProvider->deleteRecord($orphan->cf_record_id, $orphanZoneId);
+                }
+                $orphan->delete();
+                $results[] = ['action' => 'deleted_orphan', 'success' => true, 'node_id' => $node->id, 'type' => $orphan->record_type];
+            }
         }
 
         $allSuccess = !empty($results) && array_reduce($results, function ($carry, $r) {
-            return $carry && $r['success'];
+            return $carry && ($r['success'] ?? true);
         }, true);
-
-        $actions = array_map(function ($r) {
-            return $r['action'];
-        }, $results);
 
         return response()->json([
             'status' => $allSuccess ? 'success' : 'error',
-            'actions' => $actions,
-            'message' => $allSuccess ? 'DNS reconciled' : 'Some DNS operations failed',
+            'results' => $results,
+            'message' => $allSuccess ? 'DNS cluster synchronized' : 'Some DNS operations failed'
         ]);
     }
 
     /**
-     * Reconcile a single DNS record (one node × one IP type).
-     *
-     * Scene A: Same domain + same IP → skip CF entirely.
-     * Scene B: Same domain + diff IP → PUT update via CF.
-     * Scene C: Diff domain → POST new + DELETE old via CF (Atomic swap).
+     * Three-way reconciliation: Node State vs Local DB vs Cloudflare.
      */
-    private function reconcileDnsRecord($nodeId, $dnsProvider, $targetSubdomain, $targetRootDomain, $type, $targetIp, $zoneId)
+    private function reconcileThreeWay($nodeId, $blueprint, $dnsProvider, $force = false)
     {
-        $oldRecord = DnsRecord::where('node_id', $nodeId)
-            ->where('record_type', $type)
+        $localRecord = DnsRecord::where('node_id', $nodeId)
+            ->where('record_type', $blueprint['type'])
             ->first();
 
-        // Scene A: No old record exists — pure creation
-        if (!$oldRecord) {
-            return $this->createDnsRecord($dnsProvider, $nodeId, $targetSubdomain, $targetRootDomain, $type, $targetIp, $zoneId);
+        // Scene A: Cache Blocking (Performance optimization)
+        if (!$force && $localRecord) {
+            $isMatch = ($localRecord->subdomain === $blueprint['subdomain'] &&
+                        $localRecord->root_domain === $blueprint['root_domain'] &&
+                        $localRecord->ip_addr === $blueprint['content']);
+            
+            if ($isMatch) {
+                return [
+                    'action' => 'no_change',
+                    'success' => true,
+                    'node_id' => $nodeId,
+                    'type' => $blueprint['type'],
+                    'message' => 'Cache hit: state matches blueprint'
+                ];
+            }
         }
 
-        $sameDomain = ($oldRecord->root_domain === $targetRootDomain && $oldRecord->subdomain === $targetSubdomain);
-        $sameIp = ($oldRecord->ip_addr === $targetIp);
+        // Scene B: Subdomain or Root Domain changed (ID Recycling / Dirty Data Cleanup)
+        // If domain changed, we MUST DELETE the old one and POST a new one.
+        if ($localRecord && ($localRecord->subdomain !== $blueprint['subdomain'] || $localRecord->root_domain !== $blueprint['root_domain'])) {
+            $oldZoneId = $this->getDomainZoneIdForRecord($localRecord);
+            if ($oldZoneId) {
+                $dnsProvider->deleteRecord($localRecord->cf_record_id, $oldZoneId);
+            }
+            $localRecord->delete();
+            $localRecord = null; // Proceed to Scene C: Creation
+        }
 
-        // Scene A: Identical — no-op, intercept CF call
-        if ($sameDomain && $sameIp) {
-            Log::info('[Node API] DNS 对账跳过', [
+        // Scene C: Creation or Re-creation
+        if (!$localRecord) {
+            $cfResult = $dnsProvider->createRecord(
+                $blueprint['root_domain'],
+                $blueprint['subdomain'],
+                $blueprint['content'],
+                $blueprint['type'],
+                $blueprint['zone_id']
+            );
+
+            if (!$cfResult) {
+                return ['action' => 'create_failed', 'success' => false, 'node_id' => $nodeId, 'type' => $blueprint['type']];
+            }
+
+            DnsRecord::create([
                 'node_id' => $nodeId,
-                'domain' => $targetRootDomain,
-                'subdomain' => $targetSubdomain,
-                'ip' => $targetIp,
-                'reason' => 'Identical'
+                'root_domain' => $blueprint['root_domain'],
+                'subdomain' => $blueprint['subdomain'],
+                'record_type' => $blueprint['type'],
+                'ip_addr' => $blueprint['content'],
+                'cf_record_id' => $cfResult['id'],
             ]);
-            return ['action' => 'no_change', 'success' => true, 'message' => 'DNS already up-to-date'];
+
+            return ['action' => 'created', 'success' => true, 'node_id' => $nodeId, 'type' => $blueprint['type']];
         }
 
-        // Scene B: Same domain, different IP — PUT update
-        if ($sameDomain && !$sameIp) {
-            return $this->updateDnsRecordIp($dnsProvider, $oldRecord, $targetIp, $zoneId);
+        // Scene D: IP Address Update (Same domain, diff IP)
+        $cfResult = $dnsProvider->updateRecordById(
+            $localRecord->cf_record_id,
+            $blueprint['root_domain'],
+            $blueprint['subdomain'],
+            $blueprint['content'],
+            $blueprint['type'],
+            $blueprint['zone_id']
+        );
+
+        if (!$cfResult) {
+            // Ghost sync check: if update failed because ID is invalid, clear cache to force creation next time
+            Log::warning("[Node API] DNS update failed for node {$nodeId}, clearing cache", ['cf_id' => $localRecord->cf_record_id]);
+            $localRecord->delete();
+            return ['action' => 'update_failed', 'success' => false, 'node_id' => $nodeId, 'type' => $blueprint['type']];
         }
 
-        // Scene C: Domain changed — POST new + DELETE old
-        $oldZoneId = $this->getDomainZoneIdForRecord($oldRecord);
-        if (!$oldZoneId) {
-            return ['action' => 'swap_failed', 'success' => false, 'message' => "Old domain Zone ID missing: {$oldRecord->root_domain}"];
-        }
-        return $this->swapDnsRecord($dnsProvider, $oldRecord, $nodeId, $targetSubdomain, $targetRootDomain, $type, $targetIp, $oldZoneId, $zoneId);
+        $localRecord->ip_addr = $blueprint['content'];
+        $localRecord->save();
+
+        return ['action' => 'updated_ip', 'success' => true, 'node_id' => $nodeId, 'type' => $blueprint['type']];
     }
 
     /**
      * Look up zone_id for an existing DnsRecord's root_domain from the domain pool.
-     */
-    private function getDomainZoneIdForRecord($record)
-    {
-        $sysConf = Helpers::systemConfig();
-        $parsed = $this->parseDomainPool($sysConf);
-        return $this->getDomainZoneId($parsed['domainPool'][$record->root_domain] ?? [], $record->root_domain);
-    }
-
-    /**
-     * Create a brand new DNS record via CF, then persist to dns_records.
-     */
-    private function createDnsRecord($dnsProvider, $nodeId, $subdomain, $rootDomain, $type, $ip, $zoneId)
-    {
-        $cfResult = $dnsProvider->createRecord($rootDomain, $subdomain, $ip, $type, $zoneId);
-        if (!$cfResult) {
-            Log::error("[Node API] DNS 创建失败 (CF API Error)", [
-                'node_id' => $nodeId,
-                'domain' => $subdomain . '.' . $rootDomain,
-                'type' => $type,
-                'ip' => $ip
-            ]);
-            return ['action' => 'create_failed', 'success' => false, 'message' => 'CF create failed'];
-        }
-
-        // CF success → persist locally
-        DnsRecord::create([
-            'node_id' => $nodeId,
-            'root_domain' => $rootDomain,
-            'subdomain' => $subdomain,
-            'record_type' => $type,
-            'ip_addr' => $ip,
-            'cf_record_id' => $cfResult['id'],
-        ]);
-
-        Log::info('[Node API] DNS 记录创建成功', [
-            'node_id' => $nodeId,
-            'domain' => $subdomain . '.' . $rootDomain,
-            'type' => $type,
-            'ip' => $ip,
-            'cf_id' => $cfResult['id']
-        ]);
-
-        return ['action' => 'created', 'success' => true, 'message' => 'DNS record created'];
-    }
-
-    /**
-     * Scene B: Update IP on existing record. CF PUT first, then update DB.
-     */
-    private function updateDnsRecordIp($dnsProvider, $oldRecord, $newIp, $zoneId)
-    {
-        $cfResult = $dnsProvider->updateRecordById(
-            $oldRecord->cf_record_id,
-            $oldRecord->root_domain,
-            $oldRecord->subdomain,
-            $newIp,
-            $oldRecord->record_type,
-            $zoneId
-        );
-        if (!$cfResult) {
-            Log::error("[Node API] DNS 更新失败 (CF API Error)", [
-                'node_id' => $oldRecord->node_id,
-                'domain' => $oldRecord->subdomain . '.' . $oldRecord->root_domain,
-                'old_ip' => $oldRecord->ip_addr,
-                'new_ip' => $newIp
-            ]);
-            return ['action' => 'update_failed', 'success' => false, 'message' => 'CF update failed'];
-        }
-
-        Log::info('[Node API] DNS IP 更新成功', [
-            'node_id' => $oldRecord->node_id,
-            'domain' => $oldRecord->subdomain . '.' . $oldRecord->root_domain,
-            'old_ip' => $oldRecord->ip_addr,
-            'new_ip' => $newIp
-        ]);
-
-        // CF success → update local record
-        $oldRecord->ip_addr = $newIp;
-        $oldRecord->cf_record_id = $cfResult['id'];
-        $oldRecord->save();
-
-        return ['action' => 'updated_ip', 'success' => true, 'message' => 'IP updated'];
-    }
-
-    /**
-     * Scene C: Domain changed. POST new to CF first, then DELETE old.
-     * This ensures the target survives if deletion fails.
-     */
-    private function swapDnsRecord($dnsProvider, $oldRecord, $nodeId, $newSubdomain, $newRootDomain, $type, $newIp, $oldZoneId, $newZoneId)
-    {
-        // Step 1: Create new record in CF (POST first to ensure target survives failure)
-        $cfResult = $dnsProvider->createRecord($newRootDomain, $newSubdomain, $newIp, $type, $newZoneId);
-        if (!$cfResult) {
-            Log::error("[Node API] DNS 跨域迁移失败 (CF POST Error)", [
-                'node_id' => $nodeId,
-                'old_domain' => $oldRecord->subdomain . '.' . $oldRecord->root_domain,
-                'new_domain' => $newSubdomain . '.' . $newRootDomain,
-                'ip' => $newIp
-            ]);
-            return ['action' => 'swap_failed', 'success' => false, 'message' => 'CF create failed, swap aborted'];
-        }
-
-        // Step 2: Delete old record from CF (POST succeeded, so old is now redundant)
-        $deleteOk = $dnsProvider->deleteRecord($oldRecord->cf_record_id, $oldZoneId);
-        if (!$deleteOk) {
-            Log::warning("[Node API] DNS 旧记录清理失败 (Orphan left on CF)", [
-                'cf_id' => $oldRecord->cf_record_id,
-                'domain' => $oldRecord->subdomain . '.' . $oldRecord->root_domain
-            ]);
-        }
-
-        Log::info('[Node API] DNS 跨域迁移成功', [
-            'node_id' => $nodeId,
-            'old_domain' => $oldRecord->subdomain . '.' . $oldRecord->root_domain,
-            'new_domain' => $newSubdomain . '.' . $newRootDomain,
-            'ip' => $newIp
-        ]);
-
-        // Step 3: Atomic replacement in local DB
-        $oldRecord->delete();
-        DnsRecord::create([
-            'node_id' => $nodeId,
-            'root_domain' => $newRootDomain,
-            'subdomain' => $newSubdomain,
-            'record_type' => $type,
-            'ip_addr' => $newIp,
-            'cf_record_id' => $cfResult['id'],
-        ]);
-
-        return ['action' => 'swapped_domain', 'success' => true, 'message' => 'Domain swapped'];
-    }
-
-    /**
-     * Parse node.server field "node123.example.com" into subdomain + root_domain.
      */
     private function parseServerField($server)
     {
@@ -790,7 +731,10 @@ class NodeApiController extends Controller
 
         $rawTemplate = json_decode(file_get_contents($templatePath));
         $config = json_decode(json_encode($rawTemplate), true);
-        $nodeDomain = $node->server;
+
+        // __nodeDomain__ replacement refers to root_domain (e.g. example.com)
+        $serverParts = $this->parseServerField($node->server);
+        $nodeDomain = $serverParts ? $serverParts['root_domain'] : $node->server;
 
         $expanded = $this->expandProtocols($v2Name);
         $inboundTags = array_map(function($proto) {
@@ -876,43 +820,58 @@ class NodeApiController extends Controller
 
     /**
      * Recursively restore JSON object types lost by json_decode(..., true).
-     * Walks both trees in parallel: wherever the template has an object (stdClass),
-     * cast the corresponding array node to (object) so json_encode outputs {}.
      *
-     * Handles three alignment modes:
-     *  - stdClass vs array → iterate by key, recurse into matched children
-     *  - array vs array   → zip by index, recurse element-by-element
-     *  - leaf mismatch    → return data as-is
+     * Logic:
+     * 1. If template is stdClass -> force data to (object), recurse children.
+     * 2. If template is array -> keep data as array, zip-recurse children.
+     * 3. If template is null/primitive:
+     *    - If data is associative array -> force to (object), recurse children.
+     *    - If data is sequential array -> keep as array, recurse children.
+     *    - Else return as-is.
      */
     private function restoreJsonObjectTypes($data, $template)
     {
-        // Case 1: Both are objects (data=array from json_decode true, template=stdClass)
-        if (is_array($data) && $template instanceof \stdClass) {
+        // Case 1: Template is an object
+        if ($template instanceof \stdClass) {
             $result = [];
-            foreach ($data as $key => $value) {
-                $tplValue = null;
-                if (property_exists($template, $key)) {
-                    $tplValue = $template->$key;
-                } elseif (property_exists($template, (string)$key)) {
-                    $tplValue = $template->{(string)$key};
+            if (is_array($data)) {
+                foreach ($data as $key => $value) {
+                    $tplValue = property_exists($template, $key) ? $template->$key : null;
+                    $result[$key] = $this->restoreJsonObjectTypes($value, $tplValue);
                 }
-
-                $result[$key] = $this->restoreJsonObjectTypes($value, $tplValue);
             }
             return (object)$result;
         }
 
-        // Case 2: Both are arrays (JSON [] with nested objects) — zip by index
-        if (is_array($data) && is_array($template)) {
-            foreach ($data as $i => $value) {
-                if (isset($template[$i])) {
-                    $data[$i] = $this->restoreJsonObjectTypes($value, $template[$i]);
+        // Case 2: Template is an array
+        if (is_array($template)) {
+            if (is_array($data)) {
+                foreach ($data as $i => $value) {
+                    $tplValue = isset($template[$i]) ? $template[$i] : null;
+                    $data[$i] = $this->restoreJsonObjectTypes($value, $tplValue);
                 }
             }
             return $data;
         }
 
-        // Case 3: Leaf or type mismatch — return as-is
+        // Case 3: Extra data or template-less recursion
+        if (is_array($data)) {
+            $isAssoc = !empty($data) && array_keys($data) !== range(0, count($data) - 1);
+            if ($isAssoc) {
+                $result = [];
+                foreach ($data as $key => $value) {
+                    $result[$key] = $this->restoreJsonObjectTypes($value, null);
+                }
+                return (object)$result;
+            }
+            
+            // Sequential array
+            foreach ($data as $i => $value) {
+                $data[$i] = $this->restoreJsonObjectTypes($value, null);
+            }
+            return $data;
+        }
+
         return $data;
     }
 
@@ -922,21 +881,68 @@ class NodeApiController extends Controller
         // Support both comma-separated and query-string formats
         parse_str(str_replace(',', '&', $unlockStr), $unlocks);
 
+        $sysConf = Helpers::systemConfig();
+
         foreach ($unlocks as $key => $value) {
             // Support 1, "1", "Yes", "true"
             $isEnabled = in_array(strtolower((string)$value), ['1', 'yes', 'true', 'on']);
             if ($isEnabled) {
-                $tag = str_replace(['unlock', ' '], '', $key);
-                $config['outbounds'][] = [
-                    'protocol' => 'freedom',
-                    'settings' => ['domainStrategy' => 'UseIPv4'],
-                    'tag' => 'outbound-' . $tag
-                ];
-                $config['routing']['rules'][] = [
-                    'type' => 'field',
-                    'outboundTag' => 'outbound-' . $tag,
-                    'domain' => ["geosite:" . strtolower($tag)]
-                ];
+                $service = strtolower(str_replace(['unlock', ' '], '', $key));
+                
+                // Special mapping for common aliases
+                if ($service === 'chatgpt') $service = 'openai';
+
+                $templatePath = resource_path("templates/xray/unlock/{$service}.json");
+                
+                if (file_exists($templatePath)) {
+                    $rawTemplate = file_get_contents($templatePath);
+                    
+                    // Retrieve specific unlock config from DB
+                    $addr = $sysConf["unlock_{$service}_address"] ?? '';
+                    $port = $sysConf["unlock_{$service}_port"] ?? 8388;
+                    $pwd = $sysConf["unlock_{$service}_password"] ?? '';
+                    $method = $sysConf["unlock_{$service}_method"] ?? 'chacha20-ietf-poly1305';
+
+                    if (empty($addr)) {
+                        Log::warning("[Node API] Unlock service {$service} enabled but address is missing in DB.");
+                        continue;
+                    }
+
+                    // Replace placeholders with DB values
+                    $rawTemplate = str_replace(
+                        ['__address__', '__port__', '__password__', '__method__'],
+                        [$addr, (string)$port, $pwd, $method],
+                        $rawTemplate
+                    );
+
+                    $unlockData = json_decode($rawTemplate, true);
+                    if ($unlockData) {
+                        // Merge outbounds
+                        if (!empty($unlockData['outbounds'])) {
+                            foreach ($unlockData['outbounds'] as $outbound) {
+                                $config['outbounds'][] = $outbound;
+                            }
+                        }
+                        // Merge routing rules
+                        if (!empty($unlockData['routing']['rules'])) {
+                            foreach ($unlockData['routing']['rules'] as $rule) {
+                                $config['routing']['rules'][] = $rule;
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback to direct freedom outbound if no template exists
+                    $config['outbounds'][] = [
+                        'protocol' => 'freedom',
+                        'settings' => ['domainStrategy' => 'UseIPv4'],
+                        'tag' => 'outbound-' . $service
+                    ];
+                    $config['routing']['rules'][] = [
+                        'type' => 'field',
+                        'outboundTag' => 'outbound-' . $service,
+                        'domain' => ["geosite:" . $service]
+                    ];
+                }
             }
         }
     }
