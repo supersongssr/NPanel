@@ -23,6 +23,9 @@ class SsNode extends Model
         'node_country', 'node_city', 'ip', 'ipv6', 'server', 'status',
         'is_clone', 'node_ids', 'type', 'node_health', 'last_raw_total', 'traffic_used',
         'server_uptime', 'heartbeat_at',
+        'v2_port', 'v2_net', 'v2_type', 'v2_host', 'v2_path', 'v2_tls',
+        'v2_sni', 'v2_flow', 'v2_fp', 'v2_alpn', 'v2_servicename',
+        'v2_method', 'v2_encryption', 'v2_alter_id', 'v2_mode', 'is_subscribe',
     ];
 
     protected $casts = [

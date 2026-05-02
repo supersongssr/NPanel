@@ -228,7 +228,7 @@ class NodeApiController extends Controller
         if ($totalTarget === 0) {
             return response()->json([
                 'status' => 'success',
-                'main_node_id' => $node->id,
+                'node_id' => $node->id,
                 'clone_node_ids' => [],
                 'root_domain' => $rootDomain,
                 'v2_name' => $v2Name,
@@ -258,6 +258,7 @@ class NodeApiController extends Controller
         // Keep original v2_name (e.g. "xhttp-hy2-ws-grpc") on main node for template lookup.
         // Only clone nodes get single-protocol v2_name.
         $mainSlot = array_shift($slots);
+        $this->applyV2Preset($node, $mainSlot['protocol'], $rootDomain, $mainSlot['ip_type'] === 'ipv6');
         $node->save();
         $allNodeIds = [$node->id];
 
@@ -277,6 +278,7 @@ class NodeApiController extends Controller
                 $clone->traffic_rate = $node->traffic_rate;
                 $clone->status = 1;
                 $clone->server = 'node' . $clone->id . '.' . $rootDomain;
+                $this->applyV2Preset($clone, $slot['protocol'], $rootDomain, $slot['ip_type'] === 'ipv6');
                 $clone->save();
             } else {
                 // Need to create new clone - but first try to recycle dead nodes
@@ -303,6 +305,7 @@ class NodeApiController extends Controller
                 $clone->save();
 
                 $clone->server = 'node' . $clone->id . '.' . $rootDomain;
+                $this->applyV2Preset($clone, $slot['protocol'], $rootDomain, $slot['ip_type'] === 'ipv6');
                 $clone->save();
             }
 
@@ -327,7 +330,7 @@ class NodeApiController extends Controller
         $node->save();
 
         Log::info('[Node API] 节点注册成功', [
-            'main_node_id' => $node->id,
+            'node_id' => $node->id,
             'protocol_group' => $v2Name,
             'domain_decision' => $rootDomain,
             'node_ids' => $allNodeIds,
@@ -339,7 +342,7 @@ class NodeApiController extends Controller
 
         $response = [
             'status' => 'success',
-            'main_node_id' => $node->id,
+            'node_id' => $node->id,
             'clone_node_ids' => $cloneIds,
             'node_ids' => $nodeIdsStr,
             'root_domain' => $rootDomain,
@@ -350,11 +353,11 @@ class NodeApiController extends Controller
         // --- xhttp-hy2-ws-grpc mode: emit paths and fixed ports ---
         $expanded = $this->expandProtocols($v2Name);
         if (in_array('xhttp', $expanded) || in_array('ws', $expanded) || in_array('grpc', $expanded)) {
-            $response['ws_path'] = '/ws' . $nodeId;
+            $response['ws_path'] = 'srp-ws';
             $response['ws_port'] = 10011;
-            $response['grpc_service_name'] = 'grpc' . $nodeId;
+            $response['grpc_service_name'] = 'srp-grpc';
             $response['grpc_port'] = 10012;
-            $response['xhttp_path'] = '/xhttp' . $nodeId;
+            $response['xhttp_path'] = 'srp-xhttp';
             $response['xhttp_port'] = 10013;
         }
 
@@ -369,12 +372,116 @@ class NodeApiController extends Controller
     }
 
     /**
+     * Protocol → v2_* field preset mapping.
+     * Each protocol maps to the exact v2_* fields SubscribeController needs
+     * to generate correct subscription links (vmess://, vless://, hy2://).
+     */
+    const V2_PRESETS = [
+        'vision' => [
+            'type' => 3,
+            'v2_net' => 'tcp',
+            'v2_tls' => 1,
+            'v2_port' => 443,
+            'v2_flow' => 'xtls-rprx-vision',
+            'v2_fp' => 'random',
+            'v2_method' => 'none',
+            'v2_encryption' => 'none',
+            'v2_alter_id' => 0,
+            'v2_type' => 'none',
+        ],
+        'xhttp' => [
+            'type' => 3,
+            'v2_net' => 'xhttp',
+            'v2_tls' => 1,
+            'v2_port' => 443,
+            'v2_method' => 'none',
+            'v2_encryption' => 'none',
+            'v2_alter_id' => 0,
+            'v2_type' => 'none',
+            'v2_mode' => 'auto',
+            'v2_alpn' => 'h2,http/1.1',
+        ],
+        'ws' => [
+            'type' => 2,
+            'v2_net' => 'ws',
+            'v2_tls' => 1,
+            'v2_port' => 443,
+            'v2_method' => 'auto',
+            'v2_encryption' => 'none',
+            'v2_alter_id' => 0,
+            'v2_type' => 'none',
+        ],
+        'grpc' => [
+            'type' => 3,
+            'v2_net' => 'grpc',
+            'v2_tls' => 1,
+            'v2_port' => 443,
+            'v2_method' => 'none',
+            'v2_encryption' => 'none',
+            'v2_alter_id' => 0,
+            'v2_type' => 'none',
+            'v2_mode' => 'multi',
+            'v2_alpn' => 'h2',
+        ],
+        'hy2' => [
+            'type' => 5,
+            'v2_net' => 'hysteria2',
+            'v2_tls' => 1,
+            'v2_port' => 443,
+            'v2_method' => 'none',
+            'v2_encryption' => 'none',
+            'v2_alter_id' => 0,
+            'v2_type' => 'none',
+            'v2_alpn' => 'h3',
+        ],
+    ];
+
+    /**
      * Expand a protocol group string into individual protocol names.
      * e.g. "vision-hy2-ws-grpc" → ["vision", "hy2", "ws", "grpc"]
      */
     private function expandProtocols($v2Name)
     {
         return explode('-', $v2Name);
+    }
+
+    /**
+     * Apply v2_* preset fields to a node based on its single-protocol name.
+     * Static fields come from V2_PRESETS; dynamic fields (host, sni, path) computed from node context.
+     *
+     * @param SsNode  $node
+     * @param string  $protocol   Single protocol (e.g. "ws", "grpc", "hy2")
+     * @param string  $rootDomain
+     * @param bool    $isIpv6
+     */
+    private function applyV2Preset($node, $protocol, $rootDomain, $isIpv6)
+    {
+        $preset = self::V2_PRESETS[$protocol] ?? null;
+        if (!$preset) {
+            Log::warning('[Node API] 无 v2 预设配置', ['protocol' => $protocol]);
+            return;
+        }
+
+        // Apply static fields from preset
+        foreach ($preset as $field => $value) {
+            $node->{$field} = $value;
+        }
+
+        // Dynamic fields: v2_host/v2_sni = server field (node{id}.{domain})
+        $node->v2_host = $node->server;
+        $node->v2_sni = $node->server;
+
+        // Protocol-specific dynamic fields
+        if ($protocol === 'ws') {
+            $node->v2_path = 'srp-ws';
+        }
+        if ($protocol === 'grpc') {
+            $node->v2_path = 'srp-grpc';
+            $node->v2_servicename = 'srp-grpc';
+        }
+        if ($protocol === 'xhttp') {
+            $node->v2_path = 'srp-xhttp';
+        }
     }
 
     /**
@@ -681,7 +788,8 @@ class NodeApiController extends Controller
         $templatePath = resource_path("templates/xray/{$v2Name}.json");
         if (!file_exists($templatePath)) return response()->json(['status' => 'error', 'message' => 'Template not found'], 500);
 
-        $config = json_decode(file_get_contents($templatePath), true);
+        $rawTemplate = json_decode(file_get_contents($templatePath));
+        $config = json_decode(json_encode($rawTemplate), true);
         $nodeDomain = $node->server;
 
         $expanded = $this->expandProtocols($v2Name);
@@ -690,14 +798,14 @@ class NodeApiController extends Controller
         }, $expanded);
 
         $vars = [
-            '__wsPath__' => 'ws' . $nodeId,
+            '__wsPath__' => 'srp-ws',
             '__wsPort__' => 10011,
             '__v2Fallback__' => '127.0.0.1',
             '__nodeDomain__' => $nodeDomain,
             '__HYSTERIA_URL__' => 'https://www.bing.com',
-            '__v2ServiceName__' => 'grpc' . $nodeId,
+            '__v2ServiceName__' => 'srp-grpc',
             '__grpcPort__' => 10012,
-            '__xhttpPath__' => 'xhttp' . $nodeId,
+            '__xhttpPath__' => 'srp-xhttp',
             '__xhttpPort__' => 10013,
             '__hy2Port__' => 443,
             '__visionPort__' => 443,
@@ -708,7 +816,7 @@ class NodeApiController extends Controller
         ];
 
         $config = $this->injectVariables($config, $vars);
-        
+
         if (isset($config['ssrpanel'])) {
             $config['ssrpanel']['nodeId'] = (int)$node->id;
             $config['ssrpanel']['user']['inboundTags'] = $inboundTags;
@@ -724,6 +832,11 @@ class NodeApiController extends Controller
         }
 
         if ($node->node_unlock) $this->applyUnlocks($config, $node->node_unlock);
+
+        // Restore JSON object types lost by json_decode(..., true).
+        // json_decode with true converts all {} to [] and {"0":{}} to [0=>[...]],
+        // but Xray expects objects for stats, settings, policy.levels, etc.
+        $config = $this->restoreJsonObjectTypes($config, $rawTemplate);
 
         // Mask sensitive data for logging
         $logVars = $vars;
@@ -758,6 +871,48 @@ class NodeApiController extends Controller
                 }
             }
         }
+        return $data;
+    }
+
+    /**
+     * Recursively restore JSON object types lost by json_decode(..., true).
+     * Walks both trees in parallel: wherever the template has an object (stdClass),
+     * cast the corresponding array node to (object) so json_encode outputs {}.
+     *
+     * Handles three alignment modes:
+     *  - stdClass vs array → iterate by key, recurse into matched children
+     *  - array vs array   → zip by index, recurse element-by-element
+     *  - leaf mismatch    → return data as-is
+     */
+    private function restoreJsonObjectTypes($data, $template)
+    {
+        // Case 1: Both are objects (data=array from json_decode true, template=stdClass)
+        if (is_array($data) && $template instanceof \stdClass) {
+            $result = [];
+            foreach ($data as $key => $value) {
+                $tplValue = null;
+                if (property_exists($template, $key)) {
+                    $tplValue = $template->$key;
+                } elseif (property_exists($template, (string)$key)) {
+                    $tplValue = $template->{(string)$key};
+                }
+
+                $result[$key] = $this->restoreJsonObjectTypes($value, $tplValue);
+            }
+            return (object)$result;
+        }
+
+        // Case 2: Both are arrays (JSON [] with nested objects) — zip by index
+        if (is_array($data) && is_array($template)) {
+            foreach ($data as $i => $value) {
+                if (isset($template[$i])) {
+                    $data[$i] = $this->restoreJsonObjectTypes($value, $template[$i]);
+                }
+            }
+            return $data;
+        }
+
+        // Case 3: Leaf or type mismatch — return as-is
         return $data;
     }
 
