@@ -18,7 +18,7 @@ class CloudflareProvider implements DnsProviderInterface
         $this->apiKey = env('CLOUDFLARE_API_KEY');
     }
 
-    public function updateRecord($domain, $host, $value, $type = 'A', $zoneId = null)
+    public function updateRecord($domain, $host, $value, $type = 'A', $zoneId = null, $proxied = false)
     {
         if (empty($this->token) && (empty($this->email) || empty($this->apiKey))) {
             Log::error('Cloudflare credentials missing in .env (Need CLOUDFLARE_TOKEN or EMAIL+API_KEY)');
@@ -32,41 +32,35 @@ class CloudflareProvider implements DnsProviderInterface
 
         $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records";
 
-        // Check if record exists
         $searchUrl = $url . "?name={$host}.{$domain}&type={$type}";
         $response = $this->sendRequest($searchUrl, 'GET');
 
         if ($response && $response['success'] && !empty($response['result'])) {
             $recordId = $response['result'][0]['id'];
-            // Update
             $updateUrl = $url . "/{$recordId}";
             $data = [
                 'type' => $type,
                 'name' => "{$host}.{$domain}",
                 'content' => $value,
                 'ttl' => 120,
-                'proxied' => false
+                'proxied' => $proxied,
             ];
             $res = $this->sendRequest($updateUrl, 'PUT', $data);
             return $res && $res['success'];
         } else {
-            // Create
             $data = [
                 'type' => $type,
                 'name' => "{$host}.{$domain}",
                 'content' => $value,
                 'ttl' => 120,
-                'proxied' => false
+                'proxied' => $proxied,
             ];
             $res = $this->sendRequest($url, 'POST', $data);
             return $res && $res['success'];
         }
     }
 
-    /**
-     * Create a new DNS record via CF API. Returns full response on success, false on failure.
-     */
-    public function createRecord($domain, $host, $value, $type = 'A', $zoneId = null)
+    public function createRecord($domain, $host, $value, $type = 'A', $zoneId = null, $proxied = false)
     {
         $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records";
         $data = [
@@ -74,7 +68,7 @@ class CloudflareProvider implements DnsProviderInterface
             'name' => "{$host}.{$domain}",
             'content' => $value,
             'ttl' => 120,
-            'proxied' => false,
+            'proxied' => $proxied,
         ];
         $res = $this->sendRequest($url, 'POST', $data);
         if ($res && $res['success']) {
@@ -84,10 +78,7 @@ class CloudflareProvider implements DnsProviderInterface
         return false;
     }
 
-    /**
-     * Update an existing DNS record by CF record ID. Returns full response on success, false on failure.
-     */
-    public function updateRecordById($cfRecordId, $domain, $host, $value, $type = 'A', $zoneId = null)
+    public function updateRecordById($cfRecordId, $domain, $host, $value, $type = 'A', $zoneId = null, $proxied = false)
     {
         $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records/{$cfRecordId}";
         $data = [
@@ -95,7 +86,7 @@ class CloudflareProvider implements DnsProviderInterface
             'name' => "{$host}.{$domain}",
             'content' => $value,
             'ttl' => 120,
-            'proxied' => false,
+            'proxied' => $proxied,
         ];
         $res = $this->sendRequest($url, 'PUT', $data);
         if ($res && $res['success']) {
@@ -105,10 +96,6 @@ class CloudflareProvider implements DnsProviderInterface
         return false;
     }
 
-    /**
-     * Search for a specific DNS record by name and type.
-     * Returns the record object if found, null if not found, or false on error.
-     */
     public function getRecordByNameAndType($domain, $host, $type, $zoneId)
     {
         $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records?name={$host}.{$domain}&type={$type}";
@@ -119,10 +106,6 @@ class CloudflareProvider implements DnsProviderInterface
         return false;
     }
 
-    /**
-     * List DNS records for a domain, optionally filtered by type.
-     * Returns array of CF record objects or false on failure.
-     */
     public function listRecords($domain, $type = null, $zoneId = null)
     {
         $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records";
@@ -137,9 +120,6 @@ class CloudflareProvider implements DnsProviderInterface
         return false;
     }
 
-    /**
-     * Delete a DNS record by CF record ID. Returns true on success.
-     */
     public function deleteRecord($cfRecordId, $zoneId = null)
     {
         $url = "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records/{$cfRecordId}";
@@ -151,9 +131,6 @@ class CloudflareProvider implements DnsProviderInterface
         return false;
     }
 
-    /**
-     * Search for a Zone ID by domain name.
-     */
     public function getZoneIdByName($domain)
     {
         $url = "https://api.cloudflare.com/client/v4/zones?name={$domain}";
@@ -167,7 +144,7 @@ class CloudflareProvider implements DnsProviderInterface
     private function sendRequest($url, $method, $data = null)
     {
         $headers = ["Content-Type: application/json"];
-        
+
         if (!empty($this->token)) {
             $headers[] = "Authorization: Bearer {$this->token}";
         } elseif (!empty($this->email) && !empty($this->apiKey)) {
@@ -183,14 +160,24 @@ class CloudflareProvider implements DnsProviderInterface
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
         if ($data) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         }
 
         $response = curl_exec($ch);
+        $curlError = curl_error($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        if ($curlError) {
+            Log::error("Cloudflare API curl error: {$curlError}", [
+                'url' => $url, 'method' => $method
+            ]);
+            return false;
+        }
 
         if ($httpCode >= 200 && $httpCode < 300) {
             return json_decode($response, true);
