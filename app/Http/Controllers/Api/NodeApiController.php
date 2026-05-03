@@ -14,7 +14,7 @@ class NodeApiController extends Controller
 {
     const DEFAULT_RECORDS_LIMIT = 180;
 
-    const CDN_REQUIRED_NETS = ['ws', 'grpc', 'xhttp'];
+    const CDN_REQUIRED_NETS = ['ws', 'grpc'];
 
     private function validateToken(Request $request)
     {
@@ -207,7 +207,7 @@ class NodeApiController extends Controller
         $node->node_unlock = (string)$request->input('node_unlock', '');
         $node->info = $request->input('node_info', '');
         $node->level = $mainLevel;
-        $node->node_group = $request->input('node_group', 1);
+        $node->node_group = $request->input('node_group', 2);
         $node->node_cost = $nodeCost;
         $node->traffic_limit = $request->input('node_traffic_limit', 1000) * 1024 * 1024 * 1024;
         $node->reset_day = (int)$request->input('node_traffic_resetday', 1);
@@ -216,13 +216,11 @@ class NodeApiController extends Controller
         $node->country_code = strtolower($request->input('node_country_code', 'un'));
         $node->node_country = $request->input('node_country');
         $node->node_city = $request->input('node_city');
-        $node->server = 'node' . $node->id . '.' . $rootDomain;
         $node->status = 1;
         $node->save();
 
         // --- Fission matrix: build protocol × IP slots ---
         $protocols = $this->expandProtocols($v2Name);
-        shuffle($protocols);
 
         $ips = [];
         if ($node->ip) $ips[] = ['type' => 'ipv4', 'addr' => $node->ip];
@@ -237,6 +235,7 @@ class NodeApiController extends Controller
 
         $totalTarget = count($slots);
         if ($totalTarget === 0) {
+            $node->server = 'n' . $node->id . '.' . $rootDomain;
             $node->node_ids = (string)$node->id;
             $node->save();
             return response()->json([
@@ -266,25 +265,37 @@ class NodeApiController extends Controller
         $cloneIds = [];
 
         $mainSlot = array_shift($slots);
-        $this->applyV2Preset($node, $mainSlot['protocol'], $rootDomain, $mainSlot['ip_type'] === 'ipv6');
+        $mainIsIpv6 = $mainSlot['ip_type'] === 'ipv6';
+        $mainPrefix = $mainIsIpv6 ? 'ipv6n' : 'n';
+        $node->server = $mainPrefix . $node->id . '.' . $rootDomain;
+        // Enforce single-stack on main node: zero out the opposite stack
+        if ($mainIsIpv6) {
+            $node->ip = null;
+            $node->ipv6 = $mainSlot['addr'];
+        } else {
+            $node->ip = $mainSlot['addr'];
+            $node->ipv6 = null;
+        }
+        $this->applyV2Preset($node, $mainSlot['protocol'], $rootDomain, $mainIsIpv6, $v2Name);
         $node->save();
         $allNodeIds = [$node->id];
 
         foreach ($slots as $i => $slot) {
+            $isIpv6 = $slot['ip_type'] === 'ipv6';
+
             if ($i < $existingClones->count()) {
                 $clone = $existingClones[$i];
                 $clone->name = $node->name . ' - ' . $slot['protocol'] . ' (' . $slot['ip_type'] . ')';
                 $clone->v2_name = $slot['protocol'];
                 $clone->node_rxtx = $node->node_rxtx;
-                $clone->ip = ($slot['ip_type'] == 'ipv4') ? $slot['addr'] : '';
-                $clone->ipv6 = ($slot['ip_type'] == 'ipv6') ? $slot['addr'] : '';
-                $clone->type = 3;
+                $clone->ip = $isIpv6 ? '' : $slot['addr'];
+                $clone->ipv6 = $isIpv6 ? $slot['addr'] : '';
                 $clone->level = rand($mainLevel, min(5, $mainLevel + 2));
                 $clone->node_group = $node->node_group;
                 $clone->traffic_rate = $node->traffic_rate;
                 $clone->status = 1;
-                $clone->server = 'node' . $clone->id . '.' . $rootDomain;
-                $this->applyV2Preset($clone, $slot['protocol'], $rootDomain, $slot['ip_type'] === 'ipv6');
+                $clone->server = ($isIpv6 ? 'ipv6n' : 'n') . $clone->id . '.' . $rootDomain;
+                $this->applyV2Preset($clone, $slot['protocol'], $rootDomain, $isIpv6, $v2Name);
                 $clone->save();
             } else {
                 $clone = null;
@@ -299,17 +310,16 @@ class NodeApiController extends Controller
                 $clone->v2_name = $slot['protocol'];
                 $clone->is_clone = $nodeId;
                 $clone->node_rxtx = $node->node_rxtx;
-                $clone->ip = ($slot['ip_type'] == 'ipv4') ? $slot['addr'] : '';
-                $clone->ipv6 = ($slot['ip_type'] == 'ipv6') ? $slot['addr'] : '';
-                $clone->type = 3;
+                $clone->ip = $isIpv6 ? '' : $slot['addr'];
+                $clone->ipv6 = $isIpv6 ? $slot['addr'] : '';
                 $clone->level = rand($mainLevel, min(5, $mainLevel + 2));
                 $clone->node_group = $node->node_group;
                 $clone->traffic_rate = $node->traffic_rate;
                 $clone->status = 1;
                 $clone->save();
 
-                $clone->server = 'node' . $clone->id . '.' . $rootDomain;
-                $this->applyV2Preset($clone, $slot['protocol'], $rootDomain, $slot['ip_type'] === 'ipv6');
+                $clone->server = ($isIpv6 ? 'ipv6n' : 'n') . $clone->id . '.' . $rootDomain;
+                $this->applyV2Preset($clone, $slot['protocol'], $rootDomain, $isIpv6, $v2Name);
                 $clone->save();
             }
 
@@ -438,7 +448,7 @@ class NodeApiController extends Controller
         return explode('-', $v2Name);
     }
 
-    private function applyV2Preset($node, $protocol, $rootDomain, $isIpv6)
+    private function applyV2Preset($node, $protocol, $rootDomain, $isIpv6, $modeName = '')
     {
         $preset = self::V2_PRESETS[$protocol] ?? null;
         if (!$preset) {
@@ -448,6 +458,12 @@ class NodeApiController extends Controller
 
         foreach ($preset as $field => $value) {
             $node->{$field} = $value;
+        }
+
+        // Port override: in vision-hy2-ws-grpc mode, grpc must use 2053 to avoid port conflict
+        $expandedMode = $this->expandProtocols($modeName);
+        if ($protocol === 'grpc' && in_array('vision', $expandedMode)) {
+            $node->v2_port = 2053;
         }
 
         $node->v2_host = $node->server;
@@ -607,7 +623,7 @@ class NodeApiController extends Controller
             if ($node->ip) {
                 $blueprints[] = [
                     'type' => 'A',
-                    'subdomain' => 'node' . $node->id,
+                    'subdomain' => 'n' . $node->id,
                     'content' => $node->ip,
                     'root_domain' => $targetRootDomain,
                     'zone_id' => $zoneId,
@@ -617,7 +633,7 @@ class NodeApiController extends Controller
             if ($node->ipv6) {
                 $blueprints[] = [
                     'type' => 'AAAA',
-                    'subdomain' => 'ipv6node' . $node->id,
+                    'subdomain' => 'ipv6n' . $node->id,
                     'content' => $node->ipv6,
                     'root_domain' => $targetRootDomain,
                     'zone_id' => $zoneId,
