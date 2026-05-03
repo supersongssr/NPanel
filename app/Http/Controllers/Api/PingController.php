@@ -179,6 +179,7 @@ class PingController extends Controller
             $node->traffic_left = $request->get('traffic_left');
             $node->traffic_left_daily = $request->get('traffic_left_daily');
             $node->node_onload = $request->get('daily');
+            $node->bandwidth = $request->get('node_bandwidth');
 
             if (!$node->save()) {
                 return response()->json(['status' => 'error', 'ret'=>0, 'msg'=>'failed to update node' ,'message' => 'Failed to update node']);
