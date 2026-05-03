@@ -249,11 +249,11 @@ class SubscribeController extends Controller
         foreach ($newsList as $key => $node) {
             if ( $node->type == 1 && ($ss_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {
                 $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443';
-                $scheme .= '#'.urlencode($node->name) ."\n";
+                $scheme .= '#'.urlencode($node->name . '_#' . $node->id) ."\n";
             } elseif ( $node->type == 2 && ($vmess_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {       // 获取 vmess节点
                 $v2_json = [
                     "v"    => "2",
-                    "ps"   => $node->name ,
+                    "ps"   => $node->name . '_#' . $node->id ,
                     "add"  => $requestDomain ,
                     "port" => 443 ,
                     "id"   => '11886d96-252e-4166-9535-ec72467ad095' ,
@@ -270,18 +270,89 @@ class SubscribeController extends Controller
                 $scheme .= 'vmess://' . base64_encode(json_encode($v2_json)) . "\n";
             } elseif ( $node->type == 3 && ($vless_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {   // vless节点获取
                 $scheme .= 'vless://11886d96-252e-4166-9535-ec72467ad095@'.$requestDomain.':443?encryption=none';
-                $scheme .= '#'.urlencode($node->name) . "\n";
+                $scheme .= '#'.urlencode($node->name . '_#' . $node->id) . "\n";
             } elseif ( $node->type == 4 && ($trojan_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {  // trojan节点获取
                 $scheme .= 'trojan://33216f76-f96d-417d-855a-7bd40bb3b884@'.$requestDomain.':443';
-                $scheme .= '#'.urlencode($node->name) . "\n";
+                $scheme .= '#'.urlencode($node->name . '_#' . $node->id) . "\n";
             }
         }
         // 获取正式节点。
+        $targetNodeIds = [1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254];
+        Log::debug('[SubscribeDebug] getSubscribeByCode START', [
+            'user_id' => $user->id,
+            'username' => $user->username ?? 'N/A',
+            'user_node_group' => $user->node_group,
+            'user_level' => $user->level,
+            'user_status' => $user->status,
+            'user_enable' => $user->enable,
+            'target_node_ids' => $targetNodeIds,
+        ]);
+
+        $allActiveSubscribeNodes = SsNode::query()->where('status', 1)->where('is_subscribe', 1)->get(['id', 'name', 'status', 'is_subscribe', 'node_group', 'level', 'type']);
+        Log::debug('[SubscribeDebug] All active+subscribe nodes', [
+            'total_count' => $allActiveSubscribeNodes->count(),
+            'node_ids' => $allActiveSubscribeNodes->pluck('id')->toArray(),
+            'node_groups' => $allActiveSubscribeNodes->pluck('node_group', 'id')->toArray(),
+            'node_levels' => $allActiveSubscribeNodes->pluck('level', 'id')->toArray(),
+        ]);
+
+        $targetNodesInDb = SsNode::query()->whereIn('id', $targetNodeIds)->get(['id', 'name', 'status', 'is_subscribe', 'node_group', 'level', 'type']);
+        Log::debug('[SubscribeDebug] Target nodes 1247-1254 raw DB state', [
+            'found_count' => $targetNodesInDb->count(),
+            'details' => $targetNodesInDb->map(function ($n) {
+                return ['id' => $n->id, 'name' => $n->name, 'status' => $n->status, 'is_subscribe' => $n->is_subscribe, 'node_group' => $n->node_group, 'level' => $n->level, 'type' => $n->type];
+            })->toArray(),
+        ]);
+
         $nodeList = SsNode::query()->where('status',1)->where('is_subscribe',1)->where('node_group',$user->node_group)->where('level', '<=' ,$user->level)->orderBy('level', 'desc')->orderBy('traffic_left_daily', 'desc')->get();
+        Log::debug('[SubscribeDebug] Filtered nodeList result', [
+            'count' => $nodeList->count(),
+            'node_ids' => $nodeList->pluck('id')->toArray(),
+            'missing_target_ids' => array_values(array_diff($targetNodeIds, $nodeList->pluck('id')->toArray())),
+        ]);
+
+        foreach ($targetNodeIds as $tid) {
+            $found = $nodeList->firstWhere('id', $tid);
+            if (!$found) {
+                $targetRaw = $targetNodesInDb->firstWhere('id', $tid);
+                $reason = 'node_not_in_db';
+                $details = [];
+                if ($targetRaw) {
+                    $reason = [];
+                    if ($targetRaw->status != 1) {
+                        $reason[] = 'status=' . $targetRaw->status . ' (expected 1)';
+                    }
+                    if ($targetRaw->is_subscribe != 1) {
+                        $reason[] = 'is_subscribe=' . $targetRaw->is_subscribe . ' (expected 1)';
+                    }
+                    if ($targetRaw->node_group != $user->node_group) {
+                        $reason[] = 'node_group=' . $targetRaw->node_group . ' vs user_node_group=' . $user->node_group;
+                    }
+                    if ($targetRaw->level > $user->level) {
+                        $reason[] = 'node_level=' . $targetRaw->level . ' > user_level=' . $user->level;
+                    }
+                    if (empty($reason)) {
+                        $reason = ['UNKNOWN_REASON - all filters should pass'];
+                    }
+                    $details = ['id' => $tid, 'name' => $targetRaw->name, 'status' => $targetRaw->status, 'is_subscribe' => $targetRaw->is_subscribe, 'node_group' => $targetRaw->node_group, 'level' => $targetRaw->level];
+                }
+                Log::debug('[SubscribeDebug] Target node MISSING from nodeList', [
+                    'target_node_id' => $tid,
+                    'reason' => $reason,
+                    'details' => $details,
+                ]);
+            }
+        }
+
         if (empty($nodeList)) {
+            Log::debug('[SubscribeDebug] nodeList is empty, exiting with scheme only');
             exit(base64_encode($scheme));
         }
+        $targetNodeIdsForLoop = [1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254];
+        $processedNodes = [];
+        $skippedNodes = [];
         foreach ($nodeList as $key => $node) {
+            $isTarget = in_array($node->id, $targetNodeIdsForLoop);
             // if ($node->v2_cdn){
             //     if ($node->v2_cdn_ip){
             //         $node->server = $node->v2_cdn_ip; // cdn ip
@@ -297,11 +368,12 @@ class SubscribeController extends Controller
 
             if ( $node->type == 2 && ($vmess_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {       // 获取 vmess节点   
                 if (max($vmess_count,$v2ray_count,$rocket_count) >= max($vmess_sub, $v2ray_sub, $rocket_sub)) {  //空值节点数量
+                    if ($isTarget) { $skippedNodes[$node->id] = 'vmess_count_limit'; }
                     continue;
                 }
                 $v2_json = [
                     "v"    => "2",
-                    "ps"   => $node->name.'-'.$node->id  ,
+                    "ps"   => $node->name . '_#' . $node->id  ,
                     "add"  => $node->server ,
                     "port" => $node->v2_port ,
                     "id"   => $node_uuid ,
@@ -321,33 +393,39 @@ class SubscribeController extends Controller
                 $vmess_count += 1;
                 $v2ray_count += 1;
                 $rocket_count += 1;
+                if ($isTarget) { $processedNodes[$node->id] = 'vmess'; }
             } elseif ( $node->type == 3 && ($vless_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {   // vless节点获取
                 if (max($vless_count,$v2ray_count,$rocket_count) >= max($vless_sub, $v2ray_sub, $rocket_sub)) {  //空值节点数量
+                    if ($isTarget) { $skippedNodes[$node->id] = 'vless_count_limit'; }
                     continue;
                 }
                 $vlessMode = $node->v2_mode ?: ($node->v2_net === 'xhttp' ? 'auto' : '');
                 $scheme .= 'vless://'.$node_uuid.'@'.$node->server.':'.$node->v2_port;
                 $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni .'&fp='.$node->v2_fp.'&serviceName='.$node->v2_servicename. '&mode='.$vlessMode.'&alpn='.urlencode($node->v2_alpn);
-                $scheme .= '#'.urlencode($node->name.($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '')) . "\n";
+                $scheme .= '#'.urlencode($node->name.($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $vless_count += 1;
                 $v2ray_count += 1;
                 $rocket_count += 1;
+                if ($isTarget) { $processedNodes[$node->id] = 'vless'; }
             } elseif ( $node->type == 4 && ($trojan_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {  // trojan节点获取
                 if (max($trojan_count,$v2ray_count,$rocket_count) >= max($trojan_sub, $v2ray_sub, $rocket_sub)) {  //空值节点数量
+                    if ($isTarget) { $skippedNodes[$node->id] = 'trojan_count_limit'; }
                     continue;
                 }
                 $scheme .= 'trojan://'.$node_uuid.'@'.$node->server.':'.$node->v2_port;
                 $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni.'&serviceName='.$node->v2_servicename.'&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
-                $scheme .= '#'.urlencode($node->name.($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '')) . "\n";
+                $scheme .= '#'.urlencode($node->name.($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $trojan_count += 1;
                 $v2ray_count += 1;
                 $rocket_count += 1;
+                if ($isTarget) { $processedNodes[$node->id] = 'trojan'; }
             } elseif ( $node->type == 5 && ($hysteria2_sub || $v2ray_sub || $ver == "2" || $rocket_sub) ) {  // Hysteria2节点获取
                 if ($hysteria2_count >= $hysteria2_sub) {  // 数量限流
+                    if ($isTarget) { $skippedNodes[$node->id] = 'hysteria2_count_limit'; }
                     continue;
                 }
                 $suffix = ($node->traffic_rate != 1) ? '_x' . $node->traffic_rate : '';
-                $encodedName = rawurlencode($node->name . $suffix);
+                $encodedName = rawurlencode($node->name . $suffix . '_#' . $node->id);
                 $hy2Url = sprintf(
                     "hy2://%s@%s:%s?sni=%s&insecure=1#%s\n",
                     $node_uuid,
@@ -360,7 +438,20 @@ class SubscribeController extends Controller
                 $hysteria2_count += 1;
                 $v2ray_count += 1;
                 $rocket_count += 1;
+                if ($isTarget) { $processedNodes[$node->id] = 'hysteria2'; }
+            } else {
+                if ($isTarget) {
+                    $skippedNodes[$node->id] = 'type=' . $node->type . ' or subscription param filter (vmess_sub=' . $vmess_sub . ',vless_sub=' . $vless_sub . ',trojan_sub=' . $trojan_sub . ',hysteria2_sub=' . $hysteria2_sub . ',ver=' . $ver . ',v2ray_sub=' . $v2ray_sub . ',rocket_sub=' . $rocket_sub . ')';
+                }
             }
+        }
+
+        if (!empty($processedNodes) || !empty($skippedNodes)) {
+            Log::debug('[SubscribeDebug] Target nodes iteration result', [
+                'processed' => $processedNodes,
+                'skipped' => $skippedNodes,
+                'not_in_nodelist' => array_values(array_diff($targetNodeIdsForLoop, array_keys($processedNodes), array_keys($skippedNodes))),
+            ]);
         }
 
         // 2023-12-21 获取 free proxy nodes share link 
@@ -379,6 +470,18 @@ class SubscribeController extends Controller
                 $scheme .= "";
             }
         }
+
+        Log::debug('[SubscribeDebug] getSubscribeByCode FINAL counts', [
+            'user_id' => $user->id,
+            'vmess_count' => $vmess_count,
+            'vless_count' => $vless_count,
+            'trojan_count' => $trojan_count,
+            'hysteria2_count' => $hysteria2_count,
+            'v2ray_count' => $v2ray_count,
+            'rocket_count' => $rocket_count,
+            'ss_count' => $ss_count,
+            'scheme_length' => strlen($scheme),
+        ]);
 
         exit(base64_encode($scheme));
     }
@@ -590,11 +693,27 @@ class SubscribeController extends Controller
      */
     private function generateDirectSubscribe($format, $subscribe, $query_string = [])
     {
+        $targetNodeIds = [1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254];
+
         // 获取用户信息
         $user = User::query()->where('status', 1)->where('enable', 1)->where('id', $subscribe->user_id)->first();
         if (!$user) {
+            Log::debug('[SubscribeDebug] generateDirectSubscribe: user not found', [
+                'format' => $format,
+                'subscribe_id' => $subscribe->id,
+                'subscribe_user_id' => $subscribe->user_id,
+            ]);
             return false;
         }
+
+        Log::debug('[SubscribeDebug] generateDirectSubscribe START', [
+            'format' => $format,
+            'user_id' => $user->id,
+            'username' => $user->username ?? 'N/A',
+            'user_node_group' => $user->node_group,
+            'user_level' => $user->level,
+            'target_node_ids' => $targetNodeIds,
+        ]);
 
         // 获取节点列表
         $nodeList = SsNode::query()
@@ -606,7 +725,15 @@ class SubscribeController extends Controller
             ->orderBy('traffic_left_daily', 'desc')
             ->get();
 
+        Log::debug('[SubscribeDebug] generateDirectSubscribe nodeList', [
+            'format' => $format,
+            'count' => $nodeList->count(),
+            'node_ids' => $nodeList->pluck('id')->toArray(),
+            'missing_target_ids' => array_values(array_diff($targetNodeIds, $nodeList->pluck('id')->toArray())),
+        ]);
+
         if ($nodeList->isEmpty()) {
+            Log::debug('[SubscribeDebug] generateDirectSubscribe: nodeList is empty');
             return false;
         }
 
@@ -642,7 +769,7 @@ class SubscribeController extends Controller
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
             // 使用与 Clash 一致的命名格式："节点名称 | #ID"
-            $tagName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . ' | #' . $node->id;
+            $tagName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id;
 
             // 解析 TLS
             $tlsEnabled = ($node->v2_tls == 1 || $node->v2_tls == 2);
@@ -1002,7 +1129,7 @@ class SubscribeController extends Controller
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
 
             // 节点名称：确保特殊字符转义，并添加节点 ID 避免同名冲突
-            $proxyName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . ' | #' . $node->id;
+            $proxyName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id;
             // 对节点名称进行引号包裹，避免 YAML 解析问题
             $quotedName = '"' . str_replace(['"', '\\'], ['\\"', '\\\\'], $proxyName) . '"';
 
@@ -1357,7 +1484,7 @@ class SubscribeController extends Controller
 
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
-            $proxyName = str_replace([' ', ',', '[', ']'], '_', $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : ''));
+            $proxyName = str_replace([' ', ',', '[', ']'], '_', $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id);
             $proxyNames[] = $proxyName;
 
             // 解析 TLS
@@ -1505,7 +1632,7 @@ class SubscribeController extends Controller
 
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
-            $proxyName = str_replace([' ', ',', '[', ']'], '_', $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : ''));
+            $proxyName = str_replace([' ', ',', '[', ']'], '_', $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id);
             $proxyNames[] = $proxyName;
 
             // 解析 TLS

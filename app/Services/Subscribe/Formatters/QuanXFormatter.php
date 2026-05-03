@@ -58,8 +58,8 @@ class QuanXFormatter
 
         // 标签防爆处理：清洗特殊字符
         $tag = str_replace([',', '=', "\n", "\r"], ['_', '-', '', ''], $node->name);
-        // 追加倍率后缀
         $tag .= ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '');
+        $tag .= '_#' . $node->id;
 
         // TLS 状态判断
         $tlsEnabled = ($node->v2_tls == 1 || $node->v2_tls == 2);
