@@ -26,3 +26,5 @@ yarn-error.log
 .links/
 
 /.claude/
+.aider.*
+tmp/
