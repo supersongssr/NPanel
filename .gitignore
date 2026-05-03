@@ -28,5 +28,5 @@ yarn-error.log
 /.claude/
 .aider.*
 tmp/
-tests/
 .zed/
+tests/
