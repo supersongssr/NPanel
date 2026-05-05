@@ -1237,6 +1237,14 @@
                                         </div>
                                         <div class="tab-pane" id="tab_12">
                                             <div class="portlet-body">
+                                                <div class="alert alert-info">
+                                                    <strong>功能说明：</strong> 当用户通过不同的域名访问站点时，系统会根据请求的 <code>Host</code> 或 <code>X-Forwarded-Host</code> 自动切换展示信息。
+                                                    <br/>1. <strong>HTTP Host</strong>：匹配的域名（不带协议和端口），如 <code>hk.example.com</code>。
+                                                    <br/>2. <strong>网站名称</strong>：该域名下显示的站点名称。
+                                                    <br/>3. <strong>网站地址</strong>：该域名对应的完整 URL，影响重置密码和充值链接的生成。
+                                                    <br/>4. <strong>订阅域名</strong>：该域名下节点订阅显示的域名。
+                                                    <br/>注意：如果访问域名不在下表中，将使用“常规”设置中的默认配置。
+                                                </div>
                                                 <div class="table-scrollable">
                                                     <table class="table table-striped table-bordered table-hover" id="host_pool_table">
                                                         <thead>
