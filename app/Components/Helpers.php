@@ -31,6 +31,37 @@ class Helpers
             $data[$vo->name] = $vo->value;
         }
 
+        if (!isset($data['host_pools'])) {
+            $data['host_pools'] = '{}';
+        }
+
+        if (!empty($data['host_pools'])) {
+            $hostPools = json_decode($data['host_pools'], true);
+            if (is_array($hostPools)) {
+                $request = request();
+                if ($request) {
+                    $host = $request->header('X-Forwarded-Host') ?: $request->header('Host');
+                    if ($host) {
+                        $host = trim(explode(',', $host)[0]); // 取第一个
+                        $host = explode(':', $host)[0]; // 忽略端口号
+
+                        if (isset($hostPools[$host])) {
+                            $pool = $hostPools[$host];
+                            if (!empty($pool['website_name'])) {
+                                $data['website_name'] = $pool['website_name'];
+                            }
+                            if (!empty($pool['website_url'])) {
+                                $data['website_url'] = $pool['website_url'];
+                            }
+                            if (!empty($pool['subscribe_domain'])) {
+                                $data['subscribe_domain'] = $pool['subscribe_domain'];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return $data;
     }
 

@@ -2383,7 +2383,16 @@ EOF;
         // }
 
         // 更新配置
-        Config::query()->where('name', $name)->update(['value' => $value]);
+        $config = Config::query()->where('name', $name)->first();
+        if ($config) {
+            $config->value = $value;
+            $config->save();
+        } else {
+            $config = new Config();
+            $config->name = $name;
+            $config->value = $value;
+            $config->save();
+        }
 
         return Response::json(['status' => 'success', 'data' => '', 'message' => '操作成功']);
     }
