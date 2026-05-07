@@ -416,25 +416,18 @@ class UserController extends Controller
         $content = clean($request->get('content'));
         $content = str_replace("eval", "", str_replace("atob", "", $content));
 
-        if (Auth::user()->level < 1) {
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '请先购买商品升级您的等级']);
-        }
-
         if (empty($title) || empty($content)) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '请输入标题和内容']);
         }
 
         $obj = new Ticket();
         $obj->user_id = Auth::user()->id;
-        $obj->sort += Auth::user()->level +100;
+        $obj->sort = Auth::user()->level +100;
         $obj->title = $title;
         $obj->content = $content;
         $obj->status = 0;
         $obj->open = 0;
         $obj->save();
-
-        //每个工单扣除 0.33元
-        User::query()->where('id', Auth::user()->id)->decrement('balance', 33);
 
         if ($obj->id) {
             $emailTitle = "新工单提醒";
@@ -479,9 +472,6 @@ class UserController extends Controller
             $obj->user_id = Auth::user()->id;
             $obj->content = $content;
             $obj->save();
-
-            // 每个工单扣除 0.33元
-            User::query()->where('id', Auth::user()->id)->decrement('balance', 33);
 
             if ($obj->id) {
                 // 重新打开工单

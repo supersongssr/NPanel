@@ -69,3 +69,20 @@
                     - 新ip : 检查 数量, 超过5 , 踢出登录状态,删除 sid
                         - 没超过5, 就给 sadd 设置10分钟过期时间
                     - 已存在的ip: 跳过处理
+
+
+- [] 功能
+    - 工单
+        - [v] 关闭提交工单扣费功能
+            - what: 关闭 提交工单扣费功能. 关闭 回复工单 加钱功能.这个功能太蠢了
+            - why: 这个功能太蠢了. 在消费记录中没有记录
+            - where:@app/Http/Controllers/UserController.php    @app/Http/Controllers/TicketController.php  @resources/views/user/ticketList.blade.php  @resources/views/user/replyTicket.blade.php   @resources/views/ticket/replyTicket.blade.php  
+            - how:
+                - 关闭 提交工单扣费
+                - 关闭 回复并公开工单 加钱
+                - 前后端的提示 修改掉.
+            - must:
+            - input :
+            - output:
+        - [] 如何防止用户频繁提交工单.
+            - what: 提交工单会向 数据库写入大量的垃圾信息,如何防止用户大量的提交工单呢?

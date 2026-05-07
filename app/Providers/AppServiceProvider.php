@@ -15,6 +15,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        error_reporting(E_ALL & ~E_DEPRECATED);
+
         // 检测是否强制跳转https
         if (env('REDIRECT_HTTPS', false)) {
             \URL::forceScheme('https');
