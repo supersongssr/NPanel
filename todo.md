@@ -5,10 +5,7 @@
         - 删除所有 正式站点中的 所有的屏蔽掉的黑名单. 这个可以有,允许所有人注册的方式很不错.
     - 设定为黑名单比较好 , 需要删除所有的 名单数据
 
-- [] ss_config 表,而不是 config 表, 请注意.
-
-
-- bug: 检查 singbox订阅中是否正确支持了 vless-xhttp , vmess-ws 
+- [v] bug: 检查 singbox订阅中是否正确支持了 vless-xhttp , vmess-ws 
     - why: 避免 singbox 中出现报错信息. 
     - where: @app/Http/Controllers/SubscribeController.php
     - how: 
@@ -19,7 +16,7 @@
         - 要求订阅输出格式符合 singbox 规范.
 
 
-- [] feature: 根据 host请求的不同的 x-forword-host 网站使用不同的 website_name subscribe_domain website_url 
+- [v] feature: 根据 host请求的不同的 x-forword-host 网站使用不同的 website_name subscribe_domain website_url 
     - why: 网站需要 允许 反向代理,根据不同的 反代 请求 host , 网站显示不同的 url 和 名字 和 rss
     - where: @App\Components\Helpers::systemConfig() 
     - how:
@@ -38,9 +35,16 @@
     - 无需登录页面
         - nginx缓存(静态页面缓存)
     - 登录/注册页面
-        - pow证明
+        - pow证明: 在 登录 注册 验证码 找回密码的接口处 添加POW工作量证明
+            - what : 
+            - why :
+            - how:
+            - must:
+            - input:
+            - output: 
+            
     - 已登陆页面
-        - [] redis验证 isLogin 中间件 中在数据库查询之前
+        - [v] redis验证 isLogin 中间件 中在数据库查询之前
             - 防止 cookies 多ip攻击, 限制 10分钟 5 ip.
                 - sadd sid ip 检查返回值
                     - 新ip : 检查 数量, 超过5 , 踢出登录状态,删除 sid
