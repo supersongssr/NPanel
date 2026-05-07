@@ -30,6 +30,12 @@
                 <span> {{Session::get('regSuccessMsg')}} </span>
             </div>
         @endif
+        <!-- PoW hidden fields -->
+        <input type="hidden" id="_pow_nonce" name="_pow_nonce" value="" />
+        <input type="hidden" id="_pow_ts" name="_pow_ts" value="" />
+        <input type="hidden" id="_pow_salt" name="_pow_salt" value="" />
+        <input type="hidden" id="_pow_diff" name="_pow_diff" value="" />
+        <input type="hidden" id="_pow_sig" name="_pow_sig" value="" />
         <div class="form-group">
             <label class="control-label visible-ie8 visible-ie9">{{trans('login.username')}}</label>
             <input class="form-control form-control-solid placeholder-no-fix" type="text" autocomplete="off" placeholder="{{trans('login.username')}}" name="username" value="{{Request::old('username')}}" required />
@@ -92,13 +98,37 @@ alert("家: ssvss.xyz 保存书签呦 \nQQ：2107254004 \nQQ群： \nTG群：dos
 </script>  -->
 @endsection
 @section('script')
+    <script src="/js/pow.js" type="text/javascript"></script>
     <script type="text/javascript">
+        // PoW 初始化 — 页面加载后立刻后台计算
+        PoW.init();
+
+        var _powSubmitted = false;
         $('#login-form').submit(function(event){
+            if (_powSubmitted) return true; // 已经注入 PoW, 允许提交
+
             // 先检查Google reCAPTCHA有没有进行验证
             if ( $('#g-recaptcha-response').val() === '' ) {
                 Msg(false, "{{trans('login.required_captcha')}}", 'error');
                 return false;
             }
+
+            // PoW: 注入 nonce 并提交
+            event.preventDefault();
+            var $btn = $(this).find('button[type=submit]');
+            var origText = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> 安全验证中...');
+
+            var ready = PoW.consume(function () {
+                _powSubmitted = true;
+                $btn.prop('disabled', false).html(origText);
+                $('#login-form').submit();
+            });
+
+            if (ready === false && PoW.isReady() === false) {
+                // 还在计算中, 等回调
+            }
+            return false;
         })
 
         // 生成提示

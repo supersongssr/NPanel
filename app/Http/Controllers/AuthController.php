@@ -6,6 +6,7 @@ use App\Components\Helpers;
 use App\Components\IPIP;
 use App\Components\QQWry;
 use App\Components\CaptchaVerify;
+use App\Components\ProofOfWork;
 use App\Http\Models\Invite;
 use App\Http\Models\User;
 use App\Http\Models\UserLoginLog;
@@ -48,6 +49,18 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         if ($request->isMethod('POST')) {
+            // PoW 工作量证明校验
+            $powResult = ProofOfWork::verify([
+                'timestamp'  => $request->input('_pow_ts', ''),
+                'salt'       => $request->input('_pow_salt', ''),
+                'difficulty' => $request->input('_pow_diff', ''),
+                'signature'  => $request->input('_pow_sig', ''),
+                'nonce'      => $request->input('_pow_nonce', ''),
+            ]);
+            if (!$powResult['ok']) {
+                return Redirect::back()->withInput()->withErrors($powResult['msg']);
+            }
+
             $this->validate($request, [
                 'username' => 'required',
                 'password' => 'required'
@@ -146,6 +159,18 @@ class AuthController extends Controller
         $cacheKey = 'register_times_' . md5(getClientIp()); // 注册限制缓存key
 
         if ($request->isMethod('POST')) {
+            // PoW 工作量证明校验
+            $powResult = ProofOfWork::verify([
+                'timestamp'  => $request->input('_pow_ts', ''),
+                'salt'       => $request->input('_pow_salt', ''),
+                'difficulty' => $request->input('_pow_diff', ''),
+                'signature'  => $request->input('_pow_sig', ''),
+                'nonce'      => $request->input('_pow_nonce', ''),
+            ]);
+            if (!$powResult['ok']) {
+                return Redirect::back()->withInput()->withErrors($powResult['msg']);
+            }
+
             $this->validate($request, [
                 'username'   => 'required|email|unique:user',
                 'password'   => 'required|min:6',
@@ -437,6 +462,18 @@ class AuthController extends Controller
     public function resetPassword(Request $request)
     {
         if ($request->isMethod('POST')) {
+            // PoW 工作量证明校验
+            $powResult = ProofOfWork::verify([
+                'timestamp'  => $request->input('_pow_ts', ''),
+                'salt'       => $request->input('_pow_salt', ''),
+                'difficulty' => $request->input('_pow_diff', ''),
+                'signature'  => $request->input('_pow_sig', ''),
+                'nonce'      => $request->input('_pow_nonce', ''),
+            ]);
+            if (!$powResult['ok']) {
+                return Redirect::back()->withInput()->withErrors($powResult['msg']);
+            }
+
             // 校验请求
             $this->validate($request, [
                 'username' => 'required|email'
@@ -694,6 +731,18 @@ class AuthController extends Controller
             return Response::json(['status' => 'fail', 'data' => '', 'message' => $validator->getMessageBag()->first()]);
         }
 
+        // PoW 工作量证明校验
+        $powResult = ProofOfWork::verify([
+            'timestamp'  => $request->input('_pow_ts', ''),
+            'salt'       => $request->input('_pow_salt', ''),
+            'difficulty' => $request->input('_pow_diff', ''),
+            'signature'  => $request->input('_pow_sig', ''),
+            'nonce'      => $request->input('_pow_nonce', ''),
+        ]);
+        if (!$powResult['ok']) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => $powResult['msg']]);
+        }
+
         // 校验域名邮箱是否在黑名单中
         // 使用黑名单模式：只在 sensitive_words 表中的域名才会被拒绝
         $sensitiveWords = $this->sensitiveWords();
@@ -728,6 +777,12 @@ class AuthController extends Controller
         Cache::put('send_verify_code_' . md5(getClientIP()), getClientIP(), 1);
 
         return Response::json(['status' => 'success', 'data' => '', 'message' => '验证码已发送']);
+    }
+
+    // PoW Challenge 接口
+    public function powChallenge()
+    {
+        return Response::json(ProofOfWork::generateChallenge());
     }
 
     // 公开的邀请码列表

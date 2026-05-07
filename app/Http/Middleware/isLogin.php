@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Redirect;
-use Redis;
+use Illuminate\Support\Facades\Redis;
 use Log;
 
 class isLogin
