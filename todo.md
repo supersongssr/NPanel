@@ -35,7 +35,7 @@
     - 无需登录页面
         - nginx缓存(静态页面缓存)
     - 登录/注册页面
-        - [] pow证明: 在 登录 注册 验证码 找回密码的接口处 添加POW工作量证明
+        - [v] pow证明: 在 登录 注册 验证码 找回密码的接口处 添加POW工作量证明
             - what : 前端 登录 注册 邮箱验证码 找回密码 等 post请求 添加 pow工作量证明
             - why : 防止未登录页面的  post请求被cc攻击
             - where: @app/Http/Controllers/AuthController.php  @resources/views/auth routes/web.php 或 routes/api.php 
