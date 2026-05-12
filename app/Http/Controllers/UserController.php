@@ -42,6 +42,7 @@ use Log;
 use DB;
 use Auth;
 use Hash;
+use Illuminate\Support\Facades\Redis;
 use Validator;
 
 /**
@@ -342,7 +343,7 @@ class UserController extends Controller
         }else{
             $view['openTicket'] = Ticket::where('open',1)->orderBy('updated_at', 'desc')->paginate(32)->appends($request->except('page'));
         }
-        
+
 
         return Response::view('user.ticketList', $view);
     }
@@ -359,15 +360,15 @@ class UserController extends Controller
         // $sign = Auth::user()->username . '&' . date('Ymd') . '&'.self::$systemConfig['clonepay_token'];
         // $view['clonepay_url'] = self::$systemConfig['clonepay_homeurl'] .'&regname=user'.Auth::user()->id .'&regemail='.Auth::user()->username.'&regkey='.$key;
         $clonepays = [];
-        
+
         // 检查CP代付是否开启且数据有效
-        if (self::$systemConfig['clonepay'] === 'on' && 
-            is_array($clonepay_webs) && 
+        if (self::$systemConfig['clonepay'] === 'on' &&
+            is_array($clonepay_webs) &&
             is_object($clonepay_apis)) {
             foreach($clonepay_webs as $k => $v ){
-                if (isset($clonepay_apis->$v) && 
-                    isset($clonepay_apis->$v->logintoken) && 
-                    isset($clonepay_apis->$v->name) && 
+                if (isset($clonepay_apis->$v) &&
+                    isset($clonepay_apis->$v->logintoken) &&
+                    isset($clonepay_apis->$v->name) &&
                     isset($clonepay_apis->$v->homeurl)) {
                     $sign = Auth::user()->username . '&' . date('Ymd') . '&'.$clonepay_apis->$v->logintoken;
                     $clonepays[$v]['name'] = $clonepay_apis->$v->name;
@@ -378,7 +379,7 @@ class UserController extends Controller
         $view['clonepay'] = self::$systemConfig['clonepay'];
         // 确保 $clonepays 始终是数组，避免视图中的 foreach 错误
         $view['clonepays'] = is_array($clonepays) ? $clonepays : [];
-        
+
         // 调试信息 - 仅在调试模式下显示
         if (config('app.debug')) {
             \Log::info('ClonePay Debug:', [
@@ -416,25 +417,25 @@ class UserController extends Controller
         $content = clean($request->get('content'));
         $content = str_replace("eval", "", str_replace("atob", "", $content));
 
-        if (Auth::user()->level < 1) {
-            return Response::json(['status' => 'fail', 'data' => '', 'message' => '请先购买商品升级您的等级']);
-        }
-
         if (empty($title) || empty($content)) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '请输入标题和内容']);
         }
 
+        $key = 'ticket_create:' . Auth::user()->id;
+        $count = Redis::incr($key);
+        Redis::expire($key, 3600);
+        if ($count > 3) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '工单提交过于频繁，请稍后再试']);
+        }
+
         $obj = new Ticket();
         $obj->user_id = Auth::user()->id;
-        $obj->sort += Auth::user()->level +100;
+        $obj->sort = Auth::user()->level +100;
         $obj->title = $title;
         $obj->content = $content;
         $obj->status = 0;
         $obj->open = 0;
         $obj->save();
-
-        //每个工单扣除 0.33元
-        User::query()->where('id', Auth::user()->id)->decrement('balance', 33);
 
         if ($obj->id) {
             $emailTitle = "新工单提醒";
@@ -474,14 +475,18 @@ class UserController extends Controller
                 return Response::json(['status' => 'fail', 'data' => '', 'message' => '回复内容不能为空']);
             }
 
+            $key = 'ticket_reply:' . Auth::user()->id;
+            $count = Redis::incr($key);
+            Redis::expire($key, 3600);
+            if ($count > 10) {
+                return Response::json(['status' => 'fail', 'data' => '', 'message' => '回复过于频繁，请稍后再试']);
+            }
+
             $obj = new TicketReply();
             $obj->ticket_id = $id;
             $obj->user_id = Auth::user()->id;
             $obj->content = $content;
             $obj->save();
-
-            // 每个工单扣除 0.33元
-            User::query()->where('id', Auth::user()->id)->decrement('balance', 33);
 
             if ($obj->id) {
                 // 重新打开工单
@@ -620,7 +625,7 @@ class UserController extends Controller
     public function checkBuy(Request $request, $id)
     {
         $goods_id = intval($id);
-        
+
         $goods = Goods::query()->where('status', 1)->where('id', $goods_id)->first();
         if (!$goods) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '商品不存在或已下架']);
@@ -665,7 +670,7 @@ class UserController extends Controller
     public function showBuyPage(Request $request, $id)
     {
         $goods_id = intval($id);
-        
+
         $goods = Goods::query()->where('status', 1)->where('id', $goods_id)->first();
         if (!$goods) {
             Session::flash('errorMsg', '商品不存在或已下架');
@@ -674,7 +679,7 @@ class UserController extends Controller
 
         $view['goods'] = $goods;
         $view['coupon_sn'] = $request->get('coupon_sn', '');
-        
+
         return Response::view('user.buy', $view);
     }
 
@@ -1400,7 +1405,7 @@ class UserController extends Controller
     // sdo2022-04-13 同步clonepay记录
     public function clonepay_sync(Request $request)
     {
-        //sdo2022-04-13 
+        //sdo2022-04-13
         //检测 是否开启这个功能
         if (self::$systemConfig['clonepay'] != 'on') {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '本功能尚未开启']);
@@ -1414,7 +1419,7 @@ class UserController extends Controller
         // 开始同步信息
         if ($clonepay_apis->$code->syncurl) {   //是否设置了 同步 url地址
             $sync_url = $clonepay_apis->$code->syncurl .'&email=' . Auth::user()->username ;
-            // 开始 curl get 
+            // 开始 curl get
             // 初始化
             $curl = curl_init();
             // 设置url路径
@@ -1440,7 +1445,7 @@ class UserController extends Controller
         }else{
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '网络超时，没有获取到数据']);
         }
-        // 判断 是否存在 error 
+        // 判断 是否存在 error
         if (!empty($msg['error'])) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => $msg['error']]);
         }elseif(!empty($msg['success'])){
@@ -1593,7 +1598,7 @@ class UserController extends Controller
 
             $node->txt = $txt;
             $node->v2_scheme = $v2_scheme;
-        } elseif ($node->type == 3) {//vless 
+        } elseif ($node->type == 3) {//vless
             // 生成文本配置信息
             $txt = "节点技术: Vless (请注意区分Vmess Vless)"  . PHP_EOL;
             $txt .= "服务器：" . ($node->server ? $node->server : $node->ip) . PHP_EOL;

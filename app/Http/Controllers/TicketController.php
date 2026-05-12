@@ -9,7 +9,6 @@ use App\Http\Models\TicketReply;
 use App\Mail\closeTicket;
 use App\Mail\replyTicket;
 use Illuminate\Http\Request;
-use App\Http\Models\User; // 为了回复工单时候给用户加余额
 use Response;
 use Mail;
 use Auth;
@@ -90,7 +89,7 @@ class TicketController extends Controller
             $view['ticket'] = Ticket::query()->where('id', $id)->with('user')->first();
             $view['replyList'] = TicketReply::query()->where('ticket_id', $id)->with('user')->orderBy('id', 'asc')->get();
             $nexticket = Ticket::query()->where('id','!=', $id)->where('status',0)->orderBy('sort','desc')->orderBy('updated_at', 'desc')->first();
-            $view['nextid'] = $nexticket->id;
+            $view['nextid'] = $nexticket ? $nexticket->id : $id;
             return Response::view('ticket.replyTicket', $view);
         }
     }
@@ -121,9 +120,6 @@ class TicketController extends Controller
                 //回复并公开工单
                 $ticket->open = 1;
                 $ticket->save();
-
-                //每次公开回复，增加 0.33 ￥给用户
-                User::query()->where('id', $ticket->user_id)->increment('balance', 33);
 
                 $title = "工单回复提醒";
                 $content = "标题：" . $ticket->title . "<br>管理员回复：" . $content;

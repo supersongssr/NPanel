@@ -25,6 +25,12 @@
                     <span> {{$errors->first()}} </span>
                 </div>
             @endif
+            <!-- PoW hidden fields -->
+            <input type="hidden" id="_pow_nonce" name="_pow_nonce" value="" />
+            <input type="hidden" id="_pow_ts" name="_pow_ts" value="" />
+            <input type="hidden" id="_pow_salt" name="_pow_salt" value="" />
+            <input type="hidden" id="_pow_diff" name="_pow_diff" value="" />
+            <input type="hidden" id="_pow_sig" name="_pow_sig" value="" />
             <div class="form-group">
                 <label class="control-label visible-ie8 visible-ie9">{{trans('register.username')}}</label>
                 <input class="form-control placeholder-no-fix" type="text" autocomplete="off" placeholder="{{trans('register.username_placeholder')}}" name="username" id="username" value="{{Request::old('username')}}" required />
@@ -105,7 +111,11 @@
 @endsection
 @section('script')
     <script src="/js/layer/layer.js" type="text/javascript"></script>
+    <script src="/js/pow.js" type="text/javascript"></script>
     <script type="text/javascript">
+        // PoW 初始化 — 页面加载后立刻后台计算
+        PoW.init();
+
         // 登录
         function login() {
             window.location.href = '{{url('login')}}';
@@ -130,9 +140,8 @@
             });
         }
 
-        // 发送注册验证码
+        // 发送注册验证码 (带 PoW)
         function sendVerifyCode() {
-            var flag = true; // 请求成功与否标记
             var username = $("#username").val();
 
             if (username == '' || username == undefined) {
@@ -140,51 +149,75 @@
                 return false;
             }
 
-            $.ajax({
-                type: "POST",
-                url: "{{url('sendCode')}}",
-                async: false,
-                data: {_token: '{{csrf_token()}}', username: username},
-                dataType: 'json',
-                success: function (ret) {
-                    if (ret.status == 'fail') {
-                        layer.msg(ret.message, {time: 1000});
-                        $("#sendCode").attr('disabled', false);
-                        flag = false;
-                    } else {
-                        layer.alert('验证码已发送至您的邮箱，请稍作等待或查看垃圾箱', {icon:1, title:'提示'});
-                        $("#sendCode").attr('disabled', true);
-                        flag = true;
-                    }
-                },
-                error: function (ret) {
-                    layer.msg('请求异常，请刷新页面重试', {time: 1000});
-                    flag = false;
-                }
-            });
+            // PoW: 等 nonce 就绪后发送 AJAX
+            var $btn = $("#sendCode");
+            $btn.prop('disabled', true).val('验证中...');
 
-            // 请求成功才开始倒计时
-            if (flag) {
-                // 60秒后重新发送
-                var left_time = 3600;
-                var tt = window.setInterval(function () {
-                    left_time = left_time - 1;
-                    if (left_time <= 0) {
-                        window.clearInterval(tt);
-                        $("#sendCode").attr('disabled', false).val('发送');
-                    } else {
-                        $("#sendCode").val(left_time);
+            PoW.consumeForAjax(function(powParams) {
+                if (!powParams) {
+                    layer.msg('安全验证失败，请刷新页面', {time: 1000});
+                    $btn.prop('disabled', false).val('发送');
+                    return;
+                }
+                var data = $.extend({_token: '{{csrf_token()}}', username: username}, powParams);
+
+                $.ajax({
+                    type: "POST",
+                    url: "{{url('sendCode')}}",
+                    async: true,
+                    data: data,
+                    dataType: 'json',
+                    success: function (ret) {
+                        if (ret.status == 'fail') {
+                            layer.msg(ret.message, {time: 1000});
+                            $btn.prop('disabled', false).val('发送');
+                        } else {
+                            layer.alert('验证码已发送至您的邮箱，请稍作等待或查看垃圾箱', {icon:1, title:'提示'});
+                            $btn.prop('disabled', true);
+                            // 成功才开始倒计时
+                            var left_time = 60;
+                            var tt = window.setInterval(function () {
+                                left_time = left_time - 1;
+                                if (left_time <= 0) {
+                                    window.clearInterval(tt);
+                                    $btn.prop('disabled', false).val('发送');
+                                } else {
+                                    $btn.val(left_time);
+                                }
+                            }, 1000);
+                        }
+                    },
+                    error: function (ret) {
+                        layer.msg('请求异常，请刷新页面重试', {time: 1000});
+                        $btn.prop('disabled', false).val('发送');
                     }
-                }, 1000);
-            }
+                });
+            });
         }
 
+        var _powSubmitted = false;
         $('#register-form').submit(function(event){
+            if (_powSubmitted) return true;
+
             // 先检查Google reCAPTCHA有没有进行验证
             if ( $('#g-recaptcha-response').val() === '' ) {
                 Msg(false, "{{trans('login.required_captcha')}}", 'error');
                 return false;
             }
+
+            // PoW: 注入 nonce 并提交
+            event.preventDefault();
+            var $btn = $(this).find('button[type=submit]');
+            var origText = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> 安全验证中...');
+
+            var ready = PoW.consume(function () {
+                _powSubmitted = true;
+                $btn.prop('disabled', false).html(origText);
+                $('#register-form').submit();
+            });
+
+            return false;
         })
 
         // 生成提示

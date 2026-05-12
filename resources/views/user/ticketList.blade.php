@@ -74,11 +74,10 @@
                         </div>
                         <div class="actions">
                             <div class="btn-group">
-                                <button class="btn sbold blue" data-toggle="modal" data-target="#charge_modal"> {{trans('home.ticket_table_new_button')}} </button>
+                                <button class="btn sbold blue" data-toggle="modal" data-target="#ticket_modal"> {{trans('home.ticket_table_new_button')}} </button>
                             </div>
                         </div>
                     </div>
-                    <code>*禁止滥用工单；管理回复且公开工单，奖励用户0.33￥/次；用户提交工单，扣除0.33￥/次。</code>
                     <div class="portlet-body">
                         <div class="table-scrollable table-scrollable-borderless">
                             <table class="table table-hover table-light table-checkable order-column">
@@ -126,7 +125,7 @@
                 <!-- END EXAMPLE TABLE PORTLET-->
             </div>
         </div>
-        <div id="charge_modal" class="modal fade" tabindex="-1" data-focus-on="input:first" data-keyboard="false">
+        <div id="ticket_modal" class="modal fade" tabindex="-1" data-focus-on="input:first" data-keyboard="false">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -139,7 +138,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" data-dismiss="modal" class="btn dark btn-outline"> {{trans('home.ticket_table_new_cancel')}} </button>
-                        <button type="button" data-dismiss="modal" class="btn green btn-outline" onclick="addTicket()"> {{trans('home.ticket_table_new_yes')}} </button>
+                        <button type="button" class="btn green btn-outline" onclick="addTicket()"> {{trans('home.ticket_table_new_yes')}} </button>
                     </div>
                 </div>
             </div>
@@ -165,16 +164,13 @@
                 return false;
             }
 
-            layer.confirm('确定提交工单？', {icon: 3, title:'警告'}, function(index) {
-                $.post("/addTicket", {_token:'{{csrf_token()}}', title:title, content:content}, function(ret) {
-                    layer.msg(ret.message, {time:1000}, function() {
-                        if (ret.status == 'success') {
-                            window.location.reload();
-                        }
-                    });
+            $.post("{{url('addTicket')}}", {_token:'{{csrf_token()}}', title:title, content:content}, function(ret) {
+                $('#ticket_modal').modal('hide');
+                layer.msg(ret.message, {time:1000}, function() {
+                    if (ret.status == 'success') {
+                        window.location.reload();
+                    }
                 });
-
-                layer.close(index);
             });
         }
         // 搜索

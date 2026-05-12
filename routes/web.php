@@ -13,6 +13,7 @@ Route::group(['middleware' => ['isForbidden', 'affiliate']], function () {
     Route::any('reActiveUser', 'AuthController@reActiveUser'); // 激活账号
     Route::get('active/{token}', 'AuthController@active'); // 激活账号
     Route::post('sendCode', 'AuthController@sendCode'); // 发送注册验证码
+    Route::post('auth/pow-challenge', 'AuthController@powChallenge'); // PoW Challenge
     Route::get('free', 'AuthController@free'); // 免费邀请码
     Route::get('makePasswd', 'Controller@makePasswd'); // 生成密码
     Route::get('makeVmessId', 'Controller@makeVmessId'); // 生成VmessId

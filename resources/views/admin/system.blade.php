@@ -57,6 +57,7 @@
                                         </li>
                                         <li>
                                             <a href="#tab_unlock" data-toggle="tab"> 解锁配置 </a>
+                                            <a href="#tab_12" data-toggle="tab"> 多域名设置 </a>
                                         </li>
                                         <li id="li_tab_geetest" class="tab_captcha" style="display:none;">
                                             <a href="#tab_geetest" data-toggle="tab"> Geetest 极验 </a>
@@ -93,7 +94,7 @@
                                                                         <button class="btn btn-success" type="button" onclick="setWebsiteUrl()">修改</button>
                                                                     </span>
                                                                 </div>
-                                                                <span class="help-block"> 生成重置密码、在线支付必备，示例：https://www.ssrpanel.com </span>
+                                                                <span class="help-block"> 生成重置密码,邀请码,充值专用 URL  </span>
                                                             </div>
                                                         </div>
                                                         <div class="col-md-6 col-sm-6 col-xs-12">
@@ -1328,6 +1329,37 @@ echo empty($pp) ? json_encode(["threshold_mb" => 2048, "high" => "xhttp-hy2-ws-g
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="tab-pane" id="tab_12">
+                                            <div class="portlet-body">
+                                                <div class="alert alert-info">
+                                                    <strong>功能说明：</strong> 当用户通过不同的域名访问站点时，系统会根据请求的 <code>Host</code> 或 <code>X-Forwarded-Host</code> 自动切换展示信息。
+                                                    <br/>1. <strong>HTTP Host</strong>：匹配的域名（不带协议和端口），如 <code>hk.example.com</code>。
+                                                    <br/>2. <strong>网站名称</strong>：该域名下显示的站点名称。
+                                                    <br/>3. <strong>网站地址</strong>：该域名对应的完整 URL，影响重置密码和充值链接的生成。
+                                                    <br/>4. <strong>订阅域名</strong>：该域名下节点订阅显示的域名。
+                                                    <br/>注意：如果访问域名不在下表中，将使用“常规”设置中的默认配置。
+                                                </div>
+                                                <div class="table-scrollable">
+                                                    <table class="table table-striped table-bordered table-hover" id="host_pool_table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th> HTTP Host (域名) </th>
+                                                                <th> 网站名称 </th>
+                                                                <th> 网站地址 (URL) </th>
+                                                                <th> 订阅域名 </th>
+                                                                <th> 操作 </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <!-- Rows added by JS -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <button type="button" class="btn btn-info" onclick="addHostRow()"> <i class="fa fa-plus"></i> 添加配置 </button>
+                                                <button type="button" class="btn btn-success" onclick="saveHostPools()"> <i class="fa fa-save"></i> 保存设置 </button>
+                                                <input type="hidden" id="host_pools_data" value="{{$host_pools}}" />
+                                            </div>
+                                        </div>
                                         <div class="tab-pane" id="tab_geetest">
 
                                             <form action="#" method="post" class="form-horizontal">
@@ -1432,6 +1464,61 @@ echo empty($pp) ? json_encode(["threshold_mb" => 2048, "high" => "xhttp-hy2-ws-g
             });
         });
 
+        // 初始化多域名反代设置
+        $(document).ready(function() {
+            var hostPoolsRaw = $('#host_pools_data').val();
+            if (hostPoolsRaw) {
+                try {
+                    var hostPools = JSON.parse(hostPoolsRaw);
+                    for (var host in hostPools) {
+                        addHostRow(host, hostPools[host].website_name, hostPools[host].website_url, hostPools[host].subscribe_domain);
+                    }
+                } catch (e) {
+                    console.error("Parse host_pools error:", e);
+                }
+            }
+        });
+
+        function addHostRow(host = '', name = '', url = '', sub = '') {
+            var html = '<tr>';
+            html += '<td><input type="text" class="form-control host-key" value="' + host + '" placeholder="hk.example.com"></td>';
+            html += '<td><input type="text" class="form-control host-name" value="' + name + '" placeholder="网站名称"></td>';
+            html += '<td><input type="text" class="form-control host-url" value="' + url + '" placeholder="https://hk.example.com"></td>';
+            html += '<td><input type="text" class="form-control host-sub" value="' + sub + '" placeholder="hk.example.com"></td>';
+            html += '<td><button type="button" class="btn btn-danger" onclick="$(this).closest(\'tr\').remove()"><i class="fa fa-trash"></i></button></td>';
+            html += '</tr>';
+            $('#host_pool_table tbody').append(html);
+        }
+
+        function saveHostPools() {
+            var hostPools = {};
+            var isValid = true;
+            $('#host_pool_table tbody tr').each(function() {
+                var host = $(this).find('.host-key').val().trim();
+                var name = $(this).find('.host-name').val().trim();
+                var url = $(this).find('.host-url').val().trim();
+                var sub = $(this).find('.host-sub').val().trim();
+                if (host) {
+                    hostPools[host] = {
+                        website_name: name,
+                        website_url: url,
+                        subscribe_domain: sub
+                    };
+                }
+            });
+
+            $.post("/admin/setConfig", {
+                _token: '{{csrf_token()}}',
+                name: 'host_pools',
+                value: JSON.stringify(hostPools)
+            }, function (ret) {
+                layer.msg(ret.message, {time: 1000}, function () {
+                    if (ret.status == 'success') {
+                        window.location.reload();
+                    }
+                });
+            });
+        }
         // 注册的默认标签
         $('#initial_labels_for_user').select2({
             theme: 'bootstrap',

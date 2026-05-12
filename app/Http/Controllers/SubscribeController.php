@@ -864,16 +864,15 @@ class SubscribeController extends Controller
                             $transport['service_name'] = $node->v2_servicename;
                         }
                     }
-                    // XHTTP 传输配置
+                    // XHTTP -> HTTPUpgrade (sing-box naming)
                     elseif ($node->v2_net == 'xhttp') {
-                        $transport['type'] = 'xhttp';
-                        if ($node->v2_path) {
-                            $transport['path'] = $node->v2_path;
-                        }
+                        $transport['type'] = 'httpupgrade';
                         if ($node->v2_host) {
                             $transport['host'] = $node->v2_host;
                         }
-                        $transport['mode'] = 'auto';
+                        if ($node->v2_path) {
+                            $transport['path'] = $node->v2_path;
+                        }
                     }
 
                     $outbound['transport'] = $transport;
