@@ -14,7 +14,7 @@ apply_id → register → resolve_dns → config → status(循环)
 
 **认证方式:** Token 认证 — 所有接口均需携带 `token` 参数（或 `X-API-Token` 请求头），值为 `.env` 中 `API_TOKEN` 变量。
 
-**适用版本:** commit `bde5649a` (2026-04-29) 及之后。
+**适用版本:** commit `36f943a8` (2026-05-12) 及之后。
 
 ---
 
@@ -25,13 +25,13 @@ apply_id → register → resolve_dns → config → status(循环)
 │  Node API v2 生命周期                                  │
 ├──────────────────────────────────────────────────────┤
 │                                                      │
-│  Step 0   POST /apply_id       申请节点 ID            │
+│  Step 0   POST /apply_id       申请/回收节点 ID       │
 │             ↓                                        │
 │  Step 1   POST /register       注册节点 + 动态裂变     │
 │             ↓                                        │
-│  Step 2   POST /resolve_dns    解析 DNS 记录          │
+│  Step 2   POST /resolve_dns    集群级 DNS 三向对账     │
 │             ↓                                        │
-│  Step 3   POST /config         拉取 Xray 配置          │
+│  Step 3   GET  /config         拉取 Xray 配置          │
 │             ↓                                        │
 │  Step 4   POST /status    ←─── 循环上报               │
 │             ↑             状态/流量/健康               │
@@ -47,19 +47,19 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `v2_name` | string | 动态分配 | 协议名（如 `ws`、`hy2`），由 register 时动态分配或客户端指定协议组后拆分 |
+| `v2_name` | string | 动态分配 | 单个协议名（如 `ws`、`hy2`），由 register 时从协议组拆分后分配 |
 | `node_rxtx` | string | `tx` | 流量计费模式：`tx`（仅上行）或 `rxtx`（双向均值） |
 | `node_cpu` | integer | nullable | CPU 核心数 |
 | `node_memory` | float | nullable | 内存大小（GB） |
 | `node_disk` | float | nullable | 磁盘大小（GB） |
-| `node_group` | integer | 1 | 节点分组 ID |
+| `node_group` | integer | 2 | 节点分组 ID |
 | `node_country` | string | nullable | 国家名称（如 Japan） |
 | `node_city` | string | nullable | 城市名称（如 Tokyo） |
 | `node_health` | integer | 1 | 健康状态：0=拥塞，1=健康 |
 | `is_clone` | integer | 0 | 克隆源节点 ID，`0` 表示主节点 |
-| `node_ids` | text (JSON) | nullable | 主节点专属字段，存储该节点矩阵中所有节点 ID 的 JSON 数组 |
-| `last_raw_total` | float | 0 | 上一次上报的原始流量总值，用于增量计算 |
-| `server_uptime` | integer | 0 | 服务器运行时间（秒） |
+| `node_ids` | text | nullable | 主节点专属字段，逗号分隔的 ID 字符串（如 `"42,43,44,45"`） |
+| `last_raw_total` | bigint unsigned | 0 | 上一次上报的原始流量总值，用于增量计算 |
+| `server_uptime` | bigint unsigned | 0 | 服务器运行时间（秒） |
 
 ---
 
@@ -69,9 +69,30 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 | 配置项 | 格式 | 说明 |
 |--------|------|------|
-| `node_root_domain` | string | 主域名（如 `ssmail.win`） |
-| `node_domain_pool` | JSON array | 备用域名池，如 `["backup1.com", "backup2.net"]` |
+| `node_root_domain` | string | 兜底主域名（如 `ssmail.win`），当域名池为空时使用 |
+| `node_domain_pool` | JSON object | 富字典格式域名池，详见下方 |
 | `node_protocol_presets` | JSON object | 协议预设配置，详见下方 |
+
+**node_domain_pool 结构（富字典格式）：**
+```json
+{
+    "ssmail.win": {
+        "provider": "cloudflare",
+        "records_limit": 1000,
+        "zone_id": "45356a7ae9254b65b016839dbe141b28",
+        "expire_date": "2027-01-01"
+    },
+    "backup.net": {
+        "provider": "cloudflare",
+        "records_limit": 500,
+        "zone_id": "abc123def456"
+    }
+}
+```
+
+- 每个域名为 key，value 为包含 `zone_id`（Cloudflare Zone ID）和 `records_limit`（DNS 记录容量上限）的字典
+- 域名池中的**第一个 key** 即为 primary domain（优先于 `node_root_domain`）
+- 也兼容纯数组格式 `["a.com", "b.com"]`，此时 `records_limit` 默认 180
 
 **node_protocol_presets 结构：**
 ```json
@@ -104,6 +125,12 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 | node_ip | string | 否 | - | 节点 IPv4 地址 |
 | node_ipv6 | string | 否 | - | 节点 IPv6 地址 |
 
+#### 节点 ID 回收机制
+
+面板优先查找心跳超过 **32 天**的死亡节点复用其 ID（同时清理该节点的 `dns_records`），实现 ID 资源回收。若无死亡节点则创建新记录。
+
+**此步骤决定了节点的 IP 栈命运**：apply_id 时写入的 `ip`/`ipv6` 会被 register 阶段强制执行单栈互斥。
+
 **成功响应 (200):**
 ```json
 {
@@ -115,7 +142,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 ### Step 1: 注册节点信息与裂变
 
-向面板注册节点详细信息，触发 **动态协议分配**、**裂变逻辑**、**阶梯等级引擎**，并分配 **域名亲和性**。
+向面板注册节点详细信息，触发 **动态协议分配**、**裂变逻辑**、**阶梯等级引擎**、**IP 互斥**，并分配 **域名亲和性**。
 
 **接口地址:** `POST /api/node/register`
 
@@ -129,35 +156,39 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 | v2_name | string | 否 | 动态分配 | **可选** 协议组名称（如 `xhttp-hy2-ws-grpc`），若提供则覆盖动态分配 |
 | node_level | integer | 否 | 阶梯引擎 | **可选** 节点访问等级，若提供则覆盖阶梯引擎计算 |
 | node_rxtx | string | 否 | `tx` | 计费模式：`tx` 或 `rxtx`（向后兼容 `node_rxtx_mode`、`billing_mode`） |
-| node_cpu | integer | 否 | - | CPU 核心数 |
-| node_memory | float | 否 | 0 | 内存大小（**GB**），未提供 `v2_name` 时决定协议组分配 |
-| node_disk | float | 否 | - | 磁盘大小（GB） |
-| bandwidth | integer | 否 | 100 | 带宽（Mbps） |
+| node_cpu | integer | 否 | - | CPU 核心数（向后兼容 `cpu`） |
+| node_memory | float | 否 | 0 | 内存大小（**GB**），未提供 `v2_name` 时决定协议组分配（向后兼容 `memory`） |
+| node_disk | float | 否 | - | 磁盘大小（GB）（向后兼容 `disk`） |
+| node_bandwidth | integer | 否 | 100 | 带宽（Mbps）（向后兼容 `bandwidth`） |
 | node_unlock | string | 否 | - | 解锁信息，原始 Query String 格式（如 `Netflix=Yes&Gemini=No`） |
 | node_info | string | 否 | - | 节点描述信息 |
 | node_cost | float | 否 | 0 | 节点每 GB 流量成本，未提供 `node_level` 时决定节点等级 |
-| node_group | integer | 否 | 1 | 节点分组 ID |
+| node_group | integer | 否 | `2` | 节点分组 ID |
 | node_traffic_limit | integer | 否 | 1000 | 每月流量额度（GB） |
 | node_traffic_resetday | integer | 否 | 1 | 每月流量重置日期 |
 | node_sort | integer | 否 | 0 | 节点排序权重 |
 | node_traffic_rate | float | 否 | 1.0 | 流量计费倍率 |
-| node_country_code | string | 否 | `un` | ISO 国家代码 (如 JP, US) |
+| node_country_code | string | 否 | `un` | ISO 国家代码 (如 JP, US)，自动转大写用于命名、转小写存储 |
 | node_country | string | 否 | - | 国家全称 |
 | node_city | string | 否 | - | 城市全称 |
-| node_ip | string | 否 | - | 节点 IPv4 地址 |
-| node_ipv6 | string | 否 | - | 节点 IPv6 地址 |
+| node_ip | string | 否 | - | 节点 IPv4 地址（受 IP 互斥约束） |
+| node_ipv6 | string | 否 | - | 节点 IPv6 地址（受 IP 互斥约束） |
 
-**成功响应 (200):**
-```json
-{
-    "status": "success",
-    "main_node_id": 42,
-    "clone_node_ids": [43, 44, 45],
-    "node_ids": [42, 43, 44, 45],
-    "root_domain": "example.com",
-    "v2_name": "vision-hy2-ws-grpc"
-}
-```
+#### IP 互斥 (Single-Stack Isolation)
+
+`apply_id` 阶段已确定节点的 IPv4/IPv6 命运。`register` 阶段强制执行单栈隔离：
+
+| apply_id 给出的 Fate | register 行为 |
+|---|---|
+| 仅 IPv4 | 接受 `node_ip`，强制置空 `ipv6` |
+| 仅 IPv6 | 接受 `node_ipv6`，强制置空 `ip` |
+| 两者都有 | 正常接受两个 |
+
+子域名前缀也因此区分：IPv4 节点使用 `n{id}`，IPv6 节点使用 `ipv6n{id}`。
+
+#### 标准化命名
+
+节点名称格式为 `{COUNTRY_CODE}-{City}`（如 `JP-Tokyo`）。`country_code` 自动转大写用于命名，同时转小写存储到 `country_code` 字段。
 
 #### 动态协议分配
 
@@ -167,7 +198,6 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
    - 读取 `threshold_mb`（默认 2048），除以 1024 转换为 GB
    - 若 `node_memory > threshold_gb` → 使用 `high` 协议组
    - 否则 → 使用 `low` 协议组
-3. 协议组拆分为单个协议后随机打乱分配给各节点
 
 #### 裂变矩阵
 
@@ -175,14 +205,21 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 - **单栈**（仅 IPv4 或仅 IPv6）：4 个节点（1 主 + 3 克隆）
 - **双栈**（IPv4 + IPv6）：8 个节点（1 主 + 7 克隆）
 
-每个主/克隆节点被分配一个随机协议（如 `vision`、`hy2`、`ws`、`grpc`），协议顺序被打乱。
+每个主/克隆节点被分配一个协议（如 `vision`、`hy2`、`ws`、`grpc`）。主节点占据第一个 slot，并强制只保留对应 IP 栈。
 
-#### 克隆复用（防无限增殖）
+#### 克隆复用与死亡节点回收
 
-重装触发 `/register` 时，不会盲目 `INSERT` 新记录。优先通过 `WHERE is_clone = 主节点ID` 查出并**复用**旧的关联记录：
-- 若旧记录数量足够 → 直接更新（复活）
-- 若旧记录不足 → 仅补充创建缺少的记录
-- 若旧记录多余 → 删除多余的记录
+重装触发 `/register` 时，不会盲目 `INSERT` 新记录。分两层复用：
+
+1. **旧克隆复用**：通过 `WHERE is_clone = 主节点ID` 查出并更新已有克隆记录
+2. **死亡节点回收**：若旧克隆不足，从全局心跳超时 > 32 天的死亡节点池中回收 ID，同时清理其 DNS 记录
+3. 仅在两者都不足时才创建新节点
+
+多余的旧克隆节点被降级（`is_clone = 0, status = 0`）。
+
+#### V2 预设注入
+
+每个克隆节点创建时自动注入协议预设（`V2_PRESETS` 常量），包括 `type`、`v2_net`、`v2_port`、`v2_tls`、`v2_flow`、`v2_fp`、`v2_alpn`、`v2_path`、`v2_servicename` 等字段。特殊规则：在 `vision+grpc` 组合中，grpc 端口自动设为 2053 避免端口冲突。
 
 #### 阶梯等级引擎
 
@@ -195,53 +232,147 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 #### 域名亲和性分配策略 (Domain Affinity)
 
 系统按照以下优先级分配节点的 `root_domain`：
-1. **优先使用请求携带的 `root_domain`**：只要该域名在 `dns_records` 表中的记录数未超过 **180** 条。
-2. **自动从域名池选取**：若未携带或已满，从配置项 `node_domain_pool`（JSON 数组）顺序选取第一个记录数 < 180 的域名。
-3. **兜底策略**：若全部溢出，强制使用主域名 `node_root_domain`。
+1. **优先使用请求携带的 `root_domain`**：从域名池 meta 中取 `records_limit`（默认 180），若 `dns_records` 表中该域名的记录数 < limit 则沿用。
+2. **自动从域名池选取**：若未携带或已满，按 `node_domain_pool` 字典顺序遍历，选取第一个记录数 < limit 的域名。
+3. **兜底策略**：若全部溢出，使用域名池第一个 key 作为 primary domain（**优先于** `node_root_domain`）。仅当域名池完全为空时才回退到 `node_root_domain`。
 
 #### node_ids 封卷
 
-裂变完成后，主节点的 `node_ids` 字段会写入包含矩阵中所有节点 ID 的 JSON 数组，如 `[42, 43, 44, 45]`。
+裂变完成后，主节点的 `node_ids` 字段写入**逗号分隔的 ID 字符串**（如 `"42,43,44,45"`），供 `resolve_dns` 集群级批量同步使用。
+
+#### 成功响应 (200):
+```json
+{
+    "status": "success",
+    "node_id": 42,
+    "clone_node_ids": [43, 44, 45],
+    "node_ids": "42,43,44,45",
+    "root_domain": "example.com",
+    "v2_name": "vision-hy2-ws-grpc",
+    "proxy_host": "npanel-nav.freessr.bid",
+    "ws_path": "srp-ws",
+    "ws_port": 10011,
+    "grpc_service_name": "srp-grpc",
+    "grpc_port": 10012,
+    "xhttp_path": "srp-xhttp",
+    "xhttp_port": 10013,
+    "hy2_port": 443,
+    "vision_port": 443
+}
+```
+
+**条件响应字段**（仅当协议组包含对应协议时返回）：
+
+| 字段 | 条件 | 说明 |
+|---|---|---|
+| `ws_path` | 含 `ws`/`xhttp`/`grpc` | WebSocket 路径 |
+| `ws_port` | 含 `ws`/`xhttp`/`grpc` | WebSocket 端口 |
+| `grpc_service_name` | 含 `ws`/`xhttp`/`grpc` | gRPC 服务名 |
+| `grpc_port` | 含 `ws`/`xhttp`/`grpc` | gRPC 端口 |
+| `xhttp_path` | 含 `ws`/`xhttp`/`grpc` | XHTTP 路径 |
+| `xhttp_port` | 含 `ws`/`xhttp`/`grpc` | XHTTP 端口 |
+| `hy2_port` | 含 `hy2` | Hysteria2 端口 |
+| `vision_port` | 含 `vision` | VLESS Vision 端口 |
+| `proxy_host` | 始终返回 | CDN 代理域名 |
 
 ---
 
-### Step 2: 解析 DNS
+### Step 2: 集群级 DNS 三向对账
 
-同步本地数据库状态到 Cloudflare。
+同步主节点及其所有克隆节点的 DNS 记录到 Cloudflare。一次调用处理 `node_ids` 中包含的所有节点。
 
 **接口地址:** `POST /api/node/resolve_dns`
 
 **请求参数:**
 
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| token | string | 是 | API Token |
-| node_id | integer | 是 | 节点 ID |
+| 参数名 | 类型 | 必填 | 默认值 | 说明 |
+|--------|------|------|--------|------|
+| token | string | 是 | - | API Token |
+| node_id | integer | 是 | - | **主节点** ID（非克隆节点 ID） |
+| force | boolean | 否 | `false` | 强制跳过缓存拦截，即使状态一致也重新同步 |
 
-**行为逻辑（三场景对账）：**
-- **Scene A (静默拦截)**：若本地记录显示的 IP/域名与目标状态完全一致，则**不调用** Cloudflare API，直接返回成功。
-- **Scene B (IP 更新)**：域名未变但 IP 变动，执行 Cloudflare `PUT` 更新。
-- **Scene C (原子域名切换)**：域名发生变动，采用 **POST-before-DELETE** 策略：
-    1. 先向 Cloudflare 申请创建新域名的 `POST` 记录。
-    2. 只有 `POST` 成功后，才尝试 `DELETE` 旧记录。
-    3. **脏状态回滚**：若 `POST` 失败，旧记录在数据库中将完好保留，确保服务不因 API 故障而彻底中断。
+#### 集群级批量处理
 
-**成功响应 (200):**
+1. 从主节点的 `node_ids` 字段解析出所有节点 ID（逗号分隔字符串 → 数组）
+2. 遍历每个节点，根据其 `server` 字段（如 `n42.ssmail.win`）解析出 subdomain 和 root_domain
+3. 从 `node_domain_pool` 配置动态获取该域名的 `zone_id`
+4. 为每个节点生成 DNS 蓝图（blueprint），包含 subdomain、IP、proxied 状态
+5. 对每个蓝图执行三向对账
+6. 清理孤儿记录（节点不再需要的 record_type）
+
+#### CDN Proxy 决策
+
+从节点的 `v2_net` 字段（**非** `v2_name`）派生 DNS 记录的 `proxied` 状态：
+
+| `v2_net` | `proxied` | 说明 |
+|---|---|---|
+| `ws` | `true` | WebSocket 需要 CDN 代理（橙色云） |
+| `grpc` | `true` | gRPC 需要 CDN 代理 |
+| `tcp` (vision) | `false` | VLESS Vision 仅 DNS 解析（灰色云） |
+| `hysteria2` | `false` | HY2 使用 QUIC/UDP，无法走 CDN |
+| `xhttp` | `true` | XHTTP 需要 CDN 代理 |
+
+#### 三向对账场景
+
+**Scene A (缓存拦截)：** subdomain + root_domain + ip_addr + proxied 完全一致 → **不调用** CF API，直接返回 `no_change`。
+
+**Scene B (域名变更 → DELETE-before-CREATE)：** subdomain 或 root_domain 变动时：
+1. 使用旧 `cf_record_id` 调用 CF `DELETE` 抹除旧解析
+2. 删除本地 `dns_records` 行
+3. 调用 CF `POST` 创建新解析
+4. 成功后插入新 `dns_records` 行
+
+**Scene C (新建)：** 本地无记录 → 调用 CF `POST` 创建 → 成功后插入 `dns_records`。
+
+**Scene D (IP/代理变更 → PUT)：** 域名不变但 IP 或 `proxied` 变动 → 调用 CF `PUT` 更新 → 成功后更新本地记录。
+
+**严格约束：** CF API 返回非 2xx 时，本地 `dns_records` 保持旧状态不变，允许下次请求继续对账。如果 Scene B 中 DELETE 成功但 POST 失败，本地旧记录已被删除，下次请求会重新创建。
+
+#### 安全机制
+
+- **90 秒全局超时** + 单节点 60 秒超时预警
+- 孤儿记录检测：自动清理节点不再需要的 record_type
+- 完整日志记录（每步操作、耗时、CF 返回）
+
+#### 成功响应 (200):
 ```json
 {
     "status": "success",
-    "actions": ["no_change"],
-    "message": "DNS reconciled"
+    "results": [
+        {"action": "no_change", "success": true, "node_id": 42, "type": "A", "fqdn": "n42.ssmail.win", "proxied": false},
+        {"action": "created", "success": true, "node_id": 43, "type": "A", "fqdn": "n43.ssmail.win", "cf_id": "abc123", "proxied": true}
+    ],
+    "stats": {
+        "created": 1,
+        "updated": 0,
+        "deleted": 0,
+        "skipped": 0,
+        "failed": 0,
+        "no_change": 1
+    },
+    "elapsed_s": 2.456,
+    "message": "DNS cluster synchronized"
 }
 ```
+
+**`results[].action` 可能值：**
+
+| action | 说明 |
+|---|---|
+| `no_change` | 缓存拦截，未调用 CF |
+| `created` | 新建 CF 记录 + 本地记录 |
+| `updated_ip` | IP 变更，CF PUT 成功 |
+| `updated_proxied` | 仅 proxied 状态变更 |
+| `deleted_orphan` | 清理孤儿记录 |
+| `skipped_timeout` | 全局超时跳过 |
+| `skipped_no_zone` | zone_id 缺失跳过 |
+| `create_failed` / `update_failed` | CF 操作失败 |
 
 ---
 
 ### Step 3: 拉取 Xray 配置
 
-**接口地址:** `POST /api/node/config`
-
-> **注意：** 此接口已从 `GET` 改为 `POST`，`GET` 请求将返回 **405 Method Not Allowed**。
+**接口地址:** `GET /api/node/config`
 
 **请求参数:**
 
@@ -250,7 +381,13 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 | token | string | 是 | API Token |
 | node_id | integer | 是 | 节点 ID |
 
-**技术要点：** 注入引擎支持 **类型保留**。例如占位符 `__wsPort__` 会被替换为整数 `10010` 而非字符串 `"10010"`，确保符合 Xray JSON Schema 要求。
+**技术要点：**
+
+1. **类型保留 JSON 注入：** 占位符 `__wsPort__` 被替换为整数 `10011` 而非字符串 `"10010"`。实现原理：模板先以 `json_decode($raw)` 解码保留 stdClass 类型信息，注入后通过 `restoreJsonObjectTypes()` 对照原始模板恢复 JSON 对象/数组类型。
+
+2. **HY2 直连 IP 覆盖：** 当节点 `v2_net === 'hysteria2'` 时，配置中所有 `server` 字段被替换为节点的原始 IP 地址（HY2 使用 QUIC/UDP，无法走 CDN 代理）。
+
+3. **流媒体解锁模板：** 从 `resources/templates/xray/unlock/{service}.json` 文件加载解锁规则，支持 config 表中的 `unlock_{service}_address/port/password/method` 变量注入。
 
 ---
 
@@ -260,19 +397,28 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 **请求参数:**
 
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| token | string | 是 | API Token |
-| node_id | integer | 是 | 节点 ID |
-| raw_rx | float | 否 | 原始接收字节总数 |
-| raw_tx | float | 否 | 原始发送字节总数 |
-| server_uptime | integer | 否 | 服务器运行时间（秒） |
+| 参数名 | 类型 | 必填 | 默认值 | 说明 |
+|--------|------|------|--------|------|
+| token | string | 是 | - | API Token |
+| node_id | integer | 是 | - | 节点 ID |
+| raw_rx | float | 否 | `0` | 原始接收字节总数 |
+| raw_tx | float | 否 | `0` | 原始发送字节总数 |
+| server_uptime | integer | 否 | *(沿用)* | 服务器运行时间（秒） |
+| node_bandwidth | integer | 否 | *(沿用)* | 带宽（Mbps） |
 
 #### 计费与健康引擎
 - **计费模式**：依据 `node_rxtx` 字段执行 `tx`（仅上行）或 `rxtx`（双向均值）逻辑。
 - **三态增量计算**：支持网卡重启归零检测（`rawTotal < lastRaw`），防止流量异常回滚。
 - **健康引擎**：依据月度剩余流量自动判定 `node_health`（0=拥塞，1=健康）。
 - **120G 融断**：剩余流量 < 120GB 时强制设置 `status = 0`。
+
+**成功响应 (200):**
+```json
+{
+    "status": "success",
+    "node_status": 1
+}
+```
 
 ---
 
@@ -300,11 +446,35 @@ php artisan initDnsRecords
 
 ## 环境依赖 (必需)
 
-- `CLOUDFLARE_EMAIL` / `CLOUDFLARE_API_KEY` / `CLOUDFLARE_ZONE_ID`
-- `node_root_domain` (主域名)
-- `node_domain_pool` (备用域名池，JSON 数组格式)
-- `node_protocol_presets` (协议预设，JSON 对象格式)
+### .env 变量
+
+| 变量 | 说明 |
+|---|---|
+| `API_TOKEN` | 接口认证密钥 |
+| `CLOUDFLARE_EMAIL` | Cloudflare 账户邮箱 |
+| `CLOUDFLARE_API_KEY` | Cloudflare API Key |
+| `CLOUDFLARE_ZONE_ID` | Cloudflare 默认 Zone ID |
+
+### config 表配置
+
+| 配置项 | 说明 |
+|---|---|
+| `node_root_domain` | 兜底主域名 |
+| `node_domain_pool` | 富字典格式域名池（含 per-domain zone_id, records_limit） |
+| `node_protocol_presets` | 协议预设（threshold_mb, high, low） |
+
+### 模板文件依赖
+
+```
+resources/templates/xray/
+├── vision-hy2-ws-grpc.json
+├── xhttp-hy2-ws-grpc.json
+└── unlock/
+    ├── openai.json
+    ├── netflix.json
+    └── ...
+```
 
 ---
 
-*文档更新时间: 2026-04-29 | 基于 commit: bde5649a*
+*文档更新时间: 2026-05-12 | 基于 commit: 36f943a8*

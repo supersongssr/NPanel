@@ -2279,6 +2279,13 @@ EOF;
         return Response::view('admin.system', $view);
     }
 
+    public function backend(Request $request)
+    {
+        $view = Helpers::systemConfig();
+
+        return Response::view('admin.backend', $view);
+    }
+
     // 设置某个配置项
     public function setConfig(Request $request)
     {

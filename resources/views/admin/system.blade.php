@@ -53,10 +53,6 @@
                                             <a href="#tab_11" data-toggle="tab"> 支付 </a>
                                         </li>
                                         <li>
-                                            <a href="#tab_node" data-toggle="tab"> 节点配置 </a>
-                                        </li>
-                                        <li>
-                                            <a href="#tab_unlock" data-toggle="tab"> 解锁配置 </a>
                                             <a href="#tab_12" data-toggle="tab"> 多域名设置 </a>
                                         </li>
                                         <li id="li_tab_geetest" class="tab_captcha" style="display:none;">
@@ -1239,96 +1235,6 @@
                                                 </div>
                                             </form>
                                         </div>
-                                        <div class="tab-pane" id="tab_node">
-                                            <form action="#" method="post" class="form-horizontal">
-                                                <div class="portlet-body">
-                                                    <div class="form-group">
-                                                        <div class="col-md-6">
-                                                            <label class="col-md-4 control-label">域名列表</label>
-                                                            <div class="col-md-8">
-                                                                <textarea id="input_domain_pool" class="form-control" rows="10"><?php
-$dp = json_decode($node_domain_pool ?? '', true);
-echo empty($dp) ? json_encode(["ssmail.win" => ["provider" => "cloudflare", "records_limit" => 1000, "zone_id" => "", "expire_date" => ""], "freessr.bid" => ["provider" => "cloudflare", "records_limit" => 180, "zone_id" => "", "expire_date" => ""]], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : json_encode($dp, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-?></textarea>
-                                                                <span class="help-block">
-                                                                    <b>JSON 结构说明：</b><br>
-                                                                    - <code>Key</code>: 根域名 (必须在 CF 托管)<br>
-                                                                    - <code>provider</code>: 服务商，固定 <code>"cloudflare"</code><br>
-                                                                    - <code>records_limit</code>: 解析记录上限 (默认 180)<br>
-                                                                    - <code>zone_id</code>: CF 区域 ID (留空可自动补全)<br>
-                                                                    - <code>expire_date</code>: 到期日期 (仅展示, 示例 <code>"2099-12-31"</code>)<br>
-                                                                    <b>标准示例：</b>
-                                                                    <pre style="font-size: 11px; background: #f7f7f7; padding: 5px; margin-top: 5px;">{
-    "example.com": {
-        "provider": "cloudflare",
-        "records_limit": 1000,
-        "zone_id": "kjdfoahis92398fdshfdbe141b28",
-        "expire_date": "2099-12-31"
-    }
-}</pre>
-                                                                </span>
-                                                                <button class="btn btn-success" type="button" onclick="saveNodeConfig('node_domain_pool')">保存域名列表</button>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <label class="col-md-4 control-label">协议预设</label>
-                                                            <div class="col-md-8">
-                                                                <textarea id="input_protocol_presets" class="form-control" rows="6"><?php
-$pp = json_decode($node_protocol_presets ?? '', true);
-echo empty($pp) ? json_encode(["threshold_mb" => 2048, "high" => "xhttp-hy2-ws-grpc", "low" => "vision-hy2-ws-grpc"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : json_encode($pp, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-?></textarea>
-                                                                <span class="help-block"> threshold_mb=内存阈值（节点内存超过此值用 high 协议组，否则用 low）。协议组用 - 分隔协议名，注册时自动拆分并随机分配给裂变节点 </span>
-                                                                <button class="btn btn-success" type="button" onclick="saveNodeConfig('node_protocol_presets')">保存协议预设</button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </form>
-                                        </div>
-                                        <div class="tab-pane" id="tab_unlock">
-                                            <div class="portlet-body">
-                                                <div class="table-scrollable">
-                                                    <table class="table table-hover table-light">
-                                                        <thead>
-                                                            <tr>
-                                                                <th> 服务 </th>
-                                                                <th> 地址 (Address) </th>
-                                                                <th> 端口 (Port) </th>
-                                                                <th> 密码 (Password) </th>
-                                                                <th> 加密方式 (Method) </th>
-                                                                <th> 操作 </th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach(['netflix' => 'Netflix', 'openai' => 'OpenAI / ChatGPT', 'disney' => 'Disney+', 'tiktok' => 'TikTok', 'bahamut' => '动画疯 (Bahamut)', 'claude' => 'Claude', 'google_scholar' => 'Google Scholar'] as $key => $name)
-                                                            <tr>
-                                                                <td> <b>{{$name}}</b> </td>
-                                                                <td> <input type="text" class="form-control input-sm" id="unlock_{{$key}}_address" value="{{${'unlock_'.$key.'_address'} ?? ''}}"> </td>
-                                                                <td> <input type="number" class="form-control input-sm" style="width: 80px;" id="unlock_{{$key}}_port" value="{{${'unlock_'.$key.'_port'} ?? '8388'}}"> </td>
-                                                                <td> <input type="text" class="form-control input-sm" id="unlock_{{$key}}_password" value="{{${'unlock_'.$key.'_password'} ?? ''}}"> </td>
-                                                                <td>
-                                                                    <select class="form-control input-sm" id="unlock_{{$key}}_method">
-                                                                        @foreach(['chacha20-ietf-poly1305', 'aes-128-gcm', 'aes-256-gcm', 'rc4-md5'] as $m)
-                                                                            <option value="{{$m}}" @if((${'unlock_'.$key.'_method'} ?? '') == $m) selected @endif>{{$m}}</option>
-                                                                        @endforeach
-                                                                    </select>
-                                                                </td>
-                                                                <td>
-                                                                    <button class="btn btn-sm btn-success" type="button" onclick="saveUnlockConfig('{{$key}}')">保存</button>
-                                                                </td>
-                                                            </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                                <div class="alert alert-info">
-                                                    <b>说明：</b><br>
-                                                    1. 只有在节点配置的 <code>node_unlock</code> 包含对应服务（如 <code>netflix=1</code>）时，才会下发对应的解锁配置。<br>
-                                                    2. 地址通常为解锁机 IP 或中转域名。加密方式推荐使用 <code>chacha20-ietf-poly1305</code>。<br>
-                                                    3. 修改后对所有使用该解锁服务的节点立即生效（节点拉取新配置后）。
-                                                </div>
-                                            </div>
-                                        </div>
                                         <div class="tab-pane" id="tab_12">
                                             <div class="portlet-body">
                                                 <div class="alert alert-info">
@@ -2327,36 +2233,6 @@ echo empty($pp) ? json_encode(["threshold_mb" => 2048, "high" => "xhttp-hy2-ws-g
             });
         }
 
-        // --- Node Config Tab ---
-        function saveNodeConfig(name) {
-            var val;
-            if (name === 'node_domain_pool') {
-                val = $('#input_domain_pool').val().trim();
-            } else if (name === 'node_protocol_presets') {
-                val = $('#input_protocol_presets').val().trim();
-            } else {
-                return;
-            }
-
-            try {
-                var parsed = JSON.parse(val);
-                if (name === 'node_domain_pool' && (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed))) {
-                    layer.msg('域名列表必须是 JSON 对象 {"域名": {...}}', {time: 2000});
-                    return;
-                }
-            } catch (e) { layer.msg('JSON格式错误: ' + e.message, {time: 2000}); return; }
-
-            $.post("/admin/setConfig", {
-                _token: '{{csrf_token()}}',
-                name: name,
-                value: val
-            }, function (ret) {
-                layer.msg(ret.message, {time: 1000}, function () {
-                    if (ret.status == 'fail') window.location.reload();
-                });
-            });
-        }
-
         // 设置TCP阻断检测提醒次数
         function setTcpCheckWarningTimes() {
             var tcp_check_warning_times = $("#tcp_check_warning_times").val();
@@ -3303,40 +3179,5 @@ echo empty($pp) ? json_encode(["threshold_mb" => 2048, "high" => "xhttp-hy2-ws-g
         }
 
         // 保存解锁配置
-        function saveUnlockConfig(service) {
-            var address = $("#unlock_" + service + "_address").val();
-            var port = $("#unlock_" + service + "_port").val();
-            var password = $("#unlock_" + service + "_password").val();
-            var method = $("#unlock_" + service + "_method").val();
-
-            var configs = [
-                {name: "unlock_" + service + "_address", value: address},
-                {name: "unlock_" + service + "_port", value: port},
-                {name: "unlock_" + service + "_password", value: password},
-                {name: "unlock_" + service + "_method", value: method}
-            ];
-
-            var total = configs.length;
-            var count = 0;
-            var success = true;
-
-            configs.forEach(function(cfg) {
-                $.post("/admin/setConfig", {
-                    _token: '{{csrf_token()}}',
-                    name: cfg.name,
-                    value: cfg.value
-                }, function (ret) {
-                    count++;
-                    if (ret.status == 'fail') {
-                        success = false;
-                        layer.msg(ret.message);
-                    }
-                    if (count == total && success) {
-                        layer.msg('保存成功', {time: 1000});
-                    }
-                });
-            });
-        }
-
     </script>
 @endsection

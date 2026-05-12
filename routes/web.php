@@ -76,6 +76,7 @@ Route::group(['middleware' => ['isLogin', 'isAdmin']], function () {
     Route::post('admin/delCountry', 'AdminController@delCountry'); // 删除国家/地区
     Route::post('admin/setDefaultConfig', 'AdminController@setDefaultConfig'); // 设置默认配置
     Route::get('admin/system', 'AdminController@system'); // 系统设置
+    Route::get('admin/backend', 'AdminController@backend'); // 后端设置
     Route::post('admin/setExtend', 'AdminController@setExtend'); // 设置客服、统计代码
     Route::post('admin/setConfig', 'AdminController@setConfig'); // 设置某个配置项
     Route::get('admin/userBalanceLogList', 'AdminController@userBalanceLogList'); // 余额变动记录

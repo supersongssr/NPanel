@@ -93,3 +93,9 @@
       - gemini --resume e3067a51-e43d-4f50-bfed-7e6fcb7139a7  
       - prompt: docs/plan/2026-05-09-remove-isforbidden.md
       - QA:docs/QA/2026-05-09-remove-isforbidden.md
+
+
+- [] API v2 
+    - docs/plan/2026-05-12-node-api-v2-development-summary.md
+    - docs/api/node-api-v2.md
+    - claude --resume dbb160bd-2a2e-40e5-8255-3978ca9ac369
