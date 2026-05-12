@@ -33,7 +33,9 @@
     - nginx
         - 请求频率限制
     - 无需登录页面
-        - nginx缓存(静态页面缓存)
+        - [] nginx缓存(静态页面缓存) claude --resume 53615de0-49c0-4e1d-965f-7c765ea690de
+          - prompt: docs/plan/2026-05-08-nginx-cache-analysis.md
+          - QA: 
     - 登录/注册页面
         - [v] pow证明: 在 登录 注册 验证码 找回密码的接口处 添加POW工作量证明
             - what : 前端 登录 注册 邮箱验证码 找回密码 等 post请求 添加 pow工作量证明
@@ -71,7 +73,7 @@
                     - 已存在的ip: 跳过处理
 
 
-- [] 功能
+- 功能
     - 工单
         - [v] 关闭提交工单扣费功能
             - what: 关闭 提交工单扣费功能. 关闭 回复工单 加钱功能.这个功能太蠢了
@@ -87,3 +89,7 @@
         - [v] 防止用户频繁提交工单. 
           - claude --resume 1db9b4f1-7cd1-438c-b50d-0037f4dd5d6d
           - docs/2026-05-07-工单提交频率限制方案.md
+    - [] isForbidden 取消掉这个功能,因为耗费大量的cpu计算ip地理位置 
+      - gemini --resume e3067a51-e43d-4f50-bfed-7e6fcb7139a7  
+      - prompt: docs/plan/2026-05-09-remove-isforbidden.md
+      - QA:docs/QA/2026-05-09-remove-isforbidden.md
