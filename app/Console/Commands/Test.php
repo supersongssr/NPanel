@@ -46,16 +46,21 @@ class Test extends Command
     // 扣减用户到期商品的流量
     private function aTest()
     {
+        $nodes = SsNode::all();
+        $data = [];
+        $gb = 1024 * 1024 * 1024;
 
-        // # 自动获取所有节点 和 节点来自哪里
-        // $nodes = SsNode::query()->get();
-        // foreach($nodes as $node){
-        //     $node->v2_fp = "firefox";
-        //     echo $node->id . "\n";
-        //     $node->save();
-        // }
-       
+        foreach ($nodes as $node) {
+            $data[] = [
+                'ip' => $node->ip,
+                'ipv6' => $node->ipv6,
+                'traffic_used' => (int)($node->traffic_used / $gb),
+                'traffic_left' => (int)(($node->traffic_limit - $node->traffic_used) / $gb),
+                'node_id' => $node->id,
+                'status' => $node->status,
+            ];
+        }
 
-
+        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . PHP_EOL;
     }
 }
