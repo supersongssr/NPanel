@@ -22,7 +22,7 @@ Route::group(['namespace' => 'Api'], function () {
     Route::get('node/new', 'PingController@getNewNode'); // Get a new available node
 
     // New Node API for thin node, fat panel architecture
-    Route::group(['prefix' => 'node'], function () {
+    Route::group(['prefix' => 'node', 'middleware' => 'node.api.token'], function () {
         Route::post('apply_id', 'NodeApiController@applyId');
         Route::post('register', 'NodeApiController@register');
         Route::post('resolve_dns', 'NodeApiController@resolveDns');

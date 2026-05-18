@@ -16,15 +16,6 @@ class NodeApiController extends Controller
 
     const CDN_REQUIRED_NETS = ['ws', 'grpc'];
 
-    private function validateToken(Request $request)
-    {
-        $token = $request->input('token') ?: $request->header('X-API-Token');
-        if (!$token || $token !== env('API_TOKEN')) {
-            return response()->json(['status' => 'error', 'message' => 'Unauthorized: invalid or missing token'], 401);
-        }
-        return null;
-    }
-
     public function __construct()
     {
         while (ob_get_level() > 0) {
@@ -84,10 +75,6 @@ class NodeApiController extends Controller
 
     public function applyId(Request $request)
     {
-        if ($request->input('token') != env('API_TOKEN')) {
-            return response()->json(['status' => 'error', 'message' => 'Invalid token'], 401);
-        }
-
         $nodeIp = $request->input('node_ip');
         $nodeIpv6 = $request->input('node_ipv6');
 
@@ -130,11 +117,6 @@ class NodeApiController extends Controller
     public function register(Request $request)
     {
         $nodeId = $request->input('node_id');
-        $token = $request->input('token');
-
-        if ($token != env('API_TOKEN')) {
-            return response()->json(['status' => 'error', 'message' => 'Invalid token'], 401);
-        }
 
         $node = SsNode::find($nodeId);
         if (!$node) {
@@ -490,7 +472,6 @@ class NodeApiController extends Controller
     {
         set_time_limit(120);
         $startTime = microtime(true);
-        if ($err = $this->validateToken($request)) return $err;
 
         $mainNodeId = $request->input('node_id');
         $force = (bool)$request->input('force', false);
@@ -937,7 +918,6 @@ class NodeApiController extends Controller
 
     public function config(Request $request)
     {
-        if ($err = $this->validateToken($request)) return $err;
 
         $nodeId = $request->input('node_id');
         $node = SsNode::find($nodeId);
@@ -1032,11 +1012,6 @@ class NodeApiController extends Controller
 
     public function nginxConfig(Request $request)
     {
-        $token = $request->input('token') ?: $request->header('X-API-Token');
-        if (!$token || $token !== env('API_TOKEN')) {
-            return response('Unauthorized', 401);
-        }
-
         $nodeId = $request->input('node_id');
         $node = SsNode::find($nodeId);
         if (!$node) return response('Node not found', 404);
@@ -1217,8 +1192,6 @@ class NodeApiController extends Controller
 
     public function status(Request $request)
     {
-        if ($err = $this->validateToken($request)) return $err;
-
         $nodeId = $request->input('node_id');
         $rawRx = (float)$request->input('raw_rx', 0);
         $rawTx = (float)$request->input('raw_tx', 0);
