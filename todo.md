@@ -106,5 +106,5 @@
     - docs/plans/2026-05-12-cache-system-config-redis.md
 
 - artisan 
-    - [] 获取节点列表
+    - [v] 获取节点列表
         - docs/plans/2026-05-15.md
