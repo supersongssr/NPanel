@@ -74,3 +74,13 @@ INSERT INTO `config` (`name`, `value`) VALUES ('node_domain_pool', '[]');
 INSERT INTO `config` (`name`, `value`) VALUES ('node_protocol_presets', '{"threshold_mb":2048,"high":"xhttp-hy2-ws-grpc","low":"vision-hy2-ws-grpc"}');
 INSERT INTO `config` (`name`, `value`) VALUES ('host_pools', '{}');
 INSERT INTO `config` (`name`, `value`) VALUES ('pow_base_difficulty', '10000');
+
+-- 解锁服务配置 (每个服务4项: address/port/password/method)
+INSERT INTO `config` (`name`, `value`) VALUES
+  ('unlock_netflix_address', ''),   ('unlock_netflix_port', '8388'),   ('unlock_netflix_password', ''),   ('unlock_netflix_method', 'chacha20-ietf-poly1305'),
+  ('unlock_openai_address', ''),    ('unlock_openai_port', '8388'),    ('unlock_openai_password', ''),    ('unlock_openai_method', 'chacha20-ietf-poly1305'),
+  ('unlock_disney_address', ''),    ('unlock_disney_port', '8388'),    ('unlock_disney_password', ''),    ('unlock_disney_method', 'chacha20-ietf-poly1305'),
+  ('unlock_tiktok_address', ''),    ('unlock_tiktok_port', '8388'),    ('unlock_tiktok_password', ''),    ('unlock_tiktok_method', 'chacha20-ietf-poly1305'),
+  ('unlock_bahamut_address', ''),   ('unlock_bahamut_port', '8388'),   ('unlock_bahamut_password', ''),   ('unlock_bahamut_method', 'chacha20-ietf-poly1305'),
+  ('unlock_claude_address', ''),    ('unlock_claude_port', '8388'),    ('unlock_claude_password', ''),    ('unlock_claude_method', 'chacha20-ietf-poly1305'),
+  ('unlock_google_scholar_address', ''), ('unlock_google_scholar_port', '8388'), ('unlock_google_scholar_password', ''), ('unlock_google_scholar_method', 'chacha20-ietf-poly1305');
