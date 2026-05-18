@@ -420,13 +420,15 @@ nginx -t && systemctl restart nginx
 | 200 | 成功，返回 conf 文本 |
 | 401 | token 无效或缺失 |
 | 403 | 节点已离线 |
-| 404 | 节点不存在 / 该协议组不需要 nginx 配置（如 vision 模式） |
+| 404 | 节点不存在 |
 | 500 | 模板缺失 |
 
 **技术要点：**
 
 1. **模板选择**：通过主节点的 `v2_name`（协议组名称）定位模板文件（`resources/templates/nginx/{v2_name}.conf`）。克隆节点自动回溯到主节点获取模板。
-2. **vision 模式返回 404**：vision-hy2-ws-grpc 协议组中，Xray 和 HY2 各自监听 443，不需要 nginx 做 TLS 终结。面板检测到模板不含 `listen 443` 时直接返回 404，节点脚本 `curl -f` 自动跳过。
+2. **两种模式的配置差异**：
+   - `xhttp-hy2-ws-grpc`：完整 HTTPS 配置（80 重定向 + 443 TLS 终结 + ws/grpc/xhttp 分流 + 伪装站回落）
+   - `vision-hy2-ws-grpc`：仅 HTTP 80 → HTTPS 301 重定向（Xray Vision 和 HY2 各自直接监听 443，nginx 只需处理 80 端口）
 3. **变量注入**：模板中的占位符（如 `__wsPath__`、`__wsPort__`、`__nodeDomain__`）由面板一次性替换为实际值，节点无需处理。
 
 ---

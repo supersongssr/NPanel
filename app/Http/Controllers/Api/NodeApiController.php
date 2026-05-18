@@ -1065,10 +1065,6 @@ class NodeApiController extends Controller
             $conf
         );
 
-        if (strpos($conf, 'listen 443') === false) {
-            return response('No nginx HTTPS config for this protocol group', 404);
-        }
-
         Log::debug('[Node API] nginx_config 下发', [
             'node_id' => $node->id,
             'main_node_id' => $mainNode->id,

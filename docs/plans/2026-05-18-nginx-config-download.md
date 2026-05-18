@@ -55,7 +55,8 @@ nginx -t && systemctl restart nginx
 |---|---|---|
 | 200 | 成功 | 直接返回 conf 文本 |
 | 401 | 认证失败 | token 无效或缺失 |
-| 404 | 无配置 | 该节点没有 nginx 配置（如 vision 模式，Xray 独占 443，不需要 nginx HTTPS） |
+| 403 | 节点离线 | 节点 status = 0 |
+| 404 | 节点不存在 | node_id 无效 |
 | 500 | 服务端错误 | 模板缺失等 |
 
 ### 设计决策：为什么直接返回文本而非 JSON 包裹
@@ -63,7 +64,7 @@ nginx -t && systemctl restart nginx
 1. **与已有下载模式一致** — 节点脚本已经在用 `wget -O` / `curl -o` 下载文件（SSL 证书、xray 二进制、nodeStatus.sh），nginx config 没有理由不同
 2. **不需要 jq** — 返回 JSON 的话，节点还要 `jq -r '.nginx_config'` 提取字符串再处理 `\n` 转义。直接返回文本，`curl -o` 写盘，零处理
 3. **没有 JSON 转义问题** — nginx 配置里有引号、正则、特殊字符（`~^`、`$host`、`\\`），嵌在 JSON 字符串里要双层转义，容易出问题
-4. **瘦节点不判断** — 不需要 `has_https_block` 这类元数据让节点做分支。面板知道节点是什么模式，vision 模式直接返回 404，节点脚本无需理解协议
+4. **瘦节点不判断** — 不需要 `has_https_block` 这类元数据让节点做分支。面板直接下发对应模式的 conf 文件，节点脚本无需理解协议
 5. **错误处理用 HTTP 状态码足够** — 200 写盘，404 跳过，401 报错，5xx 重试。不需要 JSON 包 `{"status":"error"}`
 
 ### 调用时机
@@ -79,17 +80,20 @@ apply_id → register → resolve_dns → config + nginx_config → status(循�
 与 `config` 端点一致：通过节点的 `v2_name` 字段定位模板文件。
 
 ```
-v2_name = "xhttp-hy2-ws-grpc"  →  resources/templates/nginx/xhttp-hy2-ws-grpc.conf
-v2_name = "vision-hy2-ws-grpc" →  返回 404（vision 模式不需要 nginx HTTPS 配置）
+v2_name = "xhttp-hy2-ws-grpc"  →  resources/templates/nginx/xhttp-hy2-ws-grpc.conf   (完整 HTTPS + 分流)
+v2_name = "vision-hy2-ws-grpc" →  resources/templates/nginx/vision-hy2-ws-grpc.conf  (HTTP 80 → 301 重定向)
 ```
 
 注意：每个节点（包括克隆节点）的 `v2_name` 是单个协议（如 `ws`、`hy2`），但模板选择应使用**协议组名称**（即主节点的 `v2_name` 或 `register` 返回的 `v2_name`），因为 nginx 配置是按协议组分组的，一个 nginx 实例服务该节点的所有协议。
 
-### vision 模式处理
+### 两种模式的 nginx 配置差异
 
-vision-hy2-ws-grpc 协议组的 nginx 模板仅包含 HTTP→HTTPS 重定向（11 行），节点不需要这个配置（Xray 和 HY2 各自监听 443）。面板应直接返回 **404**，节点脚本跳过 nginx 配置步骤即可。
+| 协议组 | nginx 职责 | 监听端口 |
+|---|---|---|
+| `xhttp-hy2-ws-grpc` | TLS 终结 + ws/grpc/xhttp 分流 + 伪装站回落 | 80(重定向) + 443(HTTPS) |
+| `vision-hy2-ws-grpc` | 仅 HTTP→HTTPS 301 重定向 | 80 |
 
-判断逻辑：渲染模板后检测是否包含 `listen 443`，若不包含则返回 404。
+vision 模式下 Xray(Vision) 和 Hysteria2 各自直接监听 443 处理 TLS，nginx 只需监听 80 端口做重定向。
 
 ### 变量注入映射
 
@@ -141,11 +145,6 @@ public function nginxConfig(Request $request)
         $conf
     );
 
-    // vision 模式：模板只有重定向，不含 HTTPS block，返回 404 让节点跳过
-    if (strpos($conf, 'listen 443') === false) {
-        return response('No nginx HTTPS config for this protocol group', 404);
-    }
-
     return response($conf, 200)->header('Content-Type', 'text/plain');
 }
 ```
@@ -154,7 +153,7 @@ public function nginxConfig(Request $request)
 - 使用 Laravel `response($content, 200)->header('Content-Type', 'text/plain')` 直接返回纯文本
 - 变量注入使用 `str_replace` 一次性替换所有占位符
 - 克隆节点应返回主节点协议组对应的 nginx 配置（同一台机器共享一个 nginx）
-- vision 模式返回 404，节点脚本 `curl -f` 会自动跳过
+- vision 模式也正常返回 conf（HTTP 80 重定向），节点脚本统一处理
 
 ## register 响应精简
 
