@@ -267,8 +267,8 @@ class NodeApiController extends Controller
 
             if ($i < $existingClones->count()) {
                 $clone = $existingClones[$i];
-                $clone->name = $node->name . ' - ' . $slot['protocol'] . ' (' . $slot['ip_type'] . ')';
-                $clone->v2_name = $slot['protocol'];
+                $clone->name = $node->name;
+                $clone->v2_name = $v2Name;
                 $clone->node_rxtx = $node->node_rxtx;
                 $clone->ip = $isIpv6 ? '' : $slot['addr'];
                 $clone->ipv6 = $isIpv6 ? $slot['addr'] : '';
@@ -288,8 +288,8 @@ class NodeApiController extends Controller
                     $clone = new SsNode();
                 }
 
-                $clone->name = $node->name . ' - ' . $slot['protocol'] . ' (' . $slot['ip_type'] . ')';
-                $clone->v2_name = $slot['protocol'];
+                $clone->name = $node->name;
+                $clone->v2_name = $v2Name;
                 $clone->is_clone = $nodeId;
                 $clone->node_rxtx = $node->node_rxtx;
                 $clone->ip = $isIpv6 ? '' : $slot['addr'];
@@ -441,6 +441,18 @@ class NodeApiController extends Controller
         if ($protocol === 'xhttp') {
             $node->v2_path = 'srp-xhttp';
         }
+    }
+
+    private function v2NetToInboundTag($v2Net)
+    {
+        static $map = [
+            'xhttp' => 'proxy-xhttp',
+            'hysteria2' => 'proxy-hy2',
+            'ws' => 'proxy-ws',
+            'grpc' => 'proxy-grpc',
+            'tcp' => 'proxy-vision',
+        ];
+        return $map[$v2Net] ?? 'proxy-' . $v2Net;
     }
 
     private function resolveDomainAffinity($reportedDomain, $sysConf)
@@ -952,7 +964,7 @@ class NodeApiController extends Controller
             '__xhttpPort__' => 10013,
             '__hy2Port__' => 443,
             '__visionPort__' => 443,
-            '__dbHost__' => env('DB_HOST', '127.0.0.1'),
+            '__dbHost__' => env('DB_REMOTE_HOST', env('DB_HOST', '127.0.0.1')),
             '__dbUser__' => env('DB_USERNAME', 'root'),
             '__dbPassword__' => env('DB_PASSWORD', ''),
             '__dbName__' => env('DB_DATABASE', 'npanel'),
@@ -960,11 +972,21 @@ class NodeApiController extends Controller
 
         $config = $this->injectVariables($config, $vars);
 
+        // --- Clone node: keep only the matching inbound ---
+        if ($node->is_clone > 0) {
+            $keepTag = $this->v2NetToInboundTag($node->v2_net);
+            $config['inbounds'] = array_values(array_filter($config['inbounds'], function ($ib) use ($keepTag) {
+                return ($ib['tag'] ?? '') === 'api' || ($ib['tag'] ?? '') === $keepTag;
+            }));
+            $inboundTags = [$keepTag];
+            $expanded = [$keepTag];
+        }
+
         if (isset($config['ssrpanel'])) {
             $config['ssrpanel']['nodeId'] = (int)$node->id;
             $config['ssrpanel']['user']['inboundTags'] = $inboundTags;
 
-            if (in_array('vision', $expanded)) {
+            if (in_array('proxy-vision', $inboundTags)) {
                 $config['ssrpanel']['user']['flows'] = [
                     'proxy-vision' => 'xtls-rprx-vision'
                 ];

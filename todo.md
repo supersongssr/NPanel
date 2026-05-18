@@ -108,3 +108,6 @@
 - artisan 
     - [v] 获取节点列表
         - docs/plans/2026-05-15.md
+
+
+$clone->name = $node->name ;
