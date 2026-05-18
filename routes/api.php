@@ -27,6 +27,7 @@ Route::group(['namespace' => 'Api'], function () {
         Route::post('register', 'NodeApiController@register');
         Route::post('resolve_dns', 'NodeApiController@resolveDns');
         Route::post('config', 'NodeApiController@config');
+        Route::post('nginx_config', 'NodeApiController@nginxConfig');
         Route::post('status', 'NodeApiController@status');
     });
 });

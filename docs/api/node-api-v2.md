@@ -31,7 +31,8 @@ apply_id → register → resolve_dns → config → status(循环)
 │             ↓                                        │
 │  Step 2   POST /resolve_dns    集群级 DNS 三向对账     │
 │             ↓                                        │
-│  Step 3   GET  /config         拉取 Xray 配置          │
+│  Step 3   POST /config         拉取 Xray 配置          │
+│  Step 3.5 POST /nginx_config   拉取 Nginx 配置        │
 │             ↓                                        │
 │  Step 4   POST /status    ←─── 循环上报               │
 │             ↑             状态/流量/健康               │
@@ -248,32 +249,19 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
     "clone_node_ids": [43, 44, 45],
     "node_ids": "42,43,44,45",
     "root_domain": "example.com",
-    "v2_name": "vision-hy2-ws-grpc",
-    "proxy_host": "npanel-nav.freessr.bid",
-    "ws_path": "srp-ws",
-    "ws_port": 10011,
-    "grpc_service_name": "srp-grpc",
-    "grpc_port": 10012,
-    "xhttp_path": "srp-xhttp",
-    "xhttp_port": 10013,
-    "hy2_port": 443,
-    "vision_port": 443
+    "v2_name": "vision-hy2-ws-grpc"
 }
 ```
 
-**条件响应字段**（仅当协议组包含对应协议时返回）：
+**响应字段：**
 
-| 字段 | 条件 | 说明 |
-|---|---|---|
-| `ws_path` | 含 `ws`/`xhttp`/`grpc` | WebSocket 路径 |
-| `ws_port` | 含 `ws`/`xhttp`/`grpc` | WebSocket 端口 |
-| `grpc_service_name` | 含 `ws`/`xhttp`/`grpc` | gRPC 服务名 |
-| `grpc_port` | 含 `ws`/`xhttp`/`grpc` | gRPC 端口 |
-| `xhttp_path` | 含 `ws`/`xhttp`/`grpc` | XHTTP 路径 |
-| `xhttp_port` | 含 `ws`/`xhttp`/`grpc` | XHTTP 端口 |
-| `hy2_port` | 含 `hy2` | Hysteria2 端口 |
-| `vision_port` | 含 `vision` | VLESS Vision 端口 |
-| `proxy_host` | 始终返回 | CDN 代理域名 |
+| 字段 | 说明 |
+|---|---|
+| `node_id` | 主节点 ID |
+| `clone_node_ids` | 克隆节点 ID 数组 |
+| `node_ids` | 逗号分隔的全量节点 ID 字符串 |
+| `root_domain` | 分配的根域名 |
+| `v2_name` | 协议组名称 |
 
 ---
 
@@ -383,11 +371,63 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 **技术要点：**
 
-1. **类型保留 JSON 注入：** 占位符 `__wsPort__` 被替换为整数 `10011` 而非字符串 `"10010"`。实现原理：模板先以 `json_decode($raw)` 解码保留 stdClass 类型信息，注入后通过 `restoreJsonObjectTypes()` 对照原始模板恢复 JSON 对象/数组类型。
+1. **类型保留 JSON 注入：** 占位符 `__wsPort__` 会被替换为整数 `10011`。实现原理：模板先以 `json_decode($raw)` 解码保留 stdClass 类型信息，注入后通过 `restoreJsonObjectTypes()` 对照原始模板恢复 JSON 对象/数组类型。
 
-2. **HY2 直连 IP 覆盖：** 当节点 `v2_net === 'hysteria2'` 时，配置中所有 `server` 字段被替换为节点的原始 IP 地址（HY2 使用 QUIC/UDP，无法走 CDN 代理）。
+2. **内部监听端口与外部连接端口分离：** 
+   - **Xray 节点内部监听端口（下发到 `node.json`）：**
+     在 `config` 接口中，面板通过变量注入的方式，将固定的端口占位符替换为具体数值下发给 Xray 模板。各个协议对应的内部端口如下：
+     - `ws`：`__wsPort__` ➔ `10011` (路径 `srp-ws`)
+     - `grpc`：`__grpcPort__` ➔ `10012` (服务名 `srp-grpc`)
+     - `xhttp`：`__xhttpPort__` ➔ `10013` (路径 `srp-xhttp`)
+     - `hy2`：`__hy2Port__` ➔ `443`
+     - `vision`：`__visionPort__` ➔ `443`
+   - **客户端连接端口（写入数据库 `v2_port` 字段）：**
+     对于 `ws`, `xhttp`, `grpc`，外部通常通过 Nginx 等反代使用 443 端口连接，因此它们在数据库中预设的 `v2_port` 统一为 `443`。
+     *(特例：当协议组中同时包含 `vision` 和 `grpc` 时，为了避免直连端口冲突，`grpc` 节点在数据库中的 `v2_port` 会自动修改为 `2053`)*。
 
-3. **流媒体解锁模板：** 从 `resources/templates/xray/unlock/{service}.json` 文件加载解锁规则，支持 config 表中的 `unlock_{service}_address/port/password/method` 变量注入。
+3. **HY2 直连 IP 覆盖：** 当节点 `v2_net === 'hysteria2'` 时，配置中所有 `server` 字段被替换为节点的原始 IP 地址（HY2 使用 QUIC/UDP，无法走 CDN 代理）。
+
+4. **流媒体解锁模板：** 从 `resources/templates/xray/unlock/{service}.json` 文件加载解锁规则，支持 config 表中的 `unlock_{service}_address/port/password/method` 变量注入。
+
+---
+
+### Step 3.5: 拉取 Nginx 配置
+
+**接口地址:** `POST /api/node/nginx_config`
+
+**请求参数:**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| token | string | 是 | API Token（支持 body 或 query string） |
+| node_id | integer | 是 | 节点 ID |
+
+**成功响应 (200):** `Content-Type: text/plain`
+
+直接返回渲染后的 nginx 配置文本，无 JSON 包裹。节点侧直接写盘：
+
+```bash
+curl -sS -o /etc/nginx/conf.d/proxy.conf \
+    -d "token=${API_TOKEN}&node_id=${NODE_ID}" \
+    "${API_URL}/api/node/nginx_config"
+nginx -t && systemctl restart nginx
+```
+
+**错误响应（纯文本，HTTP 状态码）：**
+
+| 状态码 | 含义 |
+|---|---|
+| 200 | 成功，返回 conf 文本 |
+| 401 | token 无效或缺失 |
+| 403 | 节点已离线 |
+| 404 | 节点不存在 / 该协议组不需要 nginx 配置（如 vision 模式） |
+| 500 | 模板缺失 |
+
+**技术要点：**
+
+1. **模板选择**：通过主节点的 `v2_name`（协议组名称）定位模板文件（`resources/templates/nginx/{v2_name}.conf`）。克隆节点自动回溯到主节点获取模板。
+2. **vision 模式返回 404**：vision-hy2-ws-grpc 协议组中，Xray 和 HY2 各自监听 443，不需要 nginx 做 TLS 终结。面板检测到模板不含 `listen 443` 时直接返回 404，节点脚本 `curl -f` 自动跳过。
+3. **变量注入**：模板中的占位符（如 `__wsPath__`、`__wsPort__`、`__nodeDomain__`）由面板一次性替换为实际值，节点无需处理。
 
 ---
 
@@ -466,15 +506,19 @@ php artisan initDnsRecords
 ### 模板文件依赖
 
 ```
-resources/templates/xray/
-├── vision-hy2-ws-grpc.json
-├── xhttp-hy2-ws-grpc.json
-└── unlock/
-    ├── openai.json
-    ├── netflix.json
-    └── ...
+resources/templates/
+├── xray/
+│   ├── vision-hy2-ws-grpc.json
+│   ├── xhttp-hy2-ws-grpc.json
+│   └── unlock/
+│       ├── openai.json
+│       ├── netflix.json
+│       └── ...
+└── nginx/
+    ├── vision-hy2-ws-grpc.conf
+    └── xhttp-hy2-ws-grpc.conf
 ```
 
 ---
 
-*文档更新时间: 2026-05-12 | 基于 commit: 36f943a8*
+*文档更新时间: 2026-05-18 | 基于 commit: 36f943a8*

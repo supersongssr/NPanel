@@ -353,34 +353,14 @@ class NodeApiController extends Controller
             'ipv6' => $node->ipv6,
         ]);
 
-        $response = [
+        return response()->json([
             'status' => 'success',
             'node_id' => $node->id,
             'clone_node_ids' => $cloneIds,
             'node_ids' => $nodeIdsStr,
             'root_domain' => $rootDomain,
             'v2_name' => $v2Name,
-            'proxy_host' => 'npanel-nav.freessr.bid',
-        ];
-
-        $expanded = $this->expandProtocols($v2Name);
-        if (in_array('xhttp', $expanded) || in_array('ws', $expanded) || in_array('grpc', $expanded)) {
-            $response['ws_path'] = 'srp-ws';
-            $response['ws_port'] = 10011;
-            $response['grpc_service_name'] = 'srp-grpc';
-            $response['grpc_port'] = 10012;
-            $response['xhttp_path'] = 'srp-xhttp';
-            $response['xhttp_port'] = 10013;
-        }
-
-        if (in_array('hy2', $expanded)) {
-            $response['hy2_port'] = 443;
-        }
-        if (in_array('vision', $expanded)) {
-            $response['vision_port'] = 443;
-        }
-
-        return response()->json($response);
+        ]);
     }
 
     const V2_PRESETS = [
@@ -1048,6 +1028,55 @@ class NodeApiController extends Controller
         ]);
 
         return response()->json($config, 200, [], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    }
+
+    public function nginxConfig(Request $request)
+    {
+        $token = $request->input('token') ?: $request->header('X-API-Token');
+        if (!$token || $token !== env('API_TOKEN')) {
+            return response('Unauthorized', 401);
+        }
+
+        $nodeId = $request->input('node_id');
+        $node = SsNode::find($nodeId);
+        if (!$node) return response('Node not found', 404);
+        if ($node->status == 0) return response('Node is offline', 403);
+
+        $mainNode = ($node->is_clone > 0) ? SsNode::find($node->is_clone) : $node;
+        if (!$mainNode) return response('Main node not found', 500);
+
+        $v2Name = $mainNode->v2_name ?: 'vision-hy2-ws-grpc';
+
+        $templatePath = resource_path("templates/nginx/{$v2Name}.conf");
+        if (!file_exists($templatePath)) return response('Template not found', 500);
+
+        $conf = file_get_contents($templatePath);
+
+        $serverParts = $this->parseServerField($node->server);
+        $rootDomain = $serverParts ? $serverParts['root_domain'] : '';
+
+        $conf = str_replace(
+            ['__nodeDomainRegex__', '__nodeDomain__', '__xhttpPath__', '__xhttpPort__',
+             '__wsPath__', '__wsPort__', '__v2ServiceName__', '__grpcPort__',
+             '__httpProxyHost__'],
+            [$rootDomain, $rootDomain, 'srp-xhttp', '10013',
+             'srp-ws', '10011', 'srp-grpc', '10012',
+             'npanel-nav.freessr.bid'],
+            $conf
+        );
+
+        if (strpos($conf, 'listen 443') === false) {
+            return response('No nginx HTTPS config for this protocol group', 404);
+        }
+
+        Log::debug('[Node API] nginx_config 下发', [
+            'node_id' => $node->id,
+            'main_node_id' => $mainNode->id,
+            'v2_name' => $v2Name,
+            'root_domain' => $rootDomain,
+        ]);
+
+        return response($conf, 200)->header('Content-Type', 'text/plain');
     }
 
     private function overrideServerToIp(&$config, $ip)
