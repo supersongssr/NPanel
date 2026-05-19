@@ -186,7 +186,22 @@ class NodeApiController extends Controller
         $node->node_memory = $nodeMemory;
         $node->node_disk = $request->input('node_disk', $request->input('disk'));
         $node->bandwidth = (int)$request->input('node_bandwidth', $request->input('bandwidth', 100));
-        $node->node_unlock = (string)$request->input('node_unlock', '');
+
+        // --- Collect individual unlock_ parameters ---
+        $unlockServices = [
+            'netflix', 'disney', 'chatgpt', 'claude', 'gemini',
+            'tiktok', 'bilibili', 'iqiyi', 'bahamut', 'mewatch',
+            'bing', 'google_scholar', 'notebooklm'
+        ];
+        $unlockData = [];
+        foreach ($unlockServices as $service) {
+            $val = $request->input('unlock_' . $service);
+            if ($val !== null && $val !== '') {
+                $unlockData[$service] = $val;
+            }
+        }
+        $node->node_unlock = urldecode(http_build_query($unlockData));
+
         $node->info = $request->input('node_info', '');
         $node->level = $mainLevel;
         $node->node_group = $request->input('node_group', 2);
@@ -1156,7 +1171,10 @@ class NodeApiController extends Controller
         $sysConf = Helpers::systemConfig();
 
         foreach ($unlocks as $key => $value) {
-            $isEnabled = in_array(strtolower((string)$value), ['1', 'yes', 'true', 'on']);
+            $valLower = strtolower(trim((string)$value));
+            // 匹配以 1, yes, true, on 开头的字符串，允许后面有括号说明
+            $isEnabled = preg_match('/^(1|yes|true|on)/', $valLower) === 1;
+
             if ($isEnabled) {
                 $service = strtolower(str_replace(['unlock', ' '], '', $key));
 
