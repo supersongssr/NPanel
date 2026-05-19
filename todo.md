@@ -117,3 +117,8 @@
 
 - check
     - clone节点等级必须比 主节点  >= 主节点等级
+
+
+- [v] reinstall & new install 
+
+- [] admin edit node面板添加可以修改 traffic_used 的地方.
