@@ -123,6 +123,10 @@ class NodeApiController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Node not found'], 404);
         }
 
+        // Reset all v2 fields to clean defaults before applying new config,
+        // preventing stale values (e.g. leftover v2_flow) from previous registrations.
+        $this->resetNodeToDefaults($node);
+
         $sysConf = Helpers::systemConfig();
 
         $presets = json_decode($sysConf['node_protocol_presets'] ?? '{}', true);
@@ -282,6 +286,7 @@ class NodeApiController extends Controller
 
             if ($i < $existingClones->count()) {
                 $clone = $existingClones[$i];
+                $this->resetNodeToDefaults($clone);
                 $clone->name = $node->name;
                 $clone->v2_name = $v2Name;
                 $clone->node_rxtx = $node->node_rxtx;
@@ -298,6 +303,7 @@ class NodeApiController extends Controller
                 $clone = null;
                 if ($deadIdx < $deadNodes->count()) {
                     $clone = $deadNodes[$deadIdx++];
+                    $this->resetNodeToDefaults($clone);
                     DnsRecord::where('node_id', $clone->id)->delete();
                 } else {
                     $clone = new SsNode();
@@ -358,6 +364,118 @@ class NodeApiController extends Controller
             'root_domain' => $rootDomain,
             'v2_name' => $v2Name,
         ]);
+    }
+
+    private function resetNodeToDefaults($node)
+    {
+        // Identity (preserved: id, created_at, updated_at)
+        $node->name = '';
+        $node->v2_name = '';
+
+        // Service type
+        $node->type = 0;
+
+        // Grouping & location
+        $node->group_id = 0;
+        $node->node_group = 1;
+        $node->country_code = 'un';
+        $node->node_country = null;
+        $node->node_city = null;
+
+        // Server
+        $node->server = '';
+        $node->ip = '';
+        $node->ipv6 = '';
+        $node->desc = '';
+        $node->ssh_port = 22;
+
+        // SS legacy fields
+        $node->method = 'aes-256-cfb';
+        $node->protocol = 'origin';
+        $node->protocol_param = '';
+        $node->obfs = 'plain';
+        $node->obfs_param = '';
+
+        // Traffic & bandwidth
+        $node->traffic_rate = 1.0;
+        $node->bandwidth = 100;
+        $node->traffic = 1000;
+        $node->traffic_limit = 1099511627776;
+        $node->traffic_lasthour = 0;
+        $node->traffic_lastday = 0;
+        $node->traffic_used = 0;
+        $node->traffic_left = 0;
+        $node->traffic_used_daily = 0;
+        $node->traffic_left_daily = 0;
+        $node->last_raw_total = 0;
+        $node->cycle_traffic_used = 0;
+        $node->cycle_start_at = null;
+
+        // Feature flags
+        $node->is_subscribe = 1;
+        $node->is_nat = 0;
+        $node->is_transit = 0;
+        $node->is_tcp_check = 1;
+        $node->compatible = 0;
+        $node->single = 0;
+        $node->single_force = 0;
+        $node->single_port = '';
+        $node->single_passwd = '';
+        $node->single_method = '';
+        $node->single_protocol = '';
+        $node->single_obfs = '';
+
+        // Status & metrics
+        $node->sort = 0;
+        $node->level = 1;
+        $node->status = 0;
+        $node->node_cost = 0;
+        $node->node_online = 0;
+        $node->node_onload = 0;
+        $node->node_health = 1;
+        $node->reset_day = 1;
+        $node->heartbeat_at = null;
+        $node->server_uptime = 0;
+        $node->server_total_traffic = 0;
+
+        // Hardware
+        $node->node_cpu = null;
+        $node->node_memory = null;
+        $node->node_disk = null;
+
+        // Billing
+        $node->node_rxtx = null;
+
+        // Unlock & info
+        $node->node_unlock = '';
+        $node->info = '';
+        $node->monitor_url = null;
+        $node->node_uuid = null;
+
+        // Clone / fission
+        $node->is_clone = 0;
+        $node->node_ids = null;
+
+        // V2Ray — all reset to blank/zero
+        $node->v2_net = '';
+        $node->v2_tls = 0;
+        $node->v2_port = 0;
+        $node->v2_flow = null;
+        $node->v2_fp = '';
+        $node->v2_method = '';
+        $node->v2_encryption = '';
+        $node->v2_alter_id = 0;
+        $node->v2_type = '';
+        $node->v2_host = '';
+        $node->v2_sni = null;
+        $node->v2_path = '';
+        $node->v2_alpn = null;
+        $node->v2_mode = null;
+        $node->v2_servicename = null;
+        $node->v2_cdn = '';
+        $node->v2_cdn_ip = '';
+        $node->v2_insider_port = 0;
+        $node->v2_outsider_port = 0;
     }
 
     const V2_PRESETS = [
