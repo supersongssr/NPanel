@@ -1239,7 +1239,7 @@ class NodeApiController extends Controller
 
         $node->traffic_used += $incremental;
         $node->server_uptime = (int)$request->input('server_uptime', $node->server_uptime);
-        $node->bandwidth = (int)$request->input('node_bandwidth', $node->bandwidth);
+        $node->bandwidth = (int)$request->input('node_bandwidth', $node->bandwidth) + $node->level;
         $node->heartbeat_at = date('Y-m-d H:i:s');
 
         $passedDays = (int)date('d');
