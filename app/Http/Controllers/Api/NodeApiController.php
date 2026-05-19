@@ -189,7 +189,7 @@ class NodeApiController extends Controller
 
         // --- Collect individual unlock_ parameters ---
         $unlockServices = [
-            'netflix', 'disney', 'chatgpt', 'claude', 'gemini',
+            'netflix', 'disney', 'chatgpt', 'claude',
             'tiktok', 'bilibili', 'iqiyi', 'bahamut', 'mewatch',
             'bing', 'google_scholar', 'notebooklm'
         ];
@@ -1172,8 +1172,8 @@ class NodeApiController extends Controller
 
         foreach ($unlocks as $key => $value) {
             $valLower = strtolower(trim((string)$value));
-            // 匹配以 1, yes, true, on 开头的字符串，允许后面有括号说明
-            $isEnabled = preg_match('/^(1|yes|true|on)/', $valLower) === 1;
+            // 匹配以 0, no, false, off 开头的字符串，说明节点无法解锁，需要下发远程解锁配置
+            $isEnabled = preg_match('/^(0|no|false|off)/', $valLower) === 1;
 
             if ($isEnabled) {
                 $service = strtolower(str_replace(['unlock', ' '], '', $key));
