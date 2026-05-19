@@ -180,11 +180,13 @@ class NodeApiController extends Controller
             $node->name = $countryCode;
         }
 
+        // --- Mirror-overwrite: use node value if reported, reset to default otherwise ---
+        // This prevents recycled nodes from carrying stale config from previous owners.
         $node->v2_name = $v2Name;
         $node->node_rxtx = $request->input('node_rxtx', $request->input('node_rxtx_mode', $request->input('billing_mode', 'tx')));
-        $node->node_cpu = $request->input('node_cpu', $request->input('cpu'));
+        $node->node_cpu = $request->has('node_cpu') || $request->has('cpu') ? $request->input('node_cpu', $request->input('cpu')) : null;
         $node->node_memory = $nodeMemory;
-        $node->node_disk = $request->input('node_disk', $request->input('disk'));
+        $node->node_disk = $request->has('node_disk') || $request->has('disk') ? $request->input('node_disk', $request->input('disk')) : null;
         $node->bandwidth = (int)$request->input('node_bandwidth', $request->input('bandwidth', 100));
 
         // --- Collect individual unlock_ parameters ---
@@ -211,9 +213,32 @@ class NodeApiController extends Controller
         $node->sort = $request->input('node_sort', 0);
         $node->traffic_rate = $request->input('node_traffic_rate', 1.0);
         $node->country_code = strtolower($request->input('node_country_code', 'un'));
-        $node->node_country = $request->input('node_country');
-        $node->node_city = $request->input('node_city');
+        $node->node_country = $request->has('node_country') ? $request->input('node_country') : null;
+        $node->node_city = $request->has('node_city') ? $request->input('node_city') : null;
         $node->status = 1;
+
+        // --- Node-driven traffic sync ---
+        // Trust node-reported cached traffic (prevents traffic loss on re-install)
+        $nodeTrafficUsed = $request->input('traffic_used');
+        $node->traffic_used = $nodeTrafficUsed !== null ? (float)$nodeTrafficUsed : 0;
+
+        // Initialize last_raw_total from raw_rx/tx so the first status() call
+        // computes incremental = 0 instead of the full NIC counter.
+        $initRx = (float)$request->input('raw_rx', 0);
+        $initTx = (float)$request->input('raw_tx', 0);
+        if ($node->node_rxtx == 'rxtx') {
+            $node->last_raw_total = ($initRx + $initTx) / 2;
+        } else {
+            $node->last_raw_total = $initTx;
+        }
+
+        // --- Mirror-overwrite: reset unreported fields to defaults ---
+        // Ensures recycled nodes carry no stale config from previous owners.
+        $node->traffic_used_daily = 0;
+        $node->traffic_left_daily = 0;
+        $node->server_uptime = 0;
+        $node->heartbeat_at = null;
+
         $node->save();
 
         // --- Fission matrix: build protocol × IP slots ---
@@ -239,12 +264,25 @@ class NodeApiController extends Controller
                 'status' => 'success',
                 'node_id' => $node->id,
                 'clone_node_ids' => [],
+                'node_ids' => (string)$node->id,
                 'root_domain' => $rootDomain,
                 'v2_name' => $v2Name,
             ]);
         }
 
-        $existingClones = SsNode::where('is_clone', $nodeId)->get()->values();
+        // --- Node-reported node_ids: prefer reusing the same clone IDs ---
+        $reportedNodeIds = $request->input('node_ids');
+        $reportedCloneIds = [];
+        if ($reportedNodeIds) {
+            $parsed = array_map('intval', explode(',', $reportedNodeIds));
+            foreach ($parsed as $rid) {
+                if ($rid !== (int)$nodeId) {
+                    $reportedCloneIds[] = $rid;
+                }
+            }
+        }
+
+        $existingClones = SsNode::where('is_clone', $nodeId)->get()->keyBy('id');
         $cutoff = date('Y-m-d H:i:s', strtotime('-32 days'));
 
         $deadNodes = SsNode::where(function($query) use ($cutoff) {
@@ -277,61 +315,64 @@ class NodeApiController extends Controller
         $node->save();
         $allNodeIds = [$node->id];
 
+        // Build a prioritized reuse queue: reported IDs first, then existing clones, then dead nodes
         foreach ($slots as $i => $slot) {
             $isIpv6 = $slot['ip_type'] === 'ipv6';
 
-            if ($i < $existingClones->count()) {
-                $clone = $existingClones[$i];
-                $clone->name = $node->name;
-                $clone->v2_name = $v2Name;
-                $clone->node_rxtx = $node->node_rxtx;
-                $clone->ip = $isIpv6 ? '' : $slot['addr'];
-                $clone->ipv6 = $isIpv6 ? $slot['addr'] : '';
-                $clone->level = rand($mainLevel, min(5, $mainLevel + 2));
-                $clone->node_group = $node->node_group;
-                $clone->traffic_rate = $node->traffic_rate;
-                $clone->status = 1;
-                $clone->server = ($isIpv6 ? 'ipv6n' : 'n') . $clone->id . '.' . $rootDomain;
-                $this->applyV2Preset($clone, $slot['protocol'], $rootDomain, $isIpv6, $v2Name);
-                $clone->save();
-            } else {
-                $clone = null;
-                if ($deadIdx < $deadNodes->count()) {
-                    $clone = $deadNodes[$deadIdx++];
+            // 1. Try reported clone ID (node-driven reuse)
+            $clone = null;
+            if ($i < count($reportedCloneIds)) {
+                $reuseId = $reportedCloneIds[$i];
+                $candidate = SsNode::find($reuseId);
+                if ($candidate) {
+                    $clone = $candidate;
                     DnsRecord::where('node_id', $clone->id)->delete();
-                } else {
-                    $clone = new SsNode();
                 }
-
-                $clone->name = $node->name;
-                $clone->v2_name = $v2Name;
-                $clone->is_clone = $nodeId;
-                $clone->node_rxtx = $node->node_rxtx;
-                $clone->ip = $isIpv6 ? '' : $slot['addr'];
-                $clone->ipv6 = $isIpv6 ? $slot['addr'] : '';
-                $clone->level = rand($mainLevel, min(5, $mainLevel + 2));
-                $clone->node_group = $node->node_group;
-                $clone->traffic_rate = $node->traffic_rate;
-                $clone->status = 1;
-                $clone->save();
-
-                $clone->server = ($isIpv6 ? 'ipv6n' : 'n') . $clone->id . '.' . $rootDomain;
-                $this->applyV2Preset($clone, $slot['protocol'], $rootDomain, $isIpv6, $v2Name);
-                $clone->save();
             }
+
+            // 2. Try existing clone (panel-owned)
+            if (!$clone && $existingClones->count() > 0) {
+                $firstKey = $existingClones->keys()->first();
+                $clone = $existingClones->pull($firstKey);
+            }
+
+            // 3. Try dead node (recycle)
+            if (!$clone && $deadIdx < $deadNodes->count()) {
+                $clone = $deadNodes[$deadIdx++];
+                DnsRecord::where('node_id', $clone->id)->delete();
+            }
+
+            // 4. Fresh creation
+            if (!$clone) {
+                $clone = new SsNode();
+            }
+
+            $clone->name = $node->name;
+            $clone->v2_name = $v2Name;
+            $clone->is_clone = $nodeId;
+            $clone->node_rxtx = $node->node_rxtx;
+            $clone->ip = $isIpv6 ? '' : $slot['addr'];
+            $clone->ipv6 = $isIpv6 ? $slot['addr'] : '';
+            $clone->level = rand($mainLevel, min(5, $mainLevel + 2));
+            $clone->node_group = $node->node_group;
+            $clone->traffic_rate = $node->traffic_rate;
+            $clone->status = 1;
+            $clone->save();
+
+            $clone->server = ($isIpv6 ? 'ipv6n' : 'n') . $clone->id . '.' . $rootDomain;
+            $this->applyV2Preset($clone, $slot['protocol'], $rootDomain, $isIpv6, $v2Name);
+            $clone->save();
 
             $cloneIds[] = $clone->id;
             $allNodeIds[] = $clone->id;
         }
 
-        // Recycle excess old clones
-        if ($existingClones->count() > count($slots)) {
-            foreach ($existingClones->slice(count($slots)) as $excess) {
-                $excess->is_clone = 0;
-                $excess->status = 0;
-                $excess->save();
-                DnsRecord::where('node_id', $excess->id)->delete();
-            }
+        // Recycle excess old clones that were not reused
+        foreach ($existingClones as $excess) {
+            $excess->is_clone = 0;
+            $excess->status = 0;
+            $excess->save();
+            DnsRecord::where('node_id', $excess->id)->delete();
         }
 
         $nodeIdsStr = implode(',', $allNodeIds);
@@ -345,7 +386,7 @@ class NodeApiController extends Controller
             'domain_decision' => $rootDomain,
             'node_ids' => $allNodeIds,
             'total_nodes_generated' => count($allNodeIds),
-            'deleted_count' => $existingClones->count() > count($slots) ? $existingClones->count() - count($slots) : 0,
+            'reported_node_ids' => $reportedCloneIds,
             'ip' => $node->ip,
             'ipv6' => $node->ipv6,
         ]);
@@ -1287,6 +1328,13 @@ class NodeApiController extends Controller
             Log::info('[Node API] 状态上报', $logData);
         }
 
-        return response()->json(['status' => 'success', 'node_status' => $node->status]);
+        return response()->json([
+            'status' => 'success',
+            'node_status' => $node->status,
+            'traffic_used' => $node->traffic_used,
+            'traffic_left' => $node->traffic_limit - $node->traffic_used,
+            'traffic_used_daily' => $node->traffic_used_daily,
+            'traffic_left_daily' => $node->traffic_left_daily,
+        ]);
     }
 }
