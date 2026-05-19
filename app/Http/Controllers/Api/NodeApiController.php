@@ -1215,16 +1215,7 @@ class NodeApiController extends Controller
                         }
                     }
                 } else {
-                    $config['outbounds'][] = [
-                        'protocol' => 'freedom',
-                        'settings' => ['domainStrategy' => 'UseIPv4'],
-                        'tag' => 'outbound-' . $service
-                    ];
-                    $config['routing']['rules'][] = [
-                        'type' => 'field',
-                        'outboundTag' => 'outbound-' . $service,
-                        'domain' => ["geosite:" . $service]
-                    ];
+                    Log::warning("[Node API] Unlock service {$service} has no template, skipping geosite rule.");
                 }
             }
         }
