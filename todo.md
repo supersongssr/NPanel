@@ -99,7 +99,10 @@
     - docs/plan/2026-05-12-node-api-v2-development-summary.md
     - docs/api/node-api-v2.md
     - claude --resume dbb160bd-2a2e-40e5-8255-3978ca9ac369
-
+    - status
+        - [] 流量重置问题
+            - [] 28 29 30 31 日问题
+            - [] 错误重置日问题
 
 - [] 将 system config 中的数据 放入 redis 缓存,不必每次都查询 数据库 
     - gemini --resume 565311ba-6c74-4d47-94c2-b04d27413b11  
@@ -108,6 +111,3 @@
 - artisan 
     - [v] 获取节点列表
         - docs/plans/2026-05-15.md
-
-
-$clone->name = $node->name ;

@@ -1237,14 +1237,6 @@ class NodeApiController extends Controller
         }
         $node->last_raw_total = $rawTotal;
 
-        $today = (int)date('d');
-        $lastUpdate = $node->updated_at;
-        if (($today == $node->reset_day && $lastUpdate->format('Y-m-d') != date('Y-m-d')) ||
-            ($lastUpdate->day < $node->reset_day && $today >= $node->reset_day) ||
-            ($lastUpdate->month != date('m') && $today >= $node->reset_day)) {
-            $node->traffic_used = 0;
-        }
-
         $node->traffic_used += $incremental;
         $node->server_uptime = (int)$request->input('server_uptime', $node->server_uptime);
         $node->bandwidth = (int)$request->input('node_bandwidth', $node->bandwidth);

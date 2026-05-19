@@ -33,6 +33,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\AutoReportNode::class,
         \App\Console\Commands\upgradeUserBannoPay::class,
         \App\Console\Commands\AutoCheckNodeStatus::class,
+        \App\Console\Commands\AutoResetNodeTraffic::class,
         # 自动禁用余额小于0 的用户
         \App\Console\Commands\AutoBanUserNoMoney::class,
         \App\Console\Commands\Test::class,
@@ -54,6 +55,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('autoClearLog')->everyThirtyMinutes();
         $schedule->command('autoDecGoodsTraffic')->hourly();
         $schedule->command('autoResetUserTraffic')->daily();
+        $schedule->command('autoResetNodeTraffic')->dailyAt('00:01');
 
         //$schedule->command('autoCheckNodeStatus')->everyMinute();
         //Song
