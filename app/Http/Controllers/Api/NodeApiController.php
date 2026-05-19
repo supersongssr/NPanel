@@ -370,7 +370,7 @@ class NodeApiController extends Controller
 
         $existingClones = SsNode::where("is_clone", $nodeId)
             ->get()
-            ->keyBy("id");
+            ->values();
         $cutoff = date("Y-m-d H:i:s", strtotime("-32 days"));
 
         $deadNodes = SsNode::where(function ($query) use ($cutoff) {
@@ -414,7 +414,6 @@ class NodeApiController extends Controller
         $node->save();
         $allNodeIds = [$node->id];
 
-        // Build a prioritized reuse queue: reported IDs first, then existing clones, then dead nodes
         foreach ($slots as $i => $slot) {
             $isIpv6 = $slot["ip_type"] === "ipv6";
 
@@ -437,7 +436,7 @@ class NodeApiController extends Controller
                     $slot["protocol"],
                     $rootDomain,
                     $isIpv6,
-                    $v2Name,
+                    $v2Name
                 );
                 $clone->save();
             } else {
@@ -446,59 +445,46 @@ class NodeApiController extends Controller
                     $clone = $deadNodes[$deadIdx++];
                     $this->resetNodeToDefaults($clone);
                     DnsRecord::where("node_id", $clone->id)->delete();
+                } else {
+                    $clone = new SsNode();
                 }
+
+                $clone->name = $node->name;
+                $clone->v2_name = $v2Name;
+                $clone->is_clone = $nodeId;
+                $clone->node_rxtx = $node->node_rxtx;
+                $clone->ip = $isIpv6 ? "" : $slot["addr"];
+                $clone->ipv6 = $isIpv6 ? $slot["addr"] : "";
+                $clone->level = rand($mainLevel, min(5, $mainLevel + 2));
+                $clone->node_group = $node->node_group;
+                $clone->traffic_rate = $node->traffic_rate;
+                $clone->status = 1;
+                $clone->save();
+
+                $clone->server =
+                    ($isIpv6 ? "ipv6n" : "n") . $clone->id . "." . $rootDomain;
+                $this->applyV2Preset(
+                    $clone,
+                    $slot["protocol"],
+                    $rootDomain,
+                    $isIpv6,
+                    $v2Name
+                );
+                $clone->save();
             }
-
-            // 2. Try existing clone (panel-owned)
-            if (!$clone && $existingClones->count() > 0) {
-                $firstKey = $existingClones->keys()->first();
-                $clone = $existingClones->pull($firstKey);
-            }
-
-            // 3. Try dead node (recycle)
-            if (!$clone && $deadIdx < $deadNodes->count()) {
-                $clone = $deadNodes[$deadIdx++];
-                DnsRecord::where("node_id", $clone->id)->delete();
-            }
-
-            // 4. Fresh creation
-            if (!$clone) {
-                $clone = new SsNode();
-            }
-
-            $clone->name = $node->name;
-            $clone->v2_name = $v2Name;
-            $clone->is_clone = $nodeId;
-            $clone->node_rxtx = $node->node_rxtx;
-            $clone->ip = $isIpv6 ? "" : $slot["addr"];
-            $clone->ipv6 = $isIpv6 ? $slot["addr"] : "";
-            $clone->level = rand($mainLevel, min(5, $mainLevel + 2));
-            $clone->node_group = $node->node_group;
-            $clone->traffic_rate = $node->traffic_rate;
-            $clone->status = 1;
-            $clone->save();
-
-            $clone->server =
-                ($isIpv6 ? "ipv6n" : "n") . $clone->id . "." . $rootDomain;
-            $this->applyV2Preset(
-                $clone,
-                $slot["protocol"],
-                $rootDomain,
-                $isIpv6,
-                $v2Name,
-            );
-            $clone->save();
 
             $cloneIds[] = $clone->id;
             $allNodeIds[] = $clone->id;
         }
 
         // Recycle excess old clones that were not reused
-        foreach ($existingClones as $excess) {
-            $excess->is_clone = 0;
-            $excess->status = 0;
-            $excess->save();
-            DnsRecord::where("node_id", $excess->id)->delete();
+        if ($existingClones->count() > count($slots)) {
+            foreach ($existingClones->slice(count($slots)) as $excess) {
+                $excess->is_clone = 0;
+                $excess->status = 0;
+                $excess->save();
+                DnsRecord::where("node_id", $excess->id)->delete();
+            }
         }
 
         $nodeIdsStr = implode(",", $allNodeIds);
