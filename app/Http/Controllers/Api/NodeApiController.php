@@ -326,7 +326,7 @@ class NodeApiController extends Controller
 
         // Recycle excess old clones
         if ($existingClones->count() > count($slots)) {
-            foreach ($existingClones->skip(count($slots)) as $excess) {
+            foreach ($existingClones->slice(count($slots)) as $excess) {
                 $excess->is_clone = 0;
                 $excess->status = 0;
                 $excess->save();
