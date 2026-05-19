@@ -707,7 +707,7 @@ class NodeApiController extends Controller
         $protocol,
         $rootDomain,
         $isIpv6,
-        $modeName = "",
+        $modeName = ""
     ) {
         $preset = self::V2_PRESETS[$protocol] ?? null;
         if (!$preset) {
@@ -1084,7 +1084,7 @@ class NodeApiController extends Controller
         $nodeId,
         $blueprint,
         $dnsProvider,
-        $force = false,
+        $force = false
     ) {
         $sceneStart = microtime(true);
         $fqdn = $blueprint["subdomain"] . "." . $blueprint["root_domain"];
@@ -1464,7 +1464,7 @@ class NodeApiController extends Controller
             $keepTag = $this->v2NetToInboundTag($node->v2_net);
             $config["inbounds"] = array_values(
                 array_filter($config["inbounds"], function ($ib) use (
-                    $keepTag,
+                    $keepTag
                 ) {
                     return ($ib["tag"] ?? "") === "api" ||
                         ($ib["tag"] ?? "") === $keepTag;
