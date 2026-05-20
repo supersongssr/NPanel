@@ -219,6 +219,15 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
+                                                    <label for="traffic_used" class="col-md-3 control-label">traffic_used </label>
+                                                    <div class="col-md-8">
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control right" name="traffic_used" value="{{round($node->traffic_used / 1024/1024/1024, 2)}}" id="traffic_used" placeholder="已用流量"  >
+                                                            <span class="input-group-addon">已用流量 GB</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
                                                     <label for="is_nat" class="col-md-3 control-label">NAT</label>
                                                     <div class="col-md-8">
                                                         <div class="mt-radio-inline">
@@ -653,6 +662,7 @@
             var bandwidth = $('#bandwidth').val();
             var traffic = $('#traffic').val();
             var traffic_limit = $('#traffic_limit').val();
+            var traffic_used = $('#traffic_used').val();
             var monitor_url = $('#monitor_url').val();
             var is_subscribe = $("input:radio[name='is_subscribe']:checked").val();
             var is_nat = $("input:radio[name='is_nat']:checked").val();
@@ -714,6 +724,7 @@
                     bandwidth: bandwidth,
                     traffic: traffic,
                     traffic_limit: traffic_limit,
+                    traffic_used: traffic_used,
                     monitor_url: monitor_url,
                     is_subscribe: is_subscribe,
                     is_nat: is_nat,

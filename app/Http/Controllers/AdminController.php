@@ -1006,6 +1006,7 @@ class AdminController extends Controller
                     'bandwidth'        => $request->get('bandwidth') ? $request->get('bandwidth') : 1000,
                     'traffic'          => $request->get('traffic') ? $request->get('traffic')*1024*1024*1024 : 0,
                     'traffic_limit'    => $request->get('traffic_limit') ? $request->get('traffic_limit')*1024*1024*1024 : 1000*1024*1024*1024,
+                    'traffic_used'     => $request->get('traffic_used') !== null ? floatval($request->get('traffic_used'))*1024*1024*1024 : 0,
                     'monitor_url'      => $request->get('monitor_url') ? $request->get('monitor_url') : '',
                     'is_subscribe'     => intval($request->get('is_subscribe')),
                     'is_nat'           => intval($request->get('is_nat')),
