@@ -122,3 +122,20 @@
 - [v] reinstall & new install 
 
 - [] admin edit node面板添加可以修改 traffic_used 的地方.
+
+- [] php artisan 定期删除 超过 30天没有心跳的节点的 dns 信息,这个可以有.
+
+
+- api v2 
+    - node 
+        - [] 回落的 url plans/api/v2/20260520_回落地址的确定.md
+
+
+- [] config数据库表 默认先缓存到 redis,减少 数据库查询
+
+
+
+- [] 弃用警告
+legacy special outbounds 已在 sing-box 1.11.0 中被弃用，且将在 sing-box 1.13.0 中被移除，请参阅迁移指南。
+
+如果您不明白此消息意味着什么：您的配置文件已过时，且将很快不可用。请联系您的配置提供者以更新配置。

@@ -22,6 +22,9 @@
                                         <li>
                                             <a href="#tab_unlock" data-toggle="tab"> 解锁配置 </a>
                                         </li>
+                                        <li>
+                                            <a href="#tab_fallback" data-toggle="tab"> 回落配置 </a>
+                                        </li>
                                     </ul>
                                 </div>
                                 <div class="portlet-body">
@@ -138,8 +141,44 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
+                                        <div class="tab-pane" id="tab_fallback">
+                                            <div class="portlet-body">
+                                                <div class="form-horizontal">
+                                                    <div class="form-group">
+                                                        <label class="col-md-2 control-label">回落基础域名</label>
+                                                        <div class="col-md-5">
+                                                            <div class="input-group">
+                                                                <input type="text" class="form-control input-sm" id="input_node_fallback_host"
+                                                                       value="{{ $node_fallback_host ?? 'npanel-nav.freessr.bid' }}">
+                                                                <span class="input-group-btn">
+                                                                    <button class="btn btn-success btn-sm" type="button" onclick="saveFallbackHost()">保存</button>
+                                                                </span>
+                                                            </div>
+                                                            <span class="help-block">回落伪装站的基础域名，不含协议前缀。保存后自动推导以下三个回落地址：</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <div class="col-md-offset-2 col-md-8">
+                                                            <table class="table table-condensed" style="margin-top: -5px;">
+                                                                <thead><tr><th width="180">占位符</th><th width="220">推导规则</th><th>预览值</th></tr></thead>
+                                                                <tbody>
+                                                                    <tr><td><code>__httpProxyHost__</code></td><td>{域名}</td><td id="preview_http"></td></tr>
+                                                                    <tr><td><code>__v2Fallback__</code></td><td>remote-{域名}</td><td id="preview_v2"></td></tr>
+                                                                    <tr><td><code>__HYSTERIA_URL__</code></td><td>http://{域名}:80</td><td id="preview_hy2"></td></tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="alert alert-info" style="margin-top: 10px;">
+                                                    <b>说明：</b><br>
+                                                    1. <b>Nginx 伪装站</b>：nginx 不匹配代理路径时的回落目标（xhttp 模板专用）。<br>
+                                                    2. <b>Vision Fallback</b>：Xray Vision 入站的 fallback 目标，自动添加 <code>remote-</code> 前缀。<br>
+                                                    3. <b>Hysteria2 伪装 URL</b>：HY2 被主动探测时的代理伪装地址，自动添加 <code>http://</code> 和 <code>:80</code>。<br>
+                                                    4. 修改后节点下次拉取配置时生效。
+                                                </div>
+                                            </div>
+                                        </div>
                             </div>
                         </div>
                     </div>
@@ -291,6 +330,34 @@
                         layer.msg('保存成功', {time: 1000});
                     }
                 });
+            });
+        }
+
+        // --- Fallback Config ---
+        $(function() {
+            var $input = $("#input_node_fallback_host");
+            function updatePreview() {
+                var host = $input.val().trim() || 'npanel-nav.freessr.bid';
+                $("#preview_http").text(host);
+                $("#preview_v2").text("remote-" + host);
+                $("#preview_hy2").text("http://" + host + ":80");
+            }
+            $input.on("input", updatePreview);
+            updatePreview();
+        });
+
+        function saveFallbackHost() {
+            var host = $("#input_node_fallback_host").val().trim();
+            if (!host) {
+                layer.msg('域名不能为空', {time: 2000});
+                return;
+            }
+            $.post("/admin/setConfig", {
+                _token: '{{csrf_token()}}',
+                name: 'node_fallback_host',
+                value: host
+            }, function (ret) {
+                layer.msg(ret.message, {time: 1000});
             });
         }
 

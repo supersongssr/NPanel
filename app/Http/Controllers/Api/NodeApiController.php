@@ -1415,6 +1415,9 @@ class NodeApiController extends Controller
         $rawTemplate = json_decode(file_get_contents($templatePath));
         $config = json_decode(json_encode($rawTemplate), true);
 
+        $sysConf = Helpers::systemConfig();
+        $fallbackHost = $sysConf["node_fallback_host"] ?? "npanel-nav.freessr.bid";
+
         $serverParts = $this->parseServerField($node->server);
         $nodeDomain = $serverParts
             ? $serverParts["root_domain"]
@@ -1428,9 +1431,9 @@ class NodeApiController extends Controller
         $vars = [
             "__wsPath__" => "srp-ws",
             "__wsPort__" => 10011,
-            "__v2Fallback__" => "127.0.0.1",
+            "__v2Fallback__" => "remote-" . $fallbackHost,
             "__nodeDomain__" => $nodeDomain,
-            "__HYSTERIA_URL__" => "https://www.bing.com",
+            "__HYSTERIA_URL__" => "http://" . $fallbackHost . ":80",
             "__v2ServiceName__" => "srp-grpc",
             "__grpcPort__" => 10012,
             "__xhttpPath__" => "srp-xhttp",
@@ -1555,6 +1558,8 @@ class NodeApiController extends Controller
         $serverParts = $this->parseServerField($node->server);
         $rootDomain = $serverParts ? $serverParts["root_domain"] : "";
 
+        $fallbackHost = Helpers::systemConfig()["node_fallback_host"] ?? "npanel-nav.freessr.bid";
+
         $conf = str_replace(
             [
                 "__nodeDomainRegex__",
@@ -1576,7 +1581,7 @@ class NodeApiController extends Controller
                 "10011",
                 "srp-grpc",
                 "10012",
-                "npanel-nav.freessr.bid",
+                $fallbackHost,
             ],
             $conf,
         );
