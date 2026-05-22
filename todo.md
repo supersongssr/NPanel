@@ -127,12 +127,10 @@
 
 - [v] admin edit node面板添加可以修改 traffic_used 的地方.
 
+- [] hy2 支持动态 端口.
+    - claude --resume 2e9c3f06-dc64-451b-ae1e-8b7f5d5db67e
+
 - [] php artisan 定期删除 超过 30天没有心跳的节点的 dns 信息,这个可以有.
-
-
-
-
-- [] config数据库表 默认先缓存到 redis,减少 数据库查询
 
 
 
