@@ -605,6 +605,7 @@ class NodeApiController extends Controller
         $node->v2_net = "";
         $node->v2_tls = 0;
         $node->v2_port = 0;
+        $node->v2_hop_ports = null;
         $node->v2_flow = null;
         $node->v2_fp = "";
         $node->v2_method = "";

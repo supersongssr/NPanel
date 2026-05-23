@@ -426,12 +426,18 @@ class SubscribeController extends Controller
                 }
                 $suffix = ($node->traffic_rate != 1) ? '_x' . $node->traffic_rate : '';
                 $encodedName = rawurlencode($node->name . $suffix . '_#' . $node->id);
+                // 端口跳跃：v2rayN 使用 mport 参数传递跳跃端口范围
+                $mport = '';
+                if (!empty($node->v2_hop_ports)) {
+                    $mport = '&mport=' . $node->v2_hop_ports . '&hopinterval=30s';
+                }
                 $hy2Url = sprintf(
-                    "hy2://%s@%s:%s?sni=%s&insecure=1#%s\n",
+                    "hysteria2://%s@%s:%s?sni=%s&insecure=1&allowInsecure=1%s#%s\n",
                     $node_uuid,
                     $node->server,
                     $node->v2_port,
                     rawurlencode($node->v2_sni),
+                    $mport,
                     $encodedName
                 );
                 $scheme .= $hy2Url;
@@ -962,7 +968,7 @@ class SubscribeController extends Controller
                 // Hysteria2
                 $proxyTags[] = $tagName;
 
-                $outbounds[] = [
+                $outbound = [
                     "type" => "hysteria2",
                     "tag" => $tagName,
                     "server" => $node->server,
@@ -976,6 +982,14 @@ class SubscribeController extends Controller
                     "up_mbps" => 100,
                     "down_mbps" => 100
                 ];
+
+                // 端口跳跃
+                if (!empty($node->v2_hop_ports)) {
+                    $outbound['hop_ports'] = $node->v2_hop_ports;
+                    $outbound['hop_interval'] = "30s";
+                }
+
+                $outbounds[] = $outbound;
             }
         }
 
@@ -1318,6 +1332,10 @@ class SubscribeController extends Controller
                 $yaml .= "    password: " . $node_uuid . "\n";
                 $yaml .= "    sni: " . $node->v2_sni . "\n";
                 $yaml .= "    skip-cert-verify: true\n";
+                // 端口跳跃（Mihomo/Clash Meta 支持，字段名 hop-ports）
+                if (!empty($node->v2_hop_ports)) {
+                    $yaml .= "    hop-ports: \"" . $node->v2_hop_ports . "\"\n";
+                }
                 $yaml .= "    up: \"100 Mbps\"\n";
                 $yaml .= "    down: \"100 Mbps\"\n";
             }

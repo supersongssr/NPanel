@@ -470,6 +470,13 @@
                                                         </div>
                                                     </div>
                                                     <div class="form-group">
+                                                        <label for="v2_hop_ports" class="col-md-3 control-label">HY2 Port Hopping</label>
+                                                        <div class="col-md-8">
+                                                            <input type="text" class="form-control" name="v2_hop_ports" value="{{$node->v2_hop_ports}}" id="v2_hop_ports" placeholder="30000-32000">
+                                                            <span class="help-block">Hysteria2 端口跳跃范围（可选，留空禁用，推荐 30000-32000）</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
                                                         <label for="v2_flow" class="col-md-3 control-label">v2_flow</label>
                                                         <div class="col-md-8">
                                                             <input type="text" class="form-control" name="v2_flow" value="{{$node->v2_flow}}" id="v2_flow" placeholder="">
@@ -685,6 +692,7 @@
             var service = $("input:radio[name='service']:checked").val();
             var v2_alter_id = $('#v2_alter_id').val();
             var v2_port = $('#v2_port').val();
+            var v2_hop_ports = $('#v2_hop_ports').val();
             var v2_method = $("#v2_method option:selected").val();
             var v2_net = $('#v2_net').val();
             var v2_type = $('#v2_type').val();
@@ -746,6 +754,7 @@
                     type: service,
                     v2_alter_id: v2_alter_id,
                     v2_port: v2_port,
+                    v2_hop_ports: v2_hop_ports,
                     v2_method: v2_method,
                     v2_net: v2_net,
                     v2_type: v2_type,

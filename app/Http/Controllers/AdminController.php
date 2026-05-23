@@ -893,6 +893,7 @@ class AdminController extends Controller
                 $ssNode->status = $request->get('status') ? intval($request->get('status')) : 1;
                 $ssNode->v2_alter_id = $request->get('v2_alter_id') ? intval($request->get('v2_alter_id')) : 16;
                 $ssNode->v2_port = $request->get('v2_port') ? intval($request->get('v2_port')) : 10087;
+                $ssNode->v2_hop_ports = $request->get('v2_hop_ports') ?: null;
                 $ssNode->v2_method = $request->get('v2_method') ? $request->get('v2_method') : 'aes-128-gcm';
                 $ssNode->v2_net = $request->get('v2_net') ? $request->get('v2_net') : 'tcp';
                 $ssNode->v2_type = $request->get('v2_type') ? $request->get('v2_type') : 'none';
@@ -1028,6 +1029,7 @@ class AdminController extends Controller
                     'status'           => intval($request->get('status')),
                     'v2_alter_id'      => $request->get('v2_alter_id') ? intval($request->get('v2_alter_id')) : 0,
                     'v2_port'          => $request->get('v2_port') ? intval($request->get('v2_port')) : 10087,
+                    'v2_hop_ports'     => $request->get('v2_hop_ports') ?: null,
                     'v2_method'        => $request->get('v2_method') ? $request->get('v2_method') : 'aes-128-gcm',
                     'v2_net'           => $request->get('v2_net'),
                     'v2_type'          => $request->get('v2_type'),
