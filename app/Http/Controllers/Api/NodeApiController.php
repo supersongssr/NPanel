@@ -1816,6 +1816,13 @@ class NodeApiController extends Controller
 
         $node->save();
 
+        // Sync heartbeat_at to all clone nodes
+        if ($node->is_clone == 0) {
+            SsNode::where('is_clone', $nodeId)->update([
+                'heartbeat_at' => $node->heartbeat_at,
+            ]);
+        }
+
         $logData = [
             "node_id" => $nodeId,
             "raw_rx" => $rawRx,

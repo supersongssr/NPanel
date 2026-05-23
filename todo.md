@@ -130,9 +130,14 @@
 - [v] hy2 支持动态 端口.
     - claude --resume 2e9c3f06-dc64-451b-ae1e-8b7f5d5db67e
 
+
+
 - [] php artisan 定期删除 超过 30天没有心跳的节点的 dns 信息,这个可以有.
 
-
+what: 定期删除 超过 30天没有心跳的节点的 dns 信息; dns服务商那里删除掉 dns record
+why: 每个域名的解析数量有限额 180个, 避免死节点占用 解析资源
+how: 定时任务,每天检查超过30天没有心跳包的节点, 然后 删除节点的 dns解析记录在数据库中的 和 服务商dns解析. 
+must: 删除 dns 服务商的 解析 
 
 - [] 弃用警告
 legacy special outbounds 已在 sing-box 1.11.0 中被弃用，且将在 sing-box 1.13.0 中被移除，请参阅迁移指南。
