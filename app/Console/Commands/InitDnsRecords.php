@@ -20,24 +20,16 @@ class InitDnsRecords extends Command
 
         // Build domain pool
         $domains = [];
-        if (!empty($sysConf['node_domain_pool'])) {
-            $pool = json_decode($sysConf['node_domain_pool'], true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($pool)) {
-                $firstKey = array_key_first($pool);
-                if ($firstKey !== null && is_string($firstKey) && is_array($pool[$firstKey])) {
-                    $domains = $pool;
-                } else {
-                    foreach (array_values(array_unique(array_filter($pool))) as $domain) {
-                        if (is_string($domain) && $domain !== '') {
-                            $domains[$domain] = [];
-                        }
-                    }
-                }
-            }
-        }
+        $parsed = Helpers::parseDomainPool($sysConf);
+        $domains = $parsed['domainPool'];
 
+        // Fallback to node_root_domain if pool is empty
         if (empty($domains) && !empty($sysConf['node_root_domain'])) {
             $domains[$sysConf['node_root_domain']] = [];
+        }
+        // Also set primary domain from parseDomainPool if no root_domain fallback
+        if (empty($domains) && !empty($parsed['primaryDomain'])) {
+            $domains[$parsed['primaryDomain']] = [];
         }
 
         if (empty($domains)) {

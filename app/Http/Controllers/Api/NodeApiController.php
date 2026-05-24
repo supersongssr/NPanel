@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Models\SsNode;
 use App\Http\Models\DnsRecord;
 use App\Components\Helpers;
+use App\Components\DNS\CloudflareProvider;
+use App\Services\DnsRecordCleanupService;
 
 class NodeApiController extends Controller
 {
@@ -25,44 +27,7 @@ class NodeApiController extends Controller
 
     private function parseDomainPool($sysConf)
     {
-        $domainPool = [];
-        $raw = $sysConf["node_domain_pool"] ?? "";
-
-        if (!empty($raw)) {
-            $decoded = json_decode($raw, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                Log::warning("node_domain_pool JSON parse error", [
-                    "error" => json_last_error_msg(),
-                ]);
-                $decoded = null;
-            }
-
-            if (is_array($decoded)) {
-                $firstKey = array_key_first($decoded);
-                if (
-                    $firstKey !== null &&
-                    is_string($firstKey) &&
-                    is_array($decoded[$firstKey])
-                ) {
-                    $domainPool = $decoded;
-                } else {
-                    foreach (
-                        array_values(array_unique(array_filter($decoded)))
-                        as $domain
-                    ) {
-                        if (is_string($domain) && $domain !== "") {
-                            $domainPool[$domain] = [];
-                        }
-                    }
-                }
-            }
-        }
-
-        $primaryDomain =
-            array_key_first($domainPool) ?:
-            $sysConf["node_root_domain"] ?? "example.com";
-
-        return ["domainPool" => $domainPool, "primaryDomain" => $primaryDomain];
+        return Helpers::parseDomainPool($sysConf);
     }
 
     private function getDomainLimit(array $meta)
@@ -111,7 +76,7 @@ class NodeApiController extends Controller
         $recycled = false;
         if ($node) {
             $recycled = true;
-            DnsRecord::where("node_id", $node->id)->delete();
+            $this->safeCleanupNodeDns($node->id, 'applyId');
         } else {
             $node = new SsNode();
         }
@@ -444,7 +409,7 @@ class NodeApiController extends Controller
                 if ($deadIdx < $deadNodes->count()) {
                     $clone = $deadNodes[$deadIdx++];
                     $this->resetNodeToDefaults($clone);
-                    DnsRecord::where("node_id", $clone->id)->delete();
+                    $this->safeCleanupNodeDns($clone->id, 'register.deadClone');
                 } else {
                     $clone = new SsNode();
                 }
@@ -483,7 +448,7 @@ class NodeApiController extends Controller
                 $excess->is_clone = 0;
                 $excess->status = 0;
                 $excess->save();
-                DnsRecord::where("node_id", $excess->id)->delete();
+                $this->safeCleanupNodeDns($excess->id, 'register.excessClone');
             }
         }
 
@@ -1365,6 +1330,57 @@ class NodeApiController extends Controller
             "fqdn" => $fqdn,
             "proxied" => $expectedProxied,
         ];
+    }
+
+    /**
+     * Safely cleanup DNS records for a node using the shared DnsRecordCleanupService.
+     *
+     * In request context we use a short timeout: if CF API fails we still delete
+     * the local record (best-effort for request latency), but log a warning so
+     * the scheduled AutoDeleteExpiredDns task can retry.
+     *
+     * @param int    $nodeId
+     * @param string $context  Log tag
+     */
+    private function safeCleanupNodeDns($nodeId, $context = 'NodeApi')
+    {
+        try {
+            $sysConf = Helpers::systemConfig();
+            $parsed = Helpers::parseDomainPool($sysConf);
+            $domainPool = $parsed['domainPool'];
+
+            if (empty($domainPool)) {
+                // No domain pool configured — just delete local records
+                DnsRecord::where('node_id', $nodeId)->delete();
+                return;
+            }
+
+            $dnsProvider = app(CloudflareProvider::class);
+            $cleanupService = new DnsRecordCleanupService();
+            $stats = $cleanupService->cleanupNodeRecords(
+                $nodeId,
+                $dnsProvider,
+                $domainPool,
+                false,
+                'NodeApi.' . $context
+            );
+
+            if ($stats['failed'] > 0) {
+                Log::warning("[Node API] safeCleanupNodeDns: some CF deletes failed for node {$nodeId}", array(
+                    'context' => $context,
+                    'stats'   => $stats,
+                ));
+                // Force-delete any remaining local records even on failure,
+                // since the node is being recycled right now.
+                DnsRecord::where('node_id', $nodeId)
+                    ->whereIn('record_type', array('A', 'AAAA'))
+                    ->delete();
+            }
+        } catch (\Exception $e) {
+            Log::error("[Node API] safeCleanupNodeDns exception for node {$nodeId}: " . $e->getMessage());
+            // Fallback: delete local records to not block node recycling
+            DnsRecord::where('node_id', $nodeId)->delete();
+        }
     }
 
     private function getDomainZoneIdForRecord($dnsRecord)

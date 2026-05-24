@@ -22,6 +22,49 @@ class Helpers
         60177, 60179
     ];
 
+    /**
+     * Parse node_domain_pool config into a normalized map.
+     *
+     * @param array $sysConf  Result of self::systemConfig()
+     * @return array ['domainPool' => [...], 'primaryDomain' => string]
+     */
+    public static function parseDomainPool(array $sysConf)
+    {
+        $domainPool = array();
+        $raw = isset($sysConf['node_domain_pool']) ? $sysConf['node_domain_pool'] : '';
+
+        if (!empty($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $firstKey = null;
+                foreach ($decoded as $k => $v) {
+                    $firstKey = $k;
+                    break;
+                }
+                if ($firstKey !== null && is_string($firstKey) && is_array($decoded[$firstKey])) {
+                    $domainPool = $decoded;
+                } else {
+                    foreach (array_values(array_unique(array_filter($decoded))) as $domain) {
+                        if (is_string($domain) && $domain !== '') {
+                            $domainPool[$domain] = array();
+                        }
+                    }
+                }
+            }
+        }
+
+        $primaryDomain = '';
+        foreach ($domainPool as $dk => $dv) {
+            $primaryDomain = $dk;
+            break;
+        }
+        if (empty($primaryDomain) && !empty($sysConf['node_root_domain'])) {
+            $primaryDomain = $sysConf['node_root_domain'];
+        }
+
+        return array('domainPool' => $domainPool, 'primaryDomain' => $primaryDomain);
+    }
+
     // 获取系统配置
     public static function systemConfig()
     {

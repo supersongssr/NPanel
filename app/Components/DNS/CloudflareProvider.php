@@ -131,6 +131,71 @@ class CloudflareProvider implements DnsProviderInterface
         return false;
     }
 
+    /**
+     * Delete a DNS record and return structured status information.
+     *
+     * Unlike deleteRecord() which returns only bool, this method exposes
+     * HTTP status codes so callers can distinguish 404 (already gone)
+     * from auth errors, rate limits, network failures, etc.
+     *
+     * @param string $cfRecordId
+     * @param string $zoneId
+     * @return array [
+     *     'success'      => bool,  // true if CF confirmed deletion
+     *     'not_found'    => bool,  // true if record already gone (404)
+     *     'rate_limited' => bool,  // true if 429
+     *     'http_code'    => int|null,
+     *     'error'        => string,
+     * ]
+     */
+    public function deleteRecordWithStatus($cfRecordId, $zoneId = null)
+    {
+        $result = array(
+            'success'      => false,
+            'not_found'    => false,
+            'rate_limited' => false,
+            'http_code'    => null,
+            'error'        => '',
+        );
+
+        if (empty($cfRecordId) || empty($zoneId)) {
+            $result['error'] = 'Missing cf_record_id or zone_id';
+            return $result;
+        }
+
+        $raw = $this->sendRequestRaw(
+            "https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records/{$cfRecordId}",
+            'DELETE'
+        );
+
+        $result['http_code'] = $raw['http_code'];
+
+        if ($raw['curl_error']) {
+            $result['error'] = $raw['curl_error'];
+            return $result;
+        }
+
+        if ($raw['http_code'] === 404) {
+            $result['not_found'] = true;
+            $result['success'] = true;
+            return $result;
+        }
+
+        if ($raw['http_code'] === 429) {
+            $result['rate_limited'] = true;
+            $result['error'] = 'Rate limited by Cloudflare';
+            return $result;
+        }
+
+        if ($raw['decoded'] && !empty($raw['decoded']['success'])) {
+            $result['success'] = true;
+            return $result;
+        }
+
+        $result['error'] = 'HTTP ' . $raw['http_code'] . ': ' . substr($raw['body'], 0, 300);
+        return $result;
+    }
+
     public function getZoneIdByName($domain)
     {
         $url = "https://api.cloudflare.com/client/v4/zones?name={$domain}";
@@ -143,7 +208,43 @@ class CloudflareProvider implements DnsProviderInterface
 
     private function sendRequest($url, $method, $data = null)
     {
-        $headers = ["Content-Type: application/json"];
+        $raw = $this->sendRequestRaw($url, $method, $data);
+
+        if ($raw['curl_error']) {
+            Log::error("Cloudflare API curl error: {$raw['curl_error']}", [
+                'url' => $url, 'method' => $method
+            ]);
+            return false;
+        }
+
+        if ($raw['http_code'] >= 200 && $raw['http_code'] < 300) {
+            return $raw['decoded'];
+        }
+
+        $authType = !empty($this->token) ? 'Token' : 'GlobalKey';
+        $preview = !empty($this->token) ? substr($this->token, 0, 5) . '...' : substr($this->email, 0, 5) . '...';
+
+        Log::error("Cloudflare API error (HTTP {$raw['http_code']})", [
+            'url' => $url,
+            'method' => $method,
+            'response' => $raw['body'],
+            'auth_type' => $authType,
+            'auth_preview' => $preview
+        ]);
+        return false;
+    }
+
+    /**
+     * Send an HTTP request and return raw details (http_code, body, curl_error, decoded JSON).
+     *
+     * @param string $url
+     * @param string $method
+     * @param array|null $data
+     * @return array
+     */
+    private function sendRequestRaw($url, $method, $data = null)
+    {
+        $headers = array("Content-Type: application/json");
 
         if (!empty($this->token)) {
             $headers[] = "Authorization: Bearer {$this->token}";
@@ -151,8 +252,12 @@ class CloudflareProvider implements DnsProviderInterface
             $headers[] = "X-Auth-Email: {$this->email}";
             $headers[] = "X-Auth-Key: {$this->apiKey}";
         } else {
-            Log::error('Cloudflare sendRequest: No valid credentials found');
-            return false;
+            return array(
+                'http_code'  => null,
+                'body'       => '',
+                'decoded'    => null,
+                'curl_error' => 'No valid Cloudflare credentials found',
+            );
         }
 
         $ch = curl_init();
@@ -172,27 +277,16 @@ class CloudflareProvider implements DnsProviderInterface
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($curlError) {
-            Log::error("Cloudflare API curl error: {$curlError}", [
-                'url' => $url, 'method' => $method
-            ]);
-            return false;
+        $decoded = null;
+        if ($response && !$curlError) {
+            $decoded = json_decode($response, true);
         }
 
-        if ($httpCode >= 200 && $httpCode < 300) {
-            return json_decode($response, true);
-        }
-
-        $authType = !empty($this->token) ? 'Token' : 'GlobalKey';
-        $preview = !empty($this->token) ? substr($this->token, 0, 5) . '...' : substr($this->email, 0, 5) . '...';
-
-        Log::error("Cloudflare API error (HTTP {$httpCode})", [
-            'url' => $url,
-            'method' => $method,
-            'response' => $response,
-            'auth_type' => $authType,
-            'auth_preview' => $preview
-        ]);
-        return false;
+        return array(
+            'http_code'  => $httpCode,
+            'body'       => is_string($response) ? $response : '',
+            'decoded'    => $decoded,
+            'curl_error' => $curlError,
+        );
     }
 }
