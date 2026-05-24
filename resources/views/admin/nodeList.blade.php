@@ -24,6 +24,12 @@
                             </div>
                         </div>
                     </div>
+                    <div style="padding: 6px 10px; border-bottom: 1px solid #eef1f5;">
+                        <span style="font-weight: bold; margin-right: 10px;">快捷筛选:</span>
+                        <a href="/admin/nodeList?status=0&is_clone=0&heartbeat_recent=1" class="btn btn-sm" style="background:#e7505a; color:#fff; margin-right:6px;">🔴 红色异常(维护+原始+心跳&lt;12h)</a>
+                        <a href="/admin/nodeList?status=1&is_subscribe=0&is_clone=0" class="btn btn-sm" style="background:#f0ad4e; color:#fff; margin-right:6px;">🟡 黄色(未订阅+原始)</a>
+                        <a href="/admin/nodeList?status=1&is_subscribe=1&is_clone=0" class="btn btn-sm" style="background:#3595CC; color:#fff; margin-right:6px;">🔵 蓝色(订阅+原始)</a>
+                    </div>
                     <div class="portlet-body">
 
                         <div class="row">
@@ -66,9 +72,11 @@
                                                 <td><a class="btn green" href="javascript:editNode('{{$node->id}}');"> {{$node->id}} </a></td>
                                                 <!-- <td> <span class="label {{$node->status ? 'label-danger' : 'label-warning'}}">{{$node->name}}</span> </td> -->
                                                 <td>  
-                                                    @if($node->status && $node->is_subscribe)
+                                                    @if($node->highlight_red)
+                                                        <span class="label label-danger">{{$node->name}}</span>
+                                                    @elseif($node->status && !$node->is_clone && $node->is_subscribe)
                                                         <span class="label label-info">{{$node->name}}</span>
-                                                    @elseif($node->status)
+                                                    @elseif($node->status && !$node->is_clone && !$node->is_subscribe)
                                                         <span class="label label-warning">{{$node->name}}</span>
                                                     @else
                                                         <span class="label label-default">{{$node->name}}</span>
@@ -208,6 +216,19 @@
                                     <option value="1" @if(Request::get('is_clone') === '1') selected @endif>仅克隆节点</option>
                                 </select>
                             </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="is_subscribe" id="is_subscribe" onChange="doSearch()">
+                                    <option value="" @if(Request::get('is_subscribe') == '') selected @endif>订阅状态</option>
+                                    <option value="1" @if(Request::get('is_subscribe') === '1') selected @endif>已订阅</option>
+                                    <option value="0" @if(Request::get('is_subscribe') === '0') selected @endif>未订阅</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4 col-xs-12">
+                                <select class="form-control" name="heartbeat_recent" id="heartbeat_recent" onChange="doSearch()">
+                                    <option value="" @if(Request::get('heartbeat_recent') == '') selected @endif>心跳筛选</option>
+                                    <option value="1" @if(Request::get('heartbeat_recent') === '1') selected @endif>🔴 红色异常(status=0+心跳&lt;12h)</option>
+                                </select>
+                            </div>
 
                         </div>
                     </div>
@@ -274,8 +295,27 @@
             var traffic_rate = $("#traffic_rate option:checked").val();
             var traffic = $("#traffic option:checked").val();
             var is_clone = $("#is_clone option:checked").val();
+            var is_subscribe = $("#is_subscribe option:checked").val();
+            var heartbeat_recent = $("#heartbeat_recent option:checked").val();
 
-            window.location.href = '/admin/nodeList' + '?id=' + id +'&nodename=' + nodename + '&ipv6=' + ipv6 + '&type=' + type + '&sort=' + sort + '&status=' + status + '&traffic_rate=' + traffic_rate + '&traffic=' + traffic + '&node_group=' + node_group + '&level=' + level + '&level_sort=' + level_sort + '&is_clone=' + is_clone;
+            var params = {
+                id: id,
+                nodename: nodename,
+                ipv6: ipv6,
+                type: type,
+                sort: sort,
+                status: status,
+                traffic_rate: traffic_rate,
+                traffic: traffic,
+                node_group: node_group,
+                level: level,
+                level_sort: level_sort,
+                is_clone: is_clone,
+                is_subscribe: is_subscribe,
+                heartbeat_recent: heartbeat_recent
+            };
+
+            window.location.href = '/admin/nodeList?' + $.param(params);
         }
 
         // 重置

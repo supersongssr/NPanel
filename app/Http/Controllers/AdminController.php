@@ -709,9 +709,24 @@ class AdminController extends Controller
         $query = SsNode::query()->orderBy('status','desc');
 
         $is_clone = $request->get('is_clone');
+        $is_subscribe = $request->get('is_subscribe');
+        $heartbeat_recent = $request->get('heartbeat_recent');
 
-        if ($is_clone !== null && $is_clone !== '') {
-            $query->where('is_clone','=', intval($is_clone));
+        if ($is_clone === '0') {
+            $query->where('is_clone', 0);
+        } elseif ($is_clone === '1') {
+            $query->where('is_clone', '>', 0);
+        }
+
+        if ($is_subscribe !== null && $is_subscribe !== '') {
+            $query->where('is_subscribe', '=', intval($is_subscribe));
+        }
+
+        // 红色高亮: status=0 且 12h 内有心跳
+        if ($heartbeat_recent === '1') {
+            $query->where('status', 0)
+                  ->where('is_clone', 0)
+                  ->where('heartbeat_at', '>=', \Carbon\Carbon::now()->subHours(12));
         }
 
         /* if ($status != '') {
@@ -741,7 +756,9 @@ class AdminController extends Controller
             $query->where('type', $type);
         }
 
-        if ($sort == '-1') {
+        if ($heartbeat_recent === '1') {
+            $query->orderBy('heartbeat_at', 'desc');
+        } elseif ($sort == '-1') {
             $query->orderBy('sort', 'desc');
         }else{
             $query->orderBy('sort', 'asc');
@@ -753,7 +770,7 @@ class AdminController extends Controller
             $query->orderBy('level', 'asc');
         }
 
-        if ( isset($status)) {
+        if ($heartbeat_recent !== '1' && isset($status)) {
             $query->where('status', intval($status));
         }
 
@@ -770,7 +787,17 @@ class AdminController extends Controller
         }
 
         $nodeList = $query->paginate(10)->appends($request->except('page'));
+        $recentHeartbeatTime = \Carbon\Carbon::now()->subHours(12);
         foreach ($nodeList as &$node) {
+            try {
+                $node->highlight_red = !$node->status
+                    && !$node->is_clone
+                    && !empty($node->heartbeat_at)
+                    && \Carbon\Carbon::parse($node->heartbeat_at)->gt($recentHeartbeatTime);
+            } catch (\Exception $e) {
+                $node->highlight_red = false;
+            }
+
             // 在线人数
             $online_log = SsNodeOnlineLog::query()->where('node_id', $node->id)->where('log_time', '>=', strtotime("-2 hours"))->orderBy('id', 'desc')->first();
             $node->online_users = empty($online_log) ? 0 : $online_log->online_user;
