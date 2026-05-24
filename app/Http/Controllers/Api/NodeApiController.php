@@ -198,7 +198,7 @@ class NodeApiController extends Controller
             "node_rxtx",
             $request->input(
                 "node_rxtx_mode",
-                $request->input("billing_mode", "tx"),
+                $request->input("billing_mode", "rxtx"),
             ),
         );
         $node->node_cpu =
