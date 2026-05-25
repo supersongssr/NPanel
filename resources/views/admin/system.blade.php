@@ -55,6 +55,9 @@
                                         <li>
                                             <a href="#tab_12" data-toggle="tab"> 多域名设置 </a>
                                         </li>
+                                        <li>
+                                            <a href="#tab_13" data-toggle="tab"> 订阅设置 </a>
+                                        </li>
                                         <li id="li_tab_geetest" class="tab_captcha" style="display:none;">
                                             <a href="#tab_geetest" data-toggle="tab"> Geetest 极验 </a>
                                         </li>
@@ -374,44 +377,6 @@
                                                     </div>
                                                     <div class="form-group">
                                                         <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="subscribe_domain" class="col-md-3 control-label">节点订阅地址</label>
-                                                            <div class="col-md-9">
-                                                                <div class="input-group">
-                                                                    <input class="form-control" type="text" name="subscribe_domain" value="{{$subscribe_domain}}" id="subscribe_domain" />
-                                                                    <span class="input-group-btn">
-                                                                        <button class="btn btn-success" type="button" onclick="setSubscribeDomain()">修改</button>
-                                                                    </span>
-                                                                </div>
-                                                                <span class="help-block"> （推荐）防止面板域名被DNS投毒后无法正常订阅，需带http://或https:// </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="sub_rss_url" class="col-md-3 control-label">订阅转换地址</label>
-                                                            <div class="col-md-9">
-                                                                <div class="input-group">
-                                                                    <input class="form-control" type="text" name="sub_rss_url" value="{{$sub_rss_url}}" id="sub_rss_url" />
-                                                                    <span class="input-group-btn">
-                                                                        <button class="btn btn-success" type="button" onclick="setSubRssUrl()">修改</button>
-                                                                    </span>
-                                                                </div>
-                                                                <span class="help-block"> 订阅转换地址 </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="subscribe_max" class="col-md-3 control-label">订阅节点数</label>
-                                                            <div class="col-md-9">
-                                                                <div class="input-group">
-                                                                    <input class="form-control" type="text" name="subscribe_max" value="{{$subscribe_max}}" id="subscribe_max" />
-                                                                    <span class="input-group-btn">
-                                                                        <button class="btn btn-success" type="button" onclick="setSubscribeMax()">修改</button>
-                                                                    </span>
-                                                                </div>
-                                                                <span class="help-block"> 客户端订阅时取得几个节点，为0时返回全部节点 </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
                                                             <label for="user_invite_days" class="col-md-3 control-label">邀请码有效期（用户）</label>
                                                             <div class="col-md-9">
                                                                 <div class="input-group">
@@ -437,32 +402,6 @@
                                                                 <span class="help-block"> 管理员生成邀请码的有效期 </span>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="mix_subscribe" class="col-md-3 control-label">混合订阅</label>
-                                                            <div class="col-md-9">
-                                                                <input type="checkbox" class="make-switch" @if($mix_subscribe) checked @endif id="mix_subscribe" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
-                                                                <span class="help-block"> 启用后，订阅信息中将包含V2Ray节点信息（仅支持Shadowrocket、Quantumult、v2rayN） </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="rand_subscribe" class="col-md-3 control-label">随机订阅</label>
-                                                            <div class="col-md-9">
-                                                                <input type="checkbox" class="make-switch" @if($rand_subscribe) checked @endif id="rand_subscribe" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
-                                                                <span class="help-block"> 启用后，订阅时将随机返回节点信息，否则按节点排序返回 </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="is_custom_subscribe" class="col-md-3 control-label">高级订阅</label>
-                                                            <div class="col-md-9">
-                                                                <input type="checkbox" class="make-switch" @if($is_custom_subscribe) checked @endif id="is_custom_subscribe" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
-                                                                <span class="help-block"> 启用后，订阅信息顶部将显示过期时间、剩余流量（Quantumult有特殊效果） </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 col-sm-6 col-xs-12"></div>
                                                     </div>
                                                 </div>
                                             </form>
@@ -732,27 +671,6 @@
                                                             <div class="col-md-9">
                                                                 <input type="checkbox" class="make-switch" @if($reset_traffic) checked @endif id="reset_traffic" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
                                                                 <span class="help-block"> 用户会按其购买套餐的日期自动重置可用流量 </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="is_subscribe_ban" class="col-md-3 control-label">订阅异常自动封禁</label>
-                                                            <div class="col-md-9">
-                                                                <input type="checkbox" class="make-switch" @if($is_subscribe_ban) checked @endif id="is_subscribe_ban" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
-                                                                <span class="help-block"> 订阅异常的用户自动分组-1 </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="subscribe_ban_times" class="col-md-3 control-label">订阅请求阈值</label>
-                                                            <div class="col-md-9">
-                                                                <div class="input-group">
-                                                                    <input class="form-control" type="text" name="subscribe_ban_times" value="{{$subscribe_ban_times}}" id="subscribe_ban_times" />
-                                                                    <span class="input-group-btn">
-                                                                        <button class="btn btn-success" type="button" onclick="setSubscribeBanTimes()">修改</button>
-                                                                    </span>
-                                                                </div>
-                                                                <span class="help-block"> 24小时内订阅链接请求次数限制 </span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1265,6 +1183,111 @@
                                                 <button type="button" class="btn btn-success" onclick="saveHostPools()"> <i class="fa fa-save"></i> 保存设置 </button>
                                                 <input type="hidden" id="host_pools_data" value="{{$host_pools}}" />
                                             </div>
+                                        </div>
+                                        <div class="tab-pane" id="tab_13">
+                                            <form action="#" method="post" class="form-horizontal">
+                                                <div class="portlet-body">
+                                                    <div class="form-group">
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="subscribe_domain" class="col-md-3 control-label">节点订阅地址</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" name="subscribe_domain" value="{{$subscribe_domain}}" id="subscribe_domain" />
+                                                                    <span class="input-group-btn">
+                                                                        <button class="btn btn-success" type="button" onclick="setSubscribeDomain()">修改</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> （推荐）防止面板域名被DNS投毒后无法正常订阅，需带http://或https:// </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="sub_rss_url" class="col-md-3 control-label">订阅转换地址</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" name="sub_rss_url" value="{{$sub_rss_url}}" id="sub_rss_url" />
+                                                                    <span class="input-group-btn">
+                                                                        <button class="btn btn-success" type="button" onclick="setSubRssUrl()">修改</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> 订阅转换地址 </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="subscribe_max" class="col-md-3 control-label">订阅节点数</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" name="subscribe_max" value="{{$subscribe_max}}" id="subscribe_max" />
+                                                                    <span class="input-group-btn">
+                                                                        <button class="btn btn-success" type="button" onclick="setSubscribeMax()">修改</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> 客户端订阅时取得几个节点，为0时返回全部节点 </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="is_custom_subscribe" class="col-md-3 control-label">高级订阅</label>
+                                                            <div class="col-md-9">
+                                                                <input type="checkbox" class="make-switch" @if($is_custom_subscribe) checked @endif id="is_custom_subscribe" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
+                                                                <span class="help-block"> 启用后，订阅信息顶部将显示过期时间、剩余流量（Quantumult有特殊效果） </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="mix_subscribe" class="col-md-3 control-label">混合订阅</label>
+                                                            <div class="col-md-9">
+                                                                <input type="checkbox" class="make-switch" @if($mix_subscribe) checked @endif id="mix_subscribe" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
+                                                                <span class="help-block"> 启用后，订阅信息中将包含V2Ray节点信息（仅支持Shadowrocket、Quantumult、v2rayN） </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="rand_subscribe" class="col-md-3 control-label">随机订阅</label>
+                                                            <div class="col-md-9">
+                                                                <input type="checkbox" class="make-switch" @if($rand_subscribe) checked @endif id="rand_subscribe" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
+                                                                <span class="help-block"> 启用后，订阅时将随机返回节点信息，否则按节点排序返回 </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="is_subscribe_ban" class="col-md-3 control-label">订阅异常自动封禁</label>
+                                                            <div class="col-md-9">
+                                                                <input type="checkbox" class="make-switch" @if($is_subscribe_ban) checked @endif id="is_subscribe_ban" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
+                                                                <span class="help-block"> 订阅异常的用户自动分组-1 </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6 col-sm-6 col-xs-12">
+                                                            <label for="subscribe_ban_times" class="col-md-3 control-label">订阅请求阈值</label>
+                                                            <div class="col-md-9">
+                                                                <div class="input-group">
+                                                                    <input class="form-control" type="text" name="subscribe_ban_times" value="{{$subscribe_ban_times}}" id="subscribe_ban_times" />
+                                                                    <span class="input-group-btn">
+                                                                        <button class="btn btn-success" type="button" onclick="setSubscribeBanTimes()">修改</button>
+                                                                    </span>
+                                                                </div>
+                                                                <span class="help-block"> 24小时内订阅链接请求次数限制 </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <hr>
+                                                    <div class="form-group">
+                                                        <label class="col-md-2 control-label"><strong>多订阅地址</strong></label>
+                                                        <div class="col-md-10">
+                                                            <input type="hidden" id="subscribe-domains-data" value="{{$subscribe_domains ?? '[]'}}" />
+                                                            <div id="subscribe-domains-list" style="margin-bottom:8px;"></div>
+                                                            <div class="input-group">
+                                                                <input class="form-control" type="text" id="new_subscribe_domain" placeholder="https://rss-xx.example.com" />
+                                                                <span class="input-group-btn">
+                                                                    <button class="btn btn-success" type="button" onclick="addSubscribeDomain()">添加</button>
+                                                                </span>
+                                                            </div>
+                                                            <span class="help-block"> 用户订阅页面将展示多个不同网络的订阅地址，自动检测可用性。每个域名需带 http:// 或 https:// </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </form>
                                         </div>
                                         <div class="tab-pane" id="tab_geetest">
 
@@ -2858,6 +2881,53 @@
                         window.location.reload();
                     }
                 });
+            });
+        }
+
+        // 多订阅地址 - 渲染列表
+        var subscribeDomains = [];
+        try { subscribeDomains = JSON.parse(document.getElementById('subscribe-domains-data').value); } catch(e) { subscribeDomains = []; }
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(str));
+            return div.innerHTML;
+        }
+
+        function renderSubscribeDomains() {
+            var html = '';
+            for (var i = 0; i < subscribeDomains.length; i++) {
+                html += '<div style="margin-bottom:4px;display:flex;align-items:center;">' +
+                    '<span style="flex:1;word-break:break-all;">' + escapeHtml(subscribeDomains[i]) + '</span>' +
+                    '&nbsp;<button class="btn btn-xs red" onclick="removeSubscribeDomain(' + i + ')"><i class="fa fa-trash"></i></button>' +
+                    '</div>';
+            }
+            $('#subscribe-domains-list').html(html);
+        }
+        renderSubscribeDomains();
+
+        function addSubscribeDomain() {
+            var val = $('#new_subscribe_domain').val().trim();
+            if (!val) { layer.msg('请输入域名', {time:1000}); return; }
+            if (subscribeDomains.indexOf(val) !== -1) { layer.msg('域名已存在', {time:1000}); return; }
+            subscribeDomains.push(val);
+            saveSubscribeDomains();
+            $('#new_subscribe_domain').val('');
+        }
+
+        function removeSubscribeDomain(idx) {
+            subscribeDomains.splice(idx, 1);
+            saveSubscribeDomains();
+        }
+
+        function saveSubscribeDomains() {
+            $.post('/admin/setConfig', {
+                _token: '{{csrf_token()}}',
+                name: 'subscribe_domains',
+                value: JSON.stringify(subscribeDomains)
+            }, function(ret) {
+                layer.msg(ret.message, {time:1000});
+                renderSubscribeDomains();
             });
         }
 

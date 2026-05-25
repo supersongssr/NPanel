@@ -85,3 +85,10 @@ INSERT INTO `config` (`name`, `value`) VALUES
   ('unlock_bahamut_address', ''),   ('unlock_bahamut_port', '8388'),   ('unlock_bahamut_password', ''),   ('unlock_bahamut_method', 'chacha20-ietf-poly1305'),
   ('unlock_claude_address', ''),    ('unlock_claude_port', '8388'),    ('unlock_claude_password', ''),    ('unlock_claude_method', 'chacha20-ietf-poly1305'),
   ('unlock_google_scholar_address', ''), ('unlock_google_scholar_port', '8388'), ('unlock_google_scholar_password', ''), ('unlock_google_scholar_method', 'chacha20-ietf-poly1305');
+
+-- ============================================================
+-- 步骤 5: 多订阅地址配置项
+-- 说明: 用户订阅页面展示多个不同网络的订阅地址，自动检测可用性
+-- ============================================================
+
+INSERT INTO `config` (`name`, `value`) VALUES ('subscribe_domains', '[]');

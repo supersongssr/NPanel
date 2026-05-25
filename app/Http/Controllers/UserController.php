@@ -146,6 +146,19 @@ class UserController extends Controller
         // 订阅连接
         $view['link'] = (self::$systemConfig['subscribe_domain'] ? self::$systemConfig['subscribe_domain'] : self::$systemConfig['website_url']) . '/s/' . Auth::user()->subscribe->code;
 
+        // 多订阅地址
+        $subscribeDomains = array();
+        if (!empty(self::$systemConfig['subscribe_domains'])) {
+            $decoded = json_decode(self::$systemConfig['subscribe_domains'], true);
+            if (is_array($decoded)) {
+                $subscribeDomains = $decoded;
+            }
+        }
+        $view['subscribeDomains'] = $subscribeDomains;
+        $view['subscribeDomainsJson'] = json_encode($subscribeDomains, JSON_HEX_APOS | JSON_HEX_AMP);
+        $view['linkBase'] = self::$systemConfig['subscribe_domain'] ? self::$systemConfig['subscribe_domain'] : self::$systemConfig['website_url'];
+        $view['subscribeCode'] = Auth::user()->subscribe->code;
+
         if (Auth::user()->status < 1 ) {
             $view['link'] = '您的账号处理保护状态，请退出后验证账号安全    ';
         }

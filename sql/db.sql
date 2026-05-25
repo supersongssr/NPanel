@@ -887,6 +887,7 @@ INSERT INTO `config` (`name`, `value`) VALUES
 INSERT INTO `config` (`name`, `value`) VALUES
   ('subscribe_max', '3'),
   ('subscribe_domain', ''),
+  ('subscribe_domains', '[]'),
   ('is_subscribe_ban', '1'),
   ('subscribe_ban_times', '20'),
   ('mix_subscribe', '0'),
