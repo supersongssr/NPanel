@@ -1,5 +1,9 @@
 
-- [] status=0 但是 在 12小时内有 heartbeat_at 的节点, 标注为 红色
+
+- [] npanel 升级 多个 订阅接口. 方案.
+
+
+- [v] status=0 但是 在 12小时内有 heartbeat_at 的节点, 标注为 红色
 
 what : 将 status=0 的节点, 在 12小时内有 heartbeat_at 的节点, 标注为 红色
 why : 这些节点很可能是流量耗尽,但是还有心跳的, 需要单独筛选出来,然后方便统一检查
