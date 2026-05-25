@@ -92,6 +92,7 @@ CREATE TABLE `ss_node` (
   `v2_servicename`      VARCHAR(255) NULL                      COMMENT 'gRPC服务名',
   `v2_cdn`              VARCHAR(255) NOT NULL DEFAULT ''        COMMENT 'CDN地址',
   `v2_cdn_ip`           VARCHAR(255) NOT NULL DEFAULT ''        COMMENT 'CDN IP',
+  `v2_hop_ports`        VARCHAR(255) NULL                      COMMENT '端口跳跃范围(如 20000-50000)',
   `v2_insider_port`     INT(11) NOT NULL DEFAULT '10550'        COMMENT '内部端口(v2_port=0时有效)',
   `v2_outsider_port`    INT(11) NOT NULL DEFAULT '443'          COMMENT '外部端口(v2_port=0时有效)',
   `node_uuid`           VARCHAR(255) NOT NULL DEFAULT ''        COMMENT '独立节点UUID(无用户版)',

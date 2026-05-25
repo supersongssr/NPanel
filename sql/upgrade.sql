@@ -41,6 +41,7 @@ ALTER TABLE `ss_node` ADD COLUMN `node_rxtx` VARCHAR(255) NULL DEFAULT 'tx' COMM
 ALTER TABLE `ss_node` ADD COLUMN `node_health` INT(11) NOT NULL DEFAULT 1 COMMENT '健康度: 0-超标、1-正常' AFTER `node_rxtx`;
 ALTER TABLE `ss_node` ADD COLUMN `last_raw_total` BIGINT(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT '流量计量缓存值' AFTER `node_health`;
 ALTER TABLE `ss_node` ADD COLUMN `node_ids` TEXT NULL COMMENT '裂变矩阵节点ID列表' AFTER `is_clone`;
+ALTER TABLE `ss_node` ADD COLUMN `v2_hop_ports` VARCHAR(255) NULL COMMENT '端口跳跃范围(如 20000-50000)' AFTER `v2_cdn_ip`;
 
 
 -- ============================================================
