@@ -673,10 +673,12 @@ class NodeApiController extends Controller
             $node->{$field} = $value;
         }
 
-        // Port override: in vision-hy2-ws-grpc mode, grpc must use 2053 to avoid port conflict
+        // Port override: in vision mode, ws and grpc are proxied by nginx on 2053
         $expandedMode = $this->expandProtocols($modeName);
-        if ($protocol === "grpc" && in_array("vision", $expandedMode)) {
-            $node->v2_port = 2053;
+        if (in_array("vision", $expandedMode)) {
+            if ($protocol === "ws" || $protocol === "grpc") {
+                $node->v2_port = 2053;
+            }
         }
 
         $node->v2_host = $node->server;
@@ -1448,7 +1450,7 @@ class NodeApiController extends Controller
         $vars = [
             "__wsPath__" => "srp-ws",
             "__wsPort__" => 10011,
-            "__v2Fallback__" => "remote-" . $fallbackHost,
+            "__v2Fallback__" => "127.0.0.1",
             "__nodeDomain__" => $nodeDomain,
             "__HYSTERIA_URL__" => "http://" . $fallbackHost . ":80",
             "__v2ServiceName__" => "srp-grpc",
@@ -1457,6 +1459,7 @@ class NodeApiController extends Controller
             "__xhttpPort__" => 10013,
             "__hy2Port__" => 443,
             "__visionPort__" => 443,
+            "__httpProxyHost__" => $fallbackHost,
             "__dbHost__" => env("DB_REMOTE_HOST", env("DB_HOST", "127.0.0.1")),
             "__dbUser__" => env("DB_USERNAME", "root"),
             "__dbPassword__" => env("DB_PASSWORD", ""),

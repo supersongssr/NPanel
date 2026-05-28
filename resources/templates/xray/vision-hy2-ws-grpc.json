@@ -10,15 +10,11 @@
                 "decryption": "none",
                 "fallbacks": [
                     {
-                        "path": "/__wsPath__",
-                        "dest": "__wsPort__"
-                    },
-                    {
-                        "dest": "__v2Fallback__:8001"
+                        "dest": "127.0.0.1:8088"
                     },
                     {
                         "alpn": "h2",
-                        "dest": "__v2Fallback__:8002"
+                        "dest": "127.0.0.1:8088"
                     }
                 ]
             },
@@ -100,6 +96,7 @@
             "tag": "proxy-ws"
         },
         {
+            "listen": "127.0.0.1",
             "port": "__grpcPort__",
             "protocol": "vless",
             "settings": {
@@ -110,19 +107,7 @@
                 "grpcSettings": {
                     "serviceName": "__v2ServiceName__"
                 },
-                "security": "tls",
-                "tlsSettings": {
-                    "rejectUnknownSni": true,
-                    "minVersion": "1.2",
-                    "alpn": ["h2"],
-                    "certificates": [
-                        {
-                            "ocspStapling": 3600,
-                            "certificateFile": "/etc/ssl/__nodeDomain__.pem",
-                            "keyFile": "/etc/ssl/__nodeDomain__.key"
-                        }
-                    ]
-                }
+                "security": "none"
             },
             "sniffing": {
                 "enabled": true,

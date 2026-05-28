@@ -2,7 +2,7 @@
 
 
 
-- [] npanel 升级 多个 订阅接口. 方案.
+- [v] npanel 升级 多个 订阅接口. 方案.
 
 what: 在 用户页面 订阅处显示多个 不同的订阅地址. 然后自动检测哪些订阅地址是可用的.
 why: 订阅地址可能在大陆被墙,需要提供多个不同网络的地址.
@@ -158,3 +158,81 @@ what: 定期删除 超过 30天没有心跳的节点的 dns 信息; dns服务商
 why: 每个域名的解析数量有限额 180个, 避免死节点占用 解析资源
 how: 定时任务,每天检查超过30天没有心跳包的节点, 然后 删除节点的 dns解析记录在数据库中的 和 服务商dns解析. 
 must: 删除 dns 服务商的 解析
+
+
+
+- [] vision xhttp 随机 sni
+
+what: sni加前缀
+why: host 可以追踪 具体的地址, sni的话 , 其实是为了让每个用户访问的网站不一致,减少 gfw的 追踪
+where: app/Http/Controllers/SubscribeController.php
+how: 在 sni 前 加 'u' . $user->id . 'u' . $sni ; 但是排除以下两种情况, grpc sni不处理; 如果节点是 cdn节点,sni不处理! 避免 cdn 识别出错. 
+must: 
+
+
+- [] 解决 vision fallback 的问题! 直接fallback到本地的 nginx 这里.
+  - 在安装的时候,直接解决 nginx 版本的问题,直接升级到 最新版本!
+  - 直接安装最新版本的 nginx
+  - vision 协议反代到自己的网站上.
+
+
+what:  vision fallback 到 本地 8088 端口. 
+why: 直接fallback到本地更稳定
+where: 
+    - resources/templates/xray/vision-hy2-ws-grpc.json   resources/templates/nginx/vision-hy2-ws-grpc.conf
+how:  
+    - resources/templates/nginx/vision-hy2-ws-grpc.conf fallback dest 到 127.0.0.1:8088, 而且两个合并为一个即可.都是 8088端口. 可以合二为一 ; 
+    - 在 resources/templates/nginx/vision-hy2-ws-grpc.conf 添加 8088 的反向代理, 使用新版的 nginx 监听 http2 监听方式 (不使用旧版的 所有客户端的nginx都会升级到新版的 http2 监听方式);
+    - 反向代理参考: resources/templates/nginx/xhttp-hy2-ws-grpc.conf 的默认回落
+must: 
+
+
+
+- [] vision 的 grpc ws 也使用 nginx 反代 且只能使用 cf 的 ip访问
+
+what: vision 的 grpc ws 改为 nginx反代
+why: ws grpc 需要限制 只能由 cloudflare cdn的ip才能访问,其他ip不能访问. 但是 xray 回落的话,做不到ip限制,还是交给 nginx比较靠谱
+where: 
+how:
+    - resources/templates/xray/vision-hy2-ws-grpc.json 中的 ws 和 grpc 改为 监听 10011 10012 端口, 让 nginx反代
+    -  resources/templates/nginx/vision-hy2-ws-grpc.conf 监听 2053端口, 然后反代给后端 的 ws grpc 
+    - app/Http/Controllers/SubscribeController.php 在订阅的时候, ws 和 grpc是 2053端口.
+    - app/Http/Controllers/Api/NodeApiController.php 在 register阶段, 下发的 config.json 中 ws 和 grpc 监听的端口也要改为 10011 10012 , 下发的 nginx.conf中要添加 2053端口 的监听.
+must:
+
+
+
+- [] nginx 中设置 ws 和 grpc 协议,只允许来自 指定ip的 访问! 只允许来自 cloudflare 的 ip来访问! 这个可以限制
+  - grpc 还是需要通过 nginx 前置代理 来 访问,在 nginx限制 只允许 来自 cloudflare的 ip来访问! 这个可以有.
+  - ws也是,只允许来自 cloudflare的 ip来访问,其他的不允许.
+  - [] npanel
+    - [] vision 
+    - [] xhttp 
+
+what: ws 和 grpc 在 nginx中的反代, 只允许 cloudflare 的 ip来访问
+why: ws 和 grpc 协议已经可以被识别, 所以不能用用户直连,避免用户直连导致ip被封锁
+where: 
+how:
+    - 修改 resources/templates/nginx/vision-hy2-ws-grpc.conf 和 resources/templates/xray/xhttp-hy2-ws-grpc.json 中 关于 ws 和 grpc的部分, 只允许 cloudflare的 ip才能访问. 
+must:
+
+
+- [] 新增获取所有节点的 原始 配置信息的 json api
+what: 新增 一个api 可以获取所有节点的原始的 json输出
+why: 方便 其他应用交互查询节点信息
+where: app/Http/Controllers/Api/NodeApiController.php
+how: 
+    - 新增一个路由
+    - 直接查询数据库中 ss_node 中所有节点
+    - 直接返回 json格式, 包含所有节点的信息. 
+
+
+- [] 新增协议支持:
+
+what: 新增 一些 v2_name
+why: 当前只有 vision-hy2-ws-grpc xhttp-hy2-ws-grpc 太少了,新增一些
+where:
+how:
+    - 新增 vision-hy2 
+        - 复制 resources/templates/xray/vision-hy2-ws-grpc.json 
+must:

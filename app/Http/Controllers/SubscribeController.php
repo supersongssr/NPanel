@@ -351,6 +351,7 @@ class SubscribeController extends Controller
         $targetNodeIdsForLoop = [1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254];
         $processedNodes = [];
         $skippedNodes = [];
+        $userSniPrefix = 'u' . $user->id . 'u';
         foreach ($nodeList as $key => $node) {
             $isTarget = in_array($node->id, $targetNodeIdsForLoop);
             // if ($node->v2_cdn){
@@ -371,6 +372,7 @@ class SubscribeController extends Controller
                     if ($isTarget) { $skippedNodes[$node->id] = 'vmess_count_limit'; }
                     continue;
                 }
+                $vmessSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
                 $v2_json = [
                     "v"    => "2",
                     "ps"   => $node->name . '_#' . $node->id  ,
@@ -384,7 +386,7 @@ class SubscribeController extends Controller
                     "host" => $node->v2_host ,
                     "path" => $node->v2_path ,
                     "tls"  => $node->v2_tls ,
-                    "sni"  => $node->v2_sni ,
+                    "sni"  => $vmessSni ,
                     "serviceName" => $node->v2_servicename,
                     "mode"  => $node->v2_mode ,
                     "alpn" => $node->v2_alpn  
@@ -400,8 +402,9 @@ class SubscribeController extends Controller
                     continue;
                 }
                 $vlessMode = $node->v2_mode ?: ($node->v2_net === 'xhttp' ? 'auto' : '');
+                $vlessSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
                 $scheme .= 'vless://'.$node_uuid.'@'.$node->server.':'.$node->v2_port;
-                $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni .'&fp='.$node->v2_fp.'&serviceName='.$node->v2_servicename. '&mode='.$vlessMode.'&alpn='.urlencode($node->v2_alpn);
+                $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$vlessSni .'&fp='.$node->v2_fp.'&serviceName='.$node->v2_servicename. '&mode='.$vlessMode.'&alpn='.urlencode($node->v2_alpn);
                 $scheme .= '#'.urlencode($node->name.($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $vless_count += 1;
                 $v2ray_count += 1;
@@ -412,8 +415,9 @@ class SubscribeController extends Controller
                     if ($isTarget) { $skippedNodes[$node->id] = 'trojan_count_limit'; }
                     continue;
                 }
+                $trojanSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
                 $scheme .= 'trojan://'.$node_uuid.'@'.$node->server.':'.$node->v2_port;
-                $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$node->v2_sni.'&serviceName='.$node->v2_servicename.'&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
+                $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$trojanSni.'&serviceName='.$node->v2_servicename.'&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
                 $scheme .= '#'.urlencode($node->name.($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $trojan_count += 1;
                 $v2ray_count += 1;
@@ -431,12 +435,13 @@ class SubscribeController extends Controller
                 if (!empty($node->v2_hop_ports)) {
                     $mport = '&mport=' . $node->v2_hop_ports . '&hopinterval=30s';
                 }
+                $hy2Sni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
                 $hy2Url = sprintf(
                     "hysteria2://%s@%s:%s?sni=%s&insecure=1&allowInsecure=1%s#%s\n",
                     $node_uuid,
                     $node->server,
                     $node->v2_port,
-                    rawurlencode($node->v2_sni),
+                    rawurlencode($hy2Sni),
                     $mport,
                     $encodedName
                 );
@@ -490,6 +495,45 @@ class SubscribeController extends Controller
         ]);
 
         exit(base64_encode($scheme));
+    }
+
+    /**
+     * 为 SNI 添加用户唯一前缀, 降低 GFW 通过 SNI 追踪的可能性
+     * 规则: 在 SNI 前面添加 'u{userId}u' 前缀
+     * 排除: gRPC 协议 / CDN 节点 (ws/grpc 通过 Cloudflare)
+     *
+     * @param string|null $sni 原始 SNI
+     * @param \App\Http\Models\SsNode $node 节点对象
+     * @param string $prefix 用户前缀, 格式为 'u{userId}u'
+     * @return string|null
+     */
+    private function applySniPrefix($sni, $node, $prefix)
+    {
+        if (empty($sni)) {
+            return $sni;
+        }
+        // gRPC 协议不处理
+        if ($node->v2_net === 'grpc') {
+            return $sni;
+        }
+        // CDN 节点 (ws 通过 Cloudflare) 不处理, 避免 CDN 识别出错
+        if ($node->v2_net === 'ws') {
+            return $sni;
+        }
+        return $prefix . $sni;
+    }
+
+    /**
+     * 批量为节点列表应用 SNI 前缀 (修改节点对象的 v2_sni 属性, 不写库)
+     *
+     * @param \Illuminate\Support\Collection $nodeList
+     * @param string $prefix
+     */
+    private function applySniPrefixToNodeList($nodeList, $prefix)
+    {
+        foreach ($nodeList as $node) {
+            $node->v2_sni = $this->applySniPrefix($node->v2_sni, $node, $prefix);
+        }
     }
 
     // 写入订阅访问日志
@@ -742,6 +786,10 @@ class SubscribeController extends Controller
             Log::debug('[SubscribeDebug] generateDirectSubscribe: nodeList is empty');
             return false;
         }
+
+        // 为所有节点应用用户 SNI 前缀 (不写库, 仅影响当前请求的输出)
+        $userSniPrefix = 'u' . $user->id . 'u';
+        $this->applySniPrefixToNodeList($nodeList, $userSniPrefix);
 
         // 根据格式生成配置
         if ($format === 'singbox') {
