@@ -676,8 +676,24 @@ class NodeApiController extends Controller
         ],
     ];
 
+    const V2_PROTOCOL_SLOTS = [
+        // 现有 (保持兼容)
+        "vision-hy2-ws-grpc" => ["vision", "hy2", "ws", "grpc"],
+        "xhttp-hy2-ws-grpc"  => ["xhttp", "hy2", "ws", "grpc"],
+        // 新增
+        "vision-ws-grpc" => ["vision", "ws", "grpc"],
+        "vision-hy2"     => ["vision", "vision", "hy2"],
+        "vision"         => ["vision", "vision", "vision"],
+        "xhttp-ws-grpc"  => ["xhttp", "ws", "grpc"],
+        "xhttp-hy2"      => ["xhttp", "xhttp", "hy2"],
+        "xhttp"          => ["xhttp", "xhttp", "xhttp"],
+    ];
+
     private function expandProtocols($v2Name)
     {
+        if (isset(self::V2_PROTOCOL_SLOTS[$v2Name])) {
+            return self::V2_PROTOCOL_SLOTS[$v2Name];
+        }
         return explode("-", $v2Name);
     }
 
@@ -1470,9 +1486,9 @@ class NodeApiController extends Controller
             : $node->server;
 
         $expanded = $this->expandProtocols($v2Name);
-        $inboundTags = array_map(function ($proto) {
+        $inboundTags = array_values(array_unique(array_map(function ($proto) {
             return "proxy-" . $proto;
-        }, $expanded);
+        }, $expanded)));
 
         $vars = [
             "__wsPath__" => "srp-ws",

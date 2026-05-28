@@ -217,22 +217,9 @@ how:
 must:
 
 
-- [] 新增获取所有节点的 原始 配置信息的 json api
-what: 新增 一个api 可以获取所有节点的原始的 json输出
-why: 方便 其他应用交互查询节点信息
-where: app/Http/Controllers/Api/NodeApiController.php
-how: 
-    - 新增一个路由
-    - 直接查询数据库中 ss_node 中所有节点
-    - 直接返回 json格式, 包含所有节点的信息. 
+- [v] 新增获取所有节点的 原始 配置信息的 json api plans/2026-05-28_node-list-api.md
 
 
-- [] 新增协议支持:
-
-what: 新增 一些 v2_name
-why: 当前只有 vision-hy2-ws-grpc xhttp-hy2-ws-grpc 太少了,新增一些
-where:
-how:
-    - 新增 vision-hy2 
-        - 复制 resources/templates/xray/vision-hy2-ws-grpc.json 
-must:
+- [] 新增协议支持:plans/2026-05-28_new-protocols-dev-plan.md
+    - [] 测试
+    - [] 部署到 prod
