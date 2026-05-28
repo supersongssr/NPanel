@@ -30,6 +30,33 @@ class NodeApiController extends Controller
         return Helpers::parseDomainPool($sysConf);
     }
 
+    public function listAll(Request $request)
+    {
+        // Token 验证: Bearer Header 优先, fallback 到 ?token= 查询参数
+        $token = null;
+        $header = $request->header('Authorization', '');
+        if (stripos($header, 'Bearer ') === 0) {
+            $token = substr($header, 7);
+        }
+        if (!$token) {
+            $token = $request->get('token');
+        }
+        if (!$token || $token !== env('API_TOKEN')) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Unauthorized: invalid or missing token',
+            ], 401);
+        }
+
+        $nodes = SsNode::orderBy('id', 'asc')->get();
+
+        return response()->json([
+            'status' => 'success',
+            'count'  => $nodes->count(),
+            'data'   => $nodes,
+        ]);
+    }
+
     private function getDomainLimit(array $meta)
     {
         return isset($meta["records_limit"])

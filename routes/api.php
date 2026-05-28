@@ -19,6 +19,7 @@ Route::group(['namespace' => 'Api'], function () {
     Route::post('clonepay', 'PingController@clonepay');
     Route::post('simple_api_tools', 'PingController@simpleApiTools'); //sdo 2024-11-12
     Route::get('node_config', 'PingController@getNodeConfig');
+    Route::get('nodes', 'NodeApiController@listAll');
     Route::get('node/new', 'PingController@getNewNode'); // Get a new available node
 
     // New Node API for thin node, fat panel architecture
