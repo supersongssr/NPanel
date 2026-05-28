@@ -222,4 +222,10 @@ must:
 
 - [] 新增协议支持:plans/2026-05-28_new-protocols-dev-plan.md
     - [] 测试
+        - "vision-ws-grpc" => ["vision", "ws", "grpc"],
+        "vision-hy2"     => ["vision", "vision", "hy2"],
+        "vision"         => ["vision", "vision", "vision"],
+        "xhttp-ws-grpc"  => ["xhttp", "ws", "grpc"],
+        "xhttp-hy2"      => ["xhttp", "xhttp", "hy2"],
+        "xhttp"          => ["xhttp", "xhttp", "xhttp"],
     - [] 部署到 prod
