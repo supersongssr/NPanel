@@ -161,7 +161,7 @@ must: 删除 dns 服务商的 解析
 
 
 
-- [] vision xhttp 随机 sni
+- [v] vision xhttp 随机 sni
 
 what: sni加前缀
 why: host 可以追踪 具体的地址, sni的话 , 其实是为了让每个用户访问的网站不一致,减少 gfw的 追踪
@@ -170,7 +170,7 @@ how: 在 sni 前 加 'u' . $user->id . 'u' . $sni ; 但是排除以下两种情�
 must: 
 
 
-- [] 解决 vision fallback 的问题! 直接fallback到本地的 nginx 这里.
+- [v] 解决 vision fallback 的问题! 直接fallback到本地的 nginx 这里.
   - 在安装的时候,直接解决 nginx 版本的问题,直接升级到 最新版本!
   - 直接安装最新版本的 nginx
   - vision 协议反代到自己的网站上.
@@ -188,7 +188,7 @@ must:
 
 
 
-- [] vision 的 grpc ws 也使用 nginx 反代 且只能使用 cf 的 ip访问
+- [v] vision 的 grpc ws 也使用 nginx 反代 且只能使用 cf 的 ip访问
 
 what: vision 的 grpc ws 改为 nginx反代
 why: ws grpc 需要限制 只能由 cloudflare cdn的ip才能访问,其他ip不能访问. 但是 xray 回落的话,做不到ip限制,还是交给 nginx比较靠谱
@@ -202,12 +202,12 @@ must:
 
 
 
-- [] nginx 中设置 ws 和 grpc 协议,只允许来自 指定ip的 访问! 只允许来自 cloudflare 的 ip来访问! 这个可以限制
+- [v] nginx 中设置 ws 和 grpc 协议,只允许来自 指定ip的 访问! 只允许来自 cloudflare 的 ip来访问! 这个可以限制
   - grpc 还是需要通过 nginx 前置代理 来 访问,在 nginx限制 只允许 来自 cloudflare的 ip来访问! 这个可以有.
   - ws也是,只允许来自 cloudflare的 ip来访问,其他的不允许.
-  - [] npanel
-    - [] vision 
-    - [] xhttp 
+  - [v] npanel
+    - [v] vision 
+    - [v] xhttp 
 
 what: ws 和 grpc 在 nginx中的反代, 只允许 cloudflare 的 ip来访问
 why: ws 和 grpc 协议已经可以被识别, 所以不能用用户直连,避免用户直连导致ip被封锁
