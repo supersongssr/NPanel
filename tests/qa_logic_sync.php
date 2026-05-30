@@ -211,7 +211,7 @@ echo PHP_EOL;
 // ===========================
 echo "--- QA3: HY2 Config - v2_net detection & template binding ---" . PHP_EOL;
 
-$compositeTemplate = resource_path('templates/xray/vision-hy2-ws-grpc.json');
+$compositeTemplate = resource_path('templates/xray/vision-hy2.json');
 if (!file_exists($compositeTemplate)) {
     skip_test('HY2 config test', 'Template file not found');
 } else {
@@ -220,7 +220,7 @@ if (!file_exists($compositeTemplate)) {
     $hy2Node->ip = '198.51.100.42';
     $hy2Node->ipv6 = '';
     $hy2Node->server = 'node888.test.example.com';
-    $hy2Node->v2_name = 'vision-hy2-ws-grpc';
+    $hy2Node->v2_name = 'vision-hy2';
     $hy2Node->v2_net = 'hysteria2';
     $hy2Node->v2_tls = 1;
     $hy2Node->v2_port = 443;
@@ -244,8 +244,8 @@ if (!file_exists($compositeTemplate)) {
     );
 
     assert_test(
-        'Template selected via v2_name (vision-hy2-ws-grpc)',
-        $hy2Node->v2_name === 'vision-hy2-ws-grpc',
+        'Template selected via v2_name (vision-hy2)',
+        $hy2Node->v2_name === 'vision-hy2',
         "v2_name: {$hy2Node->v2_name}"
     );
 
@@ -272,7 +272,7 @@ if (!file_exists($compositeTemplate)) {
 
         assert_test(
             'v2_name used for template (not single protocol)',
-            $hy2Node->v2_name === 'vision-hy2-ws-grpc',
+            $hy2Node->v2_name === 'vision-hy2',
             "v2_name: {$hy2Node->v2_name}"
         );
     }

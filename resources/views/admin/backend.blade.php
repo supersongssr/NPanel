@@ -53,46 +53,11 @@
 
                                                 <hr style="margin: 20px 0; border-top: 1px solid #e5e5e5;">
 
-                                                <div class="form-horizontal">
-                                                    <div class="form-group">
-                                                        <label class="col-md-2 control-label">内存阈值 (MB)</label>
-                                                        <div class="col-md-3">
-                                                            <input type="number" class="form-control input-sm" id="input_threshold_mb" value="<?php
-	$pp = json_decode($node_protocol_presets ?? '', true);
-	echo $pp['threshold_mb'] ?? 2048;
-?>">
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <label class="col-md-2 control-label">高性能协议组</label>
-                                                        <div class="col-md-4">
-                                                            <input type="text" class="form-control input-sm" id="input_protocol_high" value="<?php
-	echo $pp['high'] ?? 'xhttp-hy2-ws-grpc';
-?>">
-                                                            <span class="help-block"> 内存 ≥ 阈值时使用，用 <code>-</code> 分隔协议名 </span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <label class="col-md-2 control-label">标准协议组</label>
-                                                        <div class="col-md-4">
-                                                            <input type="text" class="form-control input-sm" id="input_protocol_low" value="<?php
-	echo $pp['low'] ?? 'vision-hy2-ws-grpc';
-?>">
-                                                            <span class="help-block"> 内存 < 阈值时使用，用 <code>-</code> 分隔协议名 </span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <div class="col-md-offset-2 col-md-4">
-                                                            <button class="btn btn-success" type="button" onclick="saveNodeProtocolPresets()">保存协议预设</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
                                                 <div class="alert alert-info" style="margin-top: 10px;">
                                                     <b>说明：</b><br>
                                                     1. 根域名必须在 Cloudflare 托管并已获取 Zone ID。<br>
                                                     2. 记录上限控制每个域名下可创建的 DNS 记录数量，默认 180。<br>
-                                                    3. 协议预设：节点注册时根据内存大小自动选择协议组，协议组内随机分配给裂变节点。<br>
+                                                    3. 协议默认使用 <code>xhttp-hy2</code>，节点注册时可通过 <code>v2_name</code> 指定。<br>
                                                     4. 修改后对新注册的节点立即生效，已有节点需重新注册。
                                                 </div>
                                             </div>
@@ -266,33 +231,6 @@
                     if (ret.status == 'success') {
                         window.location.reload();
                     }
-                });
-            });
-        }
-
-        function saveNodeProtocolPresets() {
-            var thresholdMb = parseInt($('#input_threshold_mb').val()) || 2048;
-            var high = $('#input_protocol_high').val().trim();
-            var low = $('#input_protocol_low').val().trim();
-
-            if (!high || !low) {
-                layer.msg('协议组不能为空', {time: 2000});
-                return;
-            }
-
-            var presets = {
-                threshold_mb: thresholdMb,
-                high: high,
-                low: low
-            };
-
-            $.post("/admin/setConfig", {
-                _token: '{{csrf_token()}}',
-                name: 'node_protocol_presets',
-                value: JSON.stringify(presets)
-            }, function (ret) {
-                layer.msg(ret.message, {time: 1000}, function () {
-                    if (ret.status == 'fail') window.location.reload();
                 });
             });
         }

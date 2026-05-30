@@ -144,21 +144,12 @@ class NodeApiController extends Controller
 
         $sysConf = Helpers::systemConfig();
 
-        $presets = json_decode($sysConf["node_protocol_presets"] ?? "{}", true);
-        $thresholdMb = $presets["threshold_mb"] ?? 2048;
-        $highProto = $presets["high"] ?? "xhttp-hy2-ws-grpc";
-        $lowProto = $presets["low"] ?? "vision-hy2-ws-grpc";
-
         $nodeMemory = (float) $request->input(
             "node_memory",
             $request->input("memory", 0),
         );
-        $thresholdGb = $thresholdMb / 1024;
 
-        $v2Name = $request->input("v2_name");
-        if (!$v2Name) {
-            $v2Name = $nodeMemory > $thresholdGb ? $highProto : $lowProto;
-        }
+        $v2Name = $request->input("v2_name") ?: "xhttp-hy2";
 
         $rootDomain = $this->resolveDomainAffinity(
             $request->input("root_domain"),
@@ -677,16 +668,10 @@ class NodeApiController extends Controller
     ];
 
     const V2_PROTOCOL_SLOTS = [
-        // 现有 (保持兼容)
-        "vision-hy2-ws-grpc" => ["vision", "hy2", "ws", "grpc"],
-        "xhttp-hy2-ws-grpc"  => ["xhttp", "hy2", "ws", "grpc"],
-        // 新增
-        "vision-ws-grpc" => ["vision", "ws", "grpc"],
-        "vision-hy2"     => ["vision", "vision", "hy2"],
-        "vision"         => ["vision", "vision", "vision"],
-        "xhttp-ws-grpc"  => ["xhttp", "ws", "grpc"],
-        "xhttp-hy2"      => ["xhttp", "xhttp", "hy2"],
-        "xhttp"          => ["xhttp", "xhttp", "xhttp"],
+        "vision-hy2" => ["vision", "vision", "hy2"],
+        "vision"     => ["vision", "vision", "vision"],
+        "xhttp-hy2"  => ["xhttp", "xhttp", "hy2"],
+        "xhttp"      => ["xhttp", "xhttp", "xhttp"],
     ];
 
     private function expandProtocols($v2Name)
@@ -1465,7 +1450,10 @@ class NodeApiController extends Controller
         }
 
         // --- Template selection: strictly via v2_name ---
-        $v2Name = $node->v2_name ?: "vision-hy2-ws-grpc";
+        $v2Name = $node->v2_name ?: "xhttp-hy2";
+        if (!isset(self::V2_PROTOCOL_SLOTS[$v2Name])) {
+            $v2Name = "xhttp-hy2";
+        }
         $templatePath = resource_path("templates/xray/{$v2Name}.json");
         if (!file_exists($templatePath)) {
             return response()->json(
@@ -1491,13 +1479,9 @@ class NodeApiController extends Controller
         }, $expanded)));
 
         $vars = [
-            "__wsPath__" => "srp-ws",
-            "__wsPort__" => 10011,
             "__v2Fallback__" => "127.0.0.1",
             "__nodeDomain__" => $nodeDomain,
             "__HYSTERIA_URL__" => "http://" . $fallbackHost . ":80",
-            "__v2ServiceName__" => "srp-grpc",
-            "__grpcPort__" => 10012,
             "__xhttpPath__" => "srp-xhttp",
             "__xhttpPort__" => 10013,
             "__hy2Port__" => 443,
@@ -1609,7 +1593,10 @@ class NodeApiController extends Controller
             return response("Main node not found", 500);
         }
 
-        $v2Name = $mainNode->v2_name ?: "vision-hy2-ws-grpc";
+        $v2Name = $mainNode->v2_name ?: "xhttp-hy2";
+        if (!isset(self::V2_PROTOCOL_SLOTS[$v2Name])) {
+            $v2Name = "xhttp-hy2";
+        }
 
         $templatePath = resource_path("templates/nginx/{$v2Name}.conf");
         if (!file_exists($templatePath)) {
@@ -1629,10 +1616,6 @@ class NodeApiController extends Controller
                 "__nodeDomain__",
                 "__xhttpPath__",
                 "__xhttpPort__",
-                "__wsPath__",
-                "__wsPort__",
-                "__v2ServiceName__",
-                "__grpcPort__",
                 "__httpProxyHost__",
             ],
             [
@@ -1640,10 +1623,6 @@ class NodeApiController extends Controller
                 $rootDomain,
                 "srp-xhttp",
                 "10013",
-                "srp-ws",
-                "10011",
-                "srp-grpc",
-                "10012",
                 $fallbackHost,
             ],
             $conf,

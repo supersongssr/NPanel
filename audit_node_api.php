@@ -58,7 +58,7 @@ if (!$nodeId) {
 callApi('POST', 'node/register', [
     'token' => $apiToken,
     'node_id' => $nodeId,
-    'v2_name' => 'vision-hy2-ws-grpc',
+    'v2_name' => 'vision-hy2',
     'node_ip' => '1.2.3.4',
     'node_ipv6' => '2001:db8::1',
     'node_traffic_limit' => 1000,
@@ -139,7 +139,7 @@ if ($res['code'] !== 403) {
 echo "\n--- Case 06: JSON Integrity ---\n";
 $mainNode->status = 1;
 $mainNode->save();
-$v2Name = $mainNode->v2_name ?: 'vision-hy2-ws-grpc';
+$v2Name = $mainNode->v2_name ?: 'vision-hy2';
 $tplDir = resource_path("templates/xray");
 @mkdir($tplDir, 0755, true);
 file_put_contents("$tplDir/{$v2Name}.json", json_encode([

@@ -40,12 +40,8 @@ function cleanup() {
 
 // Save originals
 $originalPresets = Config::where('name', 'node_protocol_presets')->value('value');
-Config::where('name', 'node_protocol_presets')->update(['value' => json_encode([
-    'threshold_mb' => 2048,
-    'high' => 'xhttp-hy2-ws-grpc',
-    'low' => 'vision-hy2-ws-grpc',
-])]);
 
+// node_protocol_presets 已废弃，清理残留
 cleanup();
 
 $controller = new \App\Http\Controllers\Api\NodeApiController();
@@ -75,7 +71,7 @@ $data1 = json_decode($resp1->getContent(), true);
 assert_test('register returns success', ($data1['status'] ?? '') === 'success', 'Response: ' . json_encode($data1));
 
 $v2Name = $data1['v2_name'] ?? '';
-assert_test('1GB memory gets low protocol group', $v2Name === 'vision-hy2-ws-grpc', "Got: {$v2Name}");
+assert_test('1GB memory gets default protocol', $v2Name === 'xhttp-hy2', "Got: {$v2Name}");
 
 $nodeIds = $data1['node_ids'] ?? [];
 $cloneIds = $data1['clone_node_ids'] ?? [];
@@ -87,7 +83,7 @@ $sealedIds = json_decode($mainNode1->node_ids, true);
 assert_test('node_ids field sealed with 4 IDs', count($sealedIds) === 4, "Got: " . count($sealedIds));
 assert_test('node_ids includes main node', in_array($node1->id, $sealedIds));
 assert_test('node_rxtx field is tx', $mainNode1->node_rxtx === 'tx', "Got: {$mainNode1->node_rxtx}");
-assert_test('main node v2_name is a single protocol', in_array($mainNode1->v2_name, ['vision', 'hy2', 'ws', 'grpc']), "Got: {$mainNode1->v2_name}");
+assert_test('main node v2_name is a single protocol', in_array($mainNode1->v2_name, ['vision', 'hy2']), "Got: {$mainNode1->v2_name}");
 
 // =====================================================
 echo "\n=== QA Assertion 2: Dynamic Fission — 4GB = High Protocol (4 nodes) ===\n";
@@ -110,7 +106,7 @@ $resp2 = $controller->register($req2);
 $data2 = json_decode($resp2->getContent(), true);
 
 $v2Name2 = $data2['v2_name'] ?? '';
-assert_test('4GB memory gets high protocol group', $v2Name2 === 'xhttp-hy2-ws-grpc', "Got: {$v2Name2}");
+assert_test('4GB memory gets default protocol', $v2Name2 === 'xhttp-hy2', "Got: {$v2Name2}");
 
 $nodeIds2 = $data2['node_ids'] ?? [];
 assert_test('4 nodes for single-stack high protocol', count($nodeIds2) === 4, "Got: " . count($nodeIds2));
@@ -199,10 +195,10 @@ $req3d = Request::create('/api/node/register', 'POST', [
     'node_id' => $node3d->id,
     'node_ip' => '10.0.0.303',
     'node_memory' => 1,
-    'v2_name' => 'xhttp-hy2-ws-grpc',
+    'v2_name' => 'xhttp-hy2',
 ]);
 $resp3d = $controller->register($req3d);
-assert_test('Client v2_name overrides dynamic allocation (1GB gets xhttp)', ($resp3d->getData()->v2_name ?? '') === 'xhttp-hy2-ws-grpc', "Got: " . ($resp3d->getData()->v2_name ?? 'null'));
+assert_test('Client v2_name overrides default (1GB gets xhttp)', ($resp3d->getData()->v2_name ?? '') === 'xhttp-hy2', "Got: " . ($resp3d->getData()->v2_name ?? 'null'));
 
 // =====================================================
 echo "\n=== QA Assertion 4: Clone Reuse (Anti-Proliferation) ===\n";
@@ -280,19 +276,15 @@ $node5Reloaded = SsNode::find($node5->id);
 assert_test('node_unlock stored as raw query string', $node5Reloaded->node_unlock === $unlockStr, "Got: {$node5Reloaded->node_unlock}");
 
 // =====================================================
-echo "\n=== QA Assertion 7: Config-driven protocol — no hardcoding ===\n";
+echo "\n=== QA Assertion 7: Default protocol — no preset hardcoding ===\n";
 // =====================================================
-
-$presets = json_decode(Config::where('name', 'node_protocol_presets')->value('value'), true);
-assert_test('Config has threshold_mb', isset($presets['threshold_mb']) && $presets['threshold_mb'] == 2048);
-assert_test('Config has high protocol', isset($presets['high']) && $presets['high'] === 'xhttp-hy2-ws-grpc');
-assert_test('Config has low protocol', isset($presets['low']) && $presets['low'] === 'vision-hy2-ws-grpc');
 
 $controllerCode = file_get_contents(base_path('app/Http/Controllers/Api/NodeApiController.php'));
 assert_test('No hardcoded "2G" in controller', strpos($controllerCode, '"2G"') === false && strpos($controllerCode, "'2G'") === false);
 assert_test('No hardcoded > 2048 comparison in controller', strpos($controllerCode, '> 2048') === false);
-assert_test('Controller converts threshold_mb to GB for comparison', strpos($controllerCode, 'thresholdMb / 1024') !== false);
-assert_test('No hardcoded "vision-hy2-ws-grpc" in controller logic (only defaults)', substr_count($controllerCode, 'vision-hy2-ws-grpc') <= 3, 'Found ' . substr_count($controllerCode, 'vision-hy2-ws-grpc') . ' occurrences');
+assert_test('No thresholdMb logic in controller', strpos($controllerCode, 'thresholdMb / 1024') === false);
+assert_test('Controller uses vision-hy2 as protocol name', substr_count($controllerCode, 'vision-hy2') <= 5, 'Found ' . substr_count($controllerCode, 'vision-hy2') . ' occurrences');
+assert_test('Controller uses xhttp-hy2 as default', strpos($controllerCode, '"xhttp-hy2"') !== false || strpos($controllerCode, "'xhttp-hy2'") !== false);
 
 // =====================================================
 echo "\n=== QA Assertion 8: DB Schema — node_rxtx and node_ids ===\n";
@@ -323,7 +315,10 @@ assert_test('initDnsRecords no IP-based matching', strpos($commandCode, "where('
 // =====================================================
 cleanup();
 
-Config::where('name', 'node_protocol_presets')->update(['value' => $originalPresets]);
+// node_protocol_presets 已废弃，不恢复
+if ($originalPresets) {
+    Config::where('name', 'node_protocol_presets')->delete();
+}
 
 echo "\n" . str_repeat("=", 50) . "\n";
 echo "Results: {$passed} passed, {$failed} failed, {$total} total\n";

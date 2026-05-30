@@ -49,7 +49,7 @@ echo "  Created node_id: {$nodeId}\n";
 $req1 = mockRequest('POST', [
     'node_id' => $nodeId,
     'token' => $token,
-    'v2_name' => 'vision-hy2-ws-grpc',
+    'v2_name' => 'vision-hy2',
     'node_traffic_limit' => 2000,
     'node_traffic_resetday' => 1,
     'billing_mode' => 'tx',
@@ -123,7 +123,7 @@ $nodeId2 = json_decode($res0b->getContent(), true)['node_id'];
 $req1b = mockRequest('POST', [
     'node_id' => $nodeId2,
     'token' => $token,
-    'v2_name' => 'vision-hy2-ws-grpc',
+    'v2_name' => 'vision-hy2',
     'node_traffic_limit' => 2000,
     'node_traffic_resetday' => 1,
     'billing_mode' => 'tx',
