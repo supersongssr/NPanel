@@ -966,6 +966,8 @@ class NodeApiController extends Controller
                 $action = $bpResult["action"] ?? "unknown";
                 if (isset($stats[$action])) {
                     $stats[$action]++;
+                } elseif ($action === "adopted") {
+                    $stats["created"]++;
                 } elseif (!($bpResult["success"] ?? true)) {
                     $stats["failed"]++;
                 }
@@ -1197,9 +1199,88 @@ class NodeApiController extends Controller
             );
 
             if (!$cfResult) {
+                // Fallback: CF may reject because the record already exists
+                // (e.g. local cache was cleared but CF still has it).
+                // Query CF, adopt + update if found.
+                Log::warning(
+                    "[Node API] reconcileThreeWay Scene C: CF create failed, attempting adopt fallback",
+                    [
+                        "node_id" => $nodeId,
+                        "type" => $blueprint["type"],
+                        "fqdn" => $fqdn,
+                        "zone_id" => $blueprint["zone_id"],
+                    ],
+                );
+
+                $existingCf = $dnsProvider->getRecordByNameAndType(
+                    $blueprint["root_domain"],
+                    $blueprint["subdomain"],
+                    $blueprint["type"],
+                    $blueprint["zone_id"]
+                );
+
+                if ($existingCf && !empty($existingCf["id"])) {
+                    // Adopt: update the existing CF record to match blueprint
+                    $updateOk = $dnsProvider->updateRecordById(
+                        $existingCf["id"],
+                        $blueprint["root_domain"],
+                        $blueprint["subdomain"],
+                        $blueprint["content"],
+                        $blueprint["type"],
+                        $blueprint["zone_id"],
+                        $expectedProxied
+                    );
+
+                    if ($updateOk) {
+                        DnsRecord::create([
+                            "node_id" => $nodeId,
+                            "root_domain" => $blueprint["root_domain"],
+                            "subdomain" => $blueprint["subdomain"],
+                            "record_type" => $blueprint["type"],
+                            "ip_addr" => $blueprint["content"],
+                            "cf_record_id" => $existingCf["id"],
+                            "proxied" => $expectedProxied,
+                        ]);
+
+                        $elapsed = round(microtime(true) - $sceneStart, 3);
+                        Log::info(
+                            "[Node API] reconcileThreeWay Scene C: adopted existing CF record",
+                            [
+                                "node_id" => $nodeId,
+                                "type" => $blueprint["type"],
+                                "fqdn" => $fqdn,
+                                "content" => $blueprint["content"],
+                                "cf_id" => $existingCf["id"],
+                                "proxied" => $expectedProxied,
+                                "elapsed_s" => $elapsed,
+                            ],
+                        );
+
+                        return [
+                            "action" => "adopted",
+                            "success" => true,
+                            "node_id" => $nodeId,
+                            "type" => $blueprint["type"],
+                            "fqdn" => $fqdn,
+                            "cf_id" => $existingCf["id"],
+                            "proxied" => $expectedProxied,
+                            "message" => "Adopted existing CF record after create failed",
+                        ];
+                    }
+
+                    Log::warning(
+                        "[Node API] reconcileThreeWay Scene C: adopt update also failed",
+                        [
+                            "node_id" => $nodeId,
+                            "fqdn" => $fqdn,
+                            "cf_id" => $existingCf["id"],
+                        ],
+                    );
+                }
+
                 $elapsed = round(microtime(true) - $sceneStart, 3);
                 Log::error(
-                    "[Node API] reconcileThreeWay Scene C: CF create failed",
+                    "[Node API] reconcileThreeWay Scene C: CF create failed (no adopt candidate)",
                     [
                         "node_id" => $nodeId,
                         "type" => $blueprint["type"],
