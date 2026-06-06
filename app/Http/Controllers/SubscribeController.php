@@ -362,6 +362,11 @@ class SubscribeController extends Controller
             //         $node->server = $user->cfcdn;
             //     }
             // }
+            // --- Address mode: IP 模式下客户端直连 IP，domain 模式下连域名 ---
+            $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
+                ? $node->ip
+                : $node->server;
+
             $node->v2_tls == 0 && $node->v2_tls = '';   // 解析 tls xtls 
             $node->v2_tls == 1 && $node->v2_tls = 'tls';
             $node->v2_tls == 2 && $node->v2_tls = 'xtls';
@@ -376,7 +381,7 @@ class SubscribeController extends Controller
                 $v2_json = [
                     "v"    => "2",
                     "ps"   => $node->name . '_#' . $node->id  ,
-                    "add"  => $node->server ,
+                    "add"  => $nodeAddr ,
                     "port" => $node->v2_port ,
                     "id"   => $node_uuid ,
                     "aid"  => $node->v2_alter_id ,
@@ -403,7 +408,7 @@ class SubscribeController extends Controller
                 }
                 $vlessMode = $node->v2_mode ?: ($node->v2_net === 'xhttp' ? 'auto' : '');
                 $vlessSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
-                $scheme .= 'vless://'.$node_uuid.'@'.$node->server.':'.$node->v2_port;
+                $scheme .= 'vless://'.$node_uuid.'@'.$nodeAddr.':'.$node->v2_port;
                 $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$vlessSni .'&fp='.$node->v2_fp.'&serviceName='.$node->v2_servicename. '&mode='.$vlessMode.'&alpn='.urlencode($node->v2_alpn);
                 $scheme .= '#'.urlencode($node->name.($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $vless_count += 1;
@@ -416,7 +421,7 @@ class SubscribeController extends Controller
                     continue;
                 }
                 $trojanSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
-                $scheme .= 'trojan://'.$node_uuid.'@'.$node->server.':'.$node->v2_port;
+                $scheme .= 'trojan://'.$node_uuid.'@'.$nodeAddr.':'.$node->v2_port;
                 $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$trojanSni.'&serviceName='.$node->v2_servicename.'&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
                 $scheme .= '#'.urlencode($node->name.($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $trojan_count += 1;
@@ -439,7 +444,7 @@ class SubscribeController extends Controller
                 $hy2Url = sprintf(
                     "hysteria2://%s@%s:%s?sni=%s&insecure=1&allowInsecure=1%s#%s\n",
                     $node_uuid,
-                    $node->server,
+                    $nodeAddr,
                     $node->v2_port,
                     rawurlencode($hy2Sni),
                     $mport,
@@ -822,6 +827,9 @@ class SubscribeController extends Controller
         // 先收集所有节点信息并生成 outbound
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
+            $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
+                ? $node->ip
+                : $node->server;
             // 使用与 Clash 一致的命名格式："节点名称 | #ID"
             $tagName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id;
 
@@ -836,7 +844,7 @@ class SubscribeController extends Controller
                 $outbound = [
                     'type' => 'vmess',
                     'tag' => $tagName,
-                    'server' => $node->server,
+                    'server' => $nodeAddr,
                     'server_port' => (int)$node->v2_port,
                     'uuid' => $node_uuid,
                     'security' => $node->v2_method,
@@ -893,7 +901,7 @@ class SubscribeController extends Controller
                 $outbound = [
                     'type' => 'vless',
                     'tag' => $tagName,
-                    'server' => $node->server,
+                    'server' => $nodeAddr,
                     'server_port' => (int)$node->v2_port,
                     'uuid' => $node_uuid,
                     'packet_encoding' => 'xudp'
@@ -964,7 +972,7 @@ class SubscribeController extends Controller
                 $outbound = [
                     'type' => 'trojan',
                     'tag' => $tagName,
-                    'server' => $node->server,
+                    'server' => $nodeAddr,
                     'server_port' => (int)$node->v2_port,
                     'password' => $node_uuid,
                 ];
@@ -1019,7 +1027,7 @@ class SubscribeController extends Controller
                 $outbound = [
                     "type" => "hysteria2",
                     "tag" => $tagName,
-                    "server" => $node->server,
+                    "server" => $nodeAddr,
                     "server_port" => (int)$node->v2_port,
                     "password" => $node_uuid,
                     "tls" => [
@@ -1188,6 +1196,9 @@ class SubscribeController extends Controller
 
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
+            $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
+                ? $node->ip
+                : $node->server;
 
             // 节点名称：确保特殊字符转义，并添加节点 ID 避免同名冲突
             $proxyName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id;
@@ -1206,7 +1217,7 @@ class SubscribeController extends Controller
                 $proxyNames[] = $quotedName;
                 $yaml .= "  - name: " . $quotedName . "\n";
                 $yaml .= "    type: vmess\n";
-                $yaml .= "    server: " . $node->server . "\n";
+                $yaml .= "    server: " . $nodeAddr . "\n";
                 $yaml .= "    port: " . (int)$node->v2_port . "\n";
                 $yaml .= "    uuid: " . $node_uuid . "\n";
                 $yaml .= "    alterId: " . (int)$node->v2_alter_id . "\n";
@@ -1261,7 +1272,7 @@ class SubscribeController extends Controller
                 $proxyNames[] = $quotedName;
                 $yaml .= "  - name: " . $quotedName . "\n";
                 $yaml .= "    type: vless\n";
-                $yaml .= "    server: " . $node->server . "\n";
+                $yaml .= "    server: " . $nodeAddr . "\n";
                 $yaml .= "    port: " . (int)$node->v2_port . "\n";
                 $yaml .= "    uuid: " . $node_uuid . "\n";
                 $yaml .= "    udp: true\n";
@@ -1335,7 +1346,7 @@ class SubscribeController extends Controller
                 $proxyNames[] = $quotedName;
                 $yaml .= "  - name: " . $quotedName . "\n";
                 $yaml .= "    type: trojan\n";
-                $yaml .= "    server: " . $node->server . "\n";
+                $yaml .= "    server: " . $nodeAddr . "\n";
                 $yaml .= "    port: " . (int)$node->v2_port . "\n";
                 $yaml .= "    password: " . $node_uuid . "\n";
                 $yaml .= "    udp: true\n";
@@ -1375,7 +1386,7 @@ class SubscribeController extends Controller
                 $proxyNames[] = $quotedName;
                 $yaml .= "  - name: " . $quotedName . "\n";
                 $yaml .= "    type: hysteria2\n";
-                $yaml .= "    server: " . $node->server . "\n";
+                $yaml .= "    server: " . $nodeAddr . "\n";
                 $yaml .= "    port: " . (int)$node->v2_port . "\n";
                 $yaml .= "    password: " . $node_uuid . "\n";
                 $yaml .= "    sni: " . $node->v2_sni . "\n";
@@ -1549,6 +1560,9 @@ class SubscribeController extends Controller
 
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
+            $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
+                ? $node->ip
+                : $node->server;
             $proxyName = str_replace([' ', ',', '[', ']'], '_', $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id);
             $proxyNames[] = $proxyName;
 
@@ -1584,7 +1598,7 @@ class SubscribeController extends Controller
                     $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
                 }
 
-                $proxies[] = "{$proxyName} = vmess, {$node->server}, {$node->v2_port}, username={$node_uuid}, udp-relay=false, vmess-aead={$vmess_aead}{$ws_opts}{$tls_opts}";
+                $proxies[] = "{$proxyName} = vmess, {$nodeAddr}, {$node->v2_port}, username={$node_uuid}, udp-relay=false, vmess-aead={$vmess_aead}{$ws_opts}{$tls_opts}";
 
             } elseif ($node->type == 3) {
                 // VLESS (Loon uses vmess-like format)
@@ -1607,7 +1621,7 @@ class SubscribeController extends Controller
                     $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
                 }
 
-                $proxies[] = "{$proxyName} = vless, {$node->server}, {$node->v2_port}, username={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}{$flow}";
+                $proxies[] = "{$proxyName} = vless, {$nodeAddr}, {$node->v2_port}, username={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}{$flow}";
 
             } elseif ($node->type == 4) {
                 // Trojan
@@ -1629,7 +1643,7 @@ class SubscribeController extends Controller
                     $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
                 }
 
-                $proxies[] = "{$proxyName} = trojan, {$node->server}, {$node->v2_port}, password={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}";
+                $proxies[] = "{$proxyName} = trojan, {$nodeAddr}, {$node->v2_port}, password={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}";
             }
         }
 
@@ -1697,6 +1711,9 @@ class SubscribeController extends Controller
 
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
+            $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
+                ? $node->ip
+                : $node->server;
             $proxyName = str_replace([' ', ',', '[', ']'], '_', $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id);
             $proxyNames[] = $proxyName;
 
@@ -1730,7 +1747,7 @@ class SubscribeController extends Controller
                     $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
                 }
 
-                $proxies[] = "{$proxyName} = vmess, {$node->server}, {$node->v2_port}, username={$node_uuid}, udp-relay=false, vmess-aead={$vmess_aead}{$ws_opts}{$tls_opts}";
+                $proxies[] = "{$proxyName} = vmess, {$nodeAddr}, {$node->v2_port}, username={$node_uuid}, udp-relay=false, vmess-aead={$vmess_aead}{$ws_opts}{$tls_opts}";
 
             } elseif ($node->type == 3) {
                 // VLESS
@@ -1753,7 +1770,7 @@ class SubscribeController extends Controller
                     $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
                 }
 
-                $proxies[] = "{$proxyName} = vless, {$node->server}, {$node->v2_port}, username={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}{$flow}";
+                $proxies[] = "{$proxyName} = vless, {$nodeAddr}, {$node->v2_port}, username={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}{$flow}";
 
             } elseif ($node->type == 4) {
                 // Trojan
@@ -1775,7 +1792,7 @@ class SubscribeController extends Controller
                     $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
                 }
 
-                $proxies[] = "{$proxyName} = trojan, {$node->server}, {$node->v2_port}, password={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}";
+                $proxies[] = "{$proxyName} = trojan, {$nodeAddr}, {$node->v2_port}, password={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}";
             }
         }
 

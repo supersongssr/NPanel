@@ -18,6 +18,13 @@ class NodeApiController extends Controller
 
     const CDN_REQUIRED_NETS = ["ws", "grpc"];
 
+    /**
+     * 节点地址模式：
+     *   'ip'     → add=节点IP, 客户端直连IP, 不需要 DNS 注册
+     *   'domain' → add=n{id}.{rootDomain}, 客户端连域名, 需要 Cloudflare DNS
+     */
+    const ADDRESS_MODE = 'ip';
+
     public function __construct()
     {
         while (ob_get_level() > 0) {
@@ -816,9 +823,15 @@ class NodeApiController extends Controller
             "main_node_id" => (int) $mainNodeId,
             "node_ids" => $nodeIds,
             "force" => $force,
+            "address_mode" => self::ADDRESS_MODE,
             "domain_pool_keys" => array_keys($parsedPool["domainPool"]),
             "primary_domain" => $parsedPool["primaryDomain"],
         ]);
+
+        // --- IP 模式：跳过创建/更新，仅清理已有 DNS 记录（防止 domain→ip 切换后残留孤儿） ---
+        if (self::ADDRESS_MODE === 'ip') {
+            return $this->resolveDnsIpMode($nodeIds, $dnsProvider, $parsedPool);
+        }
 
         $maxPerNode = 60;
         $globalDeadline = microtime(true) + 90;
@@ -1061,6 +1074,111 @@ class NodeApiController extends Controller
             "message" => $allSuccess
                 ? "DNS cluster synchronized"
                 : "Some DNS operations failed",
+        ]);
+    }
+
+    /**
+     * IP 模式专用 DNS 清理：
+     * 遍历集群所有节点，删除 Cloudflare 远端记录 + 本地 dns_records 表记录。
+     * 不创建任何新记录，因为 IP 模式下客户端直连 IP，不需要 DNS 解析。
+     *
+     * @param  array  $nodeIds
+     * @param  \App\Components\DNS\CloudflareProvider  $dnsProvider
+     * @param  array  $parsedPool
+     * @return \Illuminate\Http\JsonResponse
+     */
+    private function resolveDnsIpMode(array $nodeIds, $dnsProvider, array $parsedPool)
+    {
+        $startTime = microtime(true);
+        $stats = [
+            "created" => 0,
+            "updated" => 0,
+            "deleted" => 0,
+            "skipped" => 0,
+            "failed" => 0,
+            "no_change" => 0,
+        ];
+        $results = [];
+
+        foreach ($nodeIds as $nid) {
+            $existingRecords = DnsRecord::where("node_id", $nid)->get();
+
+            if ($existingRecords->isEmpty()) {
+                $stats["skipped"]++;
+                continue;
+            }
+
+            foreach ($existingRecords as $record) {
+                $fqdn = $record->subdomain . "." . $record->root_domain;
+
+                // 删除 Cloudflare 远端记录
+                if (!empty($record->cf_record_id)) {
+                    $zoneId = $this->getDomainZoneId(
+                        $parsedPool["domainPool"][$record->root_domain] ?? [],
+                        $record->root_domain
+                    );
+                    if ($zoneId) {
+                        $deleteOk = $dnsProvider->deleteRecord(
+                            $record->cf_record_id,
+                            $zoneId
+                        );
+                        if (!$deleteOk) {
+                            Log::warning(
+                                "[Node API] resolveDns IP mode: CF delete failed for node {$nid}",
+                                [
+                                    "node_id" => $nid,
+                                    "fqdn" => $fqdn,
+                                    "cf_id" => $record->cf_record_id,
+                                ]
+                            );
+                            $stats["failed"]++;
+                            continue; // 保留本地记录，等待下次重试
+                        }
+                    } else {
+                        Log::warning(
+                            "[Node API] resolveDns IP mode: no zone_id for {$record->root_domain}, CF record may leak",
+                            [
+                                "node_id" => $nid,
+                                "root_domain" => $record->root_domain,
+                            ]
+                        );
+                    }
+                }
+
+                // 删除本地记录
+                $record->delete();
+                $stats["deleted"]++;
+                $results[] = [
+                    "action" => "deleted_ip_mode",
+                    "success" => true,
+                    "node_id" => $nid,
+                    "type" => $record->record_type,
+                    "fqdn" => $fqdn,
+                    "proxied" => false,
+                ];
+
+                Log::info("[Node API] resolveDns IP mode: deleted DNS record", [
+                    "node_id" => $nid,
+                    "type" => $record->record_type,
+                    "fqdn" => $fqdn,
+                ]);
+            }
+        }
+
+        $elapsed = round(microtime(true) - $startTime, 3);
+
+        Log::info("[Node API] resolveDns IP mode complete", [
+            "node_ids" => $nodeIds,
+            "stats" => $stats,
+            "elapsed_s" => $elapsed,
+        ]);
+
+        return response()->json([
+            "status" => "success",
+            "results" => $results,
+            "stats" => $stats,
+            "elapsed_s" => $elapsed,
+            "message" => "ip_mode_cleanup",
         ]);
     }
 
