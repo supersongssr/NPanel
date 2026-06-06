@@ -1,0 +1,84 @@
+#!/bin/sh
+set -e
+
+####
+# nPanel 自动化部署脚本 (rsync 同步)
+####
+
+# 从 .env 读取部署配置
+load_deploy_env() {
+    ENV_FILE="$(cd "$(dirname "$0")" && pwd)/.env"
+    if [ ! -f "$ENV_FILE" ]; then
+        echo "🔴⛔❌ .env 文件不存在: $ENV_FILE"
+        exit 1
+    fi
+
+    PROD_DEPLOY_HOST=$(grep -E '^PROD_DEPLOY_HOST=' "$ENV_FILE" | head -1 | cut -d'=' -f2-)
+    PROD_DEPLOY_PATH=$(grep -E '^PROD_DEPLOY_PATH=' "$ENV_FILE" | head -1 | cut -d'=' -f2-)
+
+    if [ -z "$PROD_DEPLOY_HOST" ] || [ -z "$PROD_DEPLOY_PATH" ]; then
+        echo "🔴⛔❌ .env 中缺少 PROD_DEPLOY_HOST 或 PROD_DEPLOY_PATH"
+        exit 1
+    fi
+
+    echo "📡 目标: $PROD_DEPLOY_HOST:$PROD_DEPLOY_PATH"
+}
+
+# 检测当前分支必须为 NPanel
+check_branch() {
+    TARGET_BRANCH="NPanel"
+    CUR_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    if [ "$CUR_BRANCH" != "$TARGET_BRANCH" ]; then
+        echo "🔴⛔❌ 当前分支为 $CUR_BRANCH，不是 $TARGET_BRANCH，部署中止！"
+        exit 1
+    fi
+    echo "✅ 分支检查通过: $CUR_BRANCH"
+}
+
+# 从 .gitignore 生成 rsync --exclude-from 临时文件
+build_exclude_file() {
+    GITIGNORE="$(cd "$(dirname "$0")" && pwd)/.gitignore"
+    if [ ! -f "$GITIGNORE" ]; then
+        echo "⚠️  .gitignore 不存在，跳过排除规则"
+        echo ".git/" > "$EXCLUDE_FILE"
+        return
+    fi
+    EXCLUDE_FILE=$(mktemp /tmp/rsync-exclude.XXXXXX)
+    # .gitignore 每行一条规则，可直接被 rsync --exclude-from 使用
+    # 额外追加 .git/ 目录本身（.gitignore 里通常不写）
+    cat "$GITIGNORE" > "$EXCLUDE_FILE"
+    echo ".git/" >> "$EXCLUDE_FILE"
+    echo "$EXCLUDE_FILE"
+}
+
+# rsync 同步
+deploy_nPanel() {
+    LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)/"
+    EXCLUDE_FILE=$(build_exclude_file)
+
+    echo "🚀 开始 rsync 同步..."
+
+    rsync -avz \
+        --exclude-from="$EXCLUDE_FILE" \
+        "$LOCAL_DIR" "$PROD_DEPLOY_HOST:$PROD_DEPLOY_PATH/"
+
+    rm -f "$EXCLUDE_FILE"
+
+    echo "✅ rsync 同步完成！"
+}
+
+# --- 主函数 ---
+main() {
+    echo "🚀 nPanel rsync 部署脚本启动"
+    echo "⏰ 时间: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "=========================================="
+
+    check_branch
+    load_deploy_env
+    deploy_nPanel
+
+    echo "=========================================="
+    echo "✅ 部署脚本执行完成"
+}
+
+main
