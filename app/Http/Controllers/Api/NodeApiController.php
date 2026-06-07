@@ -158,6 +158,8 @@ class NodeApiController extends Controller
 
         $v2Name = $request->input("v2_name") ?: "xhttp-hy2";
 
+        $nodePort = (int) $request->input("node_port", 443);
+
         $rootDomain = $this->resolveDomainAffinity(
             $request->input("root_domain"),
             $sysConf,
@@ -343,6 +345,7 @@ class NodeApiController extends Controller
                 "node_ids" => (string) $node->id,
                 "root_domain" => $rootDomain,
                 "v2_name" => $v2Name,
+                "node_port" => $nodePort,
             ]);
         }
 
@@ -400,6 +403,7 @@ class NodeApiController extends Controller
             $rootDomain,
             $mainIsIpv6,
             $v2Name,
+            $nodePort,
         );
         $node->save();
         $allNodeIds = [$node->id];
@@ -426,7 +430,8 @@ class NodeApiController extends Controller
                     $slot["protocol"],
                     $rootDomain,
                     $isIpv6,
-                    $v2Name
+                    $v2Name,
+                    $nodePort
                 );
                 $clone->save();
             } else {
@@ -458,7 +463,8 @@ class NodeApiController extends Controller
                     $slot["protocol"],
                     $rootDomain,
                     $isIpv6,
-                    $v2Name
+                    $v2Name,
+                    $nodePort
                 );
                 $clone->save();
             }
@@ -500,6 +506,7 @@ class NodeApiController extends Controller
             "node_ids" => $nodeIdsStr,
             "root_domain" => $rootDomain,
             "v2_name" => $v2Name,
+            "node_port" => $nodePort,
         ]);
     }
 
@@ -694,7 +701,8 @@ class NodeApiController extends Controller
         $protocol,
         $rootDomain,
         $isIpv6,
-        $modeName = ""
+        $modeName = "",
+        $nodePort = 443
     ) {
         $preset = self::V2_PRESETS[$protocol] ?? null;
         if (!$preset) {
@@ -707,6 +715,9 @@ class NodeApiController extends Controller
         foreach ($preset as $field => $value) {
             $node->{$field} = $value;
         }
+
+        // Override v2_port with custom node_port (default 443)
+        $node->v2_port = $nodePort;
 
         // Port override: in vision mode, ws and grpc are proxied by nginx on 2053
         $expandedMode = $this->expandProtocols($modeName);
@@ -1683,8 +1694,8 @@ class NodeApiController extends Controller
             "__HYSTERIA_URL__" => "http://" . $fallbackHost . ":80",
             "__xhttpPath__" => "srp-xhttp",
             "__xhttpPort__" => 10013,
-            "__hy2Port__" => 443,
-            "__visionPort__" => 443,
+            "__hy2Port__" => (int) ($node->v2_port ?: 443),
+            "__visionPort__" => (int) ($node->v2_port ?: 443),
             "__httpProxyHost__" => $fallbackHost,
             "__dbHost__" => env("DB_REMOTE_HOST", env("DB_HOST", "127.0.0.1")),
             "__dbUser__" => env("DB_USERNAME", "root"),
@@ -1807,6 +1818,8 @@ class NodeApiController extends Controller
         $serverParts = $this->parseServerField($node->server);
         $rootDomain = $serverParts ? $serverParts["root_domain"] : "";
 
+        $nodePort = (int) ($mainNode->v2_port ?: 443);
+
         $fallbackHost = Helpers::systemConfig()["node_fallback_host"] ?? "npanel-nav.freessr.bid";
 
         $conf = str_replace(
@@ -1816,6 +1829,7 @@ class NodeApiController extends Controller
                 "__xhttpPath__",
                 "__xhttpPort__",
                 "__httpProxyHost__",
+                "__nginxPort__",
             ],
             [
                 $rootDomain,
@@ -1823,6 +1837,7 @@ class NodeApiController extends Controller
                 "srp-xhttp",
                 "10013",
                 $fallbackHost,
+                (string)$nodePort,
             ],
             $conf,
         );
