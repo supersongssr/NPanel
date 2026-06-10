@@ -30,5 +30,6 @@ Route::group(['namespace' => 'Api'], function () {
         Route::post('config', 'NodeApiController@config');
         Route::post('nginx_config', 'NodeApiController@nginxConfig');
         Route::post('status', 'NodeApiController@status');
+        Route::post('unlock_check', 'NodeApiController@unlockCheck');
     });
 });

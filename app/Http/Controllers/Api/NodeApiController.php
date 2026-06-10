@@ -133,6 +133,73 @@ class NodeApiController extends Controller
         return response()->json(["node_id" => $node->id]);
     }
 
+    /**
+     * POST /api/node/unlock_check
+     * 节点独立上报 IP 服务解锁检测结果（由 unlockCheck.sh 调用）
+     */
+    public function unlockCheck(Request $request)
+    {
+        // Token 验证: Bearer Header 优先, fallback 到 ?token= 查询参数
+        $token = null;
+        $header = $request->header('Authorization', '');
+        if (stripos($header, 'Bearer ') === 0) {
+            $token = substr($header, 7);
+        }
+        if (!$token) {
+            $token = $request->get('token');
+        }
+        if (!$token || $token !== env('API_TOKEN')) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        $nodeId = $request->input('node_id');
+        if (empty($nodeId)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'missing_node_id',
+            ], 400);
+        }
+
+        $node = SsNode::find($nodeId);
+        if (!$node) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Node not found',
+            ], 404);
+        }
+
+        $unlockServices = [
+            'netflix', 'disney', 'chatgpt', 'claude', 'tiktok',
+            'bilibili', 'iqiyi', 'bahamut', 'mewatch', 'bing',
+            'google_scholar', 'notebooklm',
+        ];
+        $unlockData = [];
+        foreach ($unlockServices as $service) {
+            $val = $request->input('unlock_' . $service);
+            if ($val !== null && $val !== '') {
+                $unlockData[$service] = $val;
+            }
+        }
+
+        if (empty($unlockData)) {
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'no_data',
+            ]);
+        }
+
+        $node->node_unlock = urldecode(http_build_query($unlockData));
+        $node->save();
+
+        return response()->json([
+            'status'  => 'success',
+            'updated' => array_keys($unlockData),
+        ]);
+    }
+
     public function register(Request $request)
     {
         $nodeId = $request->input("node_id");
@@ -241,30 +308,6 @@ class NodeApiController extends Controller
             "node_bandwidth",
             $request->input("bandwidth", 100),
         );
-
-        // --- Collect individual unlock_ parameters ---
-        $unlockServices = [
-            "netflix",
-            "disney",
-            "chatgpt",
-            "claude",
-            "tiktok",
-            "bilibili",
-            "iqiyi",
-            "bahamut",
-            "mewatch",
-            "bing",
-            "google_scholar",
-            "notebooklm",
-        ];
-        $unlockData = [];
-        foreach ($unlockServices as $service) {
-            $val = $request->input("unlock_" . $service);
-            if ($val !== null && $val !== "") {
-                $unlockData[$service] = $val;
-            }
-        }
-        $node->node_unlock = urldecode(http_build_query($unlockData));
 
         $node->info = $request->input("node_info", "");
         $node->level = $mainLevel;
