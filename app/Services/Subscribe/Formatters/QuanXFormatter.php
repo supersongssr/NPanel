@@ -56,8 +56,17 @@ class QuanXFormatter
         // 获取节点 UUID
         $uuid = $node->node_uuid ?: $user->vmess_id;
 
+        // 生成国旗+城市名的显示名称
+        $countryCode = strtolower($node->country_code ?? '');
+        $displayName = $node->name;
+        if (!empty($countryCode) && $countryCode !== 'un') {
+            $flag = $node->isotoemoji($countryCode);
+            $cityName = $node->node_city ?: $node->node_country ?: $node->name;
+            $displayName = $flag . $cityName;
+        }
+
         // 标签防爆处理：清洗特殊字符
-        $tag = str_replace([',', '=', "\n", "\r"], ['_', '-', '', ''], $node->name);
+        $tag = str_replace([',', '=', "\n", "\r"], ['_', '-', '', ''], $displayName);
         $tag .= ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '');
         $tag .= '_#' . $node->id;
 

@@ -247,13 +247,14 @@ class SubscribeController extends Controller
         $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443'.'#'.urlencode('有效期：'.$user->expire_time)."\n";
         $newsList = SsNode::query()->where('status',1)->where('node_group',0)->orderBy('level', 'desc')->get();     //获取等级为0的news节点，新闻通知节点。
         foreach ($newsList as $key => $node) {
+            $nodeDisplayName = $this->getNodeDisplayName($node);
             if ( $node->type == 1 && ($ss_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {
                 $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443';
-                $scheme .= '#'.urlencode($node->name . '_#' . $node->id) ."\n";
+                $scheme .= '#'.urlencode($nodeDisplayName . '_#' . $node->id) ."\n";
             } elseif ( $node->type == 2 && ($vmess_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {       // 获取 vmess节点
                 $v2_json = [
                     "v"    => "2",
-                    "ps"   => $node->name . '_#' . $node->id ,
+                    "ps"   => $nodeDisplayName . '_#' . $node->id ,
                     "add"  => $requestDomain ,
                     "port" => 443 ,
                     "id"   => '11886d96-252e-4166-9535-ec72467ad095' ,
@@ -270,10 +271,10 @@ class SubscribeController extends Controller
                 $scheme .= 'vmess://' . base64_encode(json_encode($v2_json)) . "\n";
             } elseif ( $node->type == 3 && ($vless_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {   // vless节点获取
                 $scheme .= 'vless://11886d96-252e-4166-9535-ec72467ad095@'.$requestDomain.':443?encryption=none';
-                $scheme .= '#'.urlencode($node->name . '_#' . $node->id) . "\n";
+                $scheme .= '#'.urlencode($nodeDisplayName . '_#' . $node->id) . "\n";
             } elseif ( $node->type == 4 && ($trojan_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {  // trojan节点获取
                 $scheme .= 'trojan://33216f76-f96d-417d-855a-7bd40bb3b884@'.$requestDomain.':443';
-                $scheme .= '#'.urlencode($node->name . '_#' . $node->id) . "\n";
+                $scheme .= '#'.urlencode($nodeDisplayName . '_#' . $node->id) . "\n";
             }
         }
         // 获取正式节点。
@@ -380,7 +381,7 @@ class SubscribeController extends Controller
                 $vmessSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
                 $v2_json = [
                     "v"    => "2",
-                    "ps"   => $node->name . '_#' . $node->id  ,
+                    "ps"   => $this->getNodeDisplayName($node) . '_#' . $node->id  ,
                     "add"  => $nodeAddr ,
                     "port" => $node->v2_port ,
                     "id"   => $node_uuid ,
@@ -410,7 +411,7 @@ class SubscribeController extends Controller
                 $vlessSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
                 $scheme .= 'vless://'.$node_uuid.'@'.$nodeAddr.':'.$node->v2_port;
                 $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$vlessSni .'&fp='.$node->v2_fp.'&serviceName='.$node->v2_servicename. '&mode='.$vlessMode.'&alpn='.urlencode($node->v2_alpn);
-                $scheme .= '#'.urlencode($node->name.($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
+                $scheme .= '#'.urlencode($this->getNodeDisplayName($node).($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $vless_count += 1;
                 $v2ray_count += 1;
                 $rocket_count += 1;
@@ -423,7 +424,7 @@ class SubscribeController extends Controller
                 $trojanSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
                 $scheme .= 'trojan://'.$node_uuid.'@'.$nodeAddr.':'.$node->v2_port;
                 $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$trojanSni.'&serviceName='.$node->v2_servicename.'&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
-                $scheme .= '#'.urlencode($node->name.($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
+                $scheme .= '#'.urlencode($this->getNodeDisplayName($node).($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $trojan_count += 1;
                 $v2ray_count += 1;
                 $rocket_count += 1;
@@ -434,7 +435,7 @@ class SubscribeController extends Controller
                     continue;
                 }
                 $suffix = ($node->traffic_rate != 1) ? '_x' . $node->traffic_rate : '';
-                $encodedName = rawurlencode($node->name . $suffix . '_#' . $node->id);
+                $encodedName = rawurlencode($this->getNodeDisplayName($node) . $suffix . '_#' . $node->id);
                 // 端口跳跃：v2rayN 使用 mport 参数传递跳跃端口范围
                 $mport = '';
                 if (!empty($node->v2_hop_ports)) {
@@ -526,6 +527,26 @@ class SubscribeController extends Controller
             return $sni;
         }
         return $prefix . $sni;
+    }
+
+    /**
+     * 生成节点显示名称：国旗+城市名（无空格）
+     * 有 country_code 且非 un 时: 🇺🇸Leesburg
+     * 无有效 country_code 时: 保持原 name 不变
+     *
+     * @param SsNode $node
+     * @return string
+     */
+    private function getNodeDisplayName($node)
+    {
+        if (empty($node->country_code) || strtolower($node->country_code) === 'un') {
+            return $node->name;
+        }
+
+        $flag = $node->isotoemoji($node->country_code);
+        $cityName = $node->node_city ?: $node->node_country ?: $node->name;
+
+        return $flag . $cityName;
     }
 
     /**
@@ -831,7 +852,7 @@ class SubscribeController extends Controller
                 ? $node->ip
                 : $node->server;
             // 使用与 Clash 一致的命名格式："节点名称 | #ID"
-            $tagName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id;
+            $tagName = $this->getNodeDisplayName($node) . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id;
 
             // 解析 TLS
             $tlsEnabled = ($node->v2_tls == 1 || $node->v2_tls == 2);
@@ -1201,7 +1222,7 @@ class SubscribeController extends Controller
                 : $node->server;
 
             // 节点名称：确保特殊字符转义，并添加节点 ID 避免同名冲突
-            $proxyName = $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id;
+            $proxyName = $this->getNodeDisplayName($node) . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id;
             // 对节点名称进行引号包裹，避免 YAML 解析问题
             $quotedName = '"' . str_replace(['"', '\\'], ['\\"', '\\\\'], $proxyName) . '"';
 
@@ -1563,7 +1584,7 @@ class SubscribeController extends Controller
             $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
                 ? $node->ip
                 : $node->server;
-            $proxyName = str_replace([' ', ',', '[', ']'], '_', $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id);
+            $proxyName = str_replace([' ', ',', '[', ']'], '_', $this->getNodeDisplayName($node) . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id);
             $proxyNames[] = $proxyName;
 
             // 解析 TLS
@@ -1714,7 +1735,7 @@ class SubscribeController extends Controller
             $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
                 ? $node->ip
                 : $node->server;
-            $proxyName = str_replace([' ', ',', '[', ']'], '_', $node->name . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id);
+            $proxyName = str_replace([' ', ',', '[', ']'], '_', $this->getNodeDisplayName($node) . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id);
             $proxyNames[] = $proxyName;
 
             // 解析 TLS
