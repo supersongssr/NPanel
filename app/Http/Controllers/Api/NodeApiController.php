@@ -2131,10 +2131,17 @@ class NodeApiController extends Controller
         $avgRemaining = max(0, $node->traffic_left) / max($daysRemaining, 1);
         $node->node_health = $avgUsed > $avgRemaining ? 0 : 1;
 
-        if (
-            $node->traffic_limit - $node->traffic_used <
-            120 * 1024 * 1024 * 1024
-        ) {
+        $trafficLeft = $node->traffic_limit - $node->traffic_used;
+        $threshold = 120 * 1024 * 1024 * 1024; // 120GB
+        if ($trafficLeft >= $threshold) {
+            if ($node->status != 1) {
+                Log::info("[Node API] 节点自动恢复上线", [
+                    "node_id" => $nodeId,
+                    "traffic_left_gb" => round($trafficLeft / 1024 / 1024 / 1024, 2),
+                ]);
+            }
+            $node->status = 1;
+        } else {
             $node->status = 0;
         }
 
