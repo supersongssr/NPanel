@@ -2087,6 +2087,9 @@ class NodeApiController extends Controller
         $node->last_raw_total = $rawTotal;
 
         $node->traffic_used += $incremental;
+
+        // 同步写入剩余流量（供面板展示和旧版逻辑使用）
+        $node->traffic_left = max(0, $node->traffic_limit - $node->traffic_used);
         $node->server_uptime = (int) $request->input(
             "server_uptime",
             $node->server_uptime,
@@ -2096,13 +2099,36 @@ class NodeApiController extends Controller
             $node->level;
         $node->heartbeat_at = date("Y-m-d H:i:s");
 
-        $passedDays = (int) date("d");
-        $remainingDays = (int) date("t") - $passedDays + 1;
+        // 基于 reset_day 计算已过天数和剩余天数（remaining 不含 today）
+        $resetDay = (int) $node->reset_day;
+        $today = (int) date("j");
+        $daysInMonth = (int) date("t");
 
-        $avgUsed = $node->traffic_used / max($passedDays, 1);
-        $avgRemaining =
-            ($node->traffic_limit - $node->traffic_used) /
-            max($remainingDays, 1);
+        if ($resetDay > 0) {
+            $rd = min($resetDay, $daysInMonth);
+            if ($today >= $rd) {
+                $daysElapsed = max(1, $today - $rd + 1);
+                $daysRemaining = max(1, $daysInMonth - $today + $rd);
+            } else {
+                $lastMonth = (int) date("n") - 1 ?: 12;
+                $lastYear = (int) date("Y") - ($lastMonth === 12 ? 1 : 0);
+                $daysInLastMonth = (int) date("t", mktime(0, 0, 0, $lastMonth, 1, $lastYear));
+                $daysElapsed = max(1, $daysInLastMonth - min($resetDay, $daysInLastMonth) + $today + 1);
+                $daysRemaining = max(1, $rd - $today);
+            }
+        } else {
+            $daysElapsed = max(1, $today);
+            $daysRemaining = max(1, $daysInMonth - $today);
+        }
+
+        // 每日已用流量 = 已用总量 / 已过天数
+        $node->traffic_used_daily = (int) ($node->traffic_used / $daysElapsed);
+
+        // 每日剩余流量 = 剩余流量 / 剩余天数
+        $node->traffic_left_daily = (int) (max(0, $node->traffic_left) / $daysRemaining);
+
+        $avgUsed = $node->traffic_used / max($daysElapsed, 1);
+        $avgRemaining = max(0, $node->traffic_left) / max($daysRemaining, 1);
         $node->node_health = $avgUsed > $avgRemaining ? 0 : 1;
 
         if (
