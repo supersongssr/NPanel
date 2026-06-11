@@ -223,7 +223,7 @@ class NodeApiController extends Controller
             $request->input("memory", 0),
         );
 
-        $v2Name = $request->input("v2_name") ?: "xhttp-hy2";
+        $v2Name = $request->input("v2_name") ?: "vision";
 
         $nodePort = (int) $request->input("node_port", 443);
 
