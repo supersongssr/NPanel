@@ -423,7 +423,7 @@ class SubscribeController extends Controller
                 }
                 $trojanSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
                 $scheme .= 'trojan://'.$node_uuid.'@'.$nodeAddr.':'.$node->v2_port;
-                $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$trojanSni.'&serviceName='.$node->v2_servicename.'&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
+                $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$trojanSni.'&fp=ios&serviceName='.$node->v2_servicename.'&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
                 $scheme .= '#'.urlencode($this->getNodeDisplayName($node).($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $trojan_count += 1;
                 $v2ray_count += 1;
@@ -1275,6 +1275,8 @@ class SubscribeController extends Controller
                     if ($node->v2_sni) {
                         $yaml .= "    servername: " . $node->v2_sni . "\n";
                     }
+                    // VMess: 添加 client-fingerprint (ios 避免 chrome 在旧版 xray 的漏洞)
+                    $yaml .= "    client-fingerprint: ios\n";
                     if ($node->v2_alpn) {
                         $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
                         if (!empty($alpnList)) {
@@ -1342,8 +1344,8 @@ class SubscribeController extends Controller
                     if ($node->v2_sni) {
                         $yaml .= "    servername: " . $node->v2_sni . "\n";
                     }
-                    // Mihomo 建议始终添加 client-fingerprint
-                    $yaml .= "    client-fingerprint: chrome\n";
+                    // Mihomo: 添加 client-fingerprint (ios 避免 chrome 在旧版 xray 的漏洞)
+                    $yaml .= "    client-fingerprint: ios\n";
                     if ($node->v2_alpn) {
                         $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
                         if (!empty($alpnList)) {
@@ -1399,6 +1401,8 @@ class SubscribeController extends Controller
                     if ($node->v2_sni) {
                         $yaml .= "    servername: " . $node->v2_sni . "\n";
                     }
+                    // Trojan: 添加 client-fingerprint (ios 避免 chrome 在旧版 xray 的漏洞)
+                    $yaml .= "    client-fingerprint: ios\n";
                 }
             }
 
