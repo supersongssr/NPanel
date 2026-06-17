@@ -443,7 +443,7 @@ class SubscribeController extends Controller
                 }
                 $hy2Sni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
                 $hy2Url = sprintf(
-                    "hysteria2://%s@%s:%s?sni=%s&insecure=1&allowInsecure=1%s#%s\n",
+                    "hysteria2://%s@%s:%s?sni=%s%s#%s\n",
                     $node_uuid,
                     $nodeAddr,
                     $node->v2_port,
@@ -1053,8 +1053,7 @@ class SubscribeController extends Controller
                     "password" => $node_uuid,
                     "tls" => [
                         "enabled" => true,
-                        "server_name" => $node->v2_sni,
-                        "insecure" => true
+                        "server_name" => $node->v2_sni
                     ],
                     "up_mbps" => 100,
                     "down_mbps" => 100
@@ -1415,7 +1414,6 @@ class SubscribeController extends Controller
                 $yaml .= "    port: " . (int)$node->v2_port . "\n";
                 $yaml .= "    password: " . $node_uuid . "\n";
                 $yaml .= "    sni: " . $node->v2_sni . "\n";
-                $yaml .= "    skip-cert-verify: true\n";
                 // 端口跳跃（Mihomo/Clash Meta 支持，字段名 hop-ports）
                 if (!empty($node->v2_hop_ports)) {
                     $yaml .= "    hop-ports: \"" . $node->v2_hop_ports . "\"\n";
@@ -1619,8 +1617,7 @@ class SubscribeController extends Controller
 
                 if ($tls) {
                     $sni_opt = $sni ? ", sni={$sni}" : '';
-                    $skip_cert = ', skip-cert-verify=true';
-                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                    $tls_opts = ", tls=true{$sni_opt}";
                 }
 
                 $proxies[] = "{$proxyName} = vmess, {$nodeAddr}, {$node->v2_port}, username={$node_uuid}, udp-relay=false, vmess-aead={$vmess_aead}{$ws_opts}{$tls_opts}";
@@ -1642,8 +1639,7 @@ class SubscribeController extends Controller
 
                 if ($tls) {
                     $sni_opt = $sni ? ", sni={$sni}" : '';
-                    $skip_cert = ', skip-cert-verify=true';
-                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                    $tls_opts = ", tls=true{$sni_opt}";
                 }
 
                 $proxies[] = "{$proxyName} = vless, {$nodeAddr}, {$node->v2_port}, username={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}{$flow}";
@@ -1664,8 +1660,7 @@ class SubscribeController extends Controller
 
                 if ($tls) {
                     $sni_opt = $sni ? ", sni={$sni}" : '';
-                    $skip_cert = ', skip-cert-verify=true';
-                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                    $tls_opts = ", tls=true{$sni_opt}";
                 }
 
                 $proxies[] = "{$proxyName} = trojan, {$nodeAddr}, {$node->v2_port}, password={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}";
@@ -1768,8 +1763,7 @@ class SubscribeController extends Controller
 
                 if ($tls) {
                     $sni_opt = $sni ? ", sni={$sni}" : '';
-                    $skip_cert = ', skip-cert-verify=true';
-                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                    $tls_opts = ", tls=true{$sni_opt}";
                 }
 
                 $proxies[] = "{$proxyName} = vmess, {$nodeAddr}, {$node->v2_port}, username={$node_uuid}, udp-relay=false, vmess-aead={$vmess_aead}{$ws_opts}{$tls_opts}";
@@ -1791,8 +1785,7 @@ class SubscribeController extends Controller
 
                 if ($tls) {
                     $sni_opt = $sni ? ", sni={$sni}" : '';
-                    $skip_cert = ', skip-cert-verify=true';
-                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                    $tls_opts = ", tls=true{$sni_opt}";
                 }
 
                 $proxies[] = "{$proxyName} = vless, {$nodeAddr}, {$node->v2_port}, username={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}{$flow}";
@@ -1813,8 +1806,7 @@ class SubscribeController extends Controller
 
                 if ($tls) {
                     $sni_opt = $sni ? ", sni={$sni}" : '';
-                    $skip_cert = ', skip-cert-verify=true';
-                    $tls_opts = ", tls=true{$sni_opt}{$skip_cert}";
+                    $tls_opts = ", tls=true{$sni_opt}";
                 }
 
                 $proxies[] = "{$proxyName} = trojan, {$nodeAddr}, {$node->v2_port}, password={$node_uuid}, udp-relay=false{$ws_opts}{$tls_opts}";

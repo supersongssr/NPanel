@@ -1605,7 +1605,6 @@ class UserController extends Controller
             $txt .= $node->v2_servicename ? "gRPC serviceName：" . $node->v2_servicename . PHP_EOL : "";
             $txt .= $node->v2_mode ? "gRPC mode：" . $node->v2_mode . PHP_EOL : "";
             $txt .= $node->v2_tls ? "TLS：tls" . PHP_EOL : "";
-            $txt .= "allowInsecure：true" . PHP_EOL;
             $txt .= $node->v2_host ? "MAC,tls servername：" . $node->v2_host . PHP_EOL : "";
             $txt .= $node->v2_host ? "IOS,Peer：" . $node->v2_host . PHP_EOL : "";
 
@@ -1624,7 +1623,6 @@ class UserController extends Controller
             $txt .= "gRPC serviceName：" . $node->v2_servicename . PHP_EOL;
             $txt .= "gRPC mode：" . $node->v2_mode . PHP_EOL;
             $txt .= "TLS：tls" . PHP_EOL;
-            $txt .= "allowInsecure：true" . PHP_EOL;
             $txt .= $node->v2_host ? "MAC,tls servername：" . $node->v2_host . PHP_EOL : "";
             $txt .= $node->v2_host ? "IOS,Peer：" . $node->v2_host . PHP_EOL : "";
             //
@@ -1646,7 +1644,6 @@ class UserController extends Controller
             $txt .= $node->v2_servicename ? "gRPC serviceName：" . $node->v2_servicename . PHP_EOL : "";
             $txt .= $node->v2_mode ? "gRPC mode：" . $node->v2_mode . PHP_EOL : "";
             $txt .= "TLS：tls" . PHP_EOL;
-            $txt .= "allowInsecure：true" . PHP_EOL;
             $txt .= $node->v2_host ? "MAC,tls servername：" . $node->v2_host . PHP_EOL : "";
             $txt .= $node->v2_host ? "IOS,Peer：" . $node->v2_host . PHP_EOL : "";
             $node->txt = $txt;
@@ -1659,7 +1656,7 @@ class UserController extends Controller
             $suffix = ($node->traffic_rate != 1) ? '_x' . $node->traffic_rate : '';
             $encodedName = rawurlencode($node->name . $suffix);
             $scheme = sprintf(
-                "hy2://%s@%s:%s?sni=%s&insecure=1#%s",
+                "hy2://%s@%s:%s?sni=%s#%s",
                 $hy2Uuid,
                 $node->server,
                 $node->v2_port,
@@ -1670,7 +1667,6 @@ class UserController extends Controller
             $node->txt .= "服务器：" . ($node->server ? $node->server : $node->ip) . PHP_EOL;
             $node->txt .= "端口：" . $node->v2_port . PHP_EOL;
             $node->txt .= "SNI：" . $node->v2_sni . PHP_EOL;
-            $node->txt .= "insecure: true" . PHP_EOL;
             $node->v2_scheme = $scheme;
         }
 
