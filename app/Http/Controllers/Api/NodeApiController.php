@@ -389,6 +389,10 @@ class NodeApiController extends Controller
                 "root_domain" => $rootDomain,
                 "v2_name" => $v2Name,
                 "node_port" => $nodePort,
+                // 回传 ip/ipv6 (IP fate 互斥后的规范值), 供节点端 node.json 缓存,
+                // 用于安装/重装时判断节点 IP 是否变动
+                "ip" => $node->ip,
+                "ipv6" => $node->ipv6,
             ]);
         }
 
@@ -542,6 +546,8 @@ class NodeApiController extends Controller
             "ipv6" => $node->ipv6,
         ]);
 
+        // 回传 ip/ipv6 (IP fate 互斥 + 主节点单栈锁定后的规范值),
+        // 供节点端 node.json 缓存, 用于安装/重装时判断节点 IP 是否变动
         return response()->json([
             "status" => "success",
             "node_id" => $node->id,
@@ -550,6 +556,8 @@ class NodeApiController extends Controller
             "root_domain" => $rootDomain,
             "v2_name" => $v2Name,
             "node_port" => $nodePort,
+            "ip" => $node->ip,
+            "ipv6" => $node->ipv6,
         ]);
     }
 
