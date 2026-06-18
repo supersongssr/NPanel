@@ -118,6 +118,15 @@ if (isset($config['outbounds'])) {
             echo "      ❌ Has invalid 'filter' field\n";
         }
 
+        // Check for sing-box unsupported hysteria2 hop ports fields (bug fix #5)
+        // sing-box 的 hysteria2 outbound 不支持端口跳跃 (hop_ports/hop_interval)，
+        // 输出会导致 sing-box 启动失败：unknown field "hop_ports"。
+        // 因此 Hysteria2 节点当前在 sing-box 订阅中被整体跳过。
+        if (isset($outbound['hop_ports']) || isset($outbound['hop_interval'])) {
+            $errors[] = "Outbound[$idx] ($type:$tag) has unsupported hysteria2 hop_ports/hop_interval field";
+            echo "      ❌ Has unsupported hop_ports/hop_interval field\n";
+        }
+
         // Check for TCP transport (bug fix #3)
         if (isset($outbound['transport']['type']) && $outbound['transport']['type'] === 'tcp') {
             $errors[] = "Outbound[$idx] has invalid TCP transport type";
@@ -240,6 +249,7 @@ if (empty($errors)) {
     echo "✅ ALL VALIDATIONS PASSED\n\n";
     echo "Key Features Validated:\n";
     echo "  ✅ No invalid 'filter' fields (Bug Fix #2)\n";
+    echo "  ✅ No unsupported hysteria2 hop_ports fields (Bug Fix #5)\n";
     echo "  ✅ No invalid 'tcp' transport (Bug Fix #3)\n";
     echo "  ✅ No deprecated 'private' field (Bug Fix #4)\n";
     echo "  ✅ Correct 'ip_is_private' field used\n";

@@ -1042,30 +1042,24 @@ class SubscribeController extends Controller
                 $outbounds[] = $outbound;
 
             } elseif ($node->type == 5) {
-                // Hysteria2
-                $proxyTags[] = $tagName;
-
-                $outbound = [
-                    "type" => "hysteria2",
-                    "tag" => $tagName,
-                    "server" => $nodeAddr,
-                    "server_port" => (int)$node->v2_port,
-                    "password" => $node_uuid,
-                    "tls" => [
-                        "enabled" => true,
-                        "server_name" => $node->v2_sni
-                    ],
-                    "up_mbps" => 100,
-                    "down_mbps" => 100
-                ];
-
-                // 端口跳跃
-                if (!empty($node->v2_hop_ports)) {
-                    $outbound['hop_ports'] = $node->v2_hop_ports;
-                    $outbound['hop_interval'] = "30s";
-                }
-
-                $outbounds[] = $outbound;
+                // ============================================================
+                // Hysteria2 节点：sing-box 订阅暂时禁用（直接跳过该节点）
+                // ------------------------------------------------------------
+                // 背景: Hysteria2 协议支持「端口跳跃」(hop ports) 特性，对应
+                //       数据库字段 v2_hop_ports，部分节点启用了该特性。
+                // 问题: sing-box 的 hysteria2 outbound 并未实现端口跳跃，不
+                //       支持 hop_ports / hop_interval 字段。一旦把这两个字段
+                //       写入配置，sing-box 解析时会直接报错并启动失败：
+                //         outbounds[N] hop_ports:json: unknown field "hop_ports"
+                // 处理: 为避免整个订阅因单个 hy2 节点而无法加载，sing-box
+                //       订阅暂时不输出任何 Hysteria2 节点（既不生成 outbound，
+                //       也不加入 selector）。
+                // TODO: 待 sing-box 官方支持 hysteria2 端口跳跃 (hop ports)
+                //       后，再在此处恢复 hysteria2 outbound 的生成逻辑。
+                //       参考实现: 见 git 历史，或 Clash 的 generateClashConfig
+                //       （其 hop-ports 字段 Clash/Mihomo 已支持）。
+                // ============================================================
+                continue;
             }
         }
 
