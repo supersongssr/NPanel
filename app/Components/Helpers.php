@@ -160,6 +160,16 @@ class Helpers
         return $port;
     }
 
+    /**
+     * 生成随机 path (32 位十六进制, 等同 UUID 的熵).
+     * 用于 xhttp / ws / grpc 随机化分流路径, 避免固定 path 被封锁.
+     * 仅含 [0-9a-f], URL / nginx location 均安全.
+     */
+    public static function genRandomPath()
+    {
+        return bin2hex(random_bytes(16));
+    }
+
     // 加密方式
     public static function methodList()
     {

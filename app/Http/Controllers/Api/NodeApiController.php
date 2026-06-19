@@ -25,6 +25,12 @@ class NodeApiController extends Controller
      */
     const ADDRESS_MODE = 'ip';
 
+    /**
+     * 随机 path 缓存: 单次 register() 调用内生成, 主节点与所有 clone 共用,
+     * 保证 nginx / xray 下发与订阅 path 完全一致. request-scoped (每请求新实例).
+     */
+    private $clusterPaths = [];
+
     public function __construct()
     {
         while (ob_get_level() > 0) {
@@ -432,6 +438,10 @@ class NodeApiController extends Controller
 
         $cloneIds = [];
 
+        // 随机 path: register 阶段一次性生成, 主节点与所有 clone 共用同一组随机 path,
+        // 保证 nginx / xray 下发与订阅 path 完全一致 (避免固定 path 被封锁).
+        $this->clusterPaths = $this->generateClusterPaths($protocols);
+
         $mainSlot = array_shift($slots);
         $mainIsIpv6 = $mainSlot["ip_type"] === "ipv6";
         $mainPrefix = $mainIsIpv6 ? "ipv6n" : "n";
@@ -736,10 +746,12 @@ class NodeApiController extends Controller
     ];
 
     const V2_PROTOCOL_SLOTS = [
-        "vision-hy2" => ["vision", "vision", "hy2"],
-        "vision"     => ["vision", "vision", "vision"],
-        "xhttp-hy2"  => ["xhttp", "xhttp", "hy2"],
-        "xhttp"      => ["xhttp", "xhttp", "xhttp"],
+        "vision-hy2"        => ["vision", "vision", "hy2"],
+        "vision"           => ["vision", "vision", "vision"],
+        "xhttp-hy2"         => ["xhttp", "xhttp", "hy2"],
+        "xhttp"            => ["xhttp", "xhttp", "xhttp"],
+        "xhttp-ws-grpc"     => ["xhttp", "ws", "grpc"],
+        "xhttp-hy2-ws-grpc" => ["xhttp", "hy2", "ws", "grpc"],
     ];
 
     private function expandProtocols($v2Name)
@@ -784,16 +796,95 @@ class NodeApiController extends Controller
         $node->v2_host = $node->server;
         $node->v2_sni = $node->server;
 
+        // 随机 path: 优先使用 register 阶段生成的随机 path (主节点与 clone 共用同一组),
+        // 缺失时回退到原版固定 path (向后兼容). 写入 v2_path / v2_servicename 后,
+        // nginx / xray 下发与订阅均直接读取, 保证三者 path 完全一致.
         if ($protocol === "ws") {
-            $node->v2_path = "srp-ws";
+            $node->v2_path = isset($this->clusterPaths["ws"])
+                ? $this->clusterPaths["ws"]
+                : "srp-ws";
         }
         if ($protocol === "grpc") {
-            $node->v2_path = "srp-grpc";
-            $node->v2_servicename = "srp-grpc";
+            $grpcPath = isset($this->clusterPaths["grpc"])
+                ? $this->clusterPaths["grpc"]
+                : "srp-grpc";
+            $node->v2_path = $grpcPath;
+            $node->v2_servicename = $grpcPath;
         }
         if ($protocol === "xhttp") {
-            $node->v2_path = "srp-xhttp";
+            $node->v2_path = isset($this->clusterPaths["xhttp"])
+                ? $this->clusterPaths["xhttp"]
+                : "srp-xhttp";
         }
+    }
+
+    /**
+     * 为本次 register 生成分流协议的随机 path.
+     * 只为使用 path / serviceName 的协议 (xhttp / ws / grpc) 生成;
+     * vision / hy2 不需要 path, 跳过.
+     * 整个集群 (主节点 + clone) 共用同一组 path, 保证 nginx / xray / 订阅一致.
+     *
+     * @param  array $protocols  expandProtocols() 的结果
+     * @return array  例如 ['xhttp'=>'<32hex>', 'ws'=>'<32hex>', 'grpc'=>'<32hex>']
+     */
+    private function generateClusterPaths(array $protocols)
+    {
+        $paths = [];
+        foreach (array_unique($protocols) as $proto) {
+            if ($proto === "xhttp" || $proto === "ws" || $proto === "grpc") {
+                $paths[$proto] = Helpers::genRandomPath();
+            }
+        }
+        return $paths;
+    }
+
+    /**
+     * 从节点所属集群解析分流 path (xhttp / ws / grpc).
+     * 主节点与所有 clone 共用同一组 path, 任一节点都能解析出完整三组.
+     * 缺失 (无对应协议的节点 / 空值) 时回退到原版固定 path, 保证向后兼容
+     * (旧节点 v2_path="srp-xhttp" 或为空均能正常工作).
+     *
+     * @param  \App\Http\Models\SsNode $node
+     * @return array  ['xhttp'=>path, 'ws'=>path, 'grpc'=>servicename]
+     */
+    private function resolveClusterPaths($node)
+    {
+        $paths = [
+            "xhttp" => "srp-xhttp",
+            "ws" => "srp-ws",
+            "grpc" => "srp-grpc",
+        ];
+
+        // 定位集群主节点: clone 通过 is_clone 指向主节点, 且只有主节点持有完整 node_ids.
+        $main = $node->is_clone > 0 ? SsNode::find($node->is_clone) : $node;
+        if (!$main) {
+            $main = $node;
+        }
+
+        $nodeIdsRaw = $main->node_ids ?: (string) $main->id;
+        $nodeIds = array_map(
+            "intval",
+            array_filter(explode(",", $nodeIdsRaw), "strlen"),
+        );
+        if (!in_array((int) $main->id, $nodeIds, true)) {
+            $nodeIds[] = (int) $main->id;
+        }
+
+        foreach (SsNode::whereIn("id", $nodeIds)->get() as $c) {
+            $net = $c->v2_net ?: "";
+            if ($net === "xhttp" && $c->v2_path) {
+                $paths["xhttp"] = $c->v2_path;
+            } elseif ($net === "ws" && $c->v2_path) {
+                $paths["ws"] = $c->v2_path;
+            } elseif ($net === "grpc") {
+                $svc = $c->v2_servicename ?: $c->v2_path;
+                if ($svc) {
+                    $paths["grpc"] = $svc;
+                }
+            }
+        }
+
+        return $paths;
     }
 
     private function v2NetToInboundTag($v2Net)
@@ -1742,12 +1833,20 @@ class NodeApiController extends Controller
             return "proxy-" . $proto;
         }, $expanded)));
 
+        // 随机 path: 从集群节点解析, 保证 xray 下发与 nginx / 订阅 path 完全一致.
+        // 缺失时回退到原版固定 path (srp-*), 向后兼容旧节点.
+        $paths = $this->resolveClusterPaths($node);
+
         $vars = [
             "__v2Fallback__" => "127.0.0.1",
             "__nodeDomain__" => $nodeDomain,
             "__HYSTERIA_URL__" => "http://" . $fallbackHost . ":80",
-            "__xhttpPath__" => "srp-xhttp",
+            "__xhttpPath__" => $paths["xhttp"],
+            "__wsPath__" => $paths["ws"],
+            "__v2ServiceName__" => $paths["grpc"],
             "__xhttpPort__" => 10013,
+            "__wsPort__" => 10011,
+            "__grpcPort__" => 10012,
             "__hy2Port__" => (int) ($node->v2_port ?: 443),
             "__visionPort__" => (int) ($node->v2_port ?: 443),
             "__httpProxyHost__" => $fallbackHost,
@@ -1876,20 +1975,32 @@ class NodeApiController extends Controller
 
         $fallbackHost = Helpers::systemConfig()["node_fallback_host"] ?? "npanel-nav.freessr.bid";
 
+        // 随机 path: 从集群节点解析, 保证 nginx 下发与 xray / 订阅 path 完全一致.
+        // 缺失时回退到原版固定 path (srp-*), 向后兼容旧节点.
+        $paths = $this->resolveClusterPaths($node);
+
         $conf = str_replace(
             [
                 "__nodeDomainRegex__",
                 "__nodeDomain__",
                 "__xhttpPath__",
                 "__xhttpPort__",
+                "__wsPath__",
+                "__wsPort__",
+                "__v2ServiceName__",
+                "__grpcPort__",
                 "__httpProxyHost__",
                 "__nginxPort__",
             ],
             [
                 $rootDomain,
                 $rootDomain,
-                "srp-xhttp",
+                $paths["xhttp"],
                 "10013",
+                $paths["ws"],
+                "10011",
+                $paths["grpc"],
+                "10012",
                 $fallbackHost,
                 (string)$nodePort,
             ],
