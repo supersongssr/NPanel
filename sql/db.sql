@@ -82,6 +82,7 @@ CREATE TABLE `ss_node` (
   `v2_type`             VARCHAR(32) NOT NULL DEFAULT 'none'     COMMENT 'V2Ray伪装类型',
   `v2_host`             VARCHAR(255) NOT NULL DEFAULT ''        COMMENT 'V2Ray伪装域名',
   `v2_path`             VARCHAR(255) NOT NULL DEFAULT ''        COMMENT 'V2Ray WS/H2路径',
+  `v2_xhttp_verify`     VARCHAR(64) NULL                        COMMENT 'xhttp-verify模式随机校验token(UUID v4),对应Xhttp-Verify header',
   `v2_tls`              TINYINT(4) NOT NULL DEFAULT '0'         COMMENT 'TLS：0-关、1-TLS、2-XTLS',
   `v2_flow`             VARCHAR(255) NULL                      COMMENT '流控(如xtls-rprx-vision)',
   `v2_sni`              VARCHAR(255) NULL                      COMMENT 'SNI',

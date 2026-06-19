@@ -42,6 +42,7 @@ ALTER TABLE `ss_node` ADD COLUMN `node_health` INT(11) NOT NULL DEFAULT 1 COMMEN
 ALTER TABLE `ss_node` ADD COLUMN `last_raw_total` BIGINT(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT '流量计量缓存值' AFTER `node_health`;
 ALTER TABLE `ss_node` ADD COLUMN `node_ids` TEXT NULL COMMENT '裂变矩阵节点ID列表' AFTER `is_clone`;
 ALTER TABLE `ss_node` ADD COLUMN `v2_hop_ports` VARCHAR(255) NULL COMMENT '端口跳跃范围(如 20000-50000)' AFTER `v2_cdn_ip`;
+ALTER TABLE `ss_node` ADD COLUMN `v2_xhttp_verify` VARCHAR(64) NULL COMMENT 'xhttp-verify模式随机校验token(UUID v4),对应Xhttp-Verify header' AFTER `v2_path`;
 
 
 -- ============================================================

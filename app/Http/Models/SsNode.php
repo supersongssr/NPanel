@@ -26,7 +26,7 @@ class SsNode extends Model
         'v2_port', 'v2_net', 'v2_type', 'v2_host', 'v2_path', 'v2_tls',
         'v2_sni', 'v2_flow', 'v2_fp', 'v2_alpn', 'v2_servicename',
         'v2_method', 'v2_encryption', 'v2_alter_id', 'v2_mode', 'is_subscribe',
-        'v2_hop_ports',
+        'v2_hop_ports', 'v2_xhttp_verify',
     ];
 
     protected $casts = [

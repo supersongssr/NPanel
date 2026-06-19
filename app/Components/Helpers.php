@@ -170,6 +170,22 @@ class Helpers
         return bin2hex(random_bytes(16));
     }
 
+    /**
+     * 生成随机 UUID v4 (用于 xhttp-verify 模式的 Xhttp-Verify 校验 token).
+     * 在 nginx 层校验客户端请求头 Xhttp-Verify, 提前过滤主动探测 / 低版本客户端.
+     * (用自定义 header 而非 User-Agent, 避免被客户端自动改写.)
+     * 标准 UUID v4 格式: 8-4-4-4-12, 仅含 [0-9a-f-], URL / nginx if 比较均安全.
+     */
+    public static function genRandomUuid()
+    {
+        $b = random_bytes(16);
+        $b[6] = chr((ord($b[6]) & 0x0f) | 0x40); // version 4
+        $b[8] = chr((ord($b[8]) & 0x3f) | 0x80); // variant 10xx
+        $h = bin2hex($b);
+        return substr($h, 0, 8) . '-' . substr($h, 8, 4) . '-' . substr($h, 12, 4)
+            . '-' . substr($h, 16, 4) . '-' . substr($h, 20, 12);
+    }
+
     // 加密方式
     public static function methodList()
     {

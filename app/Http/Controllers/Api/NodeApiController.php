@@ -31,6 +31,15 @@ class NodeApiController extends Controller
      */
     private $clusterPaths = [];
 
+    /**
+     * xhttp-verify 模式的随机校验 token (UUID v4) 缓存:
+     * 单次 register() 调用内生成, 主节点与所有 clone 共用同一 UUID v4.
+     * 对应客户端请求头 Xhttp-Verify, nginx 层据此过滤.
+     * 仅当 v2_name === 'xhttp-verify' 时生成; 否则为 null (不启用校验).
+     * (使用自定义 header Xhttp-Verify, 避免被客户端自动改写 User-Agent.)
+     */
+    private $clusterXhttpVerify = null;
+
     public function __construct()
     {
         while (ob_get_level() > 0) {
@@ -442,6 +451,14 @@ class NodeApiController extends Controller
         // 保证 nginx / xray 下发与订阅 path 完全一致 (避免固定 path 被封锁).
         $this->clusterPaths = $this->generateClusterPaths($protocols);
 
+        // xhttp-verify 模式: 生成集群共用随机 UUID v4 校验 token.
+        // 仅此模式启用, 普通 xhttp / xhttp-hy2 等不启用校验.
+        if ($v2Name === "xhttp-verify") {
+            $this->clusterXhttpVerify = Helpers::genRandomUuid();
+        } else {
+            $this->clusterXhttpVerify = null;
+        }
+
         $mainSlot = array_shift($slots);
         $mainIsIpv6 = $mainSlot["ip_type"] === "ipv6";
         $mainPrefix = $mainIsIpv6 ? "ipv6n" : "n";
@@ -673,6 +690,7 @@ class NodeApiController extends Controller
         $node->v2_host = "";
         $node->v2_sni = null;
         $node->v2_path = "";
+        $node->v2_xhttp_verify = null;
         $node->v2_alpn = null;
         $node->v2_mode = null;
         $node->v2_servicename = null;
@@ -752,6 +770,10 @@ class NodeApiController extends Controller
         "xhttp"            => ["xhttp", "xhttp", "xhttp"],
         "xhttp-ws-grpc"     => ["xhttp", "ws", "grpc"],
         "xhttp-hy2-ws-grpc" => ["xhttp", "hy2", "ws", "grpc"],
+        // xhttp-verify: 仅 xhttp, 但 nginx 层强制校验客户端请求头 Xhttp-Verify (随机 UUID v4),
+        // 提前过滤主动探测 / 低版本客户端, 避免 xray 直接暴露.
+        // (用自定义 header, 避免被客户端自动改写 User-Agent.)
+        "xhttp-verify"       => ["xhttp", "xhttp", "xhttp"],
     ];
 
     private function expandProtocols($v2Name)
@@ -815,6 +837,9 @@ class NodeApiController extends Controller
             $node->v2_path = isset($this->clusterPaths["xhttp"])
                 ? $this->clusterPaths["xhttp"]
                 : "srp-xhttp";
+            // xhttp-verify 模式: 写入集群共用随机 UUID v4 token (主节点与 clone 一致).
+            // 其他模式保持空 (不启用 nginx 层 Xhttp-Verify 校验).
+            $node->v2_xhttp_verify = $this->clusterXhttpVerify;
         }
     }
 
@@ -885,6 +910,40 @@ class NodeApiController extends Controller
         }
 
         return $paths;
+    }
+
+    /**
+     * 从节点所属集群解析 xhttp-verify 模式的随机校验 token (UUID v4).
+     * 主节点与所有 clone 共用同一 token, 任一 xhttp 节点都能解析出.
+     * 返回 null 表示该集群未启用 xhttp-verify 模式 (不进行 Xhttp-Verify 校验).
+     *
+     * @param  \App\Http\Models\SsNode $node
+     * @return string|null  UUID v4 或 null
+     */
+    private function resolveClusterXhttpVerify($node)
+    {
+        // 定位集群主节点: clone 通过 is_clone 指向主节点.
+        $main = $node->is_clone > 0 ? SsNode::find($node->is_clone) : $node;
+        if (!$main) {
+            $main = $node;
+        }
+
+        $nodeIdsRaw = $main->node_ids ?: (string) $main->id;
+        $nodeIds = array_map(
+            "intval",
+            array_filter(explode(",", $nodeIdsRaw), "strlen"),
+        );
+        if (!in_array((int) $main->id, $nodeIds, true)) {
+            $nodeIds[] = (int) $main->id;
+        }
+
+        foreach (SsNode::whereIn("id", $nodeIds)->get() as $c) {
+            if ($c->v2_net === "xhttp" && $c->v2_xhttp_verify) {
+                return $c->v2_xhttp_verify;
+            }
+        }
+
+        return null;
     }
 
     private function v2NetToInboundTag($v2Net)
@@ -1844,6 +1903,7 @@ class NodeApiController extends Controller
             "__xhttpPath__" => $paths["xhttp"],
             "__wsPath__" => $paths["ws"],
             "__v2ServiceName__" => $paths["grpc"],
+            "__xhttpVerify__" => $this->resolveClusterXhttpVerify($node),
             "__xhttpPort__" => 10013,
             "__wsPort__" => 10011,
             "__grpcPort__" => 10012,
@@ -1979,11 +2039,16 @@ class NodeApiController extends Controller
         // 缺失时回退到原版固定 path (srp-*), 向后兼容旧节点.
         $paths = $this->resolveClusterPaths($node);
 
+        // xhttp-verify 模式的随机 UUID v4 校验 token (集群共用);
+        // 仅该模式非空, nginx 层据此校验客户端请求头 Xhttp-Verify. 其他模式为空 (不校验).
+        $xhttpVerify = $this->resolveClusterXhttpVerify($node) ?: "";
+
         $conf = str_replace(
             [
                 "__nodeDomainRegex__",
                 "__nodeDomain__",
                 "__xhttpPath__",
+                "__xhttpVerify__",
                 "__xhttpPort__",
                 "__wsPath__",
                 "__wsPort__",
@@ -1996,6 +2061,7 @@ class NodeApiController extends Controller
                 $rootDomain,
                 $rootDomain,
                 $paths["xhttp"],
+                $xhttpVerify,
                 "10013",
                 $paths["ws"],
                 "10011",

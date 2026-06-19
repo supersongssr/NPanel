@@ -411,6 +411,17 @@ class SubscribeController extends Controller
                 $vlessSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
                 $scheme .= 'vless://'.$node_uuid.'@'.$nodeAddr.':'.$node->v2_port;
                 $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$vlessSni .'&fp='.$node->v2_fp.'&serviceName='.$node->v2_servicename. '&mode='.$vlessMode.'&alpn='.urlencode($node->v2_alpn);
+                // xhttp-verify 模式: 通过 extra 参数下发 headers.Xhttp-Verify (xray xhttp 标准字段),
+                // JSON 压缩后 URL 编码, 客户端据此在 xhttp 请求上发送自定义 header Xhttp-Verify = 节点随机 UUID v4.
+                // (用 xray xhttp 原生 headers 字段, 而非 scHeaders —— scHeaders 不是标准字段会被客户端忽略,
+                //  导致 header 实际不发送; headers 为 map[string]string, 故 value 用字符串而非数组.)
+                // (用自定义 header 而非 User-Agent, 避免被客户端自动改写.)
+                if ($node->v2_net === 'xhttp' && !empty($node->v2_xhttp_verify)) {
+                    $extra = json_encode([
+                        'headers' => ['Xhttp-Verify' => $node->v2_xhttp_verify],
+                    ], JSON_UNESCAPED_SLASHES);
+                    $scheme .= '&extra=' . urlencode($extra);
+                }
                 $scheme .= '#'.urlencode($this->getNodeDisplayName($node).($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $vless_count += 1;
                 $v2ray_count += 1;
@@ -1339,6 +1350,12 @@ class SubscribeController extends Controller
                     }
                     if ($node->v2_host) {
                         $yaml .= "      host: \"" . $node->v2_host . "\"\n";
+                    }
+                    // xhttp-verify 模式: 限制客户端发送自定义 header Xhttp-Verify = 节点随机 UUID v4,
+                    // 与服务端 nginx 层校验一致 (Mihomo xhttp-opts.headers 原样透传).
+                    if (!empty($node->v2_xhttp_verify)) {
+                        $yaml .= "      headers:\n";
+                        $yaml .= "        Xhttp-Verify: \"" . $node->v2_xhttp_verify . "\"\n";
                     }
                 }
                 // TCP 传输（默认）
