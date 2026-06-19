@@ -847,6 +847,30 @@ class SubscribeController extends Controller
 
         // 先收集所有节点信息并生成 outbound
         foreach ($nodeList as $node) {
+            // ============================================================
+            // XHTTP 节点：sing-box 订阅暂时禁用（直接跳过该节点）
+            // ------------------------------------------------------------
+            // 背景: Xray 的 xhttp (SplitHTTP) 传输有 packet-up /
+            //       stream-up / stream-one 三种子模式，服务端常用 auto
+            //       模式混合提供。数据库中 v2_net='xhttp' 的节点（目前
+            //       31 个，全部 VLESS, v2_mode=auto）均属此类。
+            // 问题: sing-box 没有 xhttp 传输类型，其 V2Ray 传输仅支持
+            //       http / ws / grpc / httpupgrade / quic。httpupgrade
+            //       仅能兼容 xhttp 的 stream-one 子模式，对 auto 服务端
+            //       不可靠；若直接输出 {"type":"xhttp"} 更会导致
+            //       sing-box 解析失败、整个配置启动报错：
+            //         outbounds[N] transport: unknown field / type "xhttp"
+            // 处理: 为避免 sing-box 客户端无法加载订阅，统一跳过所有
+            //       xhttp 节点（既不生成 outbound，也不加入 selector）。
+            //       与下方 Hysteria2 因不支持端口跳跃而被跳过的逻辑一致。
+            // TODO: 待 sing-box 官方原生支持 xhttp 传输后，再在此处恢复
+            //       生成逻辑。参考实现: 见 generateClashConfig 中的
+            //       xhttp-opts（Clash/Mihomo 已支持 xhttp）。
+            // ============================================================
+            if ($node->v2_net === 'xhttp') {
+                continue;
+            }
+
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
             $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
                 ? $node->ip
@@ -947,16 +971,7 @@ class SubscribeController extends Controller
                             $transport['service_name'] = $node->v2_servicename;
                         }
                     }
-                    // XHTTP -> HTTPUpgrade (sing-box naming)
-                    elseif ($node->v2_net == 'xhttp') {
-                        $transport['type'] = 'httpupgrade';
-                        if ($node->v2_host) {
-                            $transport['host'] = $node->v2_host;
-                        }
-                        if ($node->v2_path) {
-                            $transport['path'] = $node->v2_path;
-                        }
-                    }
+                    // 注意: xhttp 节点已在循环开头被统一跳过 (sing-box 不支持 xhttp)
 
                     $outbound['transport'] = $transport;
                 }
