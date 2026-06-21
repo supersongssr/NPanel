@@ -37,6 +37,7 @@ class Kernel extends ConsoleKernel
         # 自动禁用余额小于0 的用户
         \App\Console\Commands\AutoBanUserNoMoney::class,
         \App\Console\Commands\AutoDeleteExpiredDns::class,
+        \App\Console\Commands\AutoRotateCdnIp::class,
         \App\Console\Commands\Test::class,
     ];
 
@@ -73,6 +74,8 @@ class Kernel extends ConsoleKernel
         #song 自动禁用 余额少于0 的用户 每天一次
         $schedule->command('autoBanUserNoMoney')->dailyAt('05:00');
         $schedule->command('autoDeleteExpiredDns')->dailyAt('04:10')->withoutOverlapping();
+        // 每日轮换 xhttp-cdn 节点的 CF 优选 IP (v2_cdn_ip), 防封号
+        $schedule->command('autoRotateCdnIp')->dailyAt('04:30')->withoutOverlapping();
     }
 
     /**

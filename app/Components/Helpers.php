@@ -65,6 +65,9 @@ class Helpers
         return array('domainPool' => $domainPool, 'primaryDomain' => $primaryDomain);
     }
 
+    // 注: CF 优选 IP 池已迁移到 App\Services\NodeAddress\OptimizedIpPool (CSV 来源).
+    // 原 getCdnOptimizedIps() / pickCdnOptimizedIp() (DB config 来源) 已移除.
+
     // 获取系统配置
     public static function systemConfig()
     {

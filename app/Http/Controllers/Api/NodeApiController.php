@@ -11,19 +11,19 @@ use App\Http\Models\DnsRecord;
 use App\Components\Helpers;
 use App\Components\DNS\CloudflareProvider;
 use App\Services\DnsRecordCleanupService;
+use App\Services\NodeAddress\NodeAddressService;
 
 class NodeApiController extends Controller
 {
     const DEFAULT_RECORDS_LIMIT = 180;
 
-    const CDN_REQUIRED_NETS = ["ws", "grpc"];
-
     /**
-     * 节点地址模式：
-     *   'ip'     → add=节点IP, 客户端直连IP, 不需要 DNS 注册
-     *   'domain' → add=n{id}.{rootDomain}, 客户端连域名, 需要 Cloudflare DNS
+     * register 不再设置 address/DNS (全部迁移到 NodeAddressService + DnsSyncer 模块):
+     *   - register 只负责节点身份 (ID / IP / 协议预置), address 原生 = 节点 IP
+     *   - 客户端连接地址: NodeAddressService::resolveAddress() (订阅时惰性)
+     *   - DNS 记录同步: DnsSyncer::syncCluster() (resolve_dns 端点)
+     *   - 全局开关 env('NODE_ADDRESS_MODE') = ip | dns | cdn
      */
-    const ADDRESS_MODE = 'ip';
 
     /**
      * 随机 path 缓存: 单次 register() 调用内生成, 主节点与所有 clone 共用,
@@ -86,21 +86,12 @@ class NodeApiController extends Controller
             : self::DEFAULT_RECORDS_LIMIT;
     }
 
-    private function getDomainZoneId(array $meta, $domain = "unknown")
-    {
-        $zoneId = $meta["zone_id"] ?? null;
-        if (!$zoneId) {
-            Log::error(
-                "[Node API] 未能从配置池中找到域名 {$domain} 的 Zone ID",
-            );
-        }
-        return $zoneId;
-    }
-
-    private function isNetCdnRequired($v2Net)
-    {
-        return in_array($v2Net, self::CDN_REQUIRED_NETS);
-    }
+    // ------------------------------------------------------------------
+    // 节点地址解析已迁移到独立模块 NodeAddressService:
+    //   isCdnNode / resolveNodeAddress / resolveMode / resolveCdnIp ...
+    // 以及 CF 优选 IP 池 OptimizedIpPool (CSV 来源).
+    // register / applyV2Preset 不再分配 CDN IP, 保持节点注册系统纯净.
+    // ------------------------------------------------------------------
 
     public function applyId(Request $request)
     {
@@ -245,6 +236,9 @@ class NodeApiController extends Controller
         $rootDomain = $this->resolveDomainAffinity(
             $request->input("root_domain"),
             $sysConf,
+            // CDN 域名亲和: 全局开关=cdn 时选 cdn:true 域名 (独立 CDN 根域名);
+            // 或节点意图走 CDN (v2_name=xhttp-cdn). 其余情况选普通域名.
+            NodeAddressService::isCdnMode() || NodeAddressService::isCdnV2Name($v2Name),
         );
 
         $nodeCost = (float) $request->input("node_cost", 0);
@@ -774,6 +768,9 @@ class NodeApiController extends Controller
         // 提前过滤主动探测 / 低版本客户端, 避免 xray 直接暴露.
         // (用自定义 header, 避免被客户端自动改写 User-Agent.)
         "xhttp-verify"       => ["xhttp", "xhttp", "xhttp"],
+        // xhttp-cdn: 仅 xhttp, 走 Cloudflare CDN. 独立 CF Token + 独立 CDN 根域名,
+        // 灰云 DNS (不 proxied), 客户端连 CF 优选 IP, SNI 锁定域名. 隔离防封号.
+        "xhttp-cdn"          => ["xhttp"],
     ];
 
     private function expandProtocols($v2Name)
@@ -817,6 +814,11 @@ class NodeApiController extends Controller
 
         $node->v2_host = $node->server;
         $node->v2_sni = $node->server;
+
+        // 注: xhttp-cdn 模式的 CF 优选 IP 分配已迁移到 NodeAddressService 模块.
+        // register / applyV2Preset 不再写 v2_cdn / v2_cdn_ip, 保持节点注册系统纯净
+        // (register 时 address 原生 = IP; CDN 地址在订阅时由模块从 CSV 情性解析).
+        // SNI 锁定 = server 域名 (订阅层 applySniPrefix 对 CDN 节点跳过加前缀).
 
         // 随机 path: 优先使用 register 阶段生成的随机 path (主节点与 clone 共用同一组),
         // 缺失时回退到原版固定 path (向后兼容). 写入 v2_path / v2_servicename 后,
@@ -958,11 +960,28 @@ class NodeApiController extends Controller
         return $map[$v2Net] ?? "proxy-" . $v2Net;
     }
 
-    private function resolveDomainAffinity($reportedDomain, $sysConf)
+    private function resolveDomainAffinity($reportedDomain, $sysConf, $cdnOnly = false)
     {
         $parsed = $this->parseDomainPool($sysConf);
         $domainPool = $parsed["domainPool"];
         $primaryDomain = $parsed["primaryDomain"];
+
+        // CDN 模式: 仅在带 cdn:true 标记的域名中选择 (独立根域名, 隔离防封)
+        if ($cdnOnly) {
+            $cdnDomains = [];
+            foreach ($domainPool as $domainName => $meta) {
+                if (is_array($meta) && !empty($meta["cdn"])) {
+                    $cdnDomains[$domainName] = $meta;
+                }
+            }
+            if (empty($cdnDomains)) {
+                Log::error(
+                    "[Node API] resolveDomainAffinity: CDN 模式未找到 cdn:true 的域名池配置, 请在 node_domain_pool 中添加 CDN 域名 (含独立 cf_token / zone_id)",
+                );
+                return $primaryDomain;
+            }
+            $domainPool = $cdnDomains;
+        }
 
         if ($reportedDomain) {
             $limit = $this->getDomainLimit($domainPool[$reportedDomain] ?? []);
@@ -985,857 +1004,33 @@ class NodeApiController extends Controller
 
     public function resolveDns(Request $request)
     {
-        set_time_limit(120);
-        $startTime = microtime(true);
-
+        // DNS 记录同步已迁移到 NodeAddress\DnsSyncer 模块.
+        // 控制器仅做参数校验 + 委托, 不再含任何 CF / DNS 对账逻辑.
+        // address/DNS 行为由全局开关 env('NODE_ADDRESS_MODE') 决定:
+        //   ip → 删记录; dns/cdn → 创建记录解析 host 到 CF.
         $mainNodeId = $request->input("node_id");
         $force = (bool) $request->input("force", false);
 
         if (!$mainNodeId || !is_numeric($mainNodeId)) {
-            Log::error("[Node API] resolveDns: invalid node_id", [
-                "node_id" => $mainNodeId,
-            ]);
-            return response()->json(
-                ["status" => "error", "message" => "Invalid node_id"],
-                400,
-            );
+            Log::error("[Node API] resolveDns: invalid node_id", ["node_id" => $mainNodeId]);
+            return response()->json(["status" => "error", "message" => "Invalid node_id"], 400);
         }
 
-        $mainNode = SsNode::find($mainNodeId);
-        if (!$mainNode) {
-            return response()->json(
-                ["status" => "error", "message" => "Node not found"],
-                404,
-            );
-        }
-
-        $nodeIdsRaw = $mainNode->node_ids ?: (string) $mainNodeId;
-        $nodeIds = array_map(
-            "intval",
-            array_filter(explode(",", $nodeIdsRaw), "strlen"),
-        );
-        $nodeIds = array_unique($nodeIds);
-
-        if (empty($nodeIds)) {
-            Log::error(
-                "[Node API] resolveDns: node_ids is empty after parsing",
-                [
-                    "node_id" => $mainNodeId,
-                    "node_ids_raw" => $nodeIdsRaw,
-                ],
-            );
-            return response()->json(
-                ["status" => "error", "message" => "No node_ids found"],
-                400,
-            );
-        }
-
-        $dnsProvider = app(\App\Components\DNS\CloudflareProvider::class);
-        $sysConf = Helpers::systemConfig();
-        $parsedPool = $this->parseDomainPool($sysConf);
-
-        Log::debug("[Node API] resolveDns start", [
-            "main_node_id" => (int) $mainNodeId,
-            "node_ids" => $nodeIds,
-            "force" => $force,
-            "address_mode" => self::ADDRESS_MODE,
-            "domain_pool_keys" => array_keys($parsedPool["domainPool"]),
-            "primary_domain" => $parsedPool["primaryDomain"],
-        ]);
-
-        // --- IP 模式：跳过创建/更新，仅清理已有 DNS 记录（防止 domain→ip 切换后残留孤儿） ---
-        if (self::ADDRESS_MODE === 'ip') {
-            return $this->resolveDnsIpMode($nodeIds, $dnsProvider, $parsedPool);
-        }
-
-        $maxPerNode = 60;
-        $globalDeadline = microtime(true) + 90;
-        $stats = [
-            "created" => 0,
-            "updated" => 0,
-            "deleted" => 0,
-            "skipped" => 0,
-            "failed" => 0,
-            "no_change" => 0,
-        ];
-
-        $results = [];
-        foreach ($nodeIds as $idx => $id) {
-            $nodeStart = microtime(true);
-
-            if (microtime(true) > $globalDeadline) {
-                $remaining = array_slice($nodeIds, $idx);
-                Log::warning("[Node API] resolveDns global timeout, aborting", [
-                    "processed" => count($results),
-                    "remaining_nodes" => $remaining,
-                ]);
-                foreach ($remaining as $skipId) {
-                    $results[] = [
-                        "action" => "skipped_timeout",
-                        "success" => false,
-                        "node_id" => $skipId,
-                        "message" => "Global timeout",
-                    ];
-                    $stats["skipped"]++;
-                }
-                break;
-            }
-
-            $node = SsNode::find($id);
-            if (!$node) {
-                Log::warning(
-                    "[Node API] resolveDns: node {$id} not found in DB, skipping",
-                );
-                $stats["skipped"]++;
-                continue;
-            }
-
-            if (!$node->server) {
-                Log::warning(
-                    "[Node API] resolveDns: node {$id} has empty server field",
-                    ["node_id" => $id],
-                );
-                $stats["skipped"]++;
-                continue;
-            }
-
-            $serverParts = $this->parseServerField($node->server);
-            $targetRootDomain = $serverParts ? $serverParts["root_domain"] : "";
-            if (!$targetRootDomain) {
-                Log::warning(
-                    "[Node API] resolveDns: invalid server field for node {$id}",
-                    ["server" => $node->server],
-                );
-                $stats["skipped"]++;
-                continue;
-            }
-
-            $poolMeta = $parsedPool["domainPool"][$targetRootDomain] ?? null;
-            if ($poolMeta === null) {
-                Log::warning(
-                    "[Node API] resolveDns: domain '{$targetRootDomain}' not in domain_pool config",
-                    [
-                        "node_id" => $id,
-                        "server" => $node->server,
-                    ],
-                );
-            }
-
-            $zoneId = $this->getDomainZoneId(
-                $poolMeta ?: [],
-                $targetRootDomain,
-            );
-            if (!$zoneId) {
-                Log::error(
-                    "[Node API] resolveDns: zone_id missing, cannot sync node {$id}",
-                    [
-                        "domain" => $targetRootDomain,
-                    ],
-                );
-                $results[] = [
-                    "action" => "skipped_no_zone",
-                    "success" => false,
-                    "node_id" => $id,
-                    "type" => null,
-                ];
-                $stats["failed"]++;
-                continue;
-            }
-
-            if (!$node->ip && !$node->ipv6) {
-                Log::debug(
-                    "[Node API] resolveDns: node {$id} has no IP/IPv6, no blueprints",
-                );
-                $stats["skipped"]++;
-                continue;
-            }
-
-            // --- CDN Decision: derive from v2_net, NOT v2_name ---
-            $v2Net = $node->v2_net ?: "";
-            $expectedProxied = $this->isNetCdnRequired($v2Net);
-
-            Log::debug("[Node API] resolveDns: CDN decision for node {$id}", [
-                "node_id" => $id,
-                "v2_net" => $v2Net,
-                "v2_name" => $node->v2_name,
-                "expected_proxied" => $expectedProxied,
-            ]);
-
-            $blueprints = [];
-            if ($node->ip) {
-                $blueprints[] = [
-                    "type" => "A",
-                    "subdomain" => "n" . $node->id,
-                    "content" => $node->ip,
-                    "root_domain" => $targetRootDomain,
-                    "zone_id" => $zoneId,
-                    "proxied" => $expectedProxied,
-                ];
-            }
-            if ($node->ipv6) {
-                $blueprints[] = [
-                    "type" => "AAAA",
-                    "subdomain" => "ipv6n" . $node->id,
-                    "content" => $node->ipv6,
-                    "root_domain" => $targetRootDomain,
-                    "zone_id" => $zoneId,
-                    "proxied" => $expectedProxied,
-                ];
-            }
-
-            foreach ($blueprints as $blueprint) {
-                $bpResult = $this->reconcileThreeWay(
-                    $node->id,
-                    $blueprint,
-                    $dnsProvider,
-                    $force,
-                );
-                $results[] = $bpResult;
-                $action = $bpResult["action"] ?? "unknown";
-                if (isset($stats[$action])) {
-                    $stats[$action]++;
-                } elseif ($action === "adopted") {
-                    $stats["created"]++;
-                } elseif (!($bpResult["success"] ?? true)) {
-                    $stats["failed"]++;
-                }
-            }
-
-            $expectedTypes = array_column($blueprints, "type");
-            $orphans = DnsRecord::where("node_id", $node->id)
-                ->whereNotIn("record_type", $expectedTypes)
-                ->get();
-
-            foreach ($orphans as $orphan) {
-                $orphanZoneId = $this->getDomainZoneId(
-                    $parsedPool["domainPool"][$orphan->root_domain] ?? [],
-                    $orphan->root_domain,
-                );
-                if ($orphanZoneId) {
-                    $deleteOk = $dnsProvider->deleteRecord(
-                        $orphan->cf_record_id,
-                        $orphanZoneId,
-                    );
-                    if (!$deleteOk) {
-                        Log::warning(
-                            "[Node API] resolveDns: orphan CF delete failed",
-                            [
-                                "node_id" => $node->id,
-                                "cf_id" => $orphan->cf_record_id,
-                            ],
-                        );
-                    }
-                } else {
-                    Log::warning(
-                        "[Node API] resolveDns: orphan has no zone_id, CF record may leak",
-                        [
-                            "node_id" => $node->id,
-                            "orphan_root_domain" => $orphan->root_domain,
-                        ],
-                    );
-                }
-                $orphan->delete();
-                $results[] = [
-                    "action" => "deleted_orphan",
-                    "success" => true,
-                    "node_id" => $node->id,
-                    "type" => $orphan->record_type,
-                ];
-                $stats["deleted"]++;
-            }
-
-            $nodeElapsed = round(microtime(true) - $nodeStart, 3);
-            Log::debug(
-                "[Node API] resolveDns: node {$id} done in {$nodeElapsed}s",
-                [
-                    "node_id" => $id,
-                    "elapsed_s" => $nodeElapsed,
-                    "blueprints_count" => count($blueprints),
-                    "orphans_count" => count($orphans),
-                ],
-            );
-            if ($nodeElapsed > $maxPerNode) {
-                Log::warning(
-                    "[Node API] resolveDns: node {$id} slow, took {$nodeElapsed}s",
-                );
-            }
-        }
-
-        $totalElapsed = round(microtime(true) - $startTime, 3);
-        $allSuccess =
-            !empty($results) &&
-            array_reduce(
-                $results,
-                function ($carry, $r) {
-                    return $carry && ($r["success"] ?? true);
-                },
-                true,
-            );
-
-        Log::info("[Node API] resolveDns complete", [
-            "main_node_id" => (int) $mainNodeId,
-            "total_nodes" => count($nodeIds),
-            "total_results" => count($results),
-            "stats" => $stats,
-            "elapsed_s" => $totalElapsed,
-            "success" => $allSuccess,
-        ]);
-
-        return response()->json([
-            "status" => $allSuccess ? "success" : "error",
-            "results" => $results,
-            "stats" => $stats,
-            "elapsed_s" => $totalElapsed,
-            "message" => $allSuccess
-                ? "DNS cluster synchronized"
-                : "Some DNS operations failed",
-        ]);
+        $syncer = new \App\Services\NodeAddress\DnsSyncer();
+        $result = $syncer->syncCluster((int) $mainNodeId, $force);
+        $code = ($result["status"] === "error" && ($result["message"] ?? "") === "Node not found") ? 404 : 200;
+        return response()->json($result, $code);
     }
 
     /**
-     * IP 模式专用 DNS 清理：
-     * 遍历集群所有节点，删除 Cloudflare 远端记录 + 本地 dns_records 表记录。
-     * 不创建任何新记录，因为 IP 模式下客户端直连 IP，不需要 DNS 解析。
-     *
-     * @param  array  $nodeIds
-     * @param  \App\Components\DNS\CloudflareProvider  $dnsProvider
-     * @param  array  $parsedPool
-     * @return \Illuminate\Http\JsonResponse
-     */
-    private function resolveDnsIpMode(array $nodeIds, $dnsProvider, array $parsedPool)
-    {
-        $startTime = microtime(true);
-        $stats = [
-            "created" => 0,
-            "updated" => 0,
-            "deleted" => 0,
-            "skipped" => 0,
-            "failed" => 0,
-            "no_change" => 0,
-        ];
-        $results = [];
-
-        foreach ($nodeIds as $nid) {
-            $existingRecords = DnsRecord::where("node_id", $nid)->get();
-
-            if ($existingRecords->isEmpty()) {
-                $stats["skipped"]++;
-                continue;
-            }
-
-            foreach ($existingRecords as $record) {
-                $fqdn = $record->subdomain . "." . $record->root_domain;
-
-                // 删除 Cloudflare 远端记录
-                if (!empty($record->cf_record_id)) {
-                    $zoneId = $this->getDomainZoneId(
-                        $parsedPool["domainPool"][$record->root_domain] ?? [],
-                        $record->root_domain
-                    );
-                    if ($zoneId) {
-                        $deleteOk = $dnsProvider->deleteRecord(
-                            $record->cf_record_id,
-                            $zoneId
-                        );
-                        if (!$deleteOk) {
-                            Log::warning(
-                                "[Node API] resolveDns IP mode: CF delete failed for node {$nid}",
-                                [
-                                    "node_id" => $nid,
-                                    "fqdn" => $fqdn,
-                                    "cf_id" => $record->cf_record_id,
-                                ]
-                            );
-                            $stats["failed"]++;
-                            continue; // 保留本地记录，等待下次重试
-                        }
-                    } else {
-                        Log::warning(
-                            "[Node API] resolveDns IP mode: no zone_id for {$record->root_domain}, CF record may leak",
-                            [
-                                "node_id" => $nid,
-                                "root_domain" => $record->root_domain,
-                            ]
-                        );
-                    }
-                }
-
-                // 删除本地记录
-                $record->delete();
-                $stats["deleted"]++;
-                $results[] = [
-                    "action" => "deleted_ip_mode",
-                    "success" => true,
-                    "node_id" => $nid,
-                    "type" => $record->record_type,
-                    "fqdn" => $fqdn,
-                    "proxied" => false,
-                ];
-
-                Log::info("[Node API] resolveDns IP mode: deleted DNS record", [
-                    "node_id" => $nid,
-                    "type" => $record->record_type,
-                    "fqdn" => $fqdn,
-                ]);
-            }
-        }
-
-        $elapsed = round(microtime(true) - $startTime, 3);
-
-        Log::info("[Node API] resolveDns IP mode complete", [
-            "node_ids" => $nodeIds,
-            "stats" => $stats,
-            "elapsed_s" => $elapsed,
-        ]);
-
-        return response()->json([
-            "status" => "success",
-            "results" => $results,
-            "stats" => $stats,
-            "elapsed_s" => $elapsed,
-            "message" => "ip_mode_cleanup",
-        ]);
-    }
-
-    private function reconcileThreeWay(
-        $nodeId,
-        $blueprint,
-        $dnsProvider,
-        $force = false
-    ) {
-        $sceneStart = microtime(true);
-        $fqdn = $blueprint["subdomain"] . "." . $blueprint["root_domain"];
-        $expectedProxied = $blueprint["proxied"] ?? false;
-
-        $localRecord = DnsRecord::where("node_id", $nodeId)
-            ->where("record_type", $blueprint["type"])
-            ->first();
-
-        if ($localRecord) {
-            Log::debug("[Node API] reconcileThreeWay: local record found", [
-                "node_id" => $nodeId,
-                "type" => $blueprint["type"],
-                "local_subdomain" => $localRecord->subdomain,
-                "local_root_domain" => $localRecord->root_domain,
-                "local_ip" => $localRecord->ip_addr,
-                "local_cf_id" => $localRecord->cf_record_id,
-                "local_proxied" => (bool) $localRecord->proxied,
-            ]);
-        }
-
-        // Scene A: Cache Blocking
-        if (!$force && $localRecord) {
-            $isMatch =
-                $localRecord->subdomain === $blueprint["subdomain"] &&
-                $localRecord->root_domain === $blueprint["root_domain"] &&
-                $localRecord->ip_addr === $blueprint["content"] &&
-                (bool) $localRecord->proxied === $expectedProxied;
-
-            if ($isMatch) {
-                return [
-                    "action" => "no_change",
-                    "success" => true,
-                    "node_id" => $nodeId,
-                    "type" => $blueprint["type"],
-                    "fqdn" => $fqdn,
-                    "proxied" => $expectedProxied,
-                    "message" => "Cache hit: state matches blueprint",
-                ];
-            }
-
-            $diffFields = [];
-            if ($localRecord->subdomain !== $blueprint["subdomain"]) {
-                $diffFields[] = "subdomain";
-            }
-            if ($localRecord->root_domain !== $blueprint["root_domain"]) {
-                $diffFields[] = "root_domain";
-            }
-            if ($localRecord->ip_addr !== $blueprint["content"]) {
-                $diffFields[] = "ip_addr";
-            }
-            if ((bool) $localRecord->proxied !== $expectedProxied) {
-                $diffFields[] = "proxied";
-            }
-
-            Log::debug(
-                "[Node API] reconcileThreeWay: cache miss, diff: " .
-                    implode(",", $diffFields),
-                [
-                    "node_id" => $nodeId,
-                    "type" => $blueprint["type"],
-                    "local_proxied" => (bool) $localRecord->proxied,
-                    "expected_proxied" => $expectedProxied,
-                ],
-            );
-        }
-
-        // Scene B: Domain changed → DELETE old + recreate
-        if (
-            $localRecord &&
-            ($localRecord->subdomain !== $blueprint["subdomain"] ||
-                $localRecord->root_domain !== $blueprint["root_domain"])
-        ) {
-            $oldZoneId = $this->getDomainZoneIdForRecord($localRecord);
-            if ($oldZoneId) {
-                $deleteOk = $dnsProvider->deleteRecord(
-                    $localRecord->cf_record_id,
-                    $oldZoneId,
-                );
-                Log::info(
-                    "[Node API] reconcileThreeWay Scene B: domain changed, deleted old CF record",
-                    [
-                        "node_id" => $nodeId,
-                        "type" => $blueprint["type"],
-                        "old_fqdn" =>
-                            $localRecord->subdomain .
-                            "." .
-                            $localRecord->root_domain,
-                        "new_fqdn" => $fqdn,
-                        "cf_delete_ok" => $deleteOk,
-                        "cf_id" => $localRecord->cf_record_id,
-                    ],
-                );
-            } else {
-                Log::warning(
-                    "[Node API] reconcileThreeWay Scene B: cannot delete old CF record, zone_id missing",
-                    [
-                        "node_id" => $nodeId,
-                        "old_root_domain" => $localRecord->root_domain,
-                        "cf_id" => $localRecord->cf_record_id,
-                    ],
-                );
-            }
-            $localRecord->delete();
-            $localRecord = null;
-        }
-
-        // Scene C: Creation
-        if (!$localRecord) {
-            Log::debug(
-                "[Node API] reconcileThreeWay Scene C: creating CF record",
-                [
-                    "node_id" => $nodeId,
-                    "type" => $blueprint["type"],
-                    "fqdn" => $fqdn,
-                    "content" => $blueprint["content"],
-                    "proxied" => $expectedProxied,
-                ],
-            );
-
-            $cfResult = $dnsProvider->createRecord(
-                $blueprint["root_domain"],
-                $blueprint["subdomain"],
-                $blueprint["content"],
-                $blueprint["type"],
-                $blueprint["zone_id"],
-                $expectedProxied,
-            );
-
-            if (!$cfResult) {
-                // Fallback: CF may reject because the record already exists
-                // (e.g. local cache was cleared but CF still has it).
-                // Query CF, adopt + update if found.
-                Log::warning(
-                    "[Node API] reconcileThreeWay Scene C: CF create failed, attempting adopt fallback",
-                    [
-                        "node_id" => $nodeId,
-                        "type" => $blueprint["type"],
-                        "fqdn" => $fqdn,
-                        "zone_id" => $blueprint["zone_id"],
-                    ],
-                );
-
-                $existingCf = $dnsProvider->getRecordByNameAndType(
-                    $blueprint["root_domain"],
-                    $blueprint["subdomain"],
-                    $blueprint["type"],
-                    $blueprint["zone_id"]
-                );
-
-                if ($existingCf && !empty($existingCf["id"])) {
-                    // Adopt: update the existing CF record to match blueprint
-                    $updateOk = $dnsProvider->updateRecordById(
-                        $existingCf["id"],
-                        $blueprint["root_domain"],
-                        $blueprint["subdomain"],
-                        $blueprint["content"],
-                        $blueprint["type"],
-                        $blueprint["zone_id"],
-                        $expectedProxied
-                    );
-
-                    if ($updateOk) {
-                        DnsRecord::create([
-                            "node_id" => $nodeId,
-                            "root_domain" => $blueprint["root_domain"],
-                            "subdomain" => $blueprint["subdomain"],
-                            "record_type" => $blueprint["type"],
-                            "ip_addr" => $blueprint["content"],
-                            "cf_record_id" => $existingCf["id"],
-                            "proxied" => $expectedProxied,
-                        ]);
-
-                        $elapsed = round(microtime(true) - $sceneStart, 3);
-                        Log::info(
-                            "[Node API] reconcileThreeWay Scene C: adopted existing CF record",
-                            [
-                                "node_id" => $nodeId,
-                                "type" => $blueprint["type"],
-                                "fqdn" => $fqdn,
-                                "content" => $blueprint["content"],
-                                "cf_id" => $existingCf["id"],
-                                "proxied" => $expectedProxied,
-                                "elapsed_s" => $elapsed,
-                            ],
-                        );
-
-                        return [
-                            "action" => "adopted",
-                            "success" => true,
-                            "node_id" => $nodeId,
-                            "type" => $blueprint["type"],
-                            "fqdn" => $fqdn,
-                            "cf_id" => $existingCf["id"],
-                            "proxied" => $expectedProxied,
-                            "message" => "Adopted existing CF record after create failed",
-                        ];
-                    }
-
-                    Log::warning(
-                        "[Node API] reconcileThreeWay Scene C: adopt update also failed",
-                        [
-                            "node_id" => $nodeId,
-                            "fqdn" => $fqdn,
-                            "cf_id" => $existingCf["id"],
-                        ],
-                    );
-                }
-
-                $elapsed = round(microtime(true) - $sceneStart, 3);
-                Log::error(
-                    "[Node API] reconcileThreeWay Scene C: CF create failed (no adopt candidate)",
-                    [
-                        "node_id" => $nodeId,
-                        "type" => $blueprint["type"],
-                        "fqdn" => $fqdn,
-                        "zone_id" => $blueprint["zone_id"],
-                        "proxied" => $expectedProxied,
-                        "elapsed_s" => $elapsed,
-                    ],
-                );
-                return [
-                    "action" => "create_failed",
-                    "success" => false,
-                    "node_id" => $nodeId,
-                    "type" => $blueprint["type"],
-                    "fqdn" => $fqdn,
-                ];
-            }
-
-            if (empty($cfResult["id"])) {
-                Log::error(
-                    "[Node API] reconcileThreeWay Scene C: CF returned success but no record id",
-                    [
-                        "node_id" => $nodeId,
-                        "cf_result" => $cfResult,
-                    ],
-                );
-                return [
-                    "action" => "create_failed",
-                    "success" => false,
-                    "node_id" => $nodeId,
-                    "type" => $blueprint["type"],
-                    "fqdn" => $fqdn,
-                    "message" => "CF returned no record ID",
-                ];
-            }
-
-            DnsRecord::create([
-                "node_id" => $nodeId,
-                "root_domain" => $blueprint["root_domain"],
-                "subdomain" => $blueprint["subdomain"],
-                "record_type" => $blueprint["type"],
-                "ip_addr" => $blueprint["content"],
-                "cf_record_id" => $cfResult["id"],
-                "proxied" => $expectedProxied,
-            ]);
-
-            $elapsed = round(microtime(true) - $sceneStart, 3);
-            Log::info("[Node API] reconcileThreeWay Scene C: created", [
-                "node_id" => $nodeId,
-                "type" => $blueprint["type"],
-                "fqdn" => $fqdn,
-                "content" => $blueprint["content"],
-                "cf_id" => $cfResult["id"],
-                "proxied" => $expectedProxied,
-                "elapsed_s" => $elapsed,
-            ]);
-
-            return [
-                "action" => "created",
-                "success" => true,
-                "node_id" => $nodeId,
-                "type" => $blueprint["type"],
-                "fqdn" => $fqdn,
-                "cf_id" => $cfResult["id"],
-                "proxied" => $expectedProxied,
-            ];
-        }
-
-        // Scene D: IP or proxied state changed → update
-        if (empty($localRecord->cf_record_id)) {
-            Log::error(
-                "[Node API] reconcileThreeWay Scene D: local record has no cf_record_id",
-                [
-                    "node_id" => $nodeId,
-                    "type" => $blueprint["type"],
-                    "local_record_id" => $localRecord->id,
-                ],
-            );
-            $localRecord->delete();
-            return [
-                "action" => "update_failed",
-                "success" => false,
-                "node_id" => $nodeId,
-                "type" => $blueprint["type"],
-                "fqdn" => $fqdn,
-                "message" => "Missing cf_record_id, cache cleared for retry",
-            ];
-        }
-
-        $ipChanged = $localRecord->ip_addr !== $blueprint["content"];
-        $proxiedChanged = (bool) $localRecord->proxied !== $expectedProxied;
-
-        Log::debug("[Node API] reconcileThreeWay Scene D: updating", [
-            "node_id" => $nodeId,
-            "type" => $blueprint["type"],
-            "fqdn" => $fqdn,
-            "old_ip" => $localRecord->ip_addr,
-            "new_ip" => $blueprint["content"],
-            "ip_changed" => $ipChanged,
-            "old_proxied" => (bool) $localRecord->proxied,
-            "new_proxied" => $expectedProxied,
-            "proxied_changed" => $proxiedChanged,
-            "cf_id" => $localRecord->cf_record_id,
-        ]);
-
-        $cfResult = $dnsProvider->updateRecordById(
-            $localRecord->cf_record_id,
-            $blueprint["root_domain"],
-            $blueprint["subdomain"],
-            $blueprint["content"],
-            $blueprint["type"],
-            $blueprint["zone_id"],
-            $expectedProxied,
-        );
-
-        if (!$cfResult) {
-            $elapsed = round(microtime(true) - $sceneStart, 3);
-            Log::warning(
-                "[Node API] reconcileThreeWay Scene D: CF update failed, clearing cache",
-                [
-                    "node_id" => $nodeId,
-                    "cf_id" => $localRecord->cf_record_id,
-                    "fqdn" => $fqdn,
-                    "elapsed_s" => $elapsed,
-                ],
-            );
-            $localRecord->delete();
-            return [
-                "action" => "update_failed",
-                "success" => false,
-                "node_id" => $nodeId,
-                "type" => $blueprint["type"],
-                "fqdn" => $fqdn,
-            ];
-        }
-
-        $localRecord->ip_addr = $blueprint["content"];
-        $localRecord->proxied = $expectedProxied;
-        $localRecord->save();
-
-        $elapsed = round(microtime(true) - $sceneStart, 3);
-        $actionLabel =
-            $proxiedChanged && !$ipChanged ? "updated_proxied" : "updated_ip";
-        Log::info("[Node API] reconcileThreeWay Scene D: {$actionLabel}", [
-            "node_id" => $nodeId,
-            "type" => $blueprint["type"],
-            "fqdn" => $fqdn,
-            "ip" => $blueprint["content"],
-            "proxied" => $expectedProxied,
-            "elapsed_s" => $elapsed,
-        ]);
-
-        return [
-            "action" => $actionLabel,
-            "success" => true,
-            "node_id" => $nodeId,
-            "type" => $blueprint["type"],
-            "fqdn" => $fqdn,
-            "proxied" => $expectedProxied,
-        ];
-    }
-
-    /**
-     * Safely cleanup DNS records for a node using the shared DnsRecordCleanupService.
-     *
-     * In request context we use a short timeout: if CF API fails we still delete
-     * the local record (best-effort for request latency), but log a warning so
-     * the scheduled AutoDeleteExpiredDns task can retry.
-     *
-     * @param int    $nodeId
-     * @param string $context  Log tag
+     * 安全清理节点 DNS 记录 (节点回收时用). 委托给 DnsSyncer.
      */
     private function safeCleanupNodeDns($nodeId, $context = 'NodeApi')
     {
-        try {
-            $sysConf = Helpers::systemConfig();
-            $parsed = Helpers::parseDomainPool($sysConf);
-            $domainPool = $parsed['domainPool'];
-
-            if (empty($domainPool)) {
-                // No domain pool configured — just delete local records
-                DnsRecord::where('node_id', $nodeId)->delete();
-                return;
-            }
-
-            $dnsProvider = app(CloudflareProvider::class);
-            $cleanupService = new DnsRecordCleanupService();
-            $stats = $cleanupService->cleanupNodeRecords(
-                $nodeId,
-                $dnsProvider,
-                $domainPool,
-                false,
-                'NodeApi.' . $context
-            );
-
-            if ($stats['failed'] > 0) {
-                Log::warning("[Node API] safeCleanupNodeDns: some CF deletes failed for node {$nodeId}", array(
-                    'context' => $context,
-                    'stats'   => $stats,
-                ));
-                // Force-delete any remaining local records even on failure,
-                // since the node is being recycled right now.
-                DnsRecord::where('node_id', $nodeId)
-                    ->whereIn('record_type', array('A', 'AAAA'))
-                    ->delete();
-            }
-        } catch (\Exception $e) {
-            Log::error("[Node API] safeCleanupNodeDns exception for node {$nodeId}: " . $e->getMessage());
-            // Fallback: delete local records to not block node recycling
-            DnsRecord::where('node_id', $nodeId)->delete();
-        }
+        $syncer = new \App\Services\NodeAddress\DnsSyncer();
+        $syncer->cleanupNodeRecords($nodeId, 'NodeApi.' . $context);
     }
 
-    private function getDomainZoneIdForRecord($dnsRecord)
-    {
-        $sysConf = Helpers::systemConfig();
-        $parsedPool = $this->parseDomainPool($sysConf);
-        return $this->getDomainZoneId(
-            $parsedPool["domainPool"][$dnsRecord->root_domain] ?? [],
-            $dnsRecord->root_domain,
-        );
-    }
 
     private function parseServerField($server)
     {

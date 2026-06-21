@@ -14,6 +14,21 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Models\SsNode;
 use App\Http\Models\DnsRecord;
 
+// Crash-safe: backup node_domain_pool before tests, restore on shutdown.
+// (此测试历史会在 cleanup() 里 DELETE node_domain_pool 且不恢复 → 污染 config. 此处补上恢复.)
+$backupPool = DB::table('config')->where('name', 'node_domain_pool')->exists()
+    ? DB::table('config')->where('name', 'node_domain_pool')->value('value')
+    : null;
+register_shutdown_function(function () {
+    global $backupPool;
+    if ($backupPool !== null) {
+        DB::table('config')->updateOrInsert(
+            ['name' => 'node_domain_pool'],
+            ['value' => $backupPool, 'comment' => '']
+        );
+    }
+});
+
 $passed = 0;
 $failed = 0;
 $total = 0;

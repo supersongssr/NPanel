@@ -18,6 +18,27 @@ class CloudflareProvider implements DnsProviderInterface
         $this->apiKey = env('CLOUDFLARE_API_KEY');
     }
 
+    /**
+     * 构造一个使用指定 Token 的 CloudflareProvider 实例.
+     *
+     * 用于 xhttp-cdn 模式: CDN 域名在域名池配置中使用独立的 cf_token,
+     * 与全局 CLOUDFLARE_TOKEN 隔离, 防止 CDN 域名被封号影响普通节点域名.
+     *
+     * @param  string $token 独立的 Cloudflare API Token
+     * @return static
+     */
+    public static function withToken($token)
+    {
+        $instance = new static();
+        if (!empty($token)) {
+            $instance->token = $token;
+            // 独立 Token 优先, 清除全局 KEY 凭据, 避免混用
+            $instance->email = null;
+            $instance->apiKey = null;
+        }
+        return $instance;
+    }
+
     public function updateRecord($domain, $host, $value, $type = 'A', $zoneId = null, $proxied = false)
     {
         if (empty($this->token) && (empty($this->email) || empty($this->apiKey))) {

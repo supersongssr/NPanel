@@ -56,6 +56,9 @@ class QuanXFormatter
         // 获取节点 UUID
         $uuid = $node->node_uuid ?: $user->vmess_id;
 
+        // 节点客户端连接地址: CDN 节点连 CF 优选 IP, IP 模式连节点 IP, 域名模式连域名
+        $server = \App\Services\NodeAddress\NodeAddressService::resolveAddress($node);
+
         // 生成国旗+城市名的显示名称
         $countryCode = strtolower($node->country_code ?? '');
         $displayName = $node->name;
@@ -63,6 +66,10 @@ class QuanXFormatter
             $flag = $node->isotoemoji($countryCode);
             $cityName = $node->node_city ?: $node->node_country ?: $node->name;
             $displayName = $flag . $cityName;
+        }
+        // xhttp-cdn 节点特殊标注
+        if (\App\Services\NodeAddress\NodeAddressService::isCdnNode($node)) {
+            $displayName = '☁' . $displayName;
         }
 
         // 标签防爆处理：清洗特殊字符
@@ -76,16 +83,16 @@ class QuanXFormatter
         // 根据 type 生成对应协议行（不含 tag）
         switch ($node->type) {
             case 2: // VMess
-                $line = $this->formatVmess($node, $uuid, $tlsEnabled);
+                $line = $this->formatVmess($node, $uuid, $tlsEnabled, $server);
                 break;
             case 3: // VLESS
-                $line = $this->formatVless($node, $uuid, $tlsEnabled);
+                $line = $this->formatVless($node, $uuid, $tlsEnabled, $server);
                 break;
             case 4: // Trojan
-                $line = $this->formatTrojan($node, $uuid, $tlsEnabled);
+                $line = $this->formatTrojan($node, $uuid, $tlsEnabled, $server);
                 break;
             case 1: // Shadowsocks
-                $line = $this->formatShadowsocks($node);
+                $line = $this->formatShadowsocks($node, $server);
                 break;
             default:
                 return null;
@@ -98,10 +105,10 @@ class QuanXFormatter
     /**
      * 格式化 VMess 节点（不含 tag，tag 由 formatNode 追加）
      */
-    private function formatVmess(SsNode $node, string $uuid, bool $tlsEnabled): string
+    private function formatVmess(SsNode $node, string $uuid, bool $tlsEnabled, string $server): string
     {
         $cipher = $node->v2_method ?: 'aes-128-gcm';
-        $line = "vmess={$node->server}:{$node->v2_port}, method={$cipher}, password={$uuid}, fast-open=false, udp-relay=true";
+        $line = "vmess={$server}:{$node->v2_port}, method={$cipher}, password={$uuid}, fast-open=false, udp-relay=true";
 
         // 传输层参数
         $line = $this->appendTransportParams($line, $node, $tlsEnabled);
@@ -112,9 +119,9 @@ class QuanXFormatter
     /**
      * 格式化 VLESS 节点（不含 tag，tag 由 formatNode 追加）
      */
-    private function formatVless(SsNode $node, string $uuid, bool $tlsEnabled): string
+    private function formatVless(SsNode $node, string $uuid, bool $tlsEnabled, string $server): string
     {
-        $line = "vless={$node->server}:{$node->v2_port}, method=none, password={$uuid}, fast-open=false, udp-relay=true";
+        $line = "vless={$server}:{$node->v2_port}, method=none, password={$uuid}, fast-open=false, udp-relay=true";
 
         // Vision flow 支持
         if (!empty($node->v2_flow)) {
@@ -147,10 +154,10 @@ class QuanXFormatter
     /**
      * 格式化 Trojan 节点（不含 tag，tag 由 formatNode 追加）
      */
-    private function formatTrojan(SsNode $node, string $uuid, bool $tlsEnabled): string
+    private function formatTrojan(SsNode $node, string $uuid, bool $tlsEnabled, string $server): string
     {
         $sni = $node->v2_sni ?: $node->server;
-        $line = "trojan={$node->server}:{$node->v2_port}, password={$uuid}, over-tls=true, tls-host={$sni}, tls-verification=true, fast-open=false, udp-relay=true";
+        $line = "trojan={$server}:{$node->v2_port}, password={$uuid}, over-tls=true, tls-host={$sni}, tls-verification=true, fast-open=false, udp-relay=true";
 
         // WS 传输
         if ($node->v2_net === 'ws' || $node->v2_net === 'http') {
@@ -169,11 +176,11 @@ class QuanXFormatter
     /**
      * 格式化 Shadowsocks 节点（不含 tag，tag 由 formatNode 追加）
      */
-    private function formatShadowsocks(SsNode $node): string
+    private function formatShadowsocks(SsNode $node, string $server): string
     {
         $cipher = $node->method ?: 'aes-256-cfb';
         $password = $node->single_passwd ?: $node->protocol_param;
-        return "shadowsocks={$node->server}:{$node->ssh_port}, method={$cipher}, password={$password}, fast-open=false, udp-relay=true";
+        return "shadowsocks={$server}:{$node->ssh_port}, method={$cipher}, password={$password}, fast-open=false, udp-relay=true";
     }
 
     /**

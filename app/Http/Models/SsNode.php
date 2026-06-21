@@ -27,6 +27,8 @@ class SsNode extends Model
         'v2_sni', 'v2_flow', 'v2_fp', 'v2_alpn', 'v2_servicename',
         'v2_method', 'v2_encryption', 'v2_alter_id', 'v2_mode', 'is_subscribe',
         'v2_hop_ports', 'v2_xhttp_verify',
+        // xhttp-cdn 模式: v2_cdn='cf' 标记 CDN 节点, v2_cdn_ip=客户端连接的 CF 优选 IP (每日轮换)
+        'v2_cdn', 'v2_cdn_ip',
     ];
 
     protected $casts = [

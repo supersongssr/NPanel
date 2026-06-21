@@ -364,9 +364,7 @@ class SubscribeController extends Controller
             //     }
             // }
             // --- Address mode: IP 模式下客户端直连 IP，domain 模式下连域名 ---
-            $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
-                ? $node->ip
-                : $node->server;
+            $nodeAddr = \App\Services\NodeAddress\NodeAddressService::resolveAddress($node);
 
             $node->v2_tls == 0 && $node->v2_tls = '';   // 解析 tls xtls 
             $node->v2_tls == 1 && $node->v2_tls = 'tls';
@@ -537,6 +535,11 @@ class SubscribeController extends Controller
         if ($node->v2_net === 'ws') {
             return $sni;
         }
+        // xhttp-cdn 节点: SNI 必须与 DNS 解析一致 (锁定 = 域名),
+        // 不可加用户前缀, 否则 CF 边缘无法据 SNI 路由到源站.
+        if (!empty($node->v2_cdn) && $node->v2_cdn === 'cf') {
+            return $sni;
+        }
         return $prefix . $sni;
     }
 
@@ -551,13 +554,19 @@ class SubscribeController extends Controller
     private function getNodeDisplayName($node)
     {
         if (empty($node->country_code) || strtolower($node->country_code) === 'un') {
-            return $node->name;
+            $name = $node->name;
+        } else {
+            $flag = $node->isotoemoji($node->country_code);
+            $cityName = $node->node_city ?: $node->node_country ?: $node->name;
+            $name = $flag . $cityName;
         }
 
-        $flag = $node->isotoemoji($node->country_code);
-        $cityName = $node->node_city ?: $node->node_country ?: $node->name;
+        // xhttp-cdn 节点特殊标注, 便于用户区分 (走 CF CDN, 地址为优选 IP)
+        if (\App\Services\NodeAddress\NodeAddressService::isCdnNode($node)) {
+            $name = '☁' . $name;
+        }
 
-        return $flag . $cityName;
+        return $name;
     }
 
     /**
@@ -883,9 +892,7 @@ class SubscribeController extends Controller
             }
 
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
-            $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
-                ? $node->ip
-                : $node->server;
+            $nodeAddr = \App\Services\NodeAddress\NodeAddressService::resolveAddress($node);
             // 使用与 Clash 一致的命名格式："节点名称 | #ID"
             $tagName = $this->getNodeDisplayName($node) . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id;
 
@@ -1236,9 +1243,7 @@ class SubscribeController extends Controller
 
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
-            $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
-                ? $node->ip
-                : $node->server;
+            $nodeAddr = \App\Services\NodeAddress\NodeAddressService::resolveAddress($node);
 
             // 节点名称：确保特殊字符转义，并添加节点 ID 避免同名冲突
             $proxyName = $this->getNodeDisplayName($node) . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id;
@@ -1609,9 +1614,7 @@ class SubscribeController extends Controller
 
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
-            $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
-                ? $node->ip
-                : $node->server;
+            $nodeAddr = \App\Services\NodeAddress\NodeAddressService::resolveAddress($node);
             $proxyName = str_replace([' ', ',', '[', ']'], '_', $this->getNodeDisplayName($node) . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id);
             $proxyNames[] = $proxyName;
 
@@ -1757,9 +1760,7 @@ class SubscribeController extends Controller
 
         foreach ($nodeList as $node) {
             $node_uuid = $node->node_uuid ?: $user->vmess_id;
-            $nodeAddr = (\App\Http\Controllers\Api\NodeApiController::ADDRESS_MODE === 'ip' && $node->ip)
-                ? $node->ip
-                : $node->server;
+            $nodeAddr = \App\Services\NodeAddress\NodeAddressService::resolveAddress($node);
             $proxyName = str_replace([' ', ',', '[', ']'], '_', $this->getNodeDisplayName($node) . ($node->traffic_rate != 1 ? '_x' . $node->traffic_rate : '') . '_#' . $node->id);
             $proxyNames[] = $proxyName;
 
