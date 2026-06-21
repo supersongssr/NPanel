@@ -131,11 +131,14 @@
                                                     <li> <a href="/article?id=48">没看懂？点我查看图文教程</a></li>
                                                 </ol>
                                                 <hr>
+                                                {{-- [PAUSED 2026-06-21] Loon 订阅已停用(配置严谨性待评估, 担心被墙). 恢复: 移除本注释
                                                 <ol>【Loon 7.99$】
                                                     <input type="text" class="form-control sub-link-input" value="{{$link}}?app=loon&vless=128&ss=64&vmess=64" />
                                                     <li> 在<code>美区</code>苹果商店 搜索 <code>Loon</code> 7.99$   </li>
                                                 </ol>
                                                 <hr>
+                                                --}}
+                                                {{-- [PAUSED 2026-06-21] Quantumult X 订阅已停用(配置严谨性待评估, 担心被墙). 恢复: 移除本注释
                                                 <ol>【Quantumult X】
                                                     <input type="text" class="form-control sub-link-input" value="{{$link}}?format=quanx-b64&vless=128&ss=64&vmess=64" />
                                                     <li> 在 App Store 登录<code>非国区</code> Apple ID，搜索 <code>Quantumult X</code> 下载安装</li>
@@ -144,6 +147,7 @@
                                                     <li> 开启顶部<code>主开关</code>即可使用</li>
                                                 </ol>
                                                 <hr>
+                                                --}}
                                                 <!-- <ol>【SS-R 教程】
                                                     <li> 1 下载软件：推荐使用 shadowrocket </li>
                                                     <li> 2 下载软件：网站帮助中心有提供用于下载 shadowrocket的 苹果商店的账号和密码。请务必注意此商店账号米处吗，只能用于登录苹果商店，不能用户登录设置中的appleid！ </li>

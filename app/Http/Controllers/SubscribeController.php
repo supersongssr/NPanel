@@ -198,7 +198,12 @@ class SubscribeController extends Controller
         $rocket_sub = $request->get('rocket') ?? 128;  // 效果等同 v2ray_sub
         $hysteria2_sub = $request->get('hysteria2') ?? $request->get('hysteria') ?? 128;  // Hysteria2 节点，兼容旧 hysteria 参数
 
-        // QuanX 订阅处理（使用 format 参数）
+        // [PAUSED 2026-06-21] Quantumult X 订阅已停用
+        // 原因: 自生成的 QuanX 配置严谨性/安全性尚未充分评估, 担心其节点特征
+        //       被识别从而导致订阅被墙. 待认真评估确认后再恢复.
+        // 恢复方法: 移除下方 /* */ 注释即可. 请求 ?format=quanx / ?format=quanx-b64
+        //          将重新走 generateQuanxConfig.
+        /*
         $format = $request->get('format') ?? "";
         if ($format && in_array($format, ['quanx', 'quanx-b64'])) {
             $query_string = $request->query();
@@ -211,9 +216,15 @@ class SubscribeController extends Controller
                     ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
             }
         }
+        */
+        // 停用后: format 参数被忽略, 请求回退到标准 Base64 订阅(安全默认值)
 
         // Clash 和 Singbox 订阅转换处理（使用 app 参数）
-        if ($app && in_array($app, ['clash', 'singbox', 'surfboard', 'loon'])) {
+        // [PAUSED 2026-06-21] surfboard / loon 订阅已从白名单移除
+        // 原因: 自生成的 Surfboard/Loon 配置严谨性/安全性尚未充分评估,
+        //       担心其节点特征被识别从而导致订阅被墙. 仅保留 clash / singbox.
+        // 恢复方法: 将 'surfboard', 'loon' 加回下方数组即可.
+        if ($app && in_array($app, ['clash', 'singbox'])) {
             // 移除 app 参数，保留其他参数构建原始订阅URL
             $query_string = $request->query();
             unset($query_string['app']);
@@ -718,6 +729,12 @@ class SubscribeController extends Controller
         if (in_array($target, ['singbox', 'clash', 'loon', 'surfboard', 'quanx'])) {
             return $this->generateDirectSubscribe($target, $subscribe, $query_string);
         }
+
+        // [PAUSED 2026-06-21] 第三方订阅转换已停用
+        // 原因: 第三方转换服务(sub_rss_url)会把用户订阅URL及节点信息发送给外部,
+        //       且转换后配置的严谨性无法保证, 存在订阅/节点特征被识别从而导致
+        //       订阅被墙的风险. 待安全评估确认后再删除下方 return 恢复.
+        return false;
 
         // 其他格式仍使用第三方转换
         $sub_rss_url = self::$systemConfig['sub_rss_url'] ?? '';
