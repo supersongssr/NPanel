@@ -65,6 +65,9 @@ deploy_nPanel() {
     rm -f "$EXCLUDE_FILE"
 
     echo "✅ rsync 同步完成！"
+
+    # 服务端开启了 opcache, 重启 PHP-FPM (宝塔 php-fpm-74) 使新代码立即生效
+    ssh "$PROD_DEPLOY_HOST" '/etc/init.d/php-fpm-74 restart'
 }
 
 # --- 主函数 ---
