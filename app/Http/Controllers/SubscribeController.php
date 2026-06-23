@@ -418,8 +418,15 @@ class SubscribeController extends Controller
                 }
                 $vlessMode = $node->v2_mode ?: ($node->v2_net === 'xhttp' ? 'auto' : '');
                 $vlessSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
+                // vision-reality: security 必须输出 'reality' (v2_tls 存 1 经上方转换成 'tls',
+                // 这里兑底覆写), 并追下 pbk(公钥)/sid(shortId). 参考 .tmp/vless-reality订阅格式参考.md.
+                $isReality = $this->isRealityNode($node);
+                $vlessSecurity = $isReality ? 'reality' : $node->v2_tls;
                 $scheme .= 'vless://'.$node_uuid.'@'.$nodeAddr.':'.$node->v2_port;
-                $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$vlessSni .'&fp='.$node->v2_fp.'&serviceName='.$node->v2_servicename. '&mode='.$vlessMode.'&alpn='.urlencode($node->v2_alpn);
+                $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$vlessSecurity.'&sni='.$vlessSni .'&fp='.$node->v2_fp.'&serviceName='.$node->v2_servicename. '&mode='.$vlessMode.'&alpn='.urlencode($node->v2_alpn);
+                if ($isReality) {
+                    $scheme .= '&pbk='.($node->v2_reality_pbk ?: '').'&sid='.($node->v2_reality_sid ?: '');
+                }
                 // xhttp-verify 模式: 通过 extra 参数下发 headers.Xhttp-Verify (xray xhttp 标准字段),
                 // JSON 压缩后 URL 编码, 客户端据此在 xhttp 请求上发送自定义 header Xhttp-Verify = 节点随机 UUID v4.
                 // (用 xray xhttp 原生 headers 字段, 而非 scHeaders —— scHeaders 不是标准字段会被客户端忽略,
@@ -551,7 +558,31 @@ class SubscribeController extends Controller
         if (!empty($node->v2_cdn) && $node->v2_cdn === 'cf') {
             return $sni;
         }
+        // vision-reality 节点: SNI 必须与 xray realitySettings.serverNames 完全一致
+        // (偷自己的泛域名证书校验依赖于此), 不可加用户前缀.
+        if ($this->isRealityNode($node)) {
+            return $sni;
+        }
         return $prefix . $sni;
+    }
+
+    /**
+     * 判断节点是否为 vision-reality (REALITY 偷自己) 模式.
+     *
+     * reality 行为由节点组名 v2_name='vision-reality' 标记; v2_tls 仍存 1 (TLS 层启用),
+     * 不引入新魔法值, 故不能用 v2_tls 区分. 订阅层据此:
+     *   - 跳过 SNI 随机前缀 (applySniPrefix)
+     *   - URI 输出 security=reality + pbk/sid
+     *   - clash/sing-box 输出 reality-opts/reality 子块 + firefox 指纹
+     *
+     * @param \App\Http\Models\SsNode $node
+     * @return bool
+     */
+    private function isRealityNode($node)
+    {
+        return $node
+            && isset($node->v2_name)
+            && $node->v2_name === 'vision-reality';
     }
 
     /**
@@ -1013,14 +1044,28 @@ class SubscribeController extends Controller
 
                 // 添加 TLS 配置
                 if ($tlsEnabled) {
+                    // client-fingerprint: reality 节点强制 firefox (uTLS = 抗 GFW 主动探测核心伪装层);
+                    // 其余节点沿用 ios.
+                    $clientFp = $this->isRealityNode($node)
+                        ? ($node->v2_fp ?: 'firefox')
+                        : 'ios';
                     $outbound['tls'] = [
                         'enabled' => true,
                         'server_name' => $node->v2_sni,
                         'utls' => [
                             'enabled' => true,
-                            'fingerprint' => 'ios'
+                            'fingerprint' => $clientFp
                         ]
                     ];
+                    // vision-reality: reality 子块携带 public_key (pbk) + short_id (sid).
+                    // 参考 .tmp/vless-reality-singbox-rss订阅方法.md.
+                    if ($this->isRealityNode($node)) {
+                        $outbound['tls']['reality'] = [
+                            'enabled' => true,
+                            'public_key' => $node->v2_reality_pbk ?: '',
+                            'short_id' => $node->v2_reality_sid ?: '',
+                        ];
+                    }
                     if ($node->v2_alpn) {
                         $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
                         if (!empty($alpnList)) {
@@ -1391,8 +1436,21 @@ class SubscribeController extends Controller
                     if ($node->v2_sni) {
                         $yaml .= "    servername: " . $node->v2_sni . "\n";
                     }
-                    // Mihomo: 添加 client-fingerprint (ios 避免 chrome 在旧版 xray 的漏洞)
-                    $yaml .= "    client-fingerprint: ios\n";
+                    // client-fingerprint: reality 节点强制 firefox (uTLS 指纹 = 抗 GFW 主动探测核心伪装层);
+                    // 其余节点沿用 ios (避免 chrome 在旧版 xray 的漏洞).
+                    $clientFp = $this->isRealityNode($node)
+                        ? ($node->v2_fp ?: 'firefox')
+                        : 'ios';
+                    $yaml .= "    client-fingerprint: " . $clientFp . "\n";
+                    // vision-reality: reality-opts 携带公钥 (pbk) + shortId (sid).
+                    // 参考 .tmp/vless-reality-clash订阅格式.md.
+                    // 值用双引号包裹: base64url 公钥可能以 '-'/'_' 开头, 不同 clash 变体解析器
+                    // 宽松度不一, 引号包裹是 100% 稳的做法.
+                    if ($this->isRealityNode($node)) {
+                        $yaml .= "    reality-opts:\n";
+                        $yaml .= "      public-key: \"" . ($node->v2_reality_pbk ?: '') . "\"\n";
+                        $yaml .= "      short-id: \"" . ($node->v2_reality_sid ?: '') . "\"\n";
+                    }
                     if ($node->v2_alpn) {
                         $alpnList = array_filter(array_map('trim', explode(',', $node->v2_alpn)));
                         if (!empty($alpnList)) {

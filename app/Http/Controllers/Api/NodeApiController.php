@@ -40,6 +40,17 @@ class NodeApiController extends Controller
      */
     private $clusterXhttpVerify = null;
 
+    /**
+     * vision-reality 模式的 REALITY X25519 密钥对 + shortId 缓存:
+     * 单次 register() 调用内生成, 主节点与所有 clone 共用同一组 (同一物理节点).
+     *   - private: 服务端 privateKey (xray config)
+     *   - public:  客户端 pbk (订阅)
+     *   - shortId: 两端共用
+     * 仅当 v2_name === 'vision-reality' 时生成; 否则为 null (非 REALITY 模式).
+     * privateKey 永不进入订阅, pbk 永不进入 xray config (存储在独立 DB 列).
+     */
+    private $clusterReality = null;
+
     public function __construct()
     {
         while (ob_get_level() > 0) {
@@ -453,6 +464,18 @@ class NodeApiController extends Controller
             $this->clusterXhttpVerify = null;
         }
 
+        // vision-reality 模式: 生成集群共用的 per-node X25519 密钥对 + shortId.
+        //   private -> xray 服务端 privateKey (仅 config() 读取)
+        //   public  -> 订阅 pbk (仅订阅层读取)
+        //   shortId -> 两端共用 (xray shortIds / 订阅 sid)
+        // 主节点与所有 clone 共用同一组 (同一物理节点, host/sni 相同, reality 偷自己证书).
+        // 用 PHP libsodium 生成, 与 `xray x25519` 输出完全兼容.
+        if ($v2Name === "vision-reality") {
+            $this->clusterReality = $this->generateRealityKeys();
+        } else {
+            $this->clusterReality = null;
+        }
+
         $mainSlot = array_shift($slots);
         $mainIsIpv6 = $mainSlot["ip_type"] === "ipv6";
         $mainPrefix = $mainIsIpv6 ? "ipv6n" : "n";
@@ -692,6 +715,12 @@ class NodeApiController extends Controller
         $node->v2_cdn_ip = "";
         $node->v2_insider_port = 0;
         $node->v2_outsider_port = 0;
+
+        // vision-reality: REALITY X25519 密钥对 + shortId (配套, register 时生成).
+        // 回收节点时清空, 防止旧密钥残留.
+        $node->v2_reality_pbk = null;
+        $node->v2_reality_private = null;
+        $node->v2_reality_sid = null;
     }
 
     const V2_PRESETS = [
@@ -760,6 +789,12 @@ class NodeApiController extends Controller
     const V2_PROTOCOL_SLOTS = [
         "vision-hy2"        => ["vision", "vision", "hy2"],
         "vision"           => ["vision", "vision", "vision"],
+        // vision-reality: VLESS + XTLS-Vision + REALITY (偷自己). xray 监听 443,
+        // realitySettings.dest=127.0.0.1:8443 偷本机 nginx 8443 泛域名证书完成 TLS 握手;
+        // 非法探测/普通浏览器透明回落到 nginx 8443 的 AriaNg 伪装站.
+        // 协议槽复用 vision (inbound tag=proxy-vision), reality 行为由 v2_name +
+        // v2_reality_* 列 + applyV2Preset 内的 reality 覆写标记 (不新增协议键).
+        "vision-reality"    => ["vision", "vision", "vision"],
         "xhttp-hy2"         => ["xhttp", "xhttp", "hy2"],
         "xhttp"            => ["xhttp", "xhttp", "xhttp"],
         "xhttp-ws-grpc"     => ["xhttp", "ws", "grpc"],
@@ -842,6 +877,28 @@ class NodeApiController extends Controller
             // xhttp-verify 模式: 写入集群共用随机 UUID v4 token (主节点与 clone 一致).
             // 其他模式保持空 (不启用 nginx 层 Xhttp-Verify 校验).
             $node->v2_xhttp_verify = $this->clusterXhttpVerify;
+        }
+
+        // vision-reality 模式: reality 是 TLS 变体 (偷自己证书), 与普通 vision
+        // (tls + 自有证书文件) 区分. reality 行为由 v2_name='vision-reality' +
+        // v2_reality_* 列标记 (v2_tls 仍存 1 = TLS 层启用, 不引入新魔法值).
+        //   - v2_fp 强制 firefox: 限制客户端必须用 uTLS 指纹 (reality 抗 GFW 主动探测的核心伪装层).
+        //   - v2_flow 保持 xtls-rprx-vision (vision 流控, reality 要求 tcp 传输).
+        // REALITY 密钥: 集群共用 (主节点与 clone 同一物理节点), 从 clusterReality 写入
+        // 三列. private 仅 config() 读 -> xray, pbk 仅订阅层读 -> 客户端, sid 两端共用.
+        if ($modeName === "vision-reality") {
+            $node->v2_tls = 1;
+            $node->v2_fp = "firefox";
+            $node->v2_flow = "xtls-rprx-vision";
+            $node->v2_reality_pbk = $this->clusterReality
+                ? $this->clusterReality["public"]
+                : null;
+            $node->v2_reality_private = $this->clusterReality
+                ? $this->clusterReality["private"]
+                : null;
+            $node->v2_reality_sid = $this->clusterReality
+                ? $this->clusterReality["shortId"]
+                : null;
         }
     }
 
@@ -946,6 +1003,83 @@ class NodeApiController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * 生成 per-node REALITY 密钥对 + shortId (配套三件套).
+     *
+     * 用 PHP libsodium 生成标准 X25519 密钥对 (与 `xray x25519` 输出完全兼容).
+     *   - private: 32 字节原始标量, base64url 无填充 (43 字符) -> xray 服务端 privateKey
+     *   - public:  32 字节曲线点, base64url 无填充 (43 字符) -> 客户端订阅 pbk
+     *   - shortId: 8 hex 字符 (4 字节) -> 两端共用 (xray shortIds / 订阅 sid)
+     *
+     * @return array {private:string, public:string, shortId:string}
+     */
+    private function generateRealityKeys()
+    {
+        $kp = sodium_crypto_box_keypair();
+        return [
+            "private" => $this->base64UrlEncode(sodium_crypto_box_secretkey($kp)),
+            "public"  => $this->base64UrlEncode(sodium_crypto_box_publickey($kp)),
+            "shortId" => bin2hex(random_bytes(4)),
+        ];
+    }
+
+    /**
+     * base64url 编码 (无填充). xray reality 密钥的标准编码.
+     */
+    private function base64UrlEncode($data)
+    {
+        return rtrim(strtr(base64_encode($data), "+/", "-_"), "=");
+    }
+
+    /**
+     * 从节点所属集群解析 REALITY 密钥 (private/public/shortId).
+     *
+     * register 时一次性生成并写入主节点 + 所有 clone (同一物理节点共用同一组),
+     * 故任一节点都能解析出. 优先读当前节点自身, 缺失时扫描集群兄弟节点兑底
+     * (兼容旧数据 / 单节点重建场景). 非 vision-reality 集群返回空数组.
+     *
+     * @param  \App\Http\Models\SsNode $node
+     * @return array  {private:string, public:string, shortId:string}; 无则空数组
+     */
+    private function resolveClusterReality($node)
+    {
+        // 优先读当前节点自身 (register 写入所有节点, 通常都有).
+        if ($node->v2_reality_private && $node->v2_reality_pbk) {
+            return [
+                "private" => $node->v2_reality_private,
+                "public"  => $node->v2_reality_pbk,
+                "shortId" => $node->v2_reality_sid ?: "",
+            ];
+        }
+
+        // 定位集群主节点: clone 通过 is_clone 指向主节点.
+        $main = $node->is_clone > 0 ? SsNode::find($node->is_clone) : $node;
+        if (!$main) {
+            $main = $node;
+        }
+
+        $nodeIdsRaw = $main->node_ids ?: (string) $main->id;
+        $nodeIds = array_map(
+            "intval",
+            array_filter(explode(",", $nodeIdsRaw), "strlen"),
+        );
+        if (!in_array((int) $main->id, $nodeIds, true)) {
+            $nodeIds[] = (int) $main->id;
+        }
+
+        foreach (SsNode::whereIn("id", $nodeIds)->get() as $c) {
+            if ($c->v2_reality_private && $c->v2_reality_pbk) {
+                return [
+                    "private" => $c->v2_reality_private,
+                    "public"  => $c->v2_reality_pbk,
+                    "shortId" => $c->v2_reality_sid ?: "",
+                ];
+            }
+        }
+
+        return [];
     }
 
     private function v2NetToInboundTag($v2Net)
@@ -1091,6 +1225,12 @@ class NodeApiController extends Controller
         // 缺失时回退到原版固定 path (srp-*), 向后兼容旧节点.
         $paths = $this->resolveClusterPaths($node);
 
+        // vision-reality: per-node REALITY 密钥从集群解析.
+        //   private+sid -> xray realitySettings, serverName -> 节点自身域名 (偷自己).
+        // 非 vision-reality 节点 resolveClusterReality 返回空数组, 占位符赋空串,
+        // 而模板不含这些占位符, str_replace 是空操作, 安全.
+        $reality = $this->resolveClusterReality($node);
+
         $vars = [
             "__v2Fallback__" => "127.0.0.1",
             "__nodeDomain__" => $nodeDomain,
@@ -1109,6 +1249,13 @@ class NodeApiController extends Controller
             "__dbUser__" => env("DB_USERNAME", "root"),
             "__dbPassword__" => env("DB_PASSWORD", ""),
             "__dbName__" => env("DB_DATABASE", "npanel"),
+            // REALITY 占位符 (仅 vision-reality.json 模板使用):
+            //   privateKey/shortId 仅服务端持有 (从 DB 列读);
+            //   serverName 偷自己 = 节点完整 host (s{id}.rootDomain), 与 nginx 8443
+            //   泛域名证书匹配, 且必须等于客户端 SNI (订阅层 applySniPrefix 对 reality 跳过加前缀).
+            "__realityPrivateKey__" => isset($reality["private"]) ? $reality["private"] : "",
+            "__realityShortId__" => isset($reality["shortId"]) ? $reality["shortId"] : "",
+            "__realityServerName__" => $node->server ?: $nodeDomain,
         ];
 
         $config = $this->injectVariables($config, $vars);
@@ -1175,6 +1322,7 @@ class NodeApiController extends Controller
 
         $logVars = $vars;
         $logVars["__dbPassword__"] = "******";
+        $logVars["__realityPrivateKey__"] = "******";
 
         Log::debug("[Node API] 配置下发", [
             "node_id" => $node->id,
