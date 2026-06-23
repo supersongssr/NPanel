@@ -22,9 +22,8 @@ class NodeApiController extends Controller
      *   - register 只负责节点身份 (ID / IP / 协议预置), address 原生 = 节点 IP
      *   - 客户端连接地址: NodeAddressService::resolveAddress() (订阅时惰性)
      *   - DNS 记录同步: DnsSyncer::syncCluster() (resolve_dns 端点)
-     *   - 全局开关 env('NODE_ADDRESS_MODE') = ip | dns | cdn
      *
-     * register 时 address 统一为 IP:
+     * register 时 address 统一为 IP (无全局开关, 默认 IP 模式):
      *   - 按 [ipv4×N, ipv6×N] 槽位展开 (ipv4 先, ipv6 后). 如 v2_name=xhttp (3 协议):
      *       main=ipv4, clone1=ipv4, clone2=ipv4, clone3=ipv6, clone4=ipv6, clone5=ipv6.
      *   - ipv4 槽位节点: ip=IPv4, ipv6 空; ipv6 槽位节点: ip 空, ipv6=IPv6 (单栈锁定).
@@ -254,9 +253,9 @@ class NodeApiController extends Controller
         $rootDomain = $this->resolveDomainAffinity(
             $request->input("root_domain"),
             $sysConf,
-            // CDN 域名亲和: 全局开关=cdn 时选 cdn:true 域名 (独立 CDN 根域名);
-            // 或节点意图走 CDN (v2_name=xhttp-cdn). 其余情况选普通域名.
-            NodeAddressService::isCdnMode() || NodeAddressService::isCdnV2Name($v2Name),
+            // CDN 域名亲和: 仅当节点意图走 CDN (v2_name=xhttp-cdn) 时选 cdn:true 域名
+            // (独立 CDN 根域名). 其余情况选普通域名.
+            NodeAddressService::isCdnV2Name($v2Name),
         );
 
         // 集群共用 host/sni: {random8}n{mainid}.{rootDomain}.
@@ -1194,10 +1193,10 @@ class NodeApiController extends Controller
 
     public function resolveDns(Request $request)
     {
-        // DNS 记录同步已迁移到 NodeAddress\DnsSyncer 模块.
+        // DNS 记录同步已迁移到独立模块 NodeAddress\DnsSyncer (resolve_dns 统一入口).
         // 控制器仅做参数校验 + 委托, 不再含任何 CF / DNS 对账逻辑.
-        // address/DNS 行为由全局开关 env('NODE_ADDRESS_MODE') 决定:
-        //   ip → 删记录; dns/cdn → 创建记录解析 host 到 CF.
+        // 无全局开关: DnsSyncer 仅对 clone ipv4 节点创建 A 记录 (连接域名→IP),
+        // 主节点 + ipv6 节点直连 (跳过, 清理残留记录).
         $mainNodeId = $request->input("node_id");
         $force = (bool) $request->input("force", false);
 

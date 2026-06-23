@@ -16,18 +16,17 @@ use App\Services\DnsRecordCleanupService;
  * 与 NodeAddressService 同属"节点地址 + DNS 解析"统一模块.
  * 职责: 在 Cloudflare 上创建 / 更新 / 删除 A/AAAA 记录, 使 host 解析到节点 IP.
  *
- * 行为由全局开关 env('NODE_ADDRESS_MODE') 决定 (与 NodeAddressService 共用):
- *   ip  → 删除该集群所有 DNS 记录 (不解析, 客户端直连 IP)
- *   dns → 创建 A 记录 (proxied 取域名池配置), host 解析到节点 IPv4
- *   cdn → 创建灰云 A 记录 (proxied=false, 独立 cf_token), host 解析到源站 IPv4
+ * 行为 (无全局开关, resolve_dns 端点统一处理 address + host):
+ *   - 主节点 (is_clone == 0): 连接地址恒为 IP → 删除残留记录后跳过 (不解析).
+ *   - ipv6 单栈节点: 直连 ipv6 → 删除残留记录后跳过 (不解析).
+ *   - clone ipv4 节点: 创建 A 记录解析连接域名 (n{cloneid}.domain) 到节点 IPv4.
  *
- * ipv6 单栈节点始终直连 ipv6, 不做 host 解析: 本模块跳过 ipv6 节点 (不创建 DNS 记录).
- * 主节点 (is_clone == 0) 也直连 IP, 不做 host 解析: 本模块跳过主节点 (不创建 DNS 记录),
- * 故仅 clone 的 ipv4 节点在 dns/cdn 模式下创建 A 记录, 降低整个集群的 DNS 解析数量.
+ * 即整个集群只有 clone 的 ipv4 节点需要 DNS 记录, 主节点 + ipv6 节点直连, 降低
+ * DNS 解析数量. 只需域名能解析出节点 IP 即可, 不校验 DNS 记录的 root domain 是否
+ * 与 TLS host (clusterHost) 一致 (连接域名与 TLS host 解耦, domain-fronting).
  *
- * 只需域名能解析出节点 IP 即可, 不校验 DNS 记录的 root domain 是否与 TLS host 一致.
- *
- * register 不调用本模块 (register 不碰 DNS); 由 resolve_dns 端点 / 定时清理调用.
+ * register 不调用本模块 (register 不碰 DNS, address 原生 = IP); 由 resolve_dns 端点 /
+ * 定时清理调用. host/sni (clusterHost) 仅作 TLS 身份, 不创建 DNS 记录.
  *
  * 入口: syncCluster($mainNodeId, $force)  →  返回 [results, stats].
  * ──────────────────────────────────────────────────────────────────
@@ -49,11 +48,13 @@ class DnsSyncer
     private $providerCache = [];
 
     /**
-     * 同步整个集群 (主节点 + 所有 clone) 的 DNS 记录.
+     * 同步整个集群 (主节点 + 所有 clone) 的 DNS 记录 (resolve_dns 端点统一入口).
+     *
+     * 无全局开关: 仅 clone ipv4 节点创建 A 记录, 主节点 + ipv6 节点跳过 (直连).
      *
      * @param  int  $mainNodeId 主节点 ID
      * @param  bool $force      强制重新对账 (忽略本地缓存)
-     * @return array ['results' => [...], 'stats' => [...], 'elapsed_s' => float, 'mode' => string]
+     * @return array ['results' => [...], 'stats' => [...], 'elapsed_s' => float]
      */
     public function syncCluster($mainNodeId, $force = false)
     {
@@ -74,13 +75,11 @@ class DnsSyncer
         }
 
         $this->parsedPool = Helpers::parseDomainPool(Helpers::systemConfig());
-        $mode = NodeAddressService::mode();
 
         Log::debug('[DnsSyncer] syncCluster start', [
             'main_node_id' => (int) $mainNodeId,
             'node_ids' => $nodeIds,
             'force' => $force,
-            'mode' => $mode,
         ]);
 
         $globalDeadline = microtime(true) + $this->globalTimeout;
@@ -97,13 +96,12 @@ class DnsSyncer
                 }
                 break;
             }
-            $this->syncNode($id, $mode, $force, $results, $stats);
+            $this->syncNode($id, $force, $results, $stats);
         }
 
         $elapsed = round(microtime(true) - $startTime, 3);
         Log::info('[DnsSyncer] syncCluster complete', [
             'main_node_id' => (int) $mainNodeId,
-            'mode' => $mode,
             'total_nodes' => count($nodeIds),
             'stats' => $stats,
             'elapsed_s' => $elapsed,
@@ -111,7 +109,6 @@ class DnsSyncer
 
         return [
             'status' => $this->allSuccess($results) ? 'success' : 'error',
-            'mode' => $mode,
             'results' => $results,
             'stats' => $stats,
             'elapsed_s' => $elapsed,
@@ -120,27 +117,24 @@ class DnsSyncer
     }
 
     /**
-     * 同步单个节点的 DNS 记录 (按模式分发).
+     * 同步单个节点的 DNS 记录.
+     *
+     * 规则 (无全局开关):
+     *   - 主节点 (is_clone=0) / ipv6 单栈节点: 直连 (IP / ipv6), 删除残留记录后跳过.
+     *   - clone ipv4 节点: 创建 A 记录解析连接域名 (n{cloneid}.domain) 到节点 IPv4.
      *
      * @param int    $nodeId
-     * @param string $mode    ip | dns | cdn
      * @param bool   $force
      * @param array  $results 输出参数, 追加结果
      * @param array  $stats   输出参数, 累加统计
      */
-    private function syncNode($nodeId, $mode, $force, array &$results, array &$stats)
+    private function syncNode($nodeId, $force, array &$results, array &$stats)
     {
         $nodeStart = microtime(true);
         $node = SsNode::find($nodeId);
         if (!$node) {
             Log::warning("[DnsSyncer] node {$nodeId} not found, skipping");
             $stats['skipped']++;
-            return;
-        }
-
-        // IP 模式: 删除该节点所有 DNS 记录 (不解析)
-        if ($mode === NodeAddressService::MODE_IP) {
-            $this->deleteNodeRecords($node, $results, $stats);
             return;
         }
 
@@ -160,7 +154,8 @@ class DnsSyncer
             return;
         }
 
-        // dns / cdn 模式 (clone ipv4 节点): 创建 A 记录解析连接域名到节点 IPv4.
+        // clone ipv4 节点: 创建 A 记录解析连接域名到节点 IPv4.
+        // host/sni (clusterHost) 仅作 TLS 身份, 不创建 DNS 记录 (连接域名与 TLS host 解耦).
         if (!$node->server) {
             Log::warning("[DnsSyncer] node {$nodeId} empty server");
             $stats['skipped']++;
@@ -180,21 +175,18 @@ class DnsSyncer
             $stats['failed']++;
             return;
         }
-        if (!$node->ip && !$node->ipv6) {
-            Log::debug("[DnsSyncer] node {$nodeId} has no IP/IPv6, skip");
+        if (!$node->ip) {
+            Log::debug("[DnsSyncer] clone node {$nodeId} has no IPv4, skip");
             $stats['skipped']++;
             return;
         }
 
-        // proxied: cdn 模式强制灰云 false; dns 模式取域名池配置 (默认 false)
-        $proxied = ($mode === NodeAddressService::MODE_CDN)
-            ? false
-            : (bool) (is_array($poolMeta) && !empty($poolMeta['proxied']));
+        // proxied: 取域名池配置 (默认 false = 灰云直连源站).
+        $proxied = (bool) (is_array($poolMeta) && !empty($poolMeta['proxied']));
 
         $provider = $this->providerForDomain($targetRootDomain);
 
         Log::debug("[DnsSyncer] syncNode {$nodeId}", [
-            'mode' => $mode,
             'root_domain' => $targetRootDomain,
             'proxied' => $proxied,
             'has_independent_token' => is_array($poolMeta) && !empty($poolMeta['cf_token']),
@@ -217,7 +209,8 @@ class DnsSyncer
     }
 
     /**
-     * IP 模式: 删除节点所有 DNS 记录 (Cloudflare 远端 + 本地).
+     * 删除节点所有 DNS 记录 (Cloudflare 远端 + 本地).
+     * 用于主节点 / ipv6 节点 (直连, 无需 DNS 记录) 清理残留, 以及节点回收.
      */
     private function deleteNodeRecords($node, array &$results, array &$stats)
     {
@@ -252,10 +245,10 @@ class DnsSyncer
     }
 
     /**
-     * 构建 A/AAAA 记录蓝图 (dns / cdn 模式共用).
+     * 构建 A 记录蓝图 (clone ipv4 节点).
      *
-     * 注: ipv6 单栈节点在 syncNode 已提前跳过 (不建记录), 此处的 AAAA 分支仅作兑底
-     * (理论上不会触发 —— register 单栈锁定后 ipv4 节点无 ipv6).
+     * 主节点 / ipv6 节点在 syncNode 已提前跳过 (不建记录), 此处只会为
+     * clone ipv4 节点构建 A 记录.
      */
     private function buildBlueprints($node, $rootDomain, $zoneId, $proxied)
     {
@@ -264,13 +257,6 @@ class DnsSyncer
             $blueprints[] = [
                 'type' => 'A', 'subdomain' => 'n' . $node->id,
                 'content' => $node->ip, 'root_domain' => $rootDomain,
-                'zone_id' => $zoneId, 'proxied' => $proxied,
-            ];
-        }
-        if ($node->ipv6) {
-            $blueprints[] = [
-                'type' => 'AAAA', 'subdomain' => 'ipv6n' . $node->id,
-                'content' => $node->ipv6, 'root_domain' => $rootDomain,
                 'zone_id' => $zoneId, 'proxied' => $proxied,
             ];
         }
