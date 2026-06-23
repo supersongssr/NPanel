@@ -18,16 +18,17 @@ class NodeApiController extends Controller
     const DEFAULT_RECORDS_LIMIT = 180;
 
     /**
-     * register 不再设置 address/DNS (全部迁移到 NodeAddressService + DnsSyncer 模块):
-     *   - register 只负责节点身份 (ID / IP / 协议预置), address 原生 = 节点 IP
+     * register 时只负责节点身份 (ID / ip+ipv6 / 协议预置). server 域名前缀编码 ip 栈信息:
      *   - 客户端连接地址: NodeAddressService::resolveAddress() (订阅时惰性)
      *   - DNS 记录同步: DnsSyncer::syncCluster() (resolve_dns 端点)
      *
-     * register 时 address 统一为 IP (无全局开关, 默认 IP 模式):
+     * server = address 标志 (register 之后, DNS 处理之前已确定, 唯一定义节点是 ipv4 还是 ipv6):
      *   - 按 [ipv4×N, ipv6×N] 槽位展开 (ipv4 先, ipv6 后). 如 v2_name=xhttp (3 协议):
      *       main=ipv4, clone1=ipv4, clone2=ipv4, clone3=ipv6, clone4=ipv6, clone5=ipv6.
-     *   - ipv4 槽位节点: ip=IPv4, ipv6 空; ipv6 槽位节点: ip 空, ipv6=IPv6 (单栈锁定).
-     *   - ipv6 节点的 address 始终为 ipv6 (resolveAddress 恒返回 ipv6), 不做 host 解析;
+     *   - 每个节点 (主节点 + clone) 同时存储物理节点的 ip (IPv4) 与 ipv6 (IPv6), 不再互斥.
+     *   - ipv6 节点的 server subdomain 含 `ipv6n` 标识 (主 `{random8}ipv6n{id}` / clone `ipv6n{id}`),
+     *     ipv4 节点不含 (`{random8}n{id}` / `n{id}`); isIpv6Node / resolveAddress 据此判定.
+     *   - ipv6 节点连接地址始终为 ipv6 (resolveAddress 恒返回 ipv6), 不做 host 解析;
      *     仅 ipv4 节点在 dns/cdn 模式下由 DnsSyncer 转为 host 解析.
      */
 
@@ -271,42 +272,20 @@ class NodeApiController extends Controller
                 ? (int) $clientLevel
                 : max(1, (int) floor($nodeCost));
 
-        // --- IP Mutual Exclusion ---
-        // apply_id already stamped the node with its ip/ipv6 fate.
-        // If apply_id gave IPv4 → only accept node_ip, null out ipv6.
-        // If apply_id gave IPv6 → only accept node_ipv6, null out ip.
-        $fateHasIpv4 = !empty($node->ip);
-        $fateHasIpv6 = !empty($node->ipv6);
-
+        // --- Store both IPv4 and IPv6 (address 标志由 register 槽位写入) ---
+        // 每个节点同时存储物理节点的 ip (IPv4) 与 ipv6 (IPv6), 不再做单栈互斥.
+        // “是 ipv4 还是 ipv6” 由 register 后写入的 address 标志判定, 不靠 ip 缺失推断.
         $reportedIp = $request->input("node_ip");
         $reportedIpv6 = $request->input("node_ipv6");
-
-        if ($fateHasIpv4 && !$fateHasIpv6) {
-            $node->ip = $reportedIp ?: $node->ip;
-            $node->ipv6 = null;
-            Log::debug(
-                "[Node API] register: IPv4-fate node {$nodeId}, IPv6 nulled",
-                [
-                    "node_id" => $nodeId,
-                    "ip" => $node->ip,
-                    "reported_ipv6_discarded" => $reportedIpv6,
-                ],
-            );
-        } elseif ($fateHasIpv6 && !$fateHasIpv4) {
-            $node->ipv6 = $reportedIpv6 ?: $node->ipv6;
-            $node->ip = null;
-            Log::debug(
-                "[Node API] register: IPv6-fate node {$nodeId}, IPv4 nulled",
-                [
-                    "node_id" => $nodeId,
-                    "ipv6" => $node->ipv6,
-                    "reported_ip_discarded" => $reportedIp,
-                ],
-            );
-        } else {
-            $node->ip = $reportedIp ?: $node->ip;
-            $node->ipv6 = $reportedIpv6 ?: $node->ipv6;
-        }
+        $node->ip = $reportedIp ?: $node->ip;
+        $node->ipv6 = $reportedIpv6 ?: $node->ipv6;
+        Log::debug("[Node API] register: store both stacks", [
+            "node_id" => $nodeId,
+            "ip" => $node->ip,
+            "ipv6" => $node->ipv6,
+            "reported_ip" => $reportedIp,
+            "reported_ipv6" => $reportedIpv6,
+        ]);
 
         // --- Standardized naming: {CountryCode}-{City} ---
         $countryCode = strtoupper($request->input("node_country_code", ""));
@@ -495,18 +474,14 @@ class NodeApiController extends Controller
 
         $mainSlot = array_shift($slots);
         $mainIsIpv6 = $mainSlot["ip_type"] === "ipv6";
-        // main 节点 server/host/sni 统一为 clusterHost ({random8}n{mainid}.domain).
+        // main 节点 ipv6 slot 时, clusterHost (server/host/sni) 带 `ipv6n` 标识, 使 isIpv6Node
+        // 能据此判定主节点 ip 栈 (server subdomain 含 ipv6n = ipv6). ipv4 slot 保持 `{random8}n{mainid}`.
         // 主节点连接地址恒为 IP (NodeAddressService 对 is_clone=0 直连 IP), 故 server 仅作
-        // TLS 身份 / root_domain 解析, 不创建 DNS 记录 (降低 DNS 解析数量).
-        $node->server = $clusterHost;
-        // Enforce single-stack on main node: zero out the opposite stack
+        // TLS 身份 / root_domain 解析 / ip 栈标志, 不创建 DNS 记录 (降低 DNS 解析数量).
         if ($mainIsIpv6) {
-            $node->ip = null;
-            $node->ipv6 = $mainSlot["addr"];
-        } else {
-            $node->ip = $mainSlot["addr"];
-            $node->ipv6 = null;
+            $clusterHost = $this->buildClusterHost($node->id, $rootDomain, true);
         }
+        $node->server = $clusterHost;
         $this->applyV2Preset(
             $node,
             $mainSlot["protocol"],
@@ -531,8 +506,10 @@ class NodeApiController extends Controller
                 // 否则 clone 会被误判为主节点 (is_clone=0) 导致 DNS/地址逻辑异常.
                 $clone->is_clone = $nodeId;
                 $clone->node_rxtx = $node->node_rxtx;
-                $clone->ip = $isIpv6 ? "" : $slot["addr"];
-                $clone->ipv6 = $isIpv6 ? $slot["addr"] : "";
+                // clone 与主节点同一物理机, 同时存储物理节点的 ip+ipv6 (不做单栈互斥).
+                // 是 ipv4 还是 ipv6 由 server 前缀 (n/ipv6n) 判定, 不靠 ip 缺失.
+                $clone->ip = $node->ip ?: "";
+                $clone->ipv6 = $node->ipv6 ?: "";
                 $clone->level = rand($mainLevel, min(5, $mainLevel + 2));
                 $clone->node_group = $node->node_group;
                 $clone->traffic_rate = $node->traffic_rate;
@@ -565,8 +542,10 @@ class NodeApiController extends Controller
                 $clone->v2_name = $v2Name;
                 $clone->is_clone = $nodeId;
                 $clone->node_rxtx = $node->node_rxtx;
-                $clone->ip = $isIpv6 ? "" : $slot["addr"];
-                $clone->ipv6 = $isIpv6 ? $slot["addr"] : "";
+                // clone 与主节点同一物理机, 同时存储物理节点的 ip+ipv6 (不做单栈互斥).
+                // 是 ipv4 还是 ipv6 由 server 前缀 (n/ipv6n) 判定, 不靠 ip 缺失.
+                $clone->ip = $node->ip ?: "";
+                $clone->ipv6 = $node->ipv6 ?: "";
                 $clone->level = rand($mainLevel, min(5, $mainLevel + 2));
                 $clone->node_group = $node->node_group;
                 $clone->traffic_rate = $node->traffic_rate;
@@ -938,23 +917,27 @@ class NodeApiController extends Controller
     }
 
     /**
-     * 构建集群共用的 host/sni: {random8}n{mainNodeId}.{rootDomain}.
+     * 构建集群共用的 host/sni: {random8}n{mainNodeId}.{rootDomain} (ipv4) 或
+     * {random8}ipv6n{mainNodeId}.{rootDomain} (ipv6).
      *
      * 随机 8 位前缀取自 UUID v4 的前 8 位 hex ([0-9a-f]), 替代旧的固定 "n" 前缀,
-     * 降低 SNI/host 特征被 GFW 识别追踪的可能性. 主节点与所有 clone 共用同一 host/sni,
-     * clone 不再各自生成 host/sni —— 这是降低 DNS 解析数量的核心.
+     * 降低 SNI/host 特征被 GFW 识别追踪的可能性. ipv6 主节点额外插入 `ipv6n` 标识,
+     * 使 server subdomain 含 ipv6n → isIpv6Node 判定为 ipv6 (server = address 标志).
+     * 主节点与所有 clone 共用同一 host/sni, clone 不再各自生成 host/sni
+     * —— 这是降低 DNS 解析数量的核心.
      *
      * (host/sni 仅作 TLS 身份, 不需要单独的 DNS 记录; clone 的连接地址由 DNS 模块
      *  按节点独立解析, 与 host/sni 解耦.)
      *
      * @param  int    $mainNodeId 主节点 ID
      * @param  string $rootDomain 根域名
-     * @return string 例如 "a1b2c3d4n123.example.com"
+     * @param  bool   $isIpv6     主节点是否 ipv6 slot (true 则插入 ipv6n 标识)
+     * @return string 例如 "a1b2c3d4n123.example.com" / "a1b2c3d4ipv6n123.example.com"
      */
-    private function buildClusterHost($mainNodeId, $rootDomain)
+    private function buildClusterHost($mainNodeId, $rootDomain, $isIpv6 = false)
     {
         $random8 = substr(str_replace('-', '', Helpers::genRandomUuid()), 0, 8);
-        return $random8 . 'n' . $mainNodeId . '.' . $rootDomain;
+        return $random8 . ($isIpv6 ? 'ipv6n' : 'n') . $mainNodeId . '.' . $rootDomain;
     }
 
     /**

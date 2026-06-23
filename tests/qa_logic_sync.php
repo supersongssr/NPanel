@@ -40,9 +40,9 @@ echo "=== QA Test Suite: Logic Sync ===" . PHP_EOL . PHP_EOL;
 $controller = new NodeApiController();
 
 // ===========================
-// QA 1: IP Mutual Exclusion & Naming (IPv4-fate)
+// QA 1: 双栈同时存储 & 命名 (报告 ip+ipv6 → main=ipv4, server={rand}n{id})
 // ===========================
-echo "--- QA1: IP Mutual Exclusion & Naming (IPv4-fate node) ---" . PHP_EOL;
+echo "--- QA1: Store both stacks & Naming (双栈报告, main=ipv4 槽) ---" . PHP_EOL;
 
 $testNode = new SsNode();
 $testNode->name = 'QA Test';
@@ -79,14 +79,19 @@ assert_test(
     "actual: {$refreshed->name}"
 );
 assert_test(
-    'IPv4 is preserved (10.0.0.100)',
+    'IPv4 is preserved (10.0.0.100, 双栈同时存储)',
     $refreshed->ip === '10.0.0.100',
     "actual: {$refreshed->ip}"
 );
 assert_test(
-    'IPv6 is NULL (IPv4-fate, dual-stack report nulled)',
-    $refreshed->ipv6 === null || $refreshed->ipv6 === '',
+    'IPv6 is preserved (fd00::dead:beef, 不再互斥为 null)',
+    $refreshed->ipv6 === 'fd00::dead:beef',
     "actual: " . var_export($refreshed->ipv6, true)
+);
+assert_test(
+    'server 是 ipv4 (subdomain 不含 ipv6n, 主节点 ipv4 槽)',
+    strpos(explode('.', $refreshed->server, 2)[0], 'ipv6n') === false,
+    "actual: {$refreshed->server}"
 );
 assert_test(
     'No dns_records created during register',
@@ -97,9 +102,9 @@ assert_test(
 echo PHP_EOL;
 
 // ===========================
-// QA 1b: IP Mutual Exclusion (IPv6-fate)
+// QA 1b: 仅 ipv6 报告 → main=ipv6 (server={rand}ipv6n{id})
 // ===========================
-echo "--- QA1b: IP Mutual Exclusion (IPv6-fate node) ---" . PHP_EOL;
+echo "--- QA1b: IPv6-only report → main=ipv6 (server 含 ipv6n) ---" . PHP_EOL;
 
 $testNode2 = new SsNode();
 $testNode2->name = 'QA Test 2';
@@ -117,7 +122,7 @@ DnsRecord::where('node_id', $testNodeId2)->delete();
 $request2 = Request::create('/api/node/register', 'POST', [
     'token' => env('API_TOKEN'),
     'node_id' => $testNodeId2,
-    'node_ip' => '192.168.1.1',
+    // 只报 ipv6 (无 node_ip) → 仅 ipv6 槽, main=ipv6
     'node_ipv6' => 'fd00::cafe:babe',
     'node_country_code' => 'JP',
     'node_city' => 'Tokyo',
@@ -129,7 +134,7 @@ $controller->register($request2);
 $refreshed2 = SsNode::find($testNodeId2);
 
 assert_test(
-    'IPv4 is NULL (IPv6-fate node)',
+    'IPv4 is empty (仅报 ipv6, 无 ipv4 槽)',
     $refreshed2->ip === null || $refreshed2->ip === '',
     "actual: " . var_export($refreshed2->ip, true)
 );
@@ -137,6 +142,16 @@ assert_test(
     'IPv6 is preserved',
     $refreshed2->ipv6 === 'fd00::cafe:babe',
     "actual: {$refreshed2->ipv6}"
+);
+assert_test(
+    'server 是 ipv6 (subdomain 含 ipv6n, 主节点 ipv6 槽)',
+    strpos(explode('.', $refreshed2->server, 2)[0], 'ipv6n') !== false,
+    "actual: {$refreshed2->server}"
+);
+assert_test(
+    'isIpv6Node 判定 main 为 ipv6 (基于 server)',
+    \App\Services\NodeAddress\NodeAddressService::isIpv6Node($refreshed2) === true,
+    "server: {$refreshed2->server}"
 );
 assert_test(
     'Name is JP-Tokyo',

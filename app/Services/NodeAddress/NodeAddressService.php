@@ -6,13 +6,18 @@ namespace App\Services\NodeAddress;
  * 节点地址解析模块 (订阅统一入口, 纯函数无副作用).
  *
  * ──────────────────────────────────────────────────────────────────
- * 设计: register 阶段所有节点 address 原生 = IP (节点注册系统不碰 DNS).
+ * 设计: register 阶段按 [ipv4×N, ipv6×N] 槽位展开, 每个节点的 server 域名前缀编码了
+ * ip 栈信息 (register 之后, DNS 处理之前已确定):
+ *   - ipv6 节点: server = `{random8}ipv6n{id}.domain` (主) / `ipv6n{id}.domain` (clone) — 含 `ipv6n`.
+ *   - ipv4 节点: server = `{random8}n{id}.domain` (主) / `n{id}.domain` (clone) — 不含 `ipv6n`.
+ * server 字段本身就是节点的“address”标志 (是 ipv4 还是 ipv6). 每个节点 (主+clone) 同时
+ * 存储物理节点的 ip (IPv4) 与 ipv6 (IPv6), 不再通过 ip 缺失判断是否 ipv6.
  * DNS 记录的创建交给独立的 DnsSyncer 模块, 在 resolve_dns 端点统一处理
  * (把 clone ipv4 节点的连接域名解析到节点 IP). 本模块只在订阅时惰性解析
  * "客户端连接地址", 与 DNS 记录同步完全解耦.
  *
  * address 解析规则 (无全局开关, 固定行为):
- *   1. ipv6 单栈节点 (ip 空 + ipv6 非空) → 始终直连 ipv6 (不做 host 解析).
+ *   1. ipv6 节点 (server 含 `ipv6n`) → 始终直连 ipv6 (不做 host 解析).
  *   2. CDN 节点 (v2_name=xhttp-cdn 或 v2_cdn='cf') → CF 优选 IP (CSV 来源;
  *      CSV 空 → 降级节点 IP). CDN 走 CF 边缘, 独立于 main/clone 角色.
  *   3. 主节点 (is_clone == 0) → 直连 IP (host/sni 复用, 不创建 DNS 记录).
@@ -48,10 +53,13 @@ class NodeAddressService
     }
 
     /**
-     * 节点是否为 ipv6 单栈节点 (register 单栈锁定: ip 空且 ipv6 非空).
+     * 节点是否为 ipv6 节点 (以 server 域名前缀为准).
      *
-     * ipv6 单栈节点的连接地址始终为 ipv6, 不做 host 解析 (直连 ipv6):
-     *   - register 时按 [ipv4×N, ipv6×N] 槽位展开, ipv6 槽位的节点仅填 ipv6 (ip 空).
+     * server 字段本身就是节点的 address 标志 (register 之后, DNS 处理之前已确定):
+     * ipv6 节点的 server subdomain 含 `ipv6n` 标识 (主节点 `{random8}ipv6n{id}` /
+     * clone `ipv6n{id}`), ipv4 节点不含 (`{random8}n{id}` / `n{id}`).
+     * 每个节点同时存储 ip+ipv6 (物理节点双栈), 不再通过 ip 字段缺失判断是否 ipv6.
+     * ipv6 节点的连接地址始终为 ipv6, 不做 host 解析 (直连 ipv6):
      *   - resolveAddress 恒返回 ipv6; DnsSyncer 跳过 ipv6 节点 (不创建 DNS 记录).
      *
      * @param  mixed $node
@@ -59,7 +67,11 @@ class NodeAddressService
      */
     public static function isIpv6Node($node)
     {
-        return $node && empty($node->ip) && !empty($node->ipv6);
+        if (!$node || empty($node->server)) {
+            return false;
+        }
+        $subdomain = explode('.', (string) $node->server, 2);
+        return strpos($subdomain[0], 'ipv6n') !== false;
     }
 
     /**
@@ -98,17 +110,17 @@ class NodeAddressService
      * 解析节点的客户端连接地址 (订阅统一入口, 纯函数无副作用, 无全局开关).
      *
      * 解析顺序 (前者优先):
-     *   1. ipv6 单栈节点 → 始终直连 ipv6.
+     *   1. ipv6 节点 (server 含 `ipv6n`) → 始终直连 ipv6.
      *   2. CDN 节点 → CF 优选 IP (CSV 空 → 降级节点 IP).
      *   3. 主节点 (is_clone=0) → 直连 IP.
      *   4. clone ipv4 节点 → 连接域名 server (resolve_dns 创建 A 记录解析到 IP).
      *
-     * @param  mixed $node  须含 ip / ipv6 / server / is_clone / v2_* 属性
+     * @param  mixed $node  须含 server / ip / ipv6 / is_clone / v2_* 属性
      * @return string
      */
     public static function resolveAddress($node)
     {
-        // 1. ipv6 单栈节点: 始终直连 ipv6, 不做 host 解析.
+        // 1. ipv6 节点 (server 含 `ipv6n`): 始终直连 ipv6, 不做 host 解析.
         if (self::isIpv6Node($node)) {
             return (string) $node->ipv6;
         }

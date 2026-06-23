@@ -18,12 +18,13 @@ use App\Services\DnsRecordCleanupService;
  *
  * 行为 (无全局开关, resolve_dns 端点统一处理 address + host):
  *   - 主节点 (is_clone == 0): 连接地址恒为 IP → 删除残留记录后跳过 (不解析).
- *   - ipv6 单栈节点: 直连 ipv6 → 删除残留记录后跳过 (不解析).
- *   - clone ipv4 节点: 创建 A 记录解析连接域名 (n{cloneid}.domain) 到节点 IPv4.
+ *   - ipv6 节点 (server 含 `ipv6n`): 直连 ipv6 → 删除残留记录后跳过 (不解析).
+ *   - clone ipv4 节点 (server 不含 ipv6n): 创建 A 记录解析连接域名 (n{cloneid}.domain) 到节点 IPv4.
  *
  * 即整个集群只有 clone 的 ipv4 节点需要 DNS 记录, 主节点 + ipv6 节点直连, 降低
- * DNS 解析数量. 只需域名能解析出节点 IP 即可, 不校验 DNS 记录的 root domain 是否
- * 与 TLS host (clusterHost) 一致 (连接域名与 TLS host 解耦, domain-fronting).
+ * DNS 解析数量. 节点是 ipv4 还是 ipv6 由 register 写入的 server 前缀判定 (n/ipv6n,
+ * 不靠 ip 缺失), 每个节点同时存储物理节点的 ip+ipv6. 只需域名能解析出节点 IP 即可, 不校验
+ * DNS 记录的 root domain 是否与 TLS host (clusterHost) 一致 (连接域名与 TLS host 解耦, domain-fronting).
  *
  * register 不调用本模块 (register 不碰 DNS, address 原生 = IP); 由 resolve_dns 端点 /
  * 定时清理调用. host/sni (clusterHost) 仅作 TLS 身份, 不创建 DNS 记录.
@@ -50,7 +51,7 @@ class DnsSyncer
     /**
      * 同步整个集群 (主节点 + 所有 clone) 的 DNS 记录 (resolve_dns 端点统一入口).
      *
-     * 无全局开关: 仅 clone ipv4 节点创建 A 记录, 主节点 + ipv6 节点跳过 (直连).
+     * 无全局开关: 仅 clone ipv4 节点 (server 不含 ipv6n) 创建 A 记录, 主节点 + ipv6 节点跳过 (直连).
      *
      * @param  int  $mainNodeId 主节点 ID
      * @param  bool $force      强制重新对账 (忽略本地缓存)
@@ -120,8 +121,8 @@ class DnsSyncer
      * 同步单个节点的 DNS 记录.
      *
      * 规则 (无全局开关):
-     *   - 主节点 (is_clone=0) / ipv6 单栈节点: 直连 (IP / ipv6), 删除残留记录后跳过.
-     *   - clone ipv4 节点: 创建 A 记录解析连接域名 (n{cloneid}.domain) 到节点 IPv4.
+     *   - 主节点 (is_clone=0) / ipv6 节点 (server 含 ipv6n): 直连 (IP / ipv6), 删除残留记录后跳过.
+     *   - clone ipv4 节点 (server 不含 ipv6n): 创建 A 记录解析连接域名 (n{cloneid}.domain) 到节点 IPv4.
      *
      * @param int    $nodeId
      * @param bool   $force
@@ -138,7 +139,7 @@ class DnsSyncer
             return;
         }
 
-        // ipv6 单栈节点: 始终直连 ipv6, 不做 host 解析 → 无需 DNS 记录.
+        // ipv6 节点 (server 含 ipv6n): 始终直连 ipv6, 不做 host 解析 → 无需 DNS 记录.
         // (清理可能残留的旧记录后跳过; ipv6 节点不走 host, 域名解析对其无意义)
         if (NodeAddressService::isIpv6Node($node)) {
             $this->deleteNodeRecords($node, $results, $stats);
@@ -154,7 +155,7 @@ class DnsSyncer
             return;
         }
 
-        // clone ipv4 节点: 创建 A 记录解析连接域名到节点 IPv4.
+        // clone ipv4 节点 (server 不含 ipv6n): 创建 A 记录解析连接域名到节点 IPv4.
         // host/sni (clusterHost) 仅作 TLS 身份, 不创建 DNS 记录 (连接域名与 TLS host 解耦).
         if (!$node->server) {
             Log::warning("[DnsSyncer] node {$nodeId} empty server");
@@ -248,7 +249,7 @@ class DnsSyncer
      * 构建 A 记录蓝图 (clone ipv4 节点).
      *
      * 主节点 / ipv6 节点在 syncNode 已提前跳过 (不建记录), 此处只会为
-     * clone ipv4 节点构建 A 记录.
+     * clone ipv4 节点 (server 不含 ipv6n) 构建 A 记录.
      */
     private function buildBlueprints($node, $rootDomain, $zoneId, $proxied)
     {
