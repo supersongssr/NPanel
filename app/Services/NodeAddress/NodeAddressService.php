@@ -23,6 +23,11 @@ namespace App\Services\NodeAddress;
  *   - register 按 [ipv4×N, ipv6×N] 槽位展开, ipv6 槽位的节点仅填 ipv6 (ip 空).
  *   - resolveAddress 对 ipv6 节点恒返回 ipv6; DnsSyncer 跳过 ipv6 节点 (不创建 DNS 记录).
  *
+ * 主节点 (is_clone == 0) 也优先于全局开关: address 始终 = IP (不做 host 解析).
+ *   - host/sni 复用机制下, 主节点与所有 clone 共用同一 host/sni; 主节点不创建 DNS 记录
+ *     (DnsSyncer 跳过), 恒直连 IP, 降低整个集群的 DNS 解析数量.
+ *   - 仅 clone 的 ipv4 节点在 dns/cdn 模式下转域名/CDN IP.
+ *
  * @see \App\Services\NodeAddress\OptimizedIpPool  F2 的 IP 来源 (CSV)
  * @see \App\Services\NodeAddress\DnsSyncer       DNS 记录同步 (CF)
  */
@@ -113,6 +118,21 @@ class NodeAddressService
     }
 
     /**
+     * 节点是否为主节点 (is_clone == 0).
+     *
+     * host/sni 复用机制下, 主节点与所有 clone 共用同一 host/sni; 主节点连接地址恒为 IP
+     * (不创建 DNS 记录, DnsSyncer 跳过), 仅 clone 的 ipv4 节点在 dns/cdn 模式下解析为
+     * 域名/CDN IP. 独立节点 (无 clone) 也视为自身主节点, 同样直连 IP.
+     *
+     * @param  mixed $node
+     * @return bool
+     */
+    public static function isMainNode($node)
+    {
+        return $node && isset($node->is_clone) && (int) $node->is_clone === 0;
+    }
+
+    /**
      * 节点是否"意图"走 CDN (历史标记 v2_name=xhttp-cdn 或 v2_cdn=cf).
      *
      * 注意: 这只是节点意图标记 (用于域名亲和选 CDN 根域名),
@@ -133,7 +153,8 @@ class NodeAddressService
      * 解析节点的客户端连接地址 (订阅统一入口, 纯函数无副作用).
      *
      * ipv6 单栈节点优先: 始终直连 ipv6 (不做 host 解析), 与全局开关无关.
-     * 其余 (ipv4) 节点行为由全局开关 mode() 决定:
+     * 主节点 (is_clone == 0) 次优先: 始终直连 IP (host/sni 复用, 不建 DNS 记录), 与全局开关无关.
+     * 其余 (clone ipv4) 节点行为由全局开关 mode() 决定:
      *   ip  → 节点 IP
      *   dns → 解析域名 (resolveConnectDomain; 可与 TLS host 不同)
      *   cdn → CF 优选 IP (CSV 来源); CSV 为空时降级到节点 IP
@@ -147,6 +168,17 @@ class NodeAddressService
         // 此规则优先于全局开关 (ip/dns/cdn 均如此): ipv6 节点无 IPv4, 域名解析对其无意义.
         if (self::isIpv6Node($node)) {
             return (string) $node->ipv6;
+        }
+
+        // 主节点 (is_clone == 0): 始终直连 IP, 不做 host 解析.
+        // host/sni 复用机制下, 主节点与所有 clone 共用同一 host/sni, 主节点不创建 DNS 记录
+        // (DnsSyncer 跳过), 故恒返回 IP, 降低整个集群的 DNS 解析数量.
+        // 仅 clone 的 ipv4 节点在 dns/cdn 模式下转为域名/CDN IP.
+        if (self::isMainNode($node)) {
+            if (!empty($node->ip)) {
+                return $node->ip;
+            }
+            return (string) $node->server;
         }
 
         $mode = self::mode();

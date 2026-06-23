@@ -259,6 +259,12 @@ class NodeApiController extends Controller
             NodeAddressService::isCdnMode() || NodeAddressService::isCdnV2Name($v2Name),
         );
 
+        // 集群共用 host/sni: {random8}n{mainid}.{rootDomain}.
+        // 随机 8 位前缀 (UUID 取前 8 位) 替代固定 "n" 前缀, 降低 SNI/host 特征被识别风险;
+        // 主节点与所有 clone 共用同一 host/sni, clone 不再各自生成 host/sni, 降低 DNS 解析数量.
+        // (clone 的连接地址 address 仍按节点独立, 由 DNS 模块解析; host/sni 仅作 TLS 身份.)
+        $clusterHost = $this->buildClusterHost($node->id, $rootDomain);
+
         $nodeCost = (float) $request->input("node_cost", 0);
         $clientLevel = $request->input("node_level");
         $mainLevel =
@@ -407,7 +413,10 @@ class NodeApiController extends Controller
 
         $totalTarget = count($slots);
         if ($totalTarget === 0) {
-            $node->server = "n" . $node->id . "." . $rootDomain;
+            // 无可用 IP 槽位的退化场景: server/host/sni 统一为 clusterHost.
+            $node->server = $clusterHost;
+            $node->v2_host = $clusterHost;
+            $node->v2_sni = $clusterHost;
             $node->node_ids = (string) $node->id;
             $node->save();
             return response()->json([
@@ -487,8 +496,10 @@ class NodeApiController extends Controller
 
         $mainSlot = array_shift($slots);
         $mainIsIpv6 = $mainSlot["ip_type"] === "ipv6";
-        $mainPrefix = $mainIsIpv6 ? "ipv6n" : "n";
-        $node->server = $mainPrefix . $node->id . "." . $rootDomain;
+        // main 节点 server/host/sni 统一为 clusterHost ({random8}n{mainid}.domain).
+        // 主节点连接地址恒为 IP (NodeAddressService 对 is_clone=0 直连 IP), 故 server 仅作
+        // TLS 身份 / root_domain 解析, 不创建 DNS 记录 (降低 DNS 解析数量).
+        $node->server = $clusterHost;
         // Enforce single-stack on main node: zero out the opposite stack
         if ($mainIsIpv6) {
             $node->ip = null;
@@ -504,6 +515,7 @@ class NodeApiController extends Controller
             $mainIsIpv6,
             $v2Name,
             $nodePort,
+            $clusterHost,
         );
         $node->save();
         $allNodeIds = [$node->id];
@@ -516,6 +528,9 @@ class NodeApiController extends Controller
                 $this->resetNodeToDefaults($clone);
                 $clone->name = $node->name;
                 $clone->v2_name = $v2Name;
+                // resetNodeToDefaults 把 is_clone 清零, 这里必须恢复指向主节点,
+                // 否则 clone 会被误判为主节点 (is_clone=0) 导致 DNS/地址逻辑异常.
+                $clone->is_clone = $nodeId;
                 $clone->node_rxtx = $node->node_rxtx;
                 $clone->ip = $isIpv6 ? "" : $slot["addr"];
                 $clone->ipv6 = $isIpv6 ? $slot["addr"] : "";
@@ -523,6 +538,8 @@ class NodeApiController extends Controller
                 $clone->node_group = $node->node_group;
                 $clone->traffic_rate = $node->traffic_rate;
                 $clone->status = 1;
+                // clone 的 server = n{cloneid}.domain (连接地址/DNS 记录用, 每节点独立);
+                // 但 host/sni 复用主节点 clusterHost (applyV2Preset 第 7 参传入).
                 $clone->server =
                     ($isIpv6 ? "ipv6n" : "n") . $clone->id . "." . $rootDomain;
                 $this->applyV2Preset(
@@ -531,7 +548,8 @@ class NodeApiController extends Controller
                     $rootDomain,
                     $isIpv6,
                     $v2Name,
-                    $nodePort
+                    $nodePort,
+                    $clusterHost
                 );
                 $clone->save();
             } else {
@@ -556,6 +574,8 @@ class NodeApiController extends Controller
                 $clone->status = 1;
                 $clone->save();
 
+                // clone 的 server = n{cloneid}.domain (连接地址/DNS 记录用, 每节点独立);
+                // 但 host/sni 复用主节点 clusterHost (applyV2Preset 第 7 参传入).
                 $clone->server =
                     ($isIpv6 ? "ipv6n" : "n") . $clone->id . "." . $rootDomain;
                 $this->applyV2Preset(
@@ -564,7 +584,8 @@ class NodeApiController extends Controller
                     $rootDomain,
                     $isIpv6,
                     $v2Name,
-                    $nodePort
+                    $nodePort,
+                    $clusterHost
                 );
                 $clone->save();
             }
@@ -831,7 +852,8 @@ class NodeApiController extends Controller
         $rootDomain,
         $isIpv6,
         $modeName = "",
-        $nodePort = 443
+        $nodePort = 443,
+        $clusterHost = null
     ) {
         $preset = self::V2_PRESETS[$protocol] ?? null;
         if (!$preset) {
@@ -856,8 +878,13 @@ class NodeApiController extends Controller
             }
         }
 
-        $node->v2_host = $node->server;
-        $node->v2_sni = $node->server;
+        // host/sni: 整个集群 (主节点 + clone) 共用 clusterHost ({random8}n{mainid}.domain),
+        // clone 不再各自生成 host/sni, 降低 DNS 解析数量 + SNI/host 特征被识别风险.
+        // (clone 连接地址仍按节点独立, 由 DNS 模块解析; host/sni 仅作 TLS 身份.)
+        // 缺失 clusterHost 时回退到节点 server (向后兼容旧调用方).
+        $hostValue = $clusterHost ?: $node->server;
+        $node->v2_host = $hostValue;
+        $node->v2_sni = $hostValue;
 
         // 注: xhttp-cdn 模式的 CF 优选 IP 分配已迁移到 NodeAddressService 模块.
         // register / applyV2Preset 不再写 v2_cdn / v2_cdn_ip, 保持节点注册系统纯净
@@ -909,6 +936,26 @@ class NodeApiController extends Controller
                 ? $this->clusterReality["shortId"]
                 : null;
         }
+    }
+
+    /**
+     * 构建集群共用的 host/sni: {random8}n{mainNodeId}.{rootDomain}.
+     *
+     * 随机 8 位前缀取自 UUID v4 的前 8 位 hex ([0-9a-f]), 替代旧的固定 "n" 前缀,
+     * 降低 SNI/host 特征被 GFW 识别追踪的可能性. 主节点与所有 clone 共用同一 host/sni,
+     * clone 不再各自生成 host/sni —— 这是降低 DNS 解析数量的核心.
+     *
+     * (host/sni 仅作 TLS 身份, 不需要单独的 DNS 记录; clone 的连接地址由 DNS 模块
+     *  按节点独立解析, 与 host/sni 解耦.)
+     *
+     * @param  int    $mainNodeId 主节点 ID
+     * @param  string $rootDomain 根域名
+     * @return string 例如 "a1b2c3d4n123.example.com"
+     */
+    private function buildClusterHost($mainNodeId, $rootDomain)
+    {
+        $random8 = substr(str_replace('-', '', Helpers::genRandomUuid()), 0, 8);
+        return $random8 . 'n' . $mainNodeId . '.' . $rootDomain;
     }
 
     /**
@@ -1264,7 +1311,9 @@ class NodeApiController extends Controller
             //   泛域名证书匹配, 且必须等于客户端 SNI (订阅层 applySniPrefix 对 reality 跳过加前缀).
             "__realityPrivateKey__" => isset($reality["private"]) ? $reality["private"] : "",
             "__realityShortId__" => isset($reality["shortId"]) ? $reality["shortId"] : "",
-            "__realityServerName__" => $node->server ?: $nodeDomain,
+            // reality serverNames 必须等于客户端 SNI (v2_sni); host/sni 复用后 clone 的
+            // v2_sni = clusterHost ≠ server, 故取 v2_sni 而非 server, 否则 reality 握手失败.
+            "__realityServerName__" => $node->v2_sni ?: ($node->server ?: $nodeDomain),
         ];
 
         $config = $this->injectVariables($config, $vars);

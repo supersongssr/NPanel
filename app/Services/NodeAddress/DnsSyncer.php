@@ -22,6 +22,8 @@ use App\Services\DnsRecordCleanupService;
  *   cdn → 创建灰云 A 记录 (proxied=false, 独立 cf_token), host 解析到源站 IPv4
  *
  * ipv6 单栈节点始终直连 ipv6, 不做 host 解析: 本模块跳过 ipv6 节点 (不创建 DNS 记录).
+ * 主节点 (is_clone == 0) 也直连 IP, 不做 host 解析: 本模块跳过主节点 (不创建 DNS 记录),
+ * 故仅 clone 的 ipv4 节点在 dns/cdn 模式下创建 A 记录, 降低整个集群的 DNS 解析数量.
  *
  * 只需域名能解析出节点 IP 即可, 不校验 DNS 记录的 root domain 是否与 TLS host 一致.
  *
@@ -150,8 +152,15 @@ class DnsSyncer
             return;
         }
 
-        // dns / cdn 模式 (ipv4 节点): 创建 A 记录解析 host 到节点 IPv4.
-        // 只需该域名能解析出节点 IP 即可, 不校验其 root domain 是否与 TLS host 一致.
+        // 主节点 (is_clone == 0): host/sni 复用机制下连接地址恒为 IP, 不创建 DNS 记录.
+        // (清理可能残留的旧记录后跳过; 仅 clone 的 ipv4 节点转域名, 降低 DNS 解析数量)
+        if (NodeAddressService::isMainNode($node)) {
+            $this->deleteNodeRecords($node, $results, $stats);
+            Log::debug("[DnsSyncer] node {$nodeId} main (is_clone=0) → direct IP, no DNS record");
+            return;
+        }
+
+        // dns / cdn 模式 (clone ipv4 节点): 创建 A 记录解析连接域名到节点 IPv4.
         if (!$node->server) {
             Log::warning("[DnsSyncer] node {$nodeId} empty server");
             $stats['skipped']++;
