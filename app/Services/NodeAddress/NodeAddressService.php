@@ -14,10 +14,14 @@ namespace App\Services\NodeAddress;
  *
  * 全局开关 env('NODE_ADDRESS_MODE'):
  *   ip   (功能0): address = 节点 IP, 不创建 DNS 记录 (register 默认行为)
- *   dns  (功能1): 创建 A/AAAA 记录解析 host 到 CF, address 改为 domain 模式.
- *                 rootdomain 可与 host 不同 —— 只要 domain 能解析出正确 IP 即可,
- *                 后面 TLS host 可以不同 (domain-fronting).
- *   cdn  (功能2): 解析 host 到 CF (灰云), address 改为 CF 优选 IP (CSV 来源).
+ *   dns  (功能1): 创建 A 记录解析 host 到 CF, ipv4 节点 address 改为 domain 模式.
+ *                 只要 domain 能解析出正确 IP 即可, 不校验其 root domain 是否与
+ *                 TLS host (v2_host/v2_sni) 的 root domain 一致 (domain-fronting).
+ *   cdn  (功能2): 解析 host 到 CF (灰云), ipv4 节点 address 改为 CF 优选 IP (CSV 来源).
+ *
+ * ipv6 单栈节点例外 (优先于全局开关): address 始终 = ipv6, 不做 host 解析 (直连 ipv6).
+ *   - register 按 [ipv4×N, ipv6×N] 槽位展开, ipv6 槽位的节点仅填 ipv6 (ip 空).
+ *   - resolveAddress 对 ipv6 节点恒返回 ipv6; DnsSyncer 跳过 ipv6 节点 (不创建 DNS 记录).
  *
  * @see \App\Services\NodeAddress\OptimizedIpPool  F2 的 IP 来源 (CSV)
  * @see \App\Services\NodeAddress\DnsSyncer       DNS 记录同步 (CF)
@@ -94,6 +98,21 @@ class NodeAddressService
     }
 
     /**
+     * 节点是否为 ipv6 单栈节点 (register 单栈锁定: ip 空且 ipv6 非空).
+     *
+     * ipv6 单栈节点的连接地址始终为 ipv6, 不做 host 解析 (直连 ipv6):
+     *   - register 时按 [ipv4×N, ipv6×N] 槽位展开, ipv6 槽位的节点仅填 ipv6 (ip 空).
+     *   - 无论全局开关 (ip/dns/cdn), resolveAddress 恒返回 ipv6, DnsSyncer 跳过不建记录.
+     *
+     * @param  mixed $node
+     * @return bool
+     */
+    public static function isIpv6Node($node)
+    {
+        return $node && empty($node->ip) && !empty($node->ipv6);
+    }
+
+    /**
      * 节点是否"意图"走 CDN (历史标记 v2_name=xhttp-cdn 或 v2_cdn=cf).
      *
      * 注意: 这只是节点意图标记 (用于域名亲和选 CDN 根域名),
@@ -113,16 +132,23 @@ class NodeAddressService
     /**
      * 解析节点的客户端连接地址 (订阅统一入口, 纯函数无副作用).
      *
-     * 行为由全局开关 mode() 决定:
+     * ipv6 单栈节点优先: 始终直连 ipv6 (不做 host 解析), 与全局开关无关.
+     * 其余 (ipv4) 节点行为由全局开关 mode() 决定:
      *   ip  → 节点 IP
      *   dns → 解析域名 (resolveConnectDomain; 可与 TLS host 不同)
      *   cdn → CF 优选 IP (CSV 来源); CSV 为空时降级到节点 IP
      *
-     * @param  mixed $node  须含 v2_cdn_ip / ip / server 属性
+     * @param  mixed $node  须含 ip / ipv6 / server 属性
      * @return string
      */
     public static function resolveAddress($node)
     {
+        // ipv6 单栈节点: 始终直连 ipv6, 不做 host 解析.
+        // 此规则优先于全局开关 (ip/dns/cdn 均如此): ipv6 节点无 IPv4, 域名解析对其无意义.
+        if (self::isIpv6Node($node)) {
+            return (string) $node->ipv6;
+        }
+
         $mode = self::mode();
 
         if ($mode === self::MODE_CDN) {

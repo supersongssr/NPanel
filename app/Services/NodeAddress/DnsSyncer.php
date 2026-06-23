@@ -18,8 +18,12 @@ use App\Services\DnsRecordCleanupService;
  *
  * 行为由全局开关 env('NODE_ADDRESS_MODE') 决定 (与 NodeAddressService 共用):
  *   ip  → 删除该集群所有 DNS 记录 (不解析, 客户端直连 IP)
- *   dns → 创建 A/AAAA (proxied 取域名池配置), host 解析到节点 IP
- *   cdn → 创建灰云 A/AAAA (proxied=false, 独立 cf_token), host 解析到源站 IP
+ *   dns → 创建 A 记录 (proxied 取域名池配置), host 解析到节点 IPv4
+ *   cdn → 创建灰云 A 记录 (proxied=false, 独立 cf_token), host 解析到源站 IPv4
+ *
+ * ipv6 单栈节点始终直连 ipv6, 不做 host 解析: 本模块跳过 ipv6 节点 (不创建 DNS 记录).
+ *
+ * 只需域名能解析出节点 IP 即可, 不校验 DNS 记录的 root domain 是否与 TLS host 一致.
  *
  * register 不调用本模块 (register 不碰 DNS); 由 resolve_dns 端点 / 定时清理调用.
  *
@@ -138,7 +142,16 @@ class DnsSyncer
             return;
         }
 
-        // dns / cdn 模式: 都创建记录, 仅 proxied 与否不同
+        // ipv6 单栈节点: 始终直连 ipv6, 不做 host 解析 → 无需 DNS 记录.
+        // (清理可能残留的旧记录后跳过; ipv6 节点不走 host, 域名解析对其无意义)
+        if (NodeAddressService::isIpv6Node($node)) {
+            $this->deleteNodeRecords($node, $results, $stats);
+            Log::debug("[DnsSyncer] node {$nodeId} ipv6-only → direct connect, no DNS record");
+            return;
+        }
+
+        // dns / cdn 模式 (ipv4 节点): 创建 A 记录解析 host 到节点 IPv4.
+        // 只需该域名能解析出节点 IP 即可, 不校验其 root domain 是否与 TLS host 一致.
         if (!$node->server) {
             Log::warning("[DnsSyncer] node {$nodeId} empty server");
             $stats['skipped']++;
@@ -231,6 +244,9 @@ class DnsSyncer
 
     /**
      * 构建 A/AAAA 记录蓝图 (dns / cdn 模式共用).
+     *
+     * 注: ipv6 单栈节点在 syncNode 已提前跳过 (不建记录), 此处的 AAAA 分支仅作兑底
+     * (理论上不会触发 —— register 单栈锁定后 ipv4 节点无 ipv6).
      */
     private function buildBlueprints($node, $rootDomain, $zoneId, $proxied)
     {

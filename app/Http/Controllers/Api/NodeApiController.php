@@ -23,6 +23,13 @@ class NodeApiController extends Controller
      *   - 客户端连接地址: NodeAddressService::resolveAddress() (订阅时惰性)
      *   - DNS 记录同步: DnsSyncer::syncCluster() (resolve_dns 端点)
      *   - 全局开关 env('NODE_ADDRESS_MODE') = ip | dns | cdn
+     *
+     * register 时 address 统一为 IP:
+     *   - 按 [ipv4×N, ipv6×N] 槽位展开 (ipv4 先, ipv6 后). 如 v2_name=xhttp (3 协议):
+     *       main=ipv4, clone1=ipv4, clone2=ipv4, clone3=ipv6, clone4=ipv6, clone5=ipv6.
+     *   - ipv4 槽位节点: ip=IPv4, ipv6 空; ipv6 槽位节点: ip 空, ipv6=IPv6 (单栈锁定).
+     *   - ipv6 节点的 address 始终为 ipv6 (resolveAddress 恒返回 ipv6), 不做 host 解析;
+     *     仅 ipv4 节点在 dns/cdn 模式下由 DnsSyncer 转为 host 解析.
      */
 
     /**
@@ -375,6 +382,8 @@ class NodeApiController extends Controller
         $node->save();
 
         // --- Fission matrix: build protocol × IP slots ---
+        // 槽位顺序: [ipv4×N, ipv6×N] (ipv4 先, ipv6 后). 因此主节点与靠前的 clone 为 ipv4,
+        // 靠后的 clone 为 ipv6. 如 v2_name=xhttp (3 协议): main/clone1/clone2=ipv4, clone3/4/5=ipv6.
         $protocols = $this->expandProtocols($v2Name);
 
         $ips = [];
