@@ -70,10 +70,15 @@ class AutoRotateCdnIp extends Command
             return 0;
         }
 
-        // CDN 节点: v2_name=xhttp-cdn (新) 或 v2_cdn='cf' (历史兼容)
-        $nodes = SsNode::where('v2_name', NodeAddressService::cdnV2Name())
+        // CDN 节点: v2_name 为 CDN 模式 (xhttp-cdn / xhttp-cdn-hy2) 或 v2_cdn='cf' (历史兼容).
+        // isCdnNode 过滤掉 hysteria2 槽位 —— hy2 是 UDP 直连, 不走 CF CDN, 无需轮换 IP
+        // (xhttp-cdn-hy2 集群里只有 xhttp 槽位需要轮换 CF 优选 IP).
+        $nodes = SsNode::whereIn('v2_name', NodeAddressService::cdnV2Names())
             ->orWhere('v2_cdn', 'cf')
-            ->get();
+            ->get()
+            ->filter(function ($node) {
+                return NodeAddressService::isCdnNode($node);
+            });
         $this->info("待轮换 CDN 节点数: {$nodes->count()}");
         $this->info('');
 

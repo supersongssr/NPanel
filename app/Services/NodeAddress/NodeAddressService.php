@@ -18,8 +18,9 @@ namespace App\Services\NodeAddress;
  *
  * address 解析规则 (无全局开关, 固定行为):
  *   1. ipv6 节点 (server 含 `ipv6n`) → 始终直连 ipv6 (不做 host 解析).
- *   2. CDN 节点 (v2_name=xhttp-cdn 或 v2_cdn='cf') → CF 优选 IP (CSV 来源;
- *      CSV 空 → 降级节点 IP). CDN 走 CF 边缘, 独立于 main/clone 角色.
+ *   2. CDN 节点 (v2_name=xhttp-cdn / xhttp-cdn-hy2 的 xhttp 槽位, 或 v2_cdn='cf')
+ *      → CF 优选 IP (CSV 来源; CSV 空 → 降级节点 IP). CDN 走 CF 边缘, 独立于 main/clone 角色.
+ *      注: xhttp-cdn-hy2 集群里的 hysteria2 槽位是 UDP 直连, 不走 CDN (CF 仅代理 HTTP/HTTPS).
  *   3. 主节点 (is_clone == 0) → 直连 IP (host/sni 复用, 不创建 DNS 记录).
  *   4. clone ipv4 节点 → 连接域名 server (n{cloneid}.domain; resolve_dns 已
  *      创建 A 记录将该域名解析到节点 IP).
@@ -32,24 +33,66 @@ namespace App\Services\NodeAddress;
  */
 class NodeAddressService
 {
-    /** CDN 模式对应的 v2_name (历史标记, 域名亲和用). */
-    const CDN_V2_NAME = 'xhttp-cdn';
+    /** CDN 模式对应的 v2_name 集合 (域名亲和 + CF 优选 IP 用).
+     *  - xhttp-cdn:     纯 xhttp 走 CF CDN.
+     *  - xhttp-cdn-hy2: xhttp 走 CF CDN + hy2 直连 UDP; 仅 xhttp 槽位是 CDN 节点
+     *                  (isCdnNode 据 v2_net 排除 hysteria2), hy2 槽位始终直连.
+     */
+    const CDN_V2_NAMES = ['xhttp-cdn', 'xhttp-cdn-hy2'];
 
-    /** @return string CDN 模式的 v2_name */
+    /** @return array CDN 模式的 v2_name 列表 (AutoRotateCdnIp 查询用) */
+    public static function cdnV2Names()
+    {
+        return self::CDN_V2_NAMES;
+    }
+
+    /** @return string CDN 模式的主 v2_name (向后兼容, 等价首个) */
     public static function cdnV2Name()
     {
-        return self::CDN_V2_NAME;
+        return self::CDN_V2_NAMES[0];
     }
 
     /**
-     * v2_name 是否为 CDN 模式.
+     * v2_name 是否为 CDN 模式 (整个集群意图走 CDN: 选 CDN 根域名 + xhttp 槽位解析 CF IP).
+     *
+     * 注意: 这是「集群级」意图标记 (register 域名亲和用). 集群内具体某个节点是否走 CDN
+     * 由 isCdnNode() 进一步按 v2_net 判定 (xhttp-cdn-hy2 的 hysteria2 槽位不算 CDN 节点).
      *
      * @param  string $v2Name
      * @return bool
      */
     public static function isCdnV2Name($v2Name)
     {
-        return $v2Name === self::CDN_V2_NAME;
+        return in_array($v2Name, self::CDN_V2_NAMES, true);
+    }
+
+    /**
+     * 解析 ECH 下载规格字符串 `ech.{root_domain}+udp://1.1.1.1`.
+     *
+     * 格式 `<域名>+<DNS解析器URL>` (register 时写入 v2_ech, 集群共用):
+     *   - 前段 ech.{root_domain} = 发布 ECHConfigList 的 DNS HTTPS 记录域名;
+     *   - 后段 udp://1.1.1.1      = 拉取该记录用的干净 DNS 解析器 (避开被墙/被污染的本地解析).
+     * 订阅层据此向客户端下发 ECH 配置 (隐藏真实 SNI, 抗域名封锁/干扰).
+     *
+     * @param  mixed $ech
+     * @return array|null  ['domain'=>string, 'server'=>string]; 空值/格式不对返回 null
+     */
+    public static function parseEchSpec($ech)
+    {
+        if (!is_string($ech) || $ech === '') {
+            return null;
+        }
+        // 以第一个 '+' 为界: 前段域名, 后段 URL. (域名不含 '+', URL scheme 用 '://'.)
+        $plus = strpos($ech, '+');
+        if ($plus === false) {
+            return null;
+        }
+        $domain = substr($ech, 0, $plus);
+        $server = substr($ech, $plus + 1);
+        if ($domain === '' || $server === '') {
+            return null;
+        }
+        return ['domain' => $domain, 'server' => $server];
     }
 
     /**
@@ -90,9 +133,11 @@ class NodeAddressService
     }
 
     /**
-     * 节点是否"意图"走 CDN (历史标记 v2_name=xhttp-cdn 或 v2_cdn=cf).
+     * 节点是否"意图"走 CDN (历史标记 v2_name=xhttp-cdn / xhttp-cdn-hy2 的 xhttp 槽位, 或 v2_cdn=cf).
      *
-     * 注意: 这只是节点意图标记 (用于域名亲和选 CDN 根域名 + resolveAddress 返回 CF IP),
+     * 注意: 这是节点级判定 (resolveAddress 返回 CF IP 用). hysteria2 传输槽位永远不是
+     * CDN 节点 —— hy2 是 UDP 直连, CF CDN 仅代理 HTTP/HTTPS, 无法中继 UDP.
+     * 故 xhttp-cdn-hy2 集群里只有 xhttp 槽位返回 true, hy2 槽位返回 false (直连 IP).
      * DNS 记录行为由 DnsSyncer 按节点角色决定, 不由此方法决定.
      *
      * @param  mixed $node
@@ -100,10 +145,18 @@ class NodeAddressService
      */
     public static function isCdnNode($node)
     {
-        if ($node && isset($node->v2_name) && self::isCdnV2Name($node->v2_name)) {
+        if (!$node) {
+            return false;
+        }
+        // hysteria2 是 UDP 直连, CF CDN 无法中继 UDP → hy2 槽位永远不走 CDN.
+        // (xhttp-cdn-hy2 集群: xhttp 槽位走 CDN, hy2 槽位直连)
+        if (isset($node->v2_net) && $node->v2_net === 'hysteria2') {
+            return false;
+        }
+        if (isset($node->v2_name) && self::isCdnV2Name($node->v2_name)) {
             return true;
         }
-        return $node && isset($node->v2_cdn) && $node->v2_cdn === 'cf';
+        return isset($node->v2_cdn) && $node->v2_cdn === 'cf';
     }
 
     /**

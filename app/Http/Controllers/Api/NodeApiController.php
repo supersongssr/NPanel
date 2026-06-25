@@ -56,7 +56,13 @@ class NodeApiController extends Controller
      * 仅当 v2_name === 'vision-reality' 时生成; 否则为 null (非 REALITY 模式).
      * privateKey 永不进入订阅, pbk 永不进入 xray config (存储在独立 DB 列).
      */
-    private $clusterReality = null;
+    /**
+     * xhttp-cdn / xhttp-cdn-hy2 模式的 ECH 下载规格缓存:
+     * 单次 register() 调用内解析, 主节点与所有 clone 共用同一规格 (集群级, 仅依赖 root_domain).
+     * 形如 `ech.{root_domain}+udp://1.1.1.1` (域名池 meta.ech 可覆盖), 仅写入 xhttp 槽位
+     * (hy2 不经过 CF, 不使用 ECH). 非 CDN 模式为 null.
+     */
+    private $clusterEch = null;
 
     public function __construct()
     {
@@ -472,6 +478,15 @@ class NodeApiController extends Controller
             $this->clusterReality = null;
         }
 
+        // xhttp-cdn / xhttp-cdn-hy2 模式: 解析集群共用的 ECH 下载规格 (隐藏真实 SNI).
+        // 集群级 (仅依赖 root_domain), 主节点与所有 clone 共用; 域名池 meta.ech 可覆盖默认.
+        // 仅 xhttp 槽位使用 (CF CDN 通路); hy2 槽位不走 CF, v2_ech 保持 null (见 applyV2Preset).
+        if (NodeAddressService::isCdnV2Name($v2Name)) {
+            $this->clusterEch = $this->resolveClusterEch($rootDomain, $sysConf);
+        } else {
+            $this->clusterEch = null;
+        }
+
         $mainSlot = array_shift($slots);
         $mainIsIpv6 = $mainSlot["ip_type"] === "ipv6";
         // main 节点 ipv6 slot 时, clusterHost (server/host/sni) 带 `ipv6n` 标识, 使 isIpv6Node
@@ -721,6 +736,8 @@ class NodeApiController extends Controller
         $node->v2_servicename = null;
         $node->v2_cdn = "";
         $node->v2_cdn_ip = "";
+        // xhttp-cdn / xhttp-cdn-hy2 的 ECH 下载规格: 回收节点时清空, 防止旧值残留.
+        $node->v2_ech = null;
         $node->v2_insider_port = 0;
         $node->v2_outsider_port = 0;
 
@@ -814,6 +831,10 @@ class NodeApiController extends Controller
         // xhttp-cdn: 仅 xhttp, 走 Cloudflare CDN. 独立 CF Token + 独立 CDN 根域名,
         // 灰云 DNS (不 proxied), 客户端连 CF 优选 IP, SNI 锁定域名. 隔离防封号.
         "xhttp-cdn"          => ["xhttp"],
+        // xhttp-cdn-hy2: xhttp (TCP 走 CF CDN 绕过封锁) + hy2 (UDP 直连, 利用未被墙的 UDP).
+        // 专为「TCP 被墙但 UDP 仍通」的节点: xhttp 走 CF 优选 IP, hy2 直连节点 IP.
+        // 仅 xhttp 槽位走 CDN (isCdnNode 排除 hysteria2 传输); hy2 槽位始终直连.
+        "xhttp-cdn-hy2"       => ["xhttp", "xhttp", "hy2"],
     ];
 
     private function expandProtocols($v2Name)
@@ -900,6 +921,23 @@ class NodeApiController extends Controller
         //   - v2_flow 保持 xtls-rprx-vision (vision 流控, reality 要求 tcp 传输).
         // REALITY 密钥: 集群共用 (主节点与 clone 同一物理节点), 从 clusterReality 写入
         // 三列. private 仅 config() 读 -> xray, pbk 仅订阅层读 -> 客户端, sid 两端共用.
+        // xhttp-cdn-hy2 模式: 走 CF CDN (被墙节点场景), 强制 firefox uTLS 指纹
+        // (与 vision-reality 同理: 抗 GFW 主动探测的核心伪装层). 写入 v2_fp 后,
+        // 订阅层 (VLESS URI / sing-box / clash) 统一以 v2_fp 为准输出 client-fingerprint.
+        if ($modeName === "xhttp-cdn-hy2") {
+            $node->v2_fp = "firefox";
+        }
+
+        // xhttp-cdn / xhttp-cdn-hy2 的 xhttp 槽位: 写入 ECH 下载规格 (隐藏真实 SNI, 抗域名封锁).
+        // hy2 槽位不经过 CF CDN (CF 无法中继 UDP), 不使用 ECH (v2_ech 保持 null).
+        // 值形如 `ech.{root_domain}+udp://1.1.1.1`:
+        //   - 前段 ech.{root_domain} = 发布 ECHConfigList 的 DNS HTTPS 记录域名
+        //   - 后段 udp://1.1.1.1      = 拉取该记录用的干净 DNS 解析器 (避开被墙/被污染的本地解析)
+        // 域名池 meta.ech 可覆盖该默认值 (见 resolveClusterEch).
+        if (in_array($modeName, ['xhttp-cdn', 'xhttp-cdn-hy2'], true) && $protocol === 'xhttp') {
+            $node->v2_ech = $this->clusterEch;
+        }
+
         if ($modeName === "vision-reality") {
             $node->v2_tls = 1;
             $node->v2_fp = "firefox";
@@ -1118,6 +1156,38 @@ class NodeApiController extends Controller
         }
 
         return [];
+    }
+
+    /**
+     * 解析集群共用的 ECH 下载规格 (xhttp-cdn / xhttp-cdn-hy2 模式).
+     *
+     * 集群级: 仅依赖 root_domain, 主节点与所有 clone 共用同一规格.
+     *   - 域名池 node_domain_pool 中该域名的 meta.ech 非空 → 用该自定义值;
+     *   - 否则默认 `ech.{root_domain}+udp://1.1.1.1`.
+     *
+     * 格式 `<域名>+<DNS解析器URL>`:
+     *   - 前段 ech.{root_domain} = 发布 ECHConfigList 的 DNS HTTPS 记录域名;
+     *   - 后段 udp://1.1.1.1      = 拉取该记录用的干净 DNS 解析器 (避开被墙/被污染的本地解析).
+     *
+     * @param  string $rootDomain CDN 根域名 (已由 resolveDomainAffinity 选定)
+     * @param  array  $sysConf    Helpers::systemConfig() 结果
+     * @return string|null        ECH 规格; 无 rootDomain 时返回 null
+     */
+    private function resolveClusterEch($rootDomain, $sysConf)
+    {
+        if (empty($rootDomain)) {
+            return null;
+        }
+
+        $parsed = $this->parseDomainPool($sysConf);
+        $domainPool = $parsed["domainPool"];
+        $meta = isset($domainPool[$rootDomain]) ? $domainPool[$rootDomain] : [];
+        if (is_array($meta) && !empty($meta["ech"])) {
+            return $meta["ech"];
+        }
+
+        // 默认: ech.{root_domain}+udp://1.1.1.1
+        return "ech." . $rootDomain . "+udp://1.1.1.1";
     }
 
     private function v2NetToInboundTag($v2Net)

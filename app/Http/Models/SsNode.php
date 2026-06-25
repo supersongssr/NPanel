@@ -32,6 +32,9 @@ class SsNode extends Model
         'v2_reality_pbk', 'v2_reality_private', 'v2_reality_sid',
         // xhttp-cdn 模式: v2_cdn='cf' 标记 CDN 节点, v2_cdn_ip=客户端连接的 CF 优选 IP (每日轮换)
         'v2_cdn', 'v2_cdn_ip',
+        // xhttp-cdn / xhttp-cdn-hy2 模式: v2_ech=ECH 下载规格 (ech.{root}+udp://1.1.1.1),
+        // 仅 xhttp 槽位写入, 客户端据此隐藏真实 SNI (抗域名封锁/干扰). hy2 槽位为 null.
+        'v2_ech',
     ];
 
     protected $casts = [
