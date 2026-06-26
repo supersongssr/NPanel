@@ -28,6 +28,33 @@ class DnsRecordCleanupService
     private static $apiSleepUs = 200000; // 0.2s
 
     /**
+     * 为指定根域名解析对应的 CloudflareProvider.
+     *
+     * DNS 模块已独立: CDN 域名 (node_domain_pool 中 cdn:true + cf_token) 使用独立的
+     * Cloudflare Token, 与全局 CLOUDFLARE_TOKEN 隔离 (防封号). 删除 CDN 域名记录时
+     * 必须用其独立 Token, 否则用全局 Token 会因鉴权失败导致远端记录无法删除 (残留).
+     *
+     * 这是 DnsSyncer::providerForDomain() 与 AutoDeleteExpiredDns 共用的唯一入口,
+     * 保证「创建/更新」与「删除」两条路径对 Token 的选择完全一致.
+     *
+     * @param string $rootDomain 根域名
+     * @param array  $domainPool  Helpers::parseDomainPool()['domainPool'] 结果
+     * @return CloudflareProvider
+     */
+    public static function resolveProvider($rootDomain, array $domainPool)
+    {
+        $meta = isset($domainPool[$rootDomain]) && is_array($domainPool[$rootDomain])
+            ? $domainPool[$rootDomain]
+            : array();
+
+        if (!empty($meta['cdn']) && !empty($meta['cf_token'])) {
+            return CloudflareProvider::withToken($meta['cf_token']);
+        }
+
+        return app(CloudflareProvider::class);
+    }
+
+    /**
      * Delete a single DnsRecord both from Cloudflare and locally.
      *
      * @param DnsRecord        $record

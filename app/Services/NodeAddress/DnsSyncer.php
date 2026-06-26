@@ -435,18 +435,20 @@ class DnsSyncer
 
     /**
      * 为指定根域名解析 CloudflareProvider (CDN 域名用独立 cf_token).
+     *
+     * 实际 Token 选择逻辑统一委托给 DnsRecordCleanupService::resolveProvider(),
+     * 保证「创建/更新」与「定时删除」两条路径对独立 Token 的选择完全一致.
+     * 此处仅做实例缓存 (按根域名), 避免同一域名重复构造 Provider.
      */
     private function providerForDomain($rootDomain)
     {
         if (isset($this->providerCache[$rootDomain])) {
             return $this->providerCache[$rootDomain];
         }
-        $meta = $this->parsedPool['domainPool'][$rootDomain] ?? [];
-        if (is_array($meta) && !empty($meta['cdn']) && !empty($meta['cf_token'])) {
-            $provider = CloudflareProvider::withToken($meta['cf_token']);
-        } else {
-            $provider = app(CloudflareProvider::class);
-        }
+        $provider = DnsRecordCleanupService::resolveProvider(
+            $rootDomain,
+            $this->parsedPool['domainPool'] ?? []
+        );
         $this->providerCache[$rootDomain] = $provider;
         return $provider;
     }

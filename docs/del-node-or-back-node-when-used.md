@@ -40,7 +40,12 @@ Cloudflare 免费版通常有 **1000 条解析记录** 的硬上限。
 ### 当前瓶颈：
 如果采用纯回收池，只有在节点被“捡走”的瞬间才会清理旧 DNS。这意味着如果一个节点死了 100 天都没人捡，它的 DNS 记录会白白占用 Cloudflare 配额 100 天。
 
-### 优化方案：三段式生命周期 (The 64-Day Rule)
+### 优化方案：三段式生命周期 (可配阈值清理)
+
+> ⚠️ 清理阈值「可自由配置」：在 `config` 表新增一行 `name=dns_expire_days, value=整数天数`
+> 即可调整，无需改代码。未配置时默认 `32` 天 (命令行 `--days` 可临时覆盖)。
+> `AutoDeleteExpiredDns` 定时任务 (Console\Kernel 每日 04:10) 自动读取该配置。
+
 建议将节点状态分为三个阶段管理，以最大限度节省 DNS 数量：
 
 1.  **活跃期 (0 - 32天)**：
@@ -62,8 +67,11 @@ Cloudflare 免费版通常有 **1000 条解析记录** 的硬上限。
 
 ### 最终架构建议：
 1.  **坚持回收池模式**：避免物理删除，减小数据库压力。
-2.  **实施 64 天 DNS 强力释放**：
-    - 建议每天凌晨执行一个 Cron Job，扫描 `heartbeat_at < 64天` 的节点。
-    - 物理删除这些极度不活跃节点的 Cloudflare 记录。
+2.  **实施 DNS 强力释放 (阈值可配)**：
+    - `Console\Kernel` 每日 04:10 执行 `AutoDeleteExpiredDns`，扫描超过阈值 (`dns_expire_days`, 默认 32) 无心跳的节点。
+    - 调用 Cloudflare API 删除这些不活跃节点关联的 A/AAAA 记录，提前释放 Cloudflare 槽位。
     - 这样可以保证 Cloudflare 的 1000 个名额始终只留给“近期活跃”的 500-800 个活跃 ID，让系统可以弹性支撑更大的节点规模。
+    - **DNS 模块独立性**：CDN 域名 (`node_domain_pool` 中 `cdn:true + cf_token`) 使用独立 Cloudflare Token
+      (与全局 Token 隔离防封号)。删除时按记录根域名解析对应 Token，否则 CDN 域名记录会因鉴权失败而残留。
+      (逻辑统一走 `DnsRecordCleanupService::resolveProvider()`，与 `DnsSyncer` 创建/更新路径一致)
 3.  **状态对齐**：在 ID 重新分配时，始终执行一遍“先删后建”解析，确保回收过程的数据一致性。

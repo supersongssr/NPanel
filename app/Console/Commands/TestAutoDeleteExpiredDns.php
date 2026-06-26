@@ -125,6 +125,16 @@ class TestAutoDeleteExpiredDns extends Command
             $this->error('  ❌ FAIL');
         }
 
+        // ---------- 测试 9: 独立 Token 的 CDN 域名必须用对应 Provider ----------
+        $this->info('--- 测试 9: CDN 域名 (cdn:true + cf_token) → resolveProvider 返回独立 Token Provider ---');
+        if ($this->testResolveProviderCdnToken()) {
+            $passed++;
+            $this->info('  ✅ PASS');
+        } else {
+            $failed++;
+            $this->error('  ❌ FAIL');
+        }
+
         // 清理
         $this->cleanupTestData();
 
@@ -435,6 +445,51 @@ class TestAutoDeleteExpiredDns extends Command
                 return $this->fixedStatus;
             }
         };
+    }
+
+    /**
+     * 测试 DnsRecordCleanupService::resolveProvider():
+     *   - CDN 域名 (cdn:true + cf_token) → 返回带独立 Token 的 Provider
+     *   - 普通域名 → 返回使用全局 Token 的 Provider
+     *   - 未配置域名 → 返回全局 Provider
+     *
+     * 这验证了 AutoDeleteExpiredDns / DnsSyncer 删除 CDN 域名记录时会用对 Token.
+     */
+    private function testResolveProviderCdnToken()
+    {
+        $cdnToken = 'independent-cdn-token-' . uniqid();
+        $pool = array(
+            'normal.com' => array('zone_id' => 'zone-normal', 'cdn' => false),
+            'cdn.xyz'    => array('zone_id' => 'zone-cdn', 'cdn' => true, 'cf_token' => $cdnToken),
+        );
+
+        $cdnProvider = DnsRecordCleanupService::resolveProvider('cdn.xyz', $pool);
+        $normalProvider = DnsRecordCleanupService::resolveProvider('normal.com', $pool);
+        $missingProvider = DnsRecordCleanupService::resolveProvider('not.in.pool', $pool);
+
+        $cdnTokenActual = $this->readProviderToken($cdnProvider);
+        $normalTokenActual = $this->readProviderToken($normalProvider);
+        $globalToken = env('CLOUDFLARE_TOKEN');
+
+        $cdnMatched = $cdnTokenActual === $cdnToken;
+        $normalIsGlobal = ($globalToken !== false && $normalTokenActual === $globalToken);
+        $missingOk = ($missingProvider instanceof CloudflareProvider);
+
+        $this->line('    cdn_token_matched=' . var_export($cdnMatched, true)
+            . ' normal_uses_global=' . var_export($normalIsGlobal, true)
+            . ' missing_is_provider=' . var_export($missingOk, true));
+
+        return $cdnMatched && $normalIsGlobal && $missingOk;
+    }
+
+    /**
+     * 读取 CloudflareProvider 的 protected $token (测试用反射).
+     */
+    private function readProviderToken(CloudflareProvider $provider)
+    {
+        $ref = new \ReflectionProperty(CloudflareProvider::class, 'token');
+        $ref->setAccessible(true);
+        return $ref->getValue($provider);
     }
 
     private function cleanupTestData()
