@@ -16,9 +16,15 @@
 测试文件位于 `tests/` 文件夹。
 
 **重要约束**:
-- `tests/` 文件夹的脚本必须在 `.env` 文件中设置 `APP_ENV=test` 才能运行
+- `tests/` 文件夹的脚本必须设置 `APP_ENV=test` 才能运行(脚本顶部会检查)
 - 编写测试代码后应该自动运行脚本并调试
 - 详细的测试规范请参考 `.claude/PROJECT_CONTEXT.md`
+
+> ℹ️ **storage 权限已由 ACL 自动保障,无需任何 chown**:
+> `storage/` 已设置 default ACL(`setfacl -R -d -m g:www-data:rwX storage`),任何身份
+> (含 root 跑的测试 / artisan)在其中新建的文件(日志、缓存、编译视图)都会自动带
+> www-data 组读写权限,PHP-FPM(www-data)可正常写入。因此可放心用任意方式运行测试。
+> 历史上“root 跑测试 → 日志属主变 root → 接口 500 且日志空白”的 bug 已由此彻底消除。
 
 ## Developing 
 
@@ -77,15 +83,15 @@
 - Sanitize user-generated content
 - Never commit sensitive data to repository
 
-### 跨环境权限法则
-- 由于宿主机与 Podman 容器的 UID 隔离，你（Agent）在宿主机创建或大量修改新文件后，**必须**执行以下命令，防止容器内的 PHP-FPM 遭遇 Permission Denied：
+### 权限与自动加载
+- **`storage/` 与 `bootstrap/cache/` 已由 ACL 自动保障权限**:已设置
+  `setfacl -R -d -m g:www-data:rwX`,任何人(含 root)在其中新建的运行时文件
+  (日志、缓存、编译视图)都会自动带 www-data 组读写权限,**无需任何 chown**。
+- **代码文件(`app/`、`tests/`)只读执行**,FPM 读取 644/755 即可,属主是 root 也不影响。
+- **新建/移动 PHP 类文件、批量改 namespace 后**,只需刷新 Composer 自动加载映射:
   ```bash
-  podman exec php7-npanel chown -R www-data:www-data /var/www/NPanel/app/
-  podman exec php7-npanel chmod -R 755 /var/www/NPanel/app/
   podman exec php7-npanel php /var/www/NPanel/composer.phar dump-autoload
   ```
-- 此规则适用于：新建 PHP 类文件、移动文件目录、批量修改 namespace 等场景。
-- 如果 `tests/` 目录也有新文件，应对 `tests/` 目录执行同样的 `chown` + `chmod` 操作。
 
 
 

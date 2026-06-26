@@ -210,8 +210,12 @@
 
     <script type="text/javascript">
         // === 订阅域名选择器 ===
+        // 重要：域名列表必须用 Blade 的 json 指令直接输出为 JS 字面量，
+        // 不能先用花括号输出再用 JSON.parse 包裹。因为 Blade 花括号输出会经过
+        // HTML 转义，把 JSON 中的双引号变成 &quot;，JSON.parse 会抛 SyntaxError，
+        // 整个自执行函数中断，域名选择器就渲染不出来。
         (function() {
-            var extraDomains = JSON.parse('{{ $subscribeDomainsJson }}');
+            var extraDomains = @json($subscribeDomains);
             if (!extraDomains || extraDomains.length === 0) return;
 
             var baseDomain = '{{ $linkBase }}';
