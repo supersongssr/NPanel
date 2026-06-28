@@ -27,6 +27,10 @@ class SsNode extends Model
         'v2_sni', 'v2_flow', 'v2_fp', 'v2_alpn', 'v2_servicename',
         'v2_method', 'v2_encryption', 'v2_alter_id', 'v2_mode', 'is_subscribe',
         'v2_hop_ports', 'v2_xhttp_verify',
+        // xhttp-split 模式: v2_xhttp_dl_host=下行域名({rand8}d{id}.rootDomain, 同 rootDomain
+        // 复用泛域名证书); v2_xhttp_dl_add=下行真实 IP (downloadSettings.address).
+        // 主节点与 clone 共用同一 dl_host; dl_add 按 IP 半区区分. 仅订阅层读取.
+        'v2_xhttp_dl_host', 'v2_xhttp_dl_add',
         // vision-reality 模式: REALITY X25519 密钥对 + shortId (配套使用).
         // pbk -> 订阅, private -> xray 下发, sid -> 两端共用. 主节点与 clone 共用同一组.
         'v2_reality_pbk', 'v2_reality_private', 'v2_reality_sid',

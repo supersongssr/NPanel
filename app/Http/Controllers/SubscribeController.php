@@ -431,16 +431,44 @@ class SubscribeController extends Controller
                 if ($isReality) {
                     $scheme .= '&pbk='.($node->v2_reality_pbk ?: '').'&sid='.($node->v2_reality_sid ?: '');
                 }
-                // xhttp-verify 模式: 通过 extra 参数下发 headers.Xhttp-Verify (xray xhttp 标准字段),
-                // JSON 压缩后 URL 编码, 客户端据此在 xhttp 请求上发送自定义 header Xhttp-Verify = 节点随机 UUID v4.
-                // (用 xray xhttp 原生 headers 字段, 而非 scHeaders —— scHeaders 不是标准字段会被客户端忽略,
-                //  导致 header 实际不发送; headers 为 map[string]string, 故 value 用字符串而非数组.)
-                // (用自定义 header 而非 User-Agent, 避免被客户端自动改写.)
-                if ($node->v2_net === 'xhttp' && !empty($node->v2_xhttp_verify)) {
-                    $extra = json_encode([
-                        'headers' => ['Xhttp-Verify' => $node->v2_xhttp_verify],
-                    ], JSON_UNESCAPED_SLASHES);
-                    $scheme .= '&extra=' . urlencode($extra);
+                // xhttp extra: xhttp-verify (headers.Xhttp-Verify) + xhttp-split (downloadSettings).
+                // 两种用途各自对应不同的 v2_name, 实际互斥, 但此处统一合并到同一个 extra JSON.
+                //   1. xhttp-verify: extra {"headers":{"Xhttp-Verify":"<uuid>"}}
+                //      v2rayN / v2rayNG 解析 extra 并注入 streamSettings.xhttpSettings.extra,
+                //      使客户端发送的 Xhttp-Verify 头与 nginx 校验的随机 UUID 一致.
+                //      key 必须是小写 "headers" (xray xhttpSettings 原生字段名).
+                //   2. xhttp-split (上下行分离): extra.downloadSettings
+                //      下行流走独立域名 (serverName/host=dl_host) + 真实 IP (address=dl_add),
+                //      与上行 host/sni 分离, 降低 GFW 上下行关联检测.
+                //      downloadSettings.xhttpSettings.path 必须与外层 path 一致 (Xray 握手要求).
+                //      address 用真实 IP: 不会被节点外看到 (不在域名层暴露), 故不担心.
+                //      (dl_add 为 IPv6 时保持裸写 — xray-core 配置 address 字段原生接受裸 IPv6)
+                if ($node->v2_net === 'xhttp') {
+                    $extra = [];
+                    if (!empty($node->v2_xhttp_verify)) {
+                        $extra['headers'] = ['Xhttp-Verify' => $node->v2_xhttp_verify];
+                    }
+                    if (!empty($node->v2_xhttp_dl_host) && !empty($node->v2_xhttp_dl_add)) {
+                        $dlPath = '/' . ltrim((string)$node->v2_path, '/');
+                        $extra['downloadSettings'] = [
+                            'address'  => $node->v2_xhttp_dl_add,
+                            'port'     => (int)$node->v2_port,
+                            'network'  => 'xhttp',
+                            'security' => 'tls',
+                            'tlsSettings' => [
+                                'serverName'  => $node->v2_xhttp_dl_host,
+                                'fingerprint' => $node->v2_fp ?: 'firefox',
+                            ],
+                            'xhttpSettings' => [
+                                'host' => $node->v2_xhttp_dl_host,
+                                'path' => $dlPath,
+                                'mode' => 'auto',
+                            ],
+                        ];
+                    }
+                    if (!empty($extra)) {
+                        $scheme .= '&extra=' . urlencode(json_encode($extra, JSON_UNESCAPED_SLASHES));
+                    }
                 }
                 $scheme .= '#'.urlencode($this->getNodeDisplayName($node).($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $vless_count += 1;

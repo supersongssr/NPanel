@@ -64,6 +64,16 @@ class NodeApiController extends Controller
      */
     private $clusterEch = null;
 
+    /**
+     * xhttp-split 模式的下行域名 (dl_host) 缓存:
+     * 单次 register() 调用内生成一次, 主节点与所有 clone 共用同一个 (同一物理节点).
+     * 形如 `{rand8}d{mainid}.{rootDomain}` — 与上行 host ({rand8}n{id} / {rand8}ipv6n{id})
+     * 不同 (独立随机前缀 + 'd' 标记), 但同一 rootDomain (复用泛域名证书 + 同一 nginx server_name).
+     * 下行域名仅供客户端 downloadSettings (TLS SNI + HTTP Host); 下行直连 IP, 无需 DNS.
+     * 仅当 v2_name === 'xhttp-split' 时生成; 否则为 null (非 split 模式).
+     */
+    private $clusterDlHost = null;
+
     public function __construct()
     {
         while (ob_get_level() > 0) {
@@ -487,6 +497,16 @@ class NodeApiController extends Controller
             $this->clusterEch = null;
         }
 
+        // xhttp-split 模式: 生成集群共用的下行域名 (dl_host) — 与上行 host 不同
+        // (独立随机前缀 + 'd' 标记), 但同一 rootDomain (复用泛域名证书 + 同一 nginx server_name).
+        // 主节点生成一次, 所有 clone 复用. 下行域名仅供客户端 downloadSettings (SNI + Host),
+        // 下行直连 IP (v2_xhttp_dl_add), 无需 DNS. (服务端 xray/nginx 不读取此项.)
+        if ($v2Name === "xhttp-split") {
+            $this->clusterDlHost = $this->buildDownloadHost($node->id, $rootDomain);
+        } else {
+            $this->clusterDlHost = null;
+        }
+
         $mainSlot = array_shift($slots);
         $mainIsIpv6 = $mainSlot["ip_type"] === "ipv6";
         // main 节点 ipv6 slot 时, clusterHost (server/host/sni) 带 `ipv6n` 标识, 使 isIpv6Node
@@ -738,6 +758,9 @@ class NodeApiController extends Controller
         $node->v2_cdn_ip = "";
         // xhttp-cdn / xhttp-cdn-hy2 的 ECH 下载规格: 回收节点时清空, 防止旧值残留.
         $node->v2_ech = null;
+        // xhttp-split 的下行域名 / 下行地址: 回收节点时清空, 防止旧值残留.
+        $node->v2_xhttp_dl_host = null;
+        $node->v2_xhttp_dl_add = null;
         $node->v2_insider_port = 0;
         $node->v2_outsider_port = 0;
 
@@ -814,6 +837,18 @@ class NodeApiController extends Controller
     const V2_PROTOCOL_SLOTS = [
         "vision-hy2"        => ["vision", "vision", "hy2"],
         "vision"           => ["vision", "vision", "vision"],
+        // vision-curvePreferences: VLESS + XTLS-Vision + TLS, 服务端 tlsSettings 锁死
+        // curvePreferences:["x25519mlkem768"] (后量子混合密钥交换 X25519+ML-KEM-768).
+        // GFW 旧栈主动探测 (Go<1.23 / 老 OpenSSL) 不支持该曲线, 握手即被拒 (alert 40),
+        // 无法坐实节点为代理 -> 不升级 IP 封锁 (密码学硬门槛, 非指纹伪装).
+        // 协议槽同 vision (inbound tag=proxy-vision); curvePreferences 是模板内静态字段,
+        // 渲染器只做占位符替换, 该字段原样进入下发配置. 客户端需新版 uTLS (广播 PQ 曲线).
+        "vision-curvePreferences"     => ["vision", "vision", "vision"],
+        // vision-curvePreferences-hy2: 在 vision-curvePreferences 基线上叠加 hysteria2.
+        // 实验目的: vision-curvePreferences 单独被墙率最低 (~1.8%), 加 hy2 后对比验证
+        // hy2 是否会导致节点被封锁. curvePreferences 仅作用于 vision 槽位 (proxy-vision),
+        // hy2 槽位 (proxy-hy2) 不加 (隔离 hy2 这个变量). 协议槽同 vision-hy2.
+        "vision-curvePreferences-hy2" => ["vision", "vision", "hy2"],
         // vision-reality: VLESS + XTLS-Vision + REALITY (偷自己). xray 监听 443,
         // realitySettings.dest=127.0.0.1:8443 偷本机 nginx 8443 泛域名证书完成 TLS 握手;
         // 非法探测/普通浏览器透明回落到 nginx 8443 的 AriaNg 伪装站.
@@ -835,6 +870,13 @@ class NodeApiController extends Controller
         // 专为「TCP 被墙但 UDP 仍通」的节点: xhttp 走 CF 优选 IP, hy2 直连节点 IP.
         // 仅 xhttp 槽位走 CDN (isCdnNode 排除 hysteria2 传输); hy2 槽位始终直连.
         "xhttp-cdn-hy2"       => ["xhttp", "xhttp", "hy2"],
+        // xhttp-split: 仅 xhttp, 但客户端上下行走两条不同的 xhttp 流 (downloadSettings).
+        // 上行走 host/sni 域名 (普通 xhttp), 下行走 [独立域名 dl_host + 真实 IP] (直连),
+        // 打破 GFW 对单一域名 / 单一连接上下行特征的关联检测.
+        // 服务端与普通 xhttp 完全一致 (split 是纯客户端 downloadSettings 概念):
+        //   - xray inbound mode=auto 同时处理上行 POST 与下行流
+        //   - nginx 单 location /{path} 反代两条流到同一 inbound
+        "xhttp-split"         => ["xhttp", "xhttp", "xhttp"],
     ];
 
     private function expandProtocols($v2Name)
@@ -912,6 +954,18 @@ class NodeApiController extends Controller
             // xhttp-verify 模式: 写入集群共用随机 UUID v4 token (主节点与 clone 一致).
             // 其他模式保持空 (不启用 nginx 层 Xhttp-Verify 校验).
             $node->v2_xhttp_verify = $this->clusterXhttpVerify;
+
+            // xhttp-split 模式: 写入集群共用下行域名 (dl_host, 主节点与 clone 一致) +
+            // 下行真实 IP (dl_add, 按 IP 半区区分). 仅订阅层读取 -> downloadSettings.
+            // 服务端 (xray/nginx) 不读取这两列 — split 是纯客户端概念.
+            if ($modeName === "xhttp-split") {
+                $node->v2_xhttp_dl_host = $this->clusterDlHost;
+                // dl_add: ipv6 半区 clone / ipv6-only 节点用 ipv6; 其余用 ipv4 (fallback ipv6).
+                // (下行连接必须抵达本物理节点, 故按本槽位 IP 栈选真实 IP; 裸写, 不加方括号)
+                $node->v2_xhttp_dl_add = $isIpv6
+                    ? ($node->ipv6 ?: $node->ip ?: "")
+                    : ($node->ip ?: $node->ipv6 ?: "");
+            }
         }
 
         // vision-reality 模式: reality 是 TLS 变体 (偷自己证书), 与普通 vision
@@ -976,6 +1030,27 @@ class NodeApiController extends Controller
     {
         $random8 = substr(str_replace('-', '', Helpers::genRandomUuid()), 0, 8);
         return $random8 . ($isIpv6 ? 'ipv6n' : 'n') . $mainNodeId . '.' . $rootDomain;
+    }
+
+    /**
+     * 构建集群共用的下行域名 (dl_host): {random8}d{mainNodeId}.{rootDomain}.
+     *
+     * 用于 xhttp-split (上下行分离) 模式: 下行流走独立域名 (downloadSettings 的 TLS SNI /
+     * HTTP Host), 与上行 host ({random8}n{id} / {random8}ipv6n{id}) 区分, 打破 GFW 对单一
+     * 域名上下行特征的关联检测.
+     *   - 独立的 8 位随机前缀 (与上行 host 前缀独立, 防扫描)
+     *   - 'd' 标记 (vs 上行的 'n'/'ipv6n') 结构性保证上下行两域永不相等
+     *   - 同一 rootDomain: 复用泛域名证书 + 同一 nginx server_name (泛域名匹配)
+     * 主节点与所有 clone 共用同一 dl_host (同一物理节点), 下行直连 IP, dl_host 无需 DNS.
+     *
+     * @param  int    $mainNodeId 主节点 ID (集群共用一个 dl_host)
+     * @param  string $rootDomain 根域名 (与上行 host 同源)
+     * @return string 例如 "a1b2c3d4d123.example.com"
+     */
+    private function buildDownloadHost($mainNodeId, $rootDomain)
+    {
+        $random8 = substr(str_replace('-', '', Helpers::genRandomUuid()), 0, 8);
+        return $random8 . 'd' . $mainNodeId . '.' . $rootDomain;
     }
 
     /**
