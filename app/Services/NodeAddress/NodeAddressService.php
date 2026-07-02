@@ -8,8 +8,9 @@ namespace App\Services\NodeAddress;
  * ──────────────────────────────────────────────────────────────────
  * 设计: register 阶段按 [ipv4×N, ipv6×N] 槽位展开, 每个节点的 server 域名前缀编码了
  * ip 栈信息 (register 之后, DNS 处理之前已确定):
- *   - ipv6 节点: server = `{random8}ipv6n{id}.domain` (主) / `ipv6n{id}.domain` (clone) — 含 `ipv6n`.
- *   - ipv4 节点: server = `{random8}n{id}.domain` (主) / `n{id}.domain` (clone) — 不含 `ipv6n`.
+ *   - ipv6 节点: server = 原生 ipv6 字面量 (含 ':'). (旧格式 server = `{random8}ipv6n{id}.domain`
+ *     主 / `ipv6n{id}.domain` clone — 含 `ipv6n`, 仍兼容识别.)
+ *   - ipv4 节点: server = `{random8}n{id}.domain` (主) / `n{id}.domain` (clone) — 不含 ':' 也不含 `ipv6n`.
  * server 字段本身就是节点的“address”标志 (是 ipv4 还是 ipv6). 每个节点 (主+clone) 同时
  * 存储物理节点的 ip (IPv4) 与 ipv6 (IPv6), 不再通过 ip 缺失判断是否 ipv6.
  * DNS 记录的创建交给独立的 DnsSyncer 模块, 在 resolve_dns 端点统一处理
@@ -17,7 +18,7 @@ namespace App\Services\NodeAddress;
  * "客户端连接地址", 与 DNS 记录同步完全解耦.
  *
  * address 解析规则 (无全局开关, 固定行为):
- *   1. ipv6 节点 (server 含 `ipv6n`) → 始终直连 ipv6 (不做 host 解析).
+ *   1. ipv6 节点 (server 含 ':' 即 ipv6, 或旧格式含 `ipv6n`) → 始终直连 ipv6 (不做 host 解析).
  *   2. CDN 节点 (v2_name=xhttp-cdn / xhttp-cdn-hy2 的 xhttp 槽位, 或 v2_cdn='cf')
  *      → CF 优选 IP (CSV 来源; CSV 空 → 降级节点 IP). CDN 走 CF 边缘, 独立于 main/clone 角色.
  *      注: xhttp-cdn-hy2 集群里的 hysteria2 槽位是 UDP 直连, 不走 CDN (CF 仅代理 HTTP/HTTPS).
@@ -99,8 +100,9 @@ class NodeAddressService
      * 节点是否为 ipv6 节点 (以 server 域名前缀为准).
      *
      * server 字段本身就是节点的 address 标志 (register 之后, DNS 处理之前已确定):
-     * ipv6 节点的 server subdomain 含 `ipv6n` 标识 (主节点 `{random8}ipv6n{id}` /
-     * clone `ipv6n{id}`), ipv4 节点不含 (`{random8}n{id}` / `n{id}`).
+     * ipv6 节点的 server 即原生 ipv6 字面量 (含 ':'); 旧格式为 server subdomain 含
+     * `ipv6n` 标识 (主节点 `{random8}ipv6n{id}` / clone `ipv6n{id}`). ipv4 节点 server 为
+     * 域名 (`{random8}n{id}` / `n{id}`), 不含 ':' 也不含 `ipv6n`.
      * 每个节点同时存储 ip+ipv6 (物理节点双栈), 不再通过 ip 字段缺失判断是否 ipv6.
      * ipv6 节点的连接地址始终为 ipv6, 不做 host 解析 (直连 ipv6):
      *   - resolveAddress 恒返回 ipv6; DnsSyncer 跳过 ipv6 节点 (不创建 DNS 记录).
@@ -113,7 +115,13 @@ class NodeAddressService
         if (!$node || empty($node->server)) {
             return false;
         }
-        $subdomain = explode('.', (string) $node->server, 2);
+        $server = (string) $node->server;
+        // 新格式: ipv6 节点 server = 原生 ipv6 字面量 (含 ':'). 域名 / ipv4 不含 ':'.
+        if (strpos($server, ':') !== false) {
+            return true;
+        }
+        // 旧格式 (向后兼容): ipv6 节点 server subdomain 含 `ipv6n` 标识.
+        $subdomain = explode('.', $server, 2);
         return strpos($subdomain[0], 'ipv6n') !== false;
     }
 
@@ -163,7 +171,7 @@ class NodeAddressService
      * 解析节点的客户端连接地址 (订阅统一入口, 纯函数无副作用, 无全局开关).
      *
      * 解析顺序 (前者优先):
-     *   1. ipv6 节点 (server 含 `ipv6n`) → 始终直连 ipv6.
+     *   1. ipv6 节点 (server 含 ':' 即 ipv6, 或旧格式含 `ipv6n`) → 始终直连 ipv6.
      *   2. CDN 节点 → CF 优选 IP (CSV 空 → 降级节点 IP).
      *   3. 主节点 (is_clone=0) → 直连 IP.
      *   4. clone ipv4 节点 → 连接域名 server (resolve_dns 创建 A 记录解析到 IP).
@@ -173,9 +181,11 @@ class NodeAddressService
      */
     public static function resolveAddress($node)
     {
-        // 1. ipv6 节点 (server 含 `ipv6n`): 始终直连 ipv6, 不做 host 解析.
+        // 1. ipv6 节点: 始终直连 ipv6, 不做 host 解析.
+        //    新格式 server 已是原生 ipv6 字面量; 旧格式 server 为 ipv6n{id}.domain → 取 ipv6 列.
         if (self::isIpv6Node($node)) {
-            return (string) $node->ipv6;
+            $server = (string) $node->server;
+            return strpos($server, ':') !== false ? $server : (string) $node->ipv6;
         }
 
         // 2. CDN 节点: 走 CF 边缘 IP (CSV 来源), 独立于 main/clone 角色.
@@ -202,6 +212,29 @@ class NodeAddressService
         //    resolve_dns 阶段由 DnsSyncer 创建 A 记录, 将该域名解析到节点 IPv4.
         //    该域名只需能解析出 IP 即可, 可与 TLS host (v2_host/v2_sni) 不同 (domain-fronting).
         return self::resolveConnectDomain($node);
+    }
+
+    /**
+     * 把连接地址包装成 URI 安全形式 (URI scheme 用: vless:// trojan:// hysteria2://).
+     *
+     * resolveAddress 返回裸地址 (域名 / IPv4 / IPv6 字面量), 供 clash / sing-box / loon
+     * 等结构化字段直接使用. 但在 URI scheme 中, IPv6 地址必须用方括号包裹 (RFC 3986),
+     * 否则其内部的 ':' 与端口分隔符 ':' 冲突, 客户端无法解析出 host / port / uuid.
+     * 本方法对未包裹的 IPv6 字面量 (含 ':') 加 [...] 包裹, 其余原样返回.
+     *
+     * 用法: $addr = resolveAddress($node); $uri = 'vless://'.wrapIpv6ForUri($addr).':443';
+     *
+     * @param  mixed $addr  resolveAddress 的返回值 (裸地址)
+     * @return string  URI 安全地址 (IPv6 加方括号, 其余原样)
+     */
+    public static function wrapIpv6ForUri($addr)
+    {
+        $addr = (string) $addr;
+        // 仅对未包裹方括号的 IPv6 字面量 (含 ':') 加括号; 域名 / IPv4 / 已包裹的保持原样.
+        if ($addr !== '' && $addr[0] !== '[' && strpos($addr, ':') !== false) {
+            return '[' . $addr . ']';
+        }
+        return $addr;
     }
 
     /**

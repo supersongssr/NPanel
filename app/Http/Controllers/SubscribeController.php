@@ -376,6 +376,11 @@ class SubscribeController extends Controller
             // }
             // --- Address mode: IP 模式下客户端直连 IP，domain 模式下连域名 ---
             $nodeAddr = \App\Services\NodeAddress\NodeAddressService::resolveAddress($node);
+            // URI scheme (vless/trojan/hysteria2) 中 IPv6 必须用方括号包裹 (RFC 3986),
+            // 否则 IPv6 内部的 ':' 与端口分隔符 ':' 冲突, 客户端无法解析 host/port/uuid.
+            // vmess add 字段 (JSON) 保持裸写 (字段值无歧义); clash/sing-box/loon 结构化字段
+            // 各自独立 resolveAddress, 也不受影响 (它们用裸 IPv6)。
+            $nodeAddrUri = \App\Services\NodeAddress\NodeAddressService::wrapIpv6ForUri($nodeAddr);
 
             $node->v2_tls == 0 && $node->v2_tls = '';   // 解析 tls xtls 
             $node->v2_tls == 1 && $node->v2_tls = 'tls';
@@ -422,7 +427,7 @@ class SubscribeController extends Controller
                 // 这里兑底覆写), 并追下 pbk(公钥)/sid(shortId). 参考 .tmp/vless-reality订阅格式参考.md.
                 $isReality = $this->isRealityNode($node);
                 $vlessSecurity = $isReality ? 'reality' : $node->v2_tls;
-                $scheme .= 'vless://'.$node_uuid.'@'.$nodeAddr.':'.$node->v2_port;
+                $scheme .= 'vless://'.$node_uuid.'@'.$nodeAddrUri.':'.$node->v2_port;
                 $scheme .= '?encryption='.$node->v2_encryption.'&type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$vlessSecurity.'&sni='.$vlessSni .'&fp='.$node->v2_fp.'&serviceName='.$node->v2_servicename. '&mode='.$vlessMode.'&alpn='.urlencode($node->v2_alpn);
                 // ECH: 仅 xhttp 走 CF 的节点有 v2_ech (ech.{root}+udp://resolver), hy2 为空不输出.
                 if (!empty($node->v2_ech)) {
@@ -481,7 +486,7 @@ class SubscribeController extends Controller
                     continue;
                 }
                 $trojanSni = $this->applySniPrefix($node->v2_sni, $node, $userSniPrefix);
-                $scheme .= 'trojan://'.$node_uuid.'@'.$nodeAddr.':'.$node->v2_port;
+                $scheme .= 'trojan://'.$node_uuid.'@'.$nodeAddrUri.':'.$node->v2_port;
                 $scheme .= '?type='.$node->v2_net.'&headerType='.$node->v2_type.'&host='.urlencode($node->v2_host).'&path='.urlencode($node->v2_path).'&flow='.$node->v2_flow.'&security='.$node->v2_tls.'&sni='.$trojanSni.'&fp=ios&serviceName='.$node->v2_servicename.'&mode='.$node->v2_mode.'&alpn='.urlencode($node->v2_alpn);
                 $scheme .= '#'.urlencode($this->getNodeDisplayName($node).($node->traffic_rate != 1 ? '_x'.$node->traffic_rate : '').'_#'.$node->id) . "\n";
                 $trojan_count += 1;
@@ -504,7 +509,7 @@ class SubscribeController extends Controller
                 $hy2Url = sprintf(
                     "hysteria2://%s@%s:%s?sni=%s%s#%s\n",
                     $node_uuid,
-                    $nodeAddr,
+                    $nodeAddrUri,
                     $node->v2_port,
                     rawurlencode($hy2Sni),
                     $mport,
