@@ -72,7 +72,17 @@
                                         </ul>
                                         <div class="tab-content" style="font-size:16px;">
                                             <div class="tab-pane" id="tools1">
-                                                <ol>【 v2rayU 】
+                                                <ol>【 v2rayN 】
+                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
+                                                    <li>下载软件：<a href="https://dl.v2rayn.co/apps/v2rayn/7.22.7/v2rayN-macos-arm64.dmg" target="_blank">点此下载 v2rayN（Apple Silicon / M 系列芯片）</a>，打开 dmg，将 <code>v2rayN</code> 拖入「应用程序」文件夹完成安装</li>
+                                                    <li><strong style="color:#e7505a;">重要</strong>：安装后<strong>首次启动前</strong>，必须先打开「终端」（Terminal）执行以下命令解除 macOS 隔离属性，否则无法启动：
+                                                        <pre style="background:#f5f5f5;padding:8px 12px;border-radius:4px;margin:6px 0;"><code>xattr -cr /Applications/v2rayN.app</code></pre>
+                                                    </li>
+                                                    <li>启动 v2rayN，在软件界面 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<code class="sub-link-input">{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 确定 - 返回软件界面 - 订阅 - 更新订阅</li>
+                                                    <li>软件界面 - 右键任意节点 - 设为活动的服务器； v2rayN 软件界面 - 代理 - 自动设置系统代理；打开浏览器上网吧</li>
+                                                </ol>
+                                                <hr>
+                                                <ol>【 v2rayU 不再推荐 】
                                                     <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
                                                     <li>安装软件:<a href="/clients/V2rayU-64.dmg" target="_blank">Intel芯片 </a> , <a href="/clients/V2rayU-arm64.dmg" target="_blank">AppleM芯片 </a></li>
                                                     <li>添加订阅: v2rayU图标 - Subscription - 输入订阅URL </li>
@@ -99,7 +109,7 @@
                                             <div class="tab-pane active" id="tools2">
                                                 <ol>【 v2rayN 】
                                                     <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li> <a href="/clients/v2rayN-windows-64-desktop.zip" target="_blank">点此下载V2rayN Desktop</a> 解压缩 - 右键以管理员身份运行 <code>V2rayN.exe</code></li>
+                                                    <li> <a href="https://dl.v2rayn.co/apps/v2rayn/7.22.7/v2rayN-windows-64.zip" target="_blank">点此下载V2rayN</a> 解压缩 - 右键以管理员身份运行 <code>V2rayN.exe</code></li>
                                                     <li> 双击任务栏右下角 <code>V2rayN</code>图标 - 在软件界面中 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<code class="sub-link-input">{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 确定 - 返回软件界面 - 订阅 - 更新订阅  </li>
                                                     <li> 软件界面 - 右键任意节点 - 设为活动的服务器 ； v2rayN软件界面 - 代理 - 自动设置系统代理；打开浏览器上网吧 </li>
                                                     <li> <a href="/article?id=47">没看懂？点我图文教程</a></li>
@@ -118,6 +128,20 @@
                                                 </ol> -->
                                             </div>
                                             <div class="tab-pane" id="tools4">
+                                                <ol>【 onexray 】
+                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
+                                                    <li> 在<code>非国区</code>苹果商店 搜索 <code>onexray</code> 或 <a href="https://apps.apple.com/us/app/onexray/id6745748773" target="_blank">点此下载 onexray</a> 免费 - 安装  </li>
+                                                    <li> 打开 onexray - 进入订阅/分组设置 - 添加订阅 - 地址：<code class="sub-link-input">{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 更新订阅  </li>
+                                                    <li> 选择任意节点 - 开启主开关 - 打开浏览器上网吧 <small>*第一次使用，会提示是否允许添加 VPN 配置，点击允许</small></li>
+                                                </ol>
+                                                <hr>
+                                                <ol>【 Happ Proxy Utility 】
+                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
+                                                    <li> 在<code>非国区</code>苹果商店 搜索 <code>Happ</code> 或 <a href="https://apps.apple.com/us/app/happ-proxy-utility/id6504287215" target="_blank">点此下载 Happ Proxy Utility</a> 免费 - 安装  </li>
+                                                    <li> 打开 Happ - 添加订阅 - 地址：<code class="sub-link-input">{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 更新订阅  </li>
+                                                    <li> 选择任意节点 - 开启主开关 - 打开浏览器上网吧 <small>*第一次使用，会提示是否允许添加 VPN 配置，点击允许</small></li>
+                                                </ol>
+                                                <hr>
                                                 <ol>【Sing-Box】
                                                     <input type="text" class="form-control sub-link-input" value="{{$link}}?app=singbox&vless=128&ss=64&vmess=64" />
                                                     <li> 在<code>美区</code>苹果商店 搜索 <code>sing-box</code> 免费 - 安装  </li>
@@ -161,7 +185,7 @@
                                             <div class="tab-pane" id="tools5">
                                                 <ol>【v2rayNG】
                                                     <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li> <a href="/clients/v2rayNG_arm64-v8a.apk">点此下载v2rayNG </a> - 安装 - 打开软件</li>
+                                                    <li> <a href="https://dl.v2rayng.org/releases/latest/v2rayNG_2.2.5-fdroid_arm64-v8a.apk">点此下载v2rayNG </a> - 安装 - 打开软件</li>
                                                     <li> 软件界面 - 右滑 - 订阅设置 - 点击右上角 <code>+</code> - 备注随意 - 地址：<code class="sub-link-input">{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 返回主界面 - 点击右上角打开菜单 - 更新订阅 </li>
                                                     <li> 选择一个节点 - 点击右下角小飞机 - 开始使用吧。 </li>
                                                     <li> <a href="/article?id=58">图文教程</a></li>
