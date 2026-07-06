@@ -1,5 +1,116 @@
 @extends('user.layouts')
 @section('css')
+    <style>
+        /* 多订阅域名：内联单行工具条（弱化辅助功能，突出主体教程） */
+        .domain-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            margin: 0 0 16px 0;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #999;
+        }
+        .domain-bar-label {
+            color: #32c5d2;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .domain-bar-hint {
+            color: #b0b6bb;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .domain-bar #domain-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        /* 客户端教程卡片：不同代理软件之间的清晰边界 */
+        ol.client-card {
+            background: #ffffff;
+            border: 1px solid #e4e9ee;
+            border-left: 4px solid #32c5d2;
+            border-radius: 6px;
+            padding: 10px 22px 4px 40px;
+            margin: 0 0 18px 0;
+            box-shadow: 0 1px 3px rgba(50, 197, 210, 0.06);
+        }
+        .client-card-title {
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            color: #32c5d2;
+            margin: 6px 0 8px -18px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #dce3e8;
+            letter-spacing: 0.3px;
+        }
+        /* 卡片间的 <hr> 分隔线已由卡片边距取代，隐藏避免双重分隔 */
+        .tab-content hr { display: none; }
+        /* 4 步标准教程：行内步骤标签（方案 A） */
+        ol.client-card > li .step-label {
+            color: #32c5d2;
+            font-weight: 700;
+            margin-right: 2px;
+            white-space: nowrap;
+        }
+        /* 订阅地址：单行（标签 + 输入框 + 复制按钮） */
+        .sub-link-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0 14px 0;
+            flex-wrap: nowrap;
+        }
+        .sub-link-row .sub-link-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #32c5d2;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .sub-link-row input.sub-link-input.form-control {
+            flex: 1 1 auto;
+            min-width: 60px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            color: #32c5d2;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid #32c5d2;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 6px 4px;
+            margin: 0;
+            letter-spacing: 0.3px;
+        }
+        .sub-link-row input.sub-link-input.form-control:focus {
+            border-color: #32c5d2;
+            box-shadow: none;
+            outline: none;
+        }
+        .sub-link-copy {
+            flex-shrink: 0;
+            background: #32c5d2;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 7px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background .2s;
+        }
+        .sub-link-copy:hover { background: #28a8b4; }
+        .sub-link-copy:active { background: #1f8e99; }
+    </style>
 @endsection
 @section('content')
     <!-- BEGIN CONTENT BODY -->
@@ -31,22 +142,14 @@
                                 <div class="mt-clipboard-container">
                                     <!-- Song -->
                                     <div class="alert alert-danger">
-                                        <p>支持技术：ss ssr vmess vless trojan hysteria2 .您可以修改 ?ss=64&vmess=64&vless=64&trojan=64&hysteria2=64 的数值，来控制获取节点的数量。 =0时为不获取相应节点。
-                                            <br> 如部分路由器不支持ss节点，获取会报错，可设置： ?ss=0&vmess=64&vless=64&trojan=64&hysteria2=64 即不获取ss节点。</p>
+                                        <p></p>
                                     </div>
 
                                     @if(!empty($subscribeDomains))
-                                    <div class="portlet light" style="margin-bottom:10px;">
-                                        <div class="portlet-title">
-                                            <div class="caption">
-                                                <span class="caption-subject font-green bold">选择订阅域名</span>
-                                                <span style="margin-left:8px;color:#999;font-size:12px;">切换后下方所有订阅链接自动更新</span>
-                                            </div>
-                                        </div>
-                                        <div class="portlet-body" style="padding-top:0;">
-                                            <div id="domain-selector" style="margin-bottom:0;"></div>
-                                            <div class="help-block" style="margin-top:6px;margin-bottom:0;">✅ 可用 &nbsp; ❌ 不可达（可能被墙，请选择其他域名）</div>
-                                        </div>
+                                    <div class="domain-bar">
+                                        <span class="domain-bar-label">🌐 订阅域名</span>
+                                        <div id="domain-selector"></div>
+                                        <span class="domain-bar-hint">不可达 ❌ 时点击切换其他域名</span>
                                     </div>
                                     @endif
                                     <div class="tabbable-line">
@@ -72,27 +175,40 @@
                                         </ul>
                                         <div class="tab-content" style="font-size:16px;">
                                             <div class="tab-pane" id="tools1">
-                                                <ol>【 v2rayN 】
-                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li>下载软件：<a href="https://dl.v2rayn.co/apps/v2rayn/7.22.7/v2rayN-macos-arm64.dmg" target="_blank">点此下载 v2rayN（Apple Silicon / M 系列芯片）</a>，打开 dmg，将 <code>v2rayN</code> 拖入「应用程序」文件夹完成安装</li>
-                                                    <li><strong style="color:#e7505a;">重要</strong>：安装后<strong>首次启动前</strong>，必须先打开「终端」（Terminal）执行以下命令解除 macOS 隔离属性，否则无法启动：
-                                                        <pre style="background:#f5f5f5;padding:8px 12px;border-radius:4px;margin:6px 0;"><code>xattr -cr /Applications/v2rayN.app</code></pre>
-                                                    </li>
-                                                    <li>启动 v2rayN，在软件界面 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<code class="sub-link-input">{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 确定 - 返回软件界面 - 订阅 - 更新订阅</li>
-                                                    <li>软件界面 - 右键任意节点 - 设为活动的服务器； v2rayN 软件界面 - 代理 - 自动设置系统代理；打开浏览器上网吧</li>
+                                                <ol class="client-card"><span class="client-card-title">v2rayN</span>
+                                                    <div class="sub-link-row">
+                                                        <span class="sub-link-label">📡 订阅地址</span>
+                                                        <input type="text" class="form-control sub-link-input" value="{{$link}}" readonly onclick="this.select();" />
+                                                        <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
+                                                    </div>
+                                                    <li><strong class="step-label">① 安装软件</strong>：<a href="https://dl.v2rayn.co/apps/v2rayn/7.22.7/v2rayN-macos-arm64.dmg" target="_blank">点此下载 v2rayN（Apple Silicon / M 系列芯片）</a>，打开 dmg，将 <code>v2rayN</code> 拖入「应用程序」文件夹完成安装。<br><strong style="color:#e7505a;">重要</strong>：安装后<strong>首次启动前</strong>，必须先打开「终端」（Terminal）执行以下命令解除 macOS 隔离属性，否则无法启动：<pre style="background:#f5f5f5;padding:8px 12px;border-radius:4px;margin:6px 0;"><code>xattr -cr /Applications/v2rayN.app</code></pre></li>
+                                                    <li><strong class="step-label">② 添加订阅</strong>：启动 v2rayN，软件界面 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<strong>复制上方订阅地址</strong> - 确定 - 返回软件界面 - 订阅 - 更新订阅。</li>
+                                                    <li><strong class="step-label">③ 使用节点</strong>：软件界面 - 右键任意节点 - 设为活动的服务器； v2rayN 软件界面 - 代理 - 自动设置系统代理；打开浏览器上网吧。</li>
+                                                    <li><strong class="step-label">④ 图文教程</strong>：<span style="color:#999;">敬请期待</span></li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【 v2rayU 不再推荐 】
-                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li>安装软件:<a href="/clients/V2rayU-64.dmg" target="_blank">Intel芯片 </a> , <a href="/clients/V2rayU-arm64.dmg" target="_blank">AppleM芯片 </a></li>
-                                                    <li>添加订阅: v2rayU图标 - Subscription - 输入订阅URL </li>
-                                                    <li>使用节点: v2rayU - Server - 选择节点,  v2rayU - turn v2ray-core on </li>
+                                                <ol class="client-card"><span class="client-card-title">v2rayU 不再推荐</span>
+                                                    <div class="sub-link-row">
+                                                        <span class="sub-link-label">📡 订阅地址</span>
+                                                        <input type="text" class="form-control sub-link-input" value="{{$link}}" readonly onclick="this.select();" />
+                                                        <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
+                                                    </div>
+                                                    <li><strong class="step-label">① 安装软件</strong>：<a href="/clients/V2rayU-64.dmg" target="_blank">Intel 芯片</a> / <a href="/clients/V2rayU-arm64.dmg" target="_blank">Apple M 芯片</a></li>
+                                                    <li><strong class="step-label">② 添加订阅</strong>：v2rayU 图标 - Subscription - 输入订阅 URL</li>
+                                                    <li><strong class="step-label">③ 使用节点</strong>：v2rayU - Server - 选择节点 - turn v2ray-core on</li>
+                                                    <li><strong class="step-label">④ 图文教程</strong>：<span style="color:#999;">敬请期待</span></li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【 v2rayA 暂停使用 】
-                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li>一键安装homebrew (如已安装homebrew请略过): <a href="/article?id=53" target="_blank">安装homebrew教程</a></li>
-                                                    <li>一键安装v2rayA : <a href="/article?id=55" target="_blank">安装v2rayA教程</a></li>
+                                                <ol class="client-card"><span class="client-card-title">v2rayA 暂停使用</span>
+                                                    <div class="sub-link-row">
+                                                        <span class="sub-link-label">📡 订阅地址</span>
+                                                        <input type="text" class="form-control sub-link-input" value="{{$link}}" readonly onclick="this.select();" />
+                                                        <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
+                                                    </div>
+                                                    <li><strong class="step-label">① 安装软件</strong>：一键安装 homebrew（如已安装可略过）<a href="/article?id=53" target="_blank">教程</a>，再一键安装 v2rayA <a href="/article?id=55" target="_blank">教程</a></li>
+                                                    <li><strong class="step-label">② 添加订阅</strong>：<span style="color:#999;">详见上方教程</span></li>
+                                                    <li><strong class="step-label">③ 使用节点</strong>：<span style="color:#999;">详见上方教程</span></li>
+                                                    <li><strong class="step-label">④ 图文教程</strong>：<a href="/article?id=55" target="_blank">安装 v2rayA 教程</a></li>
                                                 </ol>
                                                 <!-- <ol>【SS-R 教程】
                                                     <li> <a href="{{asset('clients/ShadowsocksX-NG-R8-1.4.4.dmg')}}" target="_blank">点击此处</a>下载客户端并启动 </li>
@@ -107,18 +223,22 @@
                                                 </ol> -->
                                             </div>
                                             <div class="tab-pane active" id="tools2">
-                                                <ol>【 v2rayN 】
-                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li> <a href="https://dl.v2rayn.co/apps/v2rayn/7.22.7/v2rayN-windows-64.zip" target="_blank">点此下载V2rayN</a> 解压缩 - 右键以管理员身份运行 <code>V2rayN.exe</code></li>
-                                                    <li> 双击任务栏右下角 <code>V2rayN</code>图标 - 在软件界面中 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<code class="sub-link-input">{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 确定 - 返回软件界面 - 订阅 - 更新订阅  </li>
-                                                    <li> 软件界面 - 右键任意节点 - 设为活动的服务器 ； v2rayN软件界面 - 代理 - 自动设置系统代理；打开浏览器上网吧 </li>
-                                                    <li> <a href="/article?id=47">没看懂？点我图文教程</a></li>
+                                                <ol class="client-card"><span class="client-card-title">v2rayN</span>
+                                                    <div class="sub-link-row">
+                                                        <span class="sub-link-label">📡 订阅地址</span>
+                                                        <input type="text" class="form-control sub-link-input" value="{{$link}}" readonly onclick="this.select();" />
+                                                        <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
+                                                    </div>
+                                                    <li><strong class="step-label">① 安装软件</strong>：<a href="https://dl.v2rayn.co/apps/v2rayn/7.22.7/v2rayN-windows-64.zip" target="_blank">点此下载 V2rayN</a>，解压缩后右键以管理员身份运行 <code>V2rayN.exe</code>。</li>
+                                                    <li><strong class="step-label">② 添加订阅</strong>：双击任务栏右下角 <code>V2rayN</code> 图标 - 软件界面 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<strong>复制上方订阅地址</strong> - 确定 - 返回软件界面 - 订阅 - 更新订阅。</li>
+                                                    <li><strong class="step-label">③ 使用节点</strong>：软件界面 - 右键任意节点 - 设为活动的服务器； v2rayN 软件界面 - 代理 - 自动设置系统代理；打开浏览器上网吧。</li>
+                                                    <li><strong class="step-label">④ 图文教程</strong>：<a href="/article?id=47">没看懂？点我图文教程</a></li>
                                                 </ol>
 
 
                                             </div>
                                             <div class="tab-pane" id="tools3">
-                                                <ol>【Qv2ray】
+                                                <ol class="client-card"><span class="client-card-title">Qv2ray</span>
                                                 </ol>
                                                 <hr>
                                                 <!-- <ol>【SS-R 教程】
@@ -128,43 +248,72 @@
                                                 </ol> -->
                                             </div>
                                             <div class="tab-pane" id="tools4">
-                                                <ol>【 onexray 】
-                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li> 在<code>非国区</code>苹果商店 搜索 <code>onexray</code> 或 <a href="https://apps.apple.com/us/app/onexray/id6745748773" target="_blank">点此下载 onexray</a> 免费 - 安装  </li>
-                                                    <li> 打开 onexray - 进入订阅/分组设置 - 添加订阅 - 地址：<code class="sub-link-input">{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 更新订阅  </li>
-                                                    <li> 选择任意节点 - 开启主开关 - 打开浏览器上网吧 <small>*第一次使用，会提示是否允许添加 VPN 配置，点击允许</small></li>
+                                                <ol class="client-card"><span class="client-card-title">onexray</span>
+                                                    <div class="sub-link-row">
+                                                        <span class="sub-link-label">📡 订阅地址</span>
+                                                        <input type="text" class="form-control sub-link-input" value="{{$link}}" readonly onclick="this.select();" />
+                                                        <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
+                                                    </div>
+                                                    <li><strong class="step-label">① 安装软件</strong>：在<code>非国区</code>苹果商店搜索 <code>onexray</code>，或 <a href="https://apps.apple.com/us/app/onexray/id6745748773" target="_blank">点此下载 onexray</a>（免费），安装。</li>
+                                                    <li><strong class="step-label">② 添加订阅</strong>：打开 onexray - 进入订阅/分组设置 - 添加订阅 - 地址：<strong>复制上方订阅地址</strong> - 更新订阅。</li>
+                                                    <li><strong class="step-label">③ 使用节点</strong>：选择任意节点 - 开启主开关 - 打开浏览器上网吧。<small> *第一次使用会提示是否允许添加 VPN 配置，点击允许。</small></li>
+                                                    <li><strong class="step-label">④ 图文教程</strong>：<span style="color:#999;">敬请期待</span></li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【 Happ Proxy Utility 】
-                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li> 在<code>非国区</code>苹果商店 搜索 <code>Happ</code> 或 <a href="https://apps.apple.com/us/app/happ-proxy-utility/id6504287215" target="_blank">点此下载 Happ Proxy Utility</a> 免费 - 安装  </li>
-                                                    <li> 打开 Happ - 添加订阅 - 地址：<code class="sub-link-input">{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 更新订阅  </li>
-                                                    <li> 选择任意节点 - 开启主开关 - 打开浏览器上网吧 <small>*第一次使用，会提示是否允许添加 VPN 配置，点击允许</small></li>
+                                                <ol class="client-card"><span class="client-card-title">Happ Proxy Utility</span>
+                                                    <div class="sub-link-row">
+                                                        <span class="sub-link-label">📡 订阅地址</span>
+                                                        <input type="text" class="form-control sub-link-input" value="{{$link}}" readonly onclick="this.select();" />
+                                                        <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
+                                                    </div>
+                                                    <li><strong class="step-label">① 安装软件</strong>：在<code>非国区</code>苹果商店搜索 <code>Happ</code>，或 <a href="https://apps.apple.com/us/app/happ-proxy-utility/id6504287215" target="_blank">点此下载 Happ Proxy Utility</a>（免费），安装。</li>
+                                                    <li><strong class="step-label">② 添加订阅</strong>：打开 Happ - 添加订阅 - 地址：<strong>复制上方订阅地址</strong> - 更新订阅。</li>
+                                                    <li><strong class="step-label">③ 使用节点</strong>：选择任意节点 - 开启主开关 - 打开浏览器上网吧。<small> *第一次使用会提示是否允许添加 VPN 配置，点击允许。</small></li>
+                                                    <li><strong class="step-label">④ 图文教程</strong>：<span style="color:#999;">敬请期待</span></li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【Sing-Box】
-                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?app=singbox&vless=128&ss=64&vmess=64" />
-                                                    <li> 在<code>美区</code>苹果商店 搜索 <code>sing-box</code> 免费 - 安装  </li>
+                                                <ol class="client-card"><span class="client-card-title">Sing-Box</span>
+                                                    <div class="sub-link-row">
+                                                        <span class="sub-link-label">📡 订阅地址</span>
+                                                        <input type="text" class="form-control sub-link-input" value="{{$link}}?app=singbox" readonly onclick="this.select();" />
+                                                        <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
+                                                    </div>
+                                                    <li><strong class="step-label">① 安装软件</strong>：在<code>美区</code>苹果商店搜索 <code>sing-box</code>（免费）安装。</li>
+                                                    <li><strong class="step-label">② 添加订阅</strong>：打开 sing-box - Profiles - 新建 - Type 选择 <code>Remote</code> - 填入订阅 URL：<strong>复制上方订阅地址</strong> - 保存 - 返回首页点击更新。</li>
+                                                    <li><strong class="step-label">③ 使用节点</strong>：选中刚添加的 Profile - 在 Dashboard 开启主开关 - 选择可用节点。<small> *第一次使用会提示是否允许添加 VPN 配置，点击允许。</small></li>
+                                                    <li><strong class="step-label">④ 图文教程</strong>：<span style="color:#999;">敬请期待</span></li>
                                                 </ol>
                                                 <hr>
-                                                <ol>【Shadowrocket 3.99$】
-                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?rocket=64" />
-                                                    <li> 在<code>非国区</code>苹果商店 搜索 <code>shadowrocket</code> 购买 - 安装 <small>*在帮助中心页面提供了免费的applestore账号*</small></li>
-                                                    <li> 打开<code>shadowrocket</code> - 点击右上角<code>+</code>号，类型: <code>Subscribe</code> - URL:<code class="sub-link-input">{{$link}}?rocket=64</code><small>*注意，小火箭的订阅链接很独特*</small> - 备注随意 - 完成 - 此时应已获取节点</li>
-                                                    <li> 选择任意节点 - 开启节点 - 打开浏览器上网吧 <small>*第一次使用，会提示是否允许shadowrocket使用VPN,点击ALLOW</small></li>
-                                                    <li> <a href="/article?id=48">没看懂？点我查看图文教程</a></li>
+                                                <ol class="client-card"><span class="client-card-title">Shadowrocket 3.99$</span>
+                                                    <div class="sub-link-row">
+                                                        <span class="sub-link-label">📡 订阅地址</span>
+                                                        <input type="text" class="form-control sub-link-input" value="{{$link}}" readonly onclick="this.select();" />
+                                                        <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
+                                                    </div>
+                                                    <li><strong class="step-label">① 安装软件</strong>：在<code>非国区</code>苹果商店搜索 <code>shadowrocket</code> 购买安装。<small> *在帮助中心页面提供了免费的 Apple Store 账号。</small></li>
+                                                    <li><strong class="step-label">② 添加订阅</strong>：打开 <code>Shadowrocket</code> - 点击右上角 <code>＋</code> - 类型：<code>Subscribe</code> - URL：<strong>复制上方订阅地址</strong> - 备注随意 - 完成，此时应已获取节点。</li>
+                                                    <li><strong class="step-label">③ 使用节点</strong>：选择任意节点 - 开启节点 - 打开浏览器上网吧。<small> *第一次使用会提示是否允许 Shadowrocket 使用 VPN，点击 ALLOW。</small></li>
+                                                    <li><strong class="step-label">④ 图文教程</strong>：<a href="/article?id=48">没看懂？点我查看图文教程</a></li>
                                                 </ol>
                                                 <hr>
                                                 {{-- [PAUSED 2026-06-21] Loon 订阅已停用(配置严谨性待评估, 担心被墙). 恢复: 移除本注释
-                                                <ol>【Loon 7.99$】
-                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?app=loon&vless=128&ss=64&vmess=64" />
+                                                <ol class="client-card"><span class="client-card-title">Loon 7.99$</span>
+                                                    <div class="sub-link-row">
+                                                        <span class="sub-link-label">📡 订阅地址</span>
+                                                        <input type="text" class="form-control sub-link-input" value="{{$link}}?app=loon&vless=128&ss=64&vmess=64" readonly onclick="this.select();" />
+                                                        <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
+                                                    </div>
                                                     <li> 在<code>美区</code>苹果商店 搜索 <code>Loon</code> 7.99$   </li>
                                                 </ol>
                                                 <hr>
                                                 --}}
                                                 {{-- [PAUSED 2026-06-21] Quantumult X 订阅已停用(配置严谨性待评估, 担心被墙). 恢复: 移除本注释
-                                                <ol>【Quantumult X】
-                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?format=quanx-b64&vless=128&ss=64&vmess=64" />
+                                                <ol class="client-card"><span class="client-card-title">Quantumult X</span>
+                                                    <div class="sub-link-row">
+                                                        <span class="sub-link-label">📡 订阅地址</span>
+                                                        <input type="text" class="form-control sub-link-input" value="{{$link}}?format=quanx-b64&vless=128&ss=64&vmess=64" readonly onclick="this.select();" />
+                                                        <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
+                                                    </div>
                                                     <li> 在 App Store 登录<code>非国区</code> Apple ID，搜索 <code>Quantumult X</code> 下载安装</li>
                                                     <li> 点击下方按钮一键导入节点配置，或复制上方链接后在 App 内手动添加 <a id="quanx-import-link" href="quantumult-x:///update-configuration?remote-resource={{ urlencode($link.'?format=quanx-b64&vless=128&ss=64&vmess=64') }}" class="btn green">一键导入</a></li>
                                                     <li> 在 App 首页点击右下角<code>风车</code>图标，展开"节点"列表并选择可用节点</li>
@@ -183,12 +332,16 @@
                                                 </ol> -->
                                             </div>
                                             <div class="tab-pane" id="tools5">
-                                                <ol>【v2rayNG】
-                                                    <input type="text" class="form-control sub-link-input" value="{{$link}}?ss=64&vmess=64&vless=64&trojan=64" />
-                                                    <li> <a href="https://dl.v2rayng.org/releases/latest/v2rayNG_2.2.5-fdroid_arm64-v8a.apk">点此下载v2rayNG </a> - 安装 - 打开软件</li>
-                                                    <li> 软件界面 - 右滑 - 订阅设置 - 点击右上角 <code>+</code> - 备注随意 - 地址：<code class="sub-link-input">{{$link}}?ss=64&vmess=64&vless=64&trojan=64</code> - 返回主界面 - 点击右上角打开菜单 - 更新订阅 </li>
-                                                    <li> 选择一个节点 - 点击右下角小飞机 - 开始使用吧。 </li>
-                                                    <li> <a href="/article?id=58">图文教程</a></li>
+                                                <ol class="client-card"><span class="client-card-title">v2rayNG</span>
+                                                    <div class="sub-link-row">
+                                                        <span class="sub-link-label">📡 订阅地址</span>
+                                                        <input type="text" class="form-control sub-link-input" value="{{$link}}" readonly onclick="this.select();" />
+                                                        <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
+                                                    </div>
+                                                    <li><strong class="step-label">① 安装软件</strong>：<a href="https://dl.v2rayng.org/releases/latest/v2rayNG_2.2.5-fdroid_arm64-v8a.apk">点此下载 v2rayNG</a> - 安装 - 打开软件。</li>
+                                                    <li><strong class="step-label">② 添加订阅</strong>：软件界面 - 右滑 - 订阅设置 - 点击右上角 <code>＋</code> - 备注随意 - 地址：<strong>复制上方订阅地址</strong> - 返回主界面 - 点击右上角打开菜单 - 更新订阅。</li>
+                                                    <li><strong class="step-label">③ 使用节点</strong>：选择一个节点 - 点击右下角小飞机 - 开始使用吧。</li>
+                                                    <li><strong class="step-label">④ 图文教程</strong>：<a href="/article?id=58">图文教程</a></li>
                                                 </ol>
                                                 <hr>
                                                 <!-- <ol>【SS-R 教程】
@@ -254,29 +407,27 @@
                 }
             }
 
-            // 渲染选择器
-            var html = '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;">';
+            // 渲染选择器（紧凑型小按钮，配合 .domain-bar 工具条）
+            var html = '';
             for (var i = 0; i < allDomains.length; i++) {
                 var d = allDomains[i];
                 var selected = (i === 0);
                 var isDefault = (d === baseDomain);
-                var label = isDefault ? d + '（默认）' : d;
                 // 简短显示：只取域名部分
                 var shortLabel = d.replace(/^https?:\/\//, '');
                 var displayLabel = isDefault ? shortLabel + '（默认）' : shortLabel;
-                var selectedBg = selected ? '#32c5d2' : '#fff';
-                var selectedColor = selected ? '#fff' : '#555';
-                var selectedBorder = selected ? '#32c5d2' : '#e0e0e0';
+                var selectedBg = selected ? '#32c5d2' : 'transparent';
+                var selectedColor = selected ? '#fff' : '#666';
+                var selectedBorder = selected ? '#32c5d2' : '#dcdfe2';
                 var selectedWeight = selected ? '600' : '400';
                 html += '<div id="domain-btn-' + i + '" class="domain-btn" data-domain="' + d + '" ';
-                html += 'style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:2px solid ' + selectedBorder + ';border-radius:6px;cursor:pointer;background:' + selectedBg + ';color:' + selectedColor + ';font-size:13px;font-weight:' + selectedWeight + ';transition:all .2s;user-select:none;" ';
+                html += 'style="display:flex;align-items:center;gap:5px;padding:3px 10px;border:1px solid ' + selectedBorder + ';border-radius:4px;cursor:pointer;background:' + selectedBg + ';color:' + selectedColor + ';font-size:12px;font-weight:' + selectedWeight + ';transition:all .2s;user-select:none;" ';
                 html += 'onclick="switchDomain(\'' + d + '\', ' + i + ')" ';
                 html += 'onmouseenter="domainHover(' + i + ', true)" onmouseleave="domainHover(' + i + ', false)">';
-                html += '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">' + displayLabel + '</span>';
-                html += '<img id="domain-status-' + i + '" src="/check.png" width="14" height="14" style="opacity:0.3;flex-shrink:0;" />';
+                html += '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">' + displayLabel + '</span>';
+                html += '<img id="domain-status-' + i + '" src="/check.png" width="12" height="12" style="opacity:0.3;flex-shrink:0;" />';
                 html += '</div>';
             }
-            html += '</div>';
             document.getElementById('domain-selector').innerHTML = html;
 
             // 可达性检测
@@ -313,9 +464,9 @@
             var btns = document.querySelectorAll('.domain-btn');
             for (var j = 0; j < btns.length; j++) {
                 var isSelected = (j === idx);
-                btns[j].style.background = isSelected ? '#32c5d2' : '#fff';
-                btns[j].style.color = isSelected ? '#fff' : '#555';
-                btns[j].style.borderColor = isSelected ? '#32c5d2' : '#e0e0e0';
+                btns[j].style.background = isSelected ? '#32c5d2' : 'transparent';
+                btns[j].style.color = isSelected ? '#fff' : '#666';
+                btns[j].style.borderColor = isSelected ? '#32c5d2' : '#dcdfe2';
                 btns[j].style.fontWeight = isSelected ? '600' : '400';
                 // 选中状态图标变白，未选中恢复原色
                 var statusImg = document.getElementById('domain-status-' + j);
@@ -329,11 +480,6 @@
             var inputs = document.querySelectorAll('input.sub-link-input');
             for (var i = 0; i < inputs.length; i++) {
                 inputs[i].value = inputs[i].value.replace(oldDomain, newDomain);
-            }
-            // 替换 code.sub-link-input 内的文字
-            var codes = document.querySelectorAll('code.sub-link-input');
-            for (var i = 0; i < codes.length; i++) {
-                codes[i].innerText = codes[i].innerText.replace(oldDomain, newDomain);
             }
             // 替换 Quantumult X 一键导入链接
             var importLink = document.getElementById('quanx-import-link');
@@ -351,9 +497,34 @@
                 btn.style.borderColor = '#32c5d2';
                 btn.style.background = '#f0fcfd';
             } else {
-                btn.style.borderColor = '#e0e0e0';
-                btn.style.background = '#fff';
+                btn.style.borderColor = '#dcdfe2';
+                btn.style.background = 'transparent';
             }
+        }
+    </script>
+
+    <script type="text/javascript">
+        // 复制订阅地址（配套 .sub-link-copy 按钮）
+        function copySubLink(btn) {
+            var input = btn.parentNode.querySelector('input.sub-link-input');
+            if (!input) return;
+            input.removeAttribute('readonly');          // 临时可写，部分浏览器需可编辑才能选中
+            input.focus();
+            input.select();
+            input.setSelectionRange(0, 99999);
+            input.setAttribute('readonly', '');
+            var ok = false;
+            try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+            // 退路：Clipboard API（HTTPS 或 localhost）
+            if (!ok && navigator.clipboard) {
+                navigator.clipboard.writeText(input.value).then(function () {
+                    layer.msg('订阅地址已复制', {time: 1000});
+                }, function () {
+                    layer.msg('复制失败，请手动选中复制', {time: 1500});
+                });
+                return;
+            }
+            layer.msg(ok ? '订阅地址已复制' : '复制失败，请手动选中复制', {time: ok ? 1000 : 1500});
         }
     </script>
 
