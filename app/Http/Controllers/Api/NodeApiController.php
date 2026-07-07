@@ -783,7 +783,7 @@ class NodeApiController extends Controller
             "v2_tls" => 1,
             "v2_port" => 443,
             "v2_flow" => "xtls-rprx-vision",
-            "v2_fp" => "ios",
+            "v2_fp" => "firefox",
             "v2_method" => "none",
             "v2_encryption" => "none",
             "v2_alter_id" => 0,
@@ -800,7 +800,7 @@ class NodeApiController extends Controller
             "v2_type" => "none",
             "v2_mode" => "auto",
             "v2_alpn" => "h2,http/1.1",
-            "v2_fp" => "ios",
+            "v2_fp" => "firefox",
         ],
         "ws" => [
             "type" => 2,
@@ -811,7 +811,7 @@ class NodeApiController extends Controller
             "v2_encryption" => "none",
             "v2_alter_id" => 0,
             "v2_type" => "none",
-            "v2_fp" => "ios",
+            "v2_fp" => "firefox",
         ],
         "grpc" => [
             "type" => 3,
@@ -824,7 +824,7 @@ class NodeApiController extends Controller
             "v2_type" => "none",
             "v2_mode" => "multi",
             "v2_alpn" => "h2",
-            "v2_fp" => "ios",
+            "v2_fp" => "firefox",
         ],
         "hy2" => [
             "type" => 5,
