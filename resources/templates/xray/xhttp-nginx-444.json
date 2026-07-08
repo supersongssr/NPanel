@@ -1,0 +1,138 @@
+{
+    "log": {
+        "loglevel": "info",
+        "access": "/var/log/xray/access.log"
+    },
+    "inbounds": [
+        {
+            "listen": "127.0.0.1",
+            "port": "__xhttpPort__",
+            "protocol": "vless",
+            "settings": {
+                "decryption": "none"
+            },
+            "streamSettings": {
+                "network": "xhttp",
+                "xhttpSettings": {
+                    "path": "/__xhttpPath__",
+                    "mode": "auto"
+                },
+                "security": "none"
+            },
+            "sniffing": {
+                "enabled": true,
+                "destOverride": [
+                    "http",
+                    "tls"
+                ]
+            },
+            "tag": "proxy-xhttp"
+        },
+        {
+            "listen": "127.0.0.1",
+            "port": 10085,
+            "protocol": "dokodemo-door",
+            "settings": {
+                "address": "127.0.0.1"
+            },
+            "tag": "api"
+        }
+    ],
+    "outbounds": [
+        {
+            "protocol": "freedom",
+            "settings": {
+                "domainStrategy": "UseIPv4v6"
+            }
+        },
+        {
+            "protocol": "blackhole",
+            "settings": {},
+            "tag": "block"
+        }
+    ],
+    "routing": {
+        "rules": [
+            {
+                "type": "field",
+                "outboundTag": "block",
+                "domain": [
+                    "geosite:falungong",
+                    "geosite:category-bank-cn",
+                    "geosite:ookla-speedtest",
+                    "geosite:category-public-tracker",
+                    "domain:cachefly.cachefly.net",
+                    "domain:speed.cloudflare.com"
+                ]
+            },
+            {
+                "type": "field",
+                "outboundTag": "block",
+                "protocol": [
+                    "bittorrent"
+                ]
+            },
+            {
+                "type": "field",
+                "inboundTag": [
+                    "api"
+                ],
+                "outboundTag": "api"
+            },
+            {
+                "type": "field",
+                "port": "25, 465, 587",
+                "outboundTag": "block"
+            }
+        ],
+        "strategy": "rules"
+    },
+    "policy": {
+        "levels": {
+            "0": {
+                "statsUserUplink": true,
+                "statsUserDownlink": true,
+                "statsUserOnline": true
+            }
+        },
+        "system": {
+            "statsInboundUplink": true,
+            "statsInboundDownlink": true
+        }
+    },
+    "stats": {},
+    "api": {
+        "tag": "api",
+        "services": [
+            "HandlerService",
+            "LoggerService",
+            "StatsService"
+        ]
+    },
+    "ssrpanel": {
+        "nodeId": 123,
+        "checkRate": 600,
+        "ipLimit": 3,
+        "ignoreEmptyVmessID": true,
+        "user": {
+            "inboundTag": "proxy",
+            "inboundTags": [
+                "__inboundTags__"
+            ],
+            "level": 0,
+            "alterId": 0,
+            "flow": "",
+            "flows": {
+                "__vlessVisionTag__": "__v2Flow__"
+            },
+            "security": "none"
+        },
+        "mysql": {
+            "host": "__dbHost__",
+            "port": 3306,
+            "user": "__dbUser__",
+            "password": "__dbPassword__",
+            "dbname": "__dbName__"
+        }
+    }
+}

@@ -860,6 +860,11 @@ class NodeApiController extends Controller
         // 协议槽复用 vision (inbound tag=proxy-vision), reality 行为由 v2_name +
         // v2_reality_* 列 + applyV2Preset 内的 reality 覆写标记 (不新增协议键).
         "vision-reality"    => ["vision", "vision", "vision"],
+        // vision-no-fallback: VLESS + XTLS-Vision + TLS, 但 xray inbound 删除 fallbacks 字段.
+        // 非代理 TLS 流量 (浏览器 / 主动探测) 在 xray 层直接失败, 不回落到 nginx 伪装站.
+        // 实验目的: 测试代理路径不对时直接返回 error 会怎样 (vs vision 的 fallback 到 AriaNg).
+        // 协议槽同 vision (inbound tag=proxy-vision); 差异仅在 vision-no-fallback.json 模板内.
+        "vision-no-fallback" => ["vision", "vision", "vision"],
         "xhttp-hy2"         => ["xhttp", "xhttp", "hy2"],
         "xhttp"            => ["xhttp", "xhttp", "xhttp"],
         "xhttp-ws-grpc"     => ["xhttp", "ws", "grpc"],
@@ -875,6 +880,11 @@ class NodeApiController extends Controller
         // 专为「TCP 被墙但 UDP 仍通」的节点: xhttp 走 CF 优选 IP, hy2 直连节点 IP.
         // 仅 xhttp 槽位走 CDN (isCdnNode 排除 hysteria2 传输); hy2 槽位始终直连.
         "xhttp-cdn-hy2"       => ["xhttp", "xhttp", "hy2"],
+        // xhttp-nginx-444: 仅 xhttp, 但 nginx 层 location / 直接 return 444 (切断 TCP),
+        // 不提供 AriaNg 伪装站. 路径不对的请求 / 主动探测一律被 nginx drop, 不返回任何响应.
+        // 实验目的: 测试 nginx 层路径校验失败直接切断 TCP (vs xhttp 的回落到 AriaNg).
+        // xray inbound 与普通 xhttp 完全一致; 差异仅在 xhttp-nginx-444.conf 模板内.
+        "xhttp-nginx-444"    => ["xhttp", "xhttp", "xhttp"],
         // xhttp-split: 仅 xhttp, 但客户端上下行走两条不同的 xhttp 流 (downloadSettings).
         // 上行走 host/sni 域名 (普通 xhttp), 下行走 [独立域名 dl_host + 真实 IP] (直连),
         // 打破 GFW 对单一域名 / 单一连接上下行特征的关联检测.
