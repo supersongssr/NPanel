@@ -371,7 +371,7 @@
                                                                     <option value="package&free" @if($goods_purchase_limit_strategy == 'package&free') selected @endif>限套餐和免费商品</option>
                                                                     <option value="all" @if($goods_purchase_limit_strategy == 'all') selected @endif>限全部商品</option>
                                                                 </select>
-                                                                <span class="help-block"> 是否限制用户重复购买商品，限制后用户不可重复购买已购买的、尚在有效期的商品 </span>
+                                                                <span class="help-block"> 是否限制用户重复购买商品，限制后24小时内不可重复购买已购买的商品 </span>
                                                             </div>
                                                         </div>
                                                     </div>

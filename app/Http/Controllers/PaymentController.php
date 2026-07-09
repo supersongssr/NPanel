@@ -58,12 +58,12 @@ class PaymentController extends Controller
         //     return Response::json(['status' => 'fail', 'data' => '', 'message' => '创建支付单失败：尚有未支付的订单，请先去支付']);
         // }
 
-        // 限购控制
+        // 限购控制：24小时内同商品不可重复购买
         $strategy = self::$systemConfig['goods_purchase_limit_strategy'];
         if ($strategy == 'all' || ($strategy == 'package' && $goods->type == 2) || ($strategy == 'free' && $goods->price == 0) || ($strategy == 'package&free' && ($goods->type == 2 || $goods->price == 0))) {
-            $noneExpireOrderExist = Order::uid()->where('status', '>=', 0)->where('is_expire', 0)->where('goods_id', $goods_id)->exists();
-            if ($noneExpireOrderExist) {
-                return Response::json(['status' => 'fail', 'data' => '', 'message' => '创建支付单失败：商品不可重复购买']);
+            $exist = Order::uid()->where('status', '>=', 0)->where('goods_id', $goods_id)->where('created_at', '>=', date('Y-m-d H:i:s', strtotime('-24 hours')))->exists();
+            if ($exist) {
+                return Response::json(['status' => 'fail', 'data' => '', 'message' => '创建支付单失败：该商品24小时内不可重复购买']);
             }
         }
 

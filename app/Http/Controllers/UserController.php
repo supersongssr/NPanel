@@ -716,12 +716,12 @@ class UserController extends Controller
             }
 */
 
-            // 限购控制：all-所有商品限购, free-价格为0的商品限购, none-不限购（默认）
+            // 限购控制：24小时内同商品不可重复购买（all-全部, package-套餐, free-免费, none-不限购）
             $strategy = self::$systemConfig['goods_purchase_limit_strategy'];
             if ($strategy == 'all' || ($strategy == 'package' && $goods->type == 2) || ($strategy == 'free' && $goods->price == 0) || ($strategy == 'package&free' && ($goods->type == 2 || $goods->price == 0))) {
-                $noneExpireGoodExist = Order::uid()->where('status', '>=', 0)->where('is_expire', 0)->where('goods_id', $goods_id)->exists();
-                if ($noneExpireGoodExist) {
-                    return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：商品不可重复购买']);
+                $exist = Order::uid()->where('status', '>=', 0)->where('goods_id', $goods_id)->where('created_at', '>=', date('Y-m-d H:i:s', strtotime('-24 hours')))->exists();
+                if ($exist) {
+                    return Response::json(['status' => 'fail', 'data' => '', 'message' => '支付失败：该商品24小时内不可重复购买']);
                 }
             }
 
