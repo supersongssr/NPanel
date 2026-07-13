@@ -606,8 +606,8 @@ class SubscribeController extends Controller
     /**
      * 判断节点是否为 vision-reality (REALITY 偷自己) 模式.
      *
-     * reality 行为由节点组名 v2_name='vision-reality' 标记; v2_tls 仍存 1 (TLS 层启用),
-     * 不引入新魔法值, 故不能用 v2_tls 区分. 订阅层据此:
+     * reality 行为由节点组名 v2_name 标记 (vision-reality / vision-reality-min-firefox);
+     * v2_tls 仍存 1 (TLS 层启用), 不引入新魔法值, 故不能用 v2_tls 区分. 订阅层据此:
      *   - 跳过 SNI 随机前缀 (applySniPrefix)
      *   - URI 输出 security=reality + pbk/sid
      *   - clash/sing-box 输出 reality-opts/reality 子块 + firefox 指纹
@@ -619,7 +619,7 @@ class SubscribeController extends Controller
     {
         return $node
             && isset($node->v2_name)
-            && $node->v2_name === 'vision-reality';
+            && in_array($node->v2_name, ['vision-reality', 'vision-reality-min-firefox', 'xhttp-reality-minClientVer', 'xhttp-reality-min-firefox'], true);
     }
 
     /**

@@ -54,7 +54,8 @@ class NodeApiController extends Controller
      *   - private: 服务端 privateKey (xray config)
      *   - public:  客户端 pbk (订阅)
      *   - shortId: 两端共用
-     * 仅当 v2_name === 'vision-reality' 时生成; 否则为 null (非 REALITY 模式).
+     * 仅当 v2_name 属于 REALITY_V2_NAMES (vision-reality / vision-reality-min-firefox /
+     * xhttp-reality-minClientVer / xhttp-reality-min-firefox) 时生成; 否则为 null (非 REALITY 模式).
      * privateKey 永不进入订阅, pbk 永不进入 xray config (存储在独立 DB 列).
      */
     /**
@@ -483,7 +484,7 @@ class NodeApiController extends Controller
         //   shortId -> 两端共用 (xray shortIds / 订阅 sid)
         // 主节点与所有 clone 共用同一组 (同一物理节点, host/sni 相同, reality 偷自己证书).
         // 用 PHP libsodium 生成, 与 `xray x25519` 输出完全兼容.
-        if ($v2Name === "vision-reality") {
+        if (in_array($v2Name, self::REALITY_V2_NAMES, true)) {
             $this->clusterReality = $this->generateRealityKeys();
         } else {
             $this->clusterReality = null;
@@ -839,6 +840,20 @@ class NodeApiController extends Controller
         ],
     ];
 
+    /**
+     * REALITY (偷自己) 模式的 v2_name 集合.
+     * 这些模式共享 REALITY 行为: register 时生成 X25519 密钥对 + shortId,
+     * applyV2Preset 写入 reality 覆写标记 (v2_fp=firefox + vision flow),
+     * 订阅层据此输出 security=reality + pbk/sid.
+     * 新增 reality 变体 (如 vision-reality-min-firefox) 需在此登记.
+     */
+    const REALITY_V2_NAMES = [
+        "vision-reality",
+        "vision-reality-min-firefox",
+        "xhttp-reality-minClientVer",
+        "xhttp-reality-min-firefox",
+    ];
+
     const V2_PROTOCOL_SLOTS = [
         "vision-hy2"        => ["vision", "vision", "hy2"],
         "vision"           => ["vision", "vision", "vision"],
@@ -860,6 +875,27 @@ class NodeApiController extends Controller
         // 协议槽复用 vision (inbound tag=proxy-vision), reality 行为由 v2_name +
         // v2_reality_* 列 + applyV2Preset 内的 reality 覆写标记 (不新增协议键).
         "vision-reality"    => ["vision", "vision", "vision"],
+        // vision-reality-min-firefox: vision-reality 基线 + realitySettings 锁死
+        // fingerprint=firefox + minClientVer=26.3.27. 强制最低 xray 客户端版本,
+        // 避免低版本 reality 实现的指纹/握手缺陷导致节点被墙.
+        // 协议槽同 vision-reality (inbound tag=proxy-vision), 差异仅在模板内
+        // realitySettings 的两个静态字段 (minClientVer / fingerprint), 渲染器只做
+        // 占位符替换, 这两个字段原样进入下发配置.
+        "vision-reality-min-firefox" => ["vision", "vision", "vision"],
+        // xhttp-reality-minClientVer: VLESS + xhttp 传输 + REALITY (偷自己). xray 监听 443,
+        // realitySettings.dest=127.0.0.1:8443 偷本机 nginx 8443 泛域名证书完成 TLS 握手;
+        // xhttp 传输由 xray 在 reality 隧道内直接处理 (nginx 不反代 path, 仅作伪装站).
+        // 与 vision-reality 区别: 传输是 xhttp (无 flow), inbound tag=proxy-xhttp.
+        // minClientVer=26.3.1 写在模板 realitySettings, 限制最低 xray 客户端版本
+        // (低版本 reality 实现的指纹/握手缺陷会导致节点被墙).
+        "xhttp-reality-minClientVer" => ["xhttp", "xhttp", "xhttp"],
+        // xhttp-reality-min-firefox: xhttp-reality-minClientVer 基线 +
+        // realitySettings 锁死 fingerprint=firefox + minClientVer=26.3.27.
+        // 强制 firefox uTLS 指纹 + 最低 xray 客户端版本, 避免低版本 reality 实现 /
+        // 非 firefox 指纹的握手特征导致节点被墙.
+        // 协议槽同 xhttp-reality-minClientVer (inbound tag=proxy-xhttp), 差异仅在
+        // 模板内 realitySettings 的两个静态字段 (fingerprint / minClientVer).
+        "xhttp-reality-min-firefox" => ["xhttp", "xhttp", "xhttp"],
         // vision-no-fallback: VLESS + XTLS-Vision + TLS, 但 xray inbound 删除 fallbacks 字段.
         // 非代理 TLS 流量 (浏览器 / 主动探测) 在 xray 层直接失败, 不回落到 nginx 伪装站.
         // 实验目的: 测试代理路径不对时直接返回 error 会怎样 (vs vision 的 fallback 到 AriaNg).
@@ -1007,10 +1043,14 @@ class NodeApiController extends Controller
             $node->v2_ech = $this->clusterEch;
         }
 
-        if ($modeName === "vision-reality") {
+        if (in_array($modeName, self::REALITY_V2_NAMES, true)) {
             $node->v2_tls = 1;
             $node->v2_fp = "firefox";
-            $node->v2_flow = "xtls-rprx-vision";
+            // xtls-rprx-vision flow 仅适用于 vision (tcp) 传输; xhttp 传输无 flow
+            // (xhttp-reality-minClientVer 走 xhttp preset, v2_flow 保持 null).
+            if ($protocol === "vision") {
+                $node->v2_flow = "xtls-rprx-vision";
+            }
             $node->v2_reality_pbk = $this->clusterReality
                 ? $this->clusterReality["public"]
                 : null;
