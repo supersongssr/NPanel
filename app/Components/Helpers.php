@@ -23,6 +23,12 @@ class Helpers
     ];
 
     /**
+     * DB 中"代码运行时动态写入"的配置白名单 (其余静态配置一律走文件, 代码不再读 DB).
+     * 新增动态配置项时在此追加.
+     */
+    private static $dynamicConfigKeys = ['traffic_record_group1', 'traffic_record_group2'];
+
+    /**
      * Parse node_domain_pool config into a normalized map.
      *
      * @param array $sysConf  Result of self::systemConfig()
@@ -69,12 +75,23 @@ class Helpers
     // 原 getCdnOptimizedIps() / pickCdnOptimizedIp() (DB config 来源) 已移除.
 
     // 获取系统配置
+    // 读取优先级: DB(仅 $dynamicConfigKeys 动态白名单) > .config.php(用户手工覆盖) > config.default.php(默认)
     public static function systemConfig()
     {
-        $config = Config::query()->get();
-        $data = [];
-        foreach ($config as $vo) {
-            $data[$vo->name] = $vo->value;
+        // 1. 默认配置 (文件, opcache 零成本)
+        $data = self::loadFileConfig('config.default.php');
+
+        // 2. 用户手工覆盖 (.config.php, 仅 include, 代码不修改此文件)
+        $override = self::loadFileConfig('.config.php');
+        if (is_array($override)) {
+            $data = array_merge($data, $override);
+        }
+
+        // 3. DB 动态白名单 (仅 traffic_record_group1/2 等运行时写入项, 其余静态配置不读 DB)
+        if (!empty(self::$dynamicConfigKeys)) {
+            foreach (Config::query()->whereIn('name', self::$dynamicConfigKeys)->get() as $vo) {
+                $data[$vo->name] = $vo->value;
+            }
         }
 
         if (!isset($data['host_pools'])) {
@@ -109,6 +126,22 @@ class Helpers
         }
 
         return $data;
+    }
+
+    /**
+     * 加载根目录 PHP 配置文件 (返回数组), 不存在或非法返回空数组.
+     *
+     * @param string $file 文件名 (相对项目根)
+     * @return array
+     */
+    private static function loadFileConfig($file)
+    {
+        $path = base_path($file);
+        if (!is_file($path)) {
+            return [];
+        }
+        $arr = include $path;
+        return is_array($arr) ? $arr : [];
     }
 
     // 获取默认加密方式

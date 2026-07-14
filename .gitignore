@@ -30,3 +30,4 @@ tmp/
 .aider*
 .zed/
 tests/
+.config.php

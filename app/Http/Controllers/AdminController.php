@@ -2000,64 +2000,47 @@ EOF;
     // 设置系统扩展信息，例如客服、统计代码
     public function setExtend(Request $request)
     {
-        $websiteAnalytics = $request->get('website_analytics');
-        $websiteCustomerService = $request->get('website_customer_service');
+        // 配置已迁移至 config.default.php / .config.php, 不再写 DB.
+        // LOGO 仍可上传, 上传后请在 .config.php 填写返回的路径.
+        $tips = [];
 
-        DB::beginTransaction();
-        try {
-            // 首页LOGO
-            if ($request->hasFile('website_home_logo')) {
-                $file = $request->file('website_home_logo');
-                $fileType = $file->getClientOriginalExtension();
+        // 首页LOGO
+        if ($request->hasFile('website_home_logo')) {
+            $file = $request->file('website_home_logo');
+            $fileType = $file->getClientOriginalExtension();
+            if (!in_array($fileType, ['jpg', 'png', 'jpeg', 'bmp'])) {
+                Session::flash('errorMsg', 'LOGO不合法');
 
-                // 验证文件合法性
-                if (!in_array($fileType, ['jpg', 'png', 'jpeg', 'bmp'])) {
-                    Session::flash('errorMsg', 'LOGO不合法');
-
-                    return Redirect::back();
-                }
-
-                $logoName = date('YmdHis') . mt_rand(1000, 2000) . '.' . $fileType;
-                $move = $file->move(base_path() . '/public/upload/image/', $logoName);
-                $websiteHomeLogo = $move ? '/upload/image/' . $logoName : '';
-
-                Config::query()->where('name', 'website_home_logo')->update(['value' => $websiteHomeLogo]);
+                return Redirect::back();
             }
-
-            // 站内LOGO
-            if ($request->hasFile('website_logo')) {
-                $file = $request->file('website_logo');
-                $fileType = $file->getClientOriginalExtension();
-
-                // 验证文件合法性
-                if (!in_array($fileType, ['jpg', 'png', 'jpeg', 'bmp'])) {
-                    Session::flash('errorMsg', 'LOGO不合法');
-
-                    return Redirect::back();
-                }
-
-                $logoName = date('YmdHis') . mt_rand(1000, 2000) . '.' . $fileType;
-                $move = $file->move(base_path() . '/public/upload/image/', $logoName);
-                $websiteLogo = $move ? '/upload/image/' . $logoName : '';
-
-                Config::query()->where('name', 'website_logo')->update(['value' => $websiteLogo]);
+            $logoName = date('YmdHis') . mt_rand(1000, 2000) . '.' . $fileType;
+            if ($file->move(base_path() . '/public/upload/image/', $logoName)) {
+                $tips[] = "website_home_logo => '/upload/image/" . $logoName . "'";
             }
-
-            Config::query()->where('name', 'website_analytics')->update(['value' => $websiteAnalytics]);
-            Config::query()->where('name', 'website_customer_service')->update(['value' => $websiteCustomerService]);
-
-            Session::flash('successMsg', '更新成功');
-
-            DB::commit();
-
-            return Redirect::back();
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            Session::flash('errorMsg', '更新失败');
-
-            return Redirect::back();
         }
+
+        // 站内LOGO
+        if ($request->hasFile('website_logo')) {
+            $file = $request->file('website_logo');
+            $fileType = $file->getClientOriginalExtension();
+            if (!in_array($fileType, ['jpg', 'png', 'jpeg', 'bmp'])) {
+                Session::flash('errorMsg', 'LOGO不合法');
+
+                return Redirect::back();
+            }
+            $logoName = date('YmdHis') . mt_rand(1000, 2000) . '.' . $fileType;
+            if ($file->move(base_path() . '/public/upload/image/', $logoName)) {
+                $tips[] = "website_logo => '/upload/image/" . $logoName . "'";
+            }
+        }
+
+        if (!empty($tips)) {
+            Session::flash('successMsg', 'LOGO 已上传，请将以下路径手工填入 .config.php：' . implode('；', $tips));
+        } else {
+            Session::flash('errorMsg', '该配置已迁移至文件系统，请在 .config.php 修改：website_logo / website_home_logo / website_analytics / website_customer_service');
+        }
+
+        return Redirect::back();
     }
 
     // 日志分析
@@ -2330,6 +2313,15 @@ EOF;
         if (!array_key_exists($name, self::$systemConfig)) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '设置失败：配置不存在']);
         }
+
+        // 配置已迁移至 config.default.php / .config.php, 不再写 DB. 请编辑 .config.php 修改.
+        return Response::json([
+            'status'  => 'fail',
+            'data'    => '',
+            'message' => '该配置已迁移至文件系统，请在 .config.php 中修改后生效',
+        ]);
+
+        // 以下历史逻辑(config 写入)已废弃, 保留仅供回溯参考. 因上方已 return, 永不执行.
 
         // 如果开启用户邮件重置密码，则先设置网站名称和网址
         if (in_array($name, ['is_reset_password', 'is_active_register']) && $value == '1') {

@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Components\Helpers;
 use App\Components\DNS\CloudflareProvider;
-use App\Http\Models\Config;
 use App\Http\Models\DnsRecord;
 use App\Http\Models\SsNode;
 
@@ -163,11 +162,13 @@ class InitDnsRecords extends Command
         }
 
         if ($configUpdated) {
-            $configModel = Config::where('name', 'node_domain_pool')->first();
-            if ($configModel) {
-                $configModel->value = json_encode($domains);
-                $configModel->save();
-                $this->info('Configuration updated with discovered Zone IDs.');
+            // node_domain_pool 已迁移至 config.default.php / .config.php, 代码不再写 DB.
+            // 仅输出发现的 Zone ID, 由管理员手工更新 .config.php.
+            $this->info('Discovered Zone IDs (node_domain_pool 已迁移至配置文件, 请手工更新 .config.php):');
+            foreach ($domains as $domainName => $meta) {
+                if (!empty($meta['zone_id'])) {
+                    $this->info("  {$domainName} => zone_id: {$meta['zone_id']}");
+                }
             }
         }
 

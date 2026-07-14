@@ -12,7 +12,7 @@ use App\Services\DnsRecordCleanupService;
 /**
  * 定时删除超过指定天数无心跳节点的 DNS 解析记录
  *
- * 阈值优先级: 命令行 --days > config 表 dns_expire_days > DEFAULT_EXPIRE_DAYS (32).
+ * 阈值优先级: 命令行 --days > config.default.php/.config.php 的 dns_expire_days > DEFAULT_EXPIRE_DAYS (32).
  * 定时任务 (Console\Kernel 每日 04:10) 无命令行参数时读取 dns_expire_days 配置.
  *
  * 清理范围：
@@ -203,9 +203,9 @@ class AutoDeleteExpiredDns extends Command
     /**
      * 解析过期天数阈值.
      *
-     * 优先级: 命令行 --days > config 表 dns_expire_days > DEFAULT_EXPIRE_DAYS.
+     * 优先级: 命令行 --days > config.default.php/.config.php 的 dns_expire_days > DEFAULT_EXPIRE_DAYS.
      * 定时任务 (无命令行参数) 时 --days 为空, 回退到配置 dns_expire_days, 仍无则用默认值.
-     * 在 config 表新增一行: name=dns_expire_days, value=整数 (天数) 即可自由调整阈值,
+     * 调整阈值: 在 config.default.php (默认) 或 .config.php (覆盖) 修改 dns_expire_days 即可,
      * 无需改动代码.
      *
      * @param array $sysConf Helpers::systemConfig() 结果
