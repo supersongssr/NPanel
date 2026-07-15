@@ -27,7 +27,8 @@ class NodeApiController extends Controller
      *       main=ipv4, clone1=ipv4, clone2=ipv4, clone3=ipv6, clone4=ipv6, clone5=ipv6.
      *   - 每个节点 (主节点 + clone) 同时存储物理节点的 ip (IPv4) 与 ipv6 (IPv6), 不再互斥.
      *   - ipv6 节点的连接地址 (server) = 原生 ipv6 字面量 (ipv6 DNS 解析不可靠, 直连 IP);
-     *     ipv4 节点 server = 域名 (`{random8}n{id}` 主 / `n{id}` clone). isIpv6Node / resolveAddress
+     *     ipv4 节点 server = IP (主节点, 直连) / `n{id}` clone (resolve_dns 建 A 记录解析到节点 IP).
+     *     isIpv6Node / resolveAddress
      *     据此判定 (server 含 ':' 即 ipv6; 兼容旧数据 server 含 `ipv6n` 标识).
      *   - ipv6 节点连接地址始终为 ipv6 (resolveAddress 恒返回 ipv6), 不做 host 解析;
      *     仅 ipv4 节点在 dns/cdn 模式下由 DnsSyncer 转为 host 解析.
@@ -512,14 +513,15 @@ class NodeApiController extends Controller
         $mainSlot = array_shift($slots);
         $mainIsIpv6 = $mainSlot["ip_type"] === "ipv6";
         // clusterHost (域名) 始终作为 v2_host/v2_sni (TLS 身份, applyV2Preset 第 7 参写入),
-        // 与连接地址 (server) 解耦. main 节点连接地址:
-        //   ipv4 slot → clusterHost 域名 (仅作标志, resolveAddress 对 is_clone=0 直连 IP);
-        //   ipv6 slot → 原生 ipv6 字面量 (ipv6 DNS 解析不可靠, 直连 IP).
+        // 与连接地址 (server) 解耦. main 节点 server = 连接地址 = IP (直连, 不解析 DNS):
+        //   ipv4 slot → IPv4 (server = ip);  ipv6 slot → 原生 ipv6 字面量 (server = ipv6).
+        // 主节点 server 恒为 IP → DnsSyncer 跳过主节点 (isMainNode), 不建 DNS 记录;
+        // clusterHost 仅作 TLS SNI/Host, 无需 DNS 解析 (降低集群 DNS 解析数量).
         if ($mainIsIpv6) {
             $clusterHost = $this->buildClusterHost($node->id, $rootDomain, true);
             $node->server = $node->ipv6 ?: $clusterHost;
         } else {
-            $node->server = $clusterHost;
+            $node->server = $node->ip ?: $clusterHost;
         }
         $this->applyV2Preset(
             $node,
@@ -1409,6 +1411,11 @@ class NodeApiController extends Controller
         if (!$server || !strpos($server, ".")) {
             return null;
         }
+        // server 可能是 IP (主节点 server=IP), IPv4 含 '.' 会被误当域名切分,
+        // 必须排除 → 返回 null, 让调用方回退到 v2_sni (clusterHost 域名) 解析 root_domain.
+        if (filter_var($server, FILTER_VALIDATE_IP) !== false) {
+            return null;
+        }
         $parts = explode(".", $server, 2);
         return ["subdomain" => $parts[0], "root_domain" => $parts[1]];
     }
@@ -1450,8 +1457,9 @@ class NodeApiController extends Controller
         $fallbackHost = $sysConf["node_fallback_host"] ?? "npanel-nav.freessr.bid";
 
         $serverParts = $this->parseServerField($node->server);
-        // server 非域名 (ipv6 节点 server 为原生 ipv6 字面量) 时, 从 v2_sni (clusterHost 域名)
-        // 解析 root_domain, 保证 xray/nginx 的证书路径 / server_name 仍取自集群根域名.
+        // server 非域名 (主节点 server=IP / ipv6 节点 server 为原生 ipv6 字面量) 时,
+        // 从 v2_sni (clusterHost 域名) 解析 root_domain, 保证 xray/nginx 的证书路径 /
+        // server_name 仍取自集群根域名.
         if (!$serverParts) {
             $serverParts = $this->parseServerField($node->v2_sni);
         }
@@ -1617,8 +1625,9 @@ class NodeApiController extends Controller
         $conf = file_get_contents($templatePath);
 
         $serverParts = $this->parseServerField($node->server);
-        // server 非域名 (ipv6 节点 server 为原生 ipv6 字面量) 时, 从 v2_sni (clusterHost 域名)
-        // 解析 root_domain, 保证 nginx 证书路径 / server_name 仍取自集群根域名.
+        // server 非域名 (主节点 server=IP / ipv6 节点 server 为原生 ipv6 字面量) 时,
+        // 从 v2_sni (clusterHost 域名) 解析 root_domain, 保证 nginx 证书路径 / server_name
+        // 仍取自集群根域名.
         if (!$serverParts) {
             $serverParts = $this->parseServerField($node->v2_sni);
         }

@@ -94,6 +94,11 @@ assert_test(
     "actual: {$refreshed->server}"
 );
 assert_test(
+    '主节点 ipv4 server = IP (直连不解析 DNS)',
+    $refreshed->server === $refreshed->ip,
+    "server={$refreshed->server} ip={$refreshed->ip}"
+);
+assert_test(
     'No dns_records created during register',
     $afterDnsCount === $beforeDnsCount,
     "before: {$beforeDnsCount}, after: {$afterDnsCount}"

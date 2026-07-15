@@ -10,7 +10,8 @@ namespace App\Services\NodeAddress;
  * ip 栈信息 (register 之后, DNS 处理之前已确定):
  *   - ipv6 节点: server = 原生 ipv6 字面量 (含 ':'). (旧格式 server = `{random8}ipv6n{id}.domain`
  *     主 / `ipv6n{id}.domain` clone — 含 `ipv6n`, 仍兼容识别.)
- *   - ipv4 节点: server = `{random8}n{id}.domain` (主) / `n{id}.domain` (clone) — 不含 ':' 也不含 `ipv6n`.
+ *   - ipv4 节点: server = IP (主节点, 直连不解析 DNS) / `n{id}.domain` (clone, resolve_dns 建 A 记录解析到节点 IP)
+ *     — 不含 ':' 也不含 `ipv6n`.
  * server 字段本身就是节点的“address”标志 (是 ipv4 还是 ipv6). 每个节点 (主+clone) 同时
  * 存储物理节点的 ip (IPv4) 与 ipv6 (IPv6), 不再通过 ip 缺失判断是否 ipv6.
  * DNS 记录的创建交给独立的 DnsSyncer 模块, 在 resolve_dns 端点统一处理
