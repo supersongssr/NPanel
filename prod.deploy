@@ -76,7 +76,7 @@ main() {
     echo "⏰ 时间: $(date '+%Y-%m-%d %H:%M:%S')"
     echo "=========================================="
 
-    check_branch
+    # check_branch
     load_deploy_env
     deploy_nPanel
 
