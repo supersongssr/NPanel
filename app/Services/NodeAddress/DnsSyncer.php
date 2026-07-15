@@ -300,6 +300,24 @@ class DnsSyncer
             ->where('record_type', $blueprint['type'])
             ->first();
 
+        // 兜底: 唯一约束 dns_unique_record 建在 FQDN (root_domain+subdomain+type) 上, 而非 node_id.
+        // 历史数据可能残留 node_id=0 / 归属错误的孤儿记录占用了该 FQDN, 此时按 node_id 查不到
+        // → 直接走 Scene C 插入会触发 1062 重复键 (HTTP 500). 按 FQDN 定位孤儿并认领归本节点.
+        if (!$localRecord) {
+            $orphan = DnsRecord::where('root_domain', $blueprint['root_domain'])
+                ->where('subdomain', $blueprint['subdomain'])
+                ->where('record_type', $blueprint['type'])
+                ->first();
+            if ($orphan) {
+                Log::warning('[DnsSyncer] reclaiming orphan DNS record by FQDN', [
+                    'node_id' => $nodeId, 'old_node_id' => $orphan->node_id, 'fqdn' => $fqdn,
+                ]);
+                $orphan->node_id = $nodeId;
+                $orphan->save();
+                $localRecord = $orphan->fresh();
+            }
+        }
+
         // Scene A: 缓存命中 (无变化)
         if (!$force && $localRecord) {
             $isMatch = $localRecord->subdomain === $blueprint['subdomain']
@@ -375,6 +393,25 @@ class DnsSyncer
             $blueprint['content'], $blueprint['type'], $blueprint['zone_id'], $expectedProxied
         );
         if (!$cfResult) {
+            // cf_record_id 可能已失效 (CF 端记录被删/重建, 本地 id 指向已不存在的记录).
+            // 按 FQDN 重新定位实际 CF 记录并认领, 修正本地 cf_record_id, 避免下次同步再次失败.
+            $existingCf = $provider->getRecordByNameAndType(
+                $blueprint['root_domain'], $blueprint['subdomain'], $blueprint['type'], $blueprint['zone_id']
+            );
+            if ($existingCf && !empty($existingCf['id']) && $existingCf['id'] !== $localRecord->cf_record_id) {
+                $updateOk = $provider->updateRecordById(
+                    $existingCf['id'], $blueprint['root_domain'], $blueprint['subdomain'],
+                    $blueprint['content'], $blueprint['type'], $blueprint['zone_id'], $expectedProxied
+                );
+                if ($updateOk) {
+                    $localRecord->ip_addr = $blueprint['content'];
+                    $localRecord->proxied = $expectedProxied;
+                    $localRecord->cf_record_id = $existingCf['id'];
+                    $localRecord->save();
+                    Log::info('[DnsSyncer] adopted CF record after stale id', ['node_id' => $nodeId, 'fqdn' => $fqdn, 'cf_id' => $existingCf['id']]);
+                    return ['action' => 'adopted', 'success' => true, 'node_id' => $nodeId, 'type' => $blueprint['type'], 'fqdn' => $fqdn, 'cf_id' => $existingCf['id'], 'proxied' => $expectedProxied];
+                }
+            }
             $localRecord->delete();
             return ['action' => 'update_failed', 'success' => false, 'node_id' => $nodeId, 'type' => $blueprint['type'], 'fqdn' => $fqdn];
         }
