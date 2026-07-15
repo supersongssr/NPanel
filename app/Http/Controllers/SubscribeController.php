@@ -198,6 +198,12 @@ class SubscribeController extends Controller
         $rocket_sub = $request->get('rocket') ?? 128;  // 效果等同 v2ray_sub
         $hysteria2_sub = $request->get('hysteria2') ?? $request->get('hysteria') ?? 128;  // Hysteria2 节点，兼容旧 hysteria 参数
 
+        // ss=0 显式关闭: 仅当用户显式传 ss=0 时为 true.
+        // 用途: 后续所有 ss:// 输出(有效期信息节点 + type==1 SS 节点)统一跳过,
+        //       不被 ver/v2ray/rocket 的默认真值短路.
+        // 注意: 默认不传 ss 时 $ss_sub=128, 此处为 false, 行为不变.
+        $ss_disabled = ($ss_sub == 0);
+
         // [PAUSED 2026-06-21] Quantumult X 订阅已停用
         // 原因: 自生成的 QuanX 配置严谨性/安全性尚未充分评估, 担心其节点特征
         //       被识别从而导致订阅被墙. 待认真评估确认后再恢复.
@@ -255,11 +261,13 @@ class SubscribeController extends Controller
         $hysteria2_count = 0;
         // 开始获取节点 ：
         $scheme = '';
-        $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443'.'#'.urlencode('有效期：'.$user->expire_time)."\n";
+        if (!$ss_disabled) {
+            $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443'.'#'.urlencode('有效期：'.$user->expire_time)."\n";
+        }
         $newsList = SsNode::query()->where('status',1)->where('node_group',0)->orderBy('level', 'desc')->get();     //获取等级为0的news节点，新闻通知节点。
         foreach ($newsList as $key => $node) {
             $nodeDisplayName = $this->getNodeDisplayName($node);
-            if ( $node->type == 1 && ($ss_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {
+            if ( $node->type == 1 && !$ss_disabled && ($ss_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {
                 $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443';
                 $scheme .= '#'.urlencode($nodeDisplayName . '_#' . $node->id) ."\n";
             } elseif ( $node->type == 2 && ($vmess_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {       // 获取 vmess节点
