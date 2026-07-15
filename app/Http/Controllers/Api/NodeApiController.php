@@ -1928,12 +1928,11 @@ class NodeApiController extends Controller
 
         $node->save();
 
-        // Sync heartbeat_at to all clone nodes
-        if ($node->is_clone == 0) {
-            SsNode::where('is_clone', $nodeId)->update([
-                'heartbeat_at' => $node->heartbeat_at,
-            ]);
-        }
+        // Sync cluster-wide state to all clone nodes.
+        // clone 是同一物理机的分身, 不独立调用 status(); main 上报后必须同步
+        // 集群共享状态, 否则 main 熔断下线 (status=0) 时 clone 仍显示在线,
+        // 订阅层 (SubscribeController 按 status=1 过滤) 会持续下发失效 clone.
+        $this->syncClusterStatus($node);
 
         $logData = [
             "node_id" => $nodeId,
@@ -1971,6 +1970,37 @@ class NodeApiController extends Controller
             "traffic_left" => $node->traffic_limit - $node->traffic_used,
             "traffic_used_daily" => $node->traffic_used_daily,
             "traffic_left_daily" => $node->traffic_left_daily,
+        ]);
+    }
+
+    /**
+     * 把 main 节点上报后的集群共享状态同步给所有 clone 节点.
+     *
+     * clone (is_clone > 0) 是同一物理机的协议/IP 分身, 不独立调用 status();
+     * 其状态完全由 main 上报时同步. 不同步 status 会导致: main 流量耗尽熔断
+     * (status=0) 后 clone 仍保持 status=1, 订阅层继续下发失效 clone 节点.
+     *
+     * 同步字段 (反映物理机运行状态, main 与 clone 必须一致):
+     *   - heartbeat_at : 存活心跳
+     *   - status       : 上线/下线 (流量 < 120GB 熔断)  ← 本次修复核心
+     *   - node_health  : 健康度 (消费速率 vs 剩余预算)
+     *   - bandwidth    : 物理机带宽
+     *
+     * 不同步:
+     *   - traffic_*      : clone 不独立计费, 流量字段不参与订阅过滤.
+     *   - last_raw_total : 网卡计数器增量基准, 仅 main 需要 (clone 不上报).
+     */
+    private function syncClusterStatus($node)
+    {
+        if ((int) $node->is_clone !== 0) {
+            return;
+        }
+
+        SsNode::where('is_clone', $node->id)->update([
+            'heartbeat_at' => $node->heartbeat_at,
+            'status'       => $node->status,
+            'node_health'  => $node->node_health,
+            'bandwidth'    => $node->bandwidth,
         ]);
     }
 }
