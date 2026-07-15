@@ -101,7 +101,8 @@ class AutoStatisticsNodeDailyTraffic extends Command
                     continue;
                 }
 
-                $_tt = $node->traffic - $node->traffic_lastday;  # $_tt = trafficToday
+                $_tt = $node->traffic_used - $node->traffic_lastday;  # $_tt = trafficToday (基于 traffic_used)
+                $_tt < 0 && $_tt = $node->traffic_used;  # 月度重置(AutoResetNodeTraffic 清零)导致回退,取重置后累计
                 $_tt > 999*1024*1024*1024 && $_tt = 999*1024*1024*1024;
                 $_tt < 1 && $_tt = 0;  // 限制在 0-999G之间
                 $_u += $_tt;
@@ -128,8 +129,11 @@ class AutoStatisticsNodeDailyTraffic extends Command
             if ( strtotime($node->heartbeat_at) < (time() - 7200)) {
                 $node->status = 0;
             }
-            //每日流量
-            $traffic_today = $node->traffic - $node->traffic_lastday;
+            //每日流量 (基于 traffic_used: 新架构由面板从 raw 计数累加, 旧 ssn_sub 亦上报此字段)
+            $traffic_today = $node->traffic_used - $node->traffic_lastday;
+            // 月度重置(AutoResetNodeTraffic 清零 traffic_used)或节点重装会导致 traffic_used 回退,
+            // 此时差值取重置后至今的累计流量,避免丢失当天数据。
+            $traffic_today < 0 && $traffic_today = $node->traffic_used;
 
             // 写入每天流量差值记录
             $node->monitor_url = round($traffic_today / 1073741824) . ',' . $node->monitor_url;
@@ -149,8 +153,8 @@ class AutoStatisticsNodeDailyTraffic extends Command
             }
 
 
-            // 记录当前流量值
-            $node->traffic_lastday = $node->traffic;
+            // 记录当前流量值(快照同步切到 traffic_used)
+            $node->traffic_lastday = $node->traffic_used;
             $node->traffic_used_daily = 0;
             $node->traffic_left_daily = 0;
             $node->save();

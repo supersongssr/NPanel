@@ -30,7 +30,10 @@ class AutoStatisticsNodeHourlyTraffic extends Command
             #计算 差值
             #记录每日流量
             #写入新的记录值
-            $traffic_hour = $node->traffic - $node->traffic_lasthour;
+            # 基于累计字段 traffic_used 计算差值(与新架构 NodeApiController::status 一致)
+            $traffic_hour = $node->traffic_used - $node->traffic_lasthour;
+            # 月度重置(AutoResetNodeTraffic 清零 traffic_used)会导致回退,取重置后累计值
+            $traffic_hour < 0 && $traffic_hour = $node->traffic_used;
 
             $obj = new SsNodeTrafficHourly();
             $obj->node_id = $node->id;
@@ -40,8 +43,8 @@ class AutoStatisticsNodeHourlyTraffic extends Command
             $obj->traffic = flowAutoShow($traffic_hour);
             $obj->save();
 
-            #记录当前流量值
-            $node->traffic_lasthour = $node->traffic;
+            #记录当前流量值(快照同步切到 traffic_used)
+            $node->traffic_lasthour = $node->traffic_used;
             $node->save();
         }
 
