@@ -60,9 +60,7 @@
                     "geosite:falungong",
                     "geosite:category-bank-cn",
                     "geosite:ookla-speedtest",
-                    "geosite:category-public-tracker",
-                    "domain:cachefly.cachefly.net",
-                    "domain:speed.cloudflare.com"
+                    "geosite:category-public-tracker"
                 ]
             },
             {
