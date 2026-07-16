@@ -146,17 +146,21 @@ class AutoStatisticsNodeDailyTraffic extends Command
                 if ( $node->traffic_used_daily < $node->traffic_left_daily / 3){
                     $node->sort -= 100; //故障值
                 } else {
-                    $node->node_cost < 1 && $node->node_cost = 1;
-                    $node->sort = floor($node->traffic_used_daily /1024/1024/1024 / $node->node_cost); //性价比
+                    # node_cost 作除数的下限保护用局部变量, 严禁回写模型 —— 否则会把管理员配置的
+                    # 廉价节点(如 0.5) 永久覆写成 1, 既污染配置又让"性价比"除数失去意义。
+                    $cost = $node->node_cost < 1 ? 1 : $node->node_cost;
+                    $node->sort = floor($node->traffic_used_daily /1024/1024/1024 / $cost); //性价比
                 }
 
             }
 
 
-            // 记录当前流量值(快照同步切到 traffic_used)
+            // 记录昨日快照: 明日 $traffic_today = traffic_used - traffic_lastday 依赖此值
+            // 注: traffic_used_daily / traffic_left_daily 不在此清零 —— 这两个字段由
+            // status() 心跳维护为"月均派生缓存"(traffic_used/daysElapsed、
+            // traffic_left/daysRemaining), 在此清零既无业务必要(它们非累加值, 心跳每次重算),
+            // 又会破坏订阅排序(SubscribeController 按 traffic_left_daily desc 排订阅节点)。
             $node->traffic_lastday = $node->traffic_used;
-            $node->traffic_used_daily = 0;
-            $node->traffic_left_daily = 0;
             $node->save();
             //
             // 记录流量记录
