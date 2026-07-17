@@ -266,25 +266,31 @@ class NodeApiController extends Controller
             $request->input("memory", 0),
         );
 
-        $v2Name = $request->input("v2_name") ?: "vision";
+        $defaultV2Name = $sysConf["node_default_v2_name"] ?? "vision-curvePreferences";
+
+        // 上报的 v2_name 缺失或不在合法集合内时, 回落到默认.
+        $v2Name = $request->input("v2_name");
+        if (!isset(self::V2_PROTOCOL_SLOTS[$v2Name])) {
+            $v2Name = $defaultV2Name;
+        }
 
         // xhttp-pq 准入: nginx ssl_ecdh_curve X25519MLKEM768 要求 OpenSSL >= 3.5.
-        // 节点 openssl 不满足 (含未上报 / unknown) 时, 不报错, 降级到 PQ 由 xray 强制的
-        // vision-curvePreferences (curvePreferences 走 xray Go TLS, 与 openssl 无关),
-        // 保证节点仍可上线且保留后量子防护.
+        // 节点 openssl 不满足 (含未上报 / unknown) 时, 不报错, 降级到默认 v2_name.
+        // 注意: 为保留后量子防护, node_default_v2_name 宜为 vision-curvePreferences 变体
+        // (其 PQ 曲线由 xray Go TLS curvePreferences 强制, 与 openssl 无关).
         $reportedOpenssl = $request->has("node_openssl")
             ? $request->input("node_openssl")
             : null;
         if ($v2Name === "xhttp-pq" && !$this->opensslSupportsPQ($reportedOpenssl)) {
             Log::warning(
                 "[Node API] xhttp-pq 降级: OpenSSL 不支持 X25519MLKEM768, 回退 "
-                    . self::PQ_FALLBACK_V2NAME,
+                    . $defaultV2Name,
                 [
                     "node_id" => $nodeId,
                     "node_openssl" => $reportedOpenssl ?: "(unreported)",
                 ],
             );
-            $v2Name = self::PQ_FALLBACK_V2NAME;
+            $v2Name = $defaultV2Name;
         }
 
         $nodePort = (int) $request->input("node_port", 443);
@@ -801,14 +807,13 @@ class NodeApiController extends Controller
     }
 
     /**
-     * xhttp-pq 后量子准入阈值与降级目标.
-     *   PQ_MIN_OPENSSL     — X25519MLKEM768 首个支持的 OpenSSL 版本 (3.5.0), 节点 openssl 须 >= 此值.
-     *   PQ_FALLBACK_V2NAME — 节点 openssl 不满足 (含未上报/unknown) 时的降级目标.
-     *                       vision-curvePreferences 的 PQ 曲线由 xray (Go TLS, curvePreferences)
-     *                       强制, 与 openssl 无关, 故即便节点 OpenSSL 旧版仍保留后量子防护.
+     * xhttp-pq 后量子准入阈值.
+     *   PQ_MIN_OPENSSL — X25519MLKEM768 首个支持的 OpenSSL 版本 (3.5.0), 节点 openssl 须 >= 此值.
+     *                    不满足 (含未上报/unknown) 时降级到配置项 node_default_v2_name
+     *                    (默认 vision-curvePreferences, 其 PQ 曲线由 xray Go TLS curvePreferences
+     *                    强制, 与 openssl 无关, 即便节点 OpenSSL 旧版仍保留后量子防护).
      */
     const PQ_MIN_OPENSSL = "3.5";
-    const PQ_FALLBACK_V2NAME = "vision-curvePreferences";
 
     const V2_PRESETS = [
         "vision" => [
@@ -968,7 +973,7 @@ class NodeApiController extends Controller
         // 实验目的: 测试 xhttp 在 nginx 锁 PQ 曲线时是否可防封 (模拟 vision-curvePreferences,
         // 但 PQ 曲线锁从 xray curvePreferences 上移到 nginx ssl_ecdh_curve).
         // 前置: 节点 OpenSSL >= 3.5 (register 据上报 node_openssl 校验; 不满足则降级
-        // PQ_FALLBACK_V2NAME=vision-curvePreferences, PQ 改由 xray 强制).
+        // 到配置项 node_default_v2_name (默认 vision-curvePreferences), PQ 改由 xray 强制).
         // 协议槽同 xhttp (inbound tag=proxy-xhttp); xray 这层 (security:none) 与普通 xhttp
         // 完全一致, TLS 由 nginx 终结; 差异仅在 xhttp-pq.conf 模板内.
         "xhttp-pq"            => ["xhttp", "xhttp", "xhttp"],

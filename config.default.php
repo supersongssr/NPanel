@@ -110,6 +110,7 @@ return [
     'dns_expire_days'         => '30',    // DNS 自动清理阈值 (天); 心跳超期无活跃节点的 DNS 记录被定时清理, 默认 32
     'pow_base_difficulty'     => '10000', // PoW 基础难度; 客户端工作量证明基础难度
     'node_protocol_presets'   => '{"threshold_mb":2048,"high":"xhttp-hy2-ws-grpc","low":"vision-hy2-ws-grpc"}',  // 节点协议预设 (JSON: threshold_mb/high/low)
+    'node_default_v2_name'    => 'vision-curvePreferences',  // 默认 v2 name; 节点注册时未指定 v2_name 的兜底值
     'node_domain_pool'        => '[]',    // 节点域名池 (JSON); 含 cf_token 等敏感数据, 真实值放 .config.php
     'host_pools'              => '{}',    // 多站点配置 (JSON: host => website_name/website_url/subscribe_domain)
 
