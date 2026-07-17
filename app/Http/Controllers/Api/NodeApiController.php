@@ -268,6 +268,25 @@ class NodeApiController extends Controller
 
         $v2Name = $request->input("v2_name") ?: "vision";
 
+        // xhttp-pq 准入: nginx ssl_ecdh_curve X25519MLKEM768 要求 OpenSSL >= 3.5.
+        // 节点 openssl 不满足 (含未上报 / unknown) 时, 不报错, 降级到 PQ 由 xray 强制的
+        // vision-curvePreferences (curvePreferences 走 xray Go TLS, 与 openssl 无关),
+        // 保证节点仍可上线且保留后量子防护.
+        $reportedOpenssl = $request->has("node_openssl")
+            ? $request->input("node_openssl")
+            : null;
+        if ($v2Name === "xhttp-pq" && !$this->opensslSupportsPQ($reportedOpenssl)) {
+            Log::warning(
+                "[Node API] xhttp-pq 降级: OpenSSL 不支持 X25519MLKEM768, 回退 "
+                    . self::PQ_FALLBACK_V2NAME,
+                [
+                    "node_id" => $nodeId,
+                    "node_openssl" => $reportedOpenssl ?: "(unreported)",
+                ],
+            );
+            $v2Name = self::PQ_FALLBACK_V2NAME;
+        }
+
         $nodePort = (int) $request->input("node_port", 443);
 
         $rootDomain = $this->resolveDomainAffinity(
@@ -334,6 +353,8 @@ class NodeApiController extends Controller
             $request->has("node_disk") || $request->has("disk")
                 ? $request->input("node_disk", $request->input("disk"))
                 : null;
+        // 注: node_os / node_openssl 仅从 register 请求读取用于 xhttp-pq 准入判断 ($reportedOpenssl),
+        // 不落库 (暂不改动 ss_node 表结构). 见上方降级逻辑.
         $node->bandwidth = (int) $request->input(
             "node_bandwidth",
             $request->input("bandwidth", 100),
@@ -779,6 +800,16 @@ class NodeApiController extends Controller
         $node->v2_reality_sid = null;
     }
 
+    /**
+     * xhttp-pq 后量子准入阈值与降级目标.
+     *   PQ_MIN_OPENSSL     — X25519MLKEM768 首个支持的 OpenSSL 版本 (3.5.0), 节点 openssl 须 >= 此值.
+     *   PQ_FALLBACK_V2NAME — 节点 openssl 不满足 (含未上报/unknown) 时的降级目标.
+     *                       vision-curvePreferences 的 PQ 曲线由 xray (Go TLS, curvePreferences)
+     *                       强制, 与 openssl 无关, 故即便节点 OpenSSL 旧版仍保留后量子防护.
+     */
+    const PQ_MIN_OPENSSL = "3.5";
+    const PQ_FALLBACK_V2NAME = "vision-curvePreferences";
+
     const V2_PRESETS = [
         "vision" => [
             "type" => 3,
@@ -930,6 +961,17 @@ class NodeApiController extends Controller
         //   - xray inbound mode=auto 同时处理上行 POST 与下行流
         //   - nginx 单 location /{path} 反代两条流到同一 inbound
         "xhttp-split"         => ["xhttp", "xhttp", "xhttp"],
+        // xhttp-pq: 仅 xhttp, 但 nginx 层 ssl_ecdh_curve 锁死 X25519MLKEM768 +
+        // ssl_protocols 锁死 TLSv1.3. X25519MLKEM768 = X25519+ML-KEM-768 混合后量子组,
+        // 仅 TLS 1.3 定义; nginx 仅接受该 key share, GFW 旧栈 (Go<1.23/OpenSSL<3.5) 主动探测
+        // 握手即失败 (alert 40), 无法坐实节点为代理 -> 密码学硬门槛防封 (非指纹伪装).
+        // 实验目的: 测试 xhttp 在 nginx 锁 PQ 曲线时是否可防封 (模拟 vision-curvePreferences,
+        // 但 PQ 曲线锁从 xray curvePreferences 上移到 nginx ssl_ecdh_curve).
+        // 前置: 节点 OpenSSL >= 3.5 (register 据上报 node_openssl 校验; 不满足则降级
+        // PQ_FALLBACK_V2NAME=vision-curvePreferences, PQ 改由 xray 强制).
+        // 协议槽同 xhttp (inbound tag=proxy-xhttp); xray 这层 (security:none) 与普通 xhttp
+        // 完全一致, TLS 由 nginx 终结; 差异仅在 xhttp-pq.conf 模板内.
+        "xhttp-pq"            => ["xhttp", "xhttp", "xhttp"],
     ];
 
     private function expandProtocols($v2Name)
@@ -938,6 +980,24 @@ class NodeApiController extends Controller
             return self::V2_PROTOCOL_SLOTS[$v2Name];
         }
         return explode("-", $v2Name);
+    }
+
+    /**
+     * 判断节点 OpenSSL 是否支持后量子混合组 X25519MLKEM768 (须 >= PQ_MIN_OPENSSL).
+     * node_openssl 格式为 "主.次" (如 "3.5"), 由 proxyInstall.sh ProbeOpenSSL 上报.
+     * 未上报 / unknown / 无法解析 -> false (保守判定不支持, 触发 xhttp-pq 降级).
+     */
+    private function opensslSupportsPQ($version)
+    {
+        $v = trim((string) $version);
+        if ($v === "" || strtolower($v) === "unknown") {
+            return false;
+        }
+        // 仅取开头的主.次版本号, 忽略后续 (如 "3.5.0 (beta)" -> "3.5").
+        if (!preg_match('/^\d+\.\d+/', $v, $m)) {
+            return false;
+        }
+        return version_compare($m[0], self::PQ_MIN_OPENSSL, ">=");
     }
 
     private function applyV2Preset(
