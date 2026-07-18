@@ -274,16 +274,19 @@ class NodeApiController extends Controller
             $v2Name = $defaultV2Name;
         }
 
-        // xhttp-pq 准入: nginx ssl_ecdh_curve X25519MLKEM768 要求 OpenSSL >= 3.5.
-        // 节点 openssl 不满足 (含未上报 / unknown) 时, 不报错, 降级到默认 v2_name.
+        // PQ 模式准入 (xhttp-pq / vision-reality-pq): nginx ssl_ecdh_curve
+        // X25519MLKEM768 要求 OpenSSL >= 3.5. 节点 openssl 不满足 (含未上报 / unknown)
+        // 时, 不报错, 降级到默认 v2_name.
         // 注意: 为保留后量子防护, node_default_v2_name 宜为 vision-curvePreferences 变体
         // (其 PQ 曲线由 xray Go TLS curvePreferences 强制, 与 openssl 无关).
         $reportedOpenssl = $request->has("node_openssl")
             ? $request->input("node_openssl")
             : null;
-        if ($v2Name === "xhttp-pq" && !$this->opensslSupportsPQ($reportedOpenssl)) {
+        if (in_array($v2Name, self::PQ_V2_NAMES, true)
+            && !$this->opensslSupportsPQ($reportedOpenssl)
+        ) {
             Log::warning(
-                "[Node API] xhttp-pq 降级: OpenSSL 不支持 X25519MLKEM768, 回退 "
+                "[Node API] {$v2Name} 降级: OpenSSL 不支持 X25519MLKEM768, 回退 "
                     . $defaultV2Name,
                 [
                     "node_id" => $nodeId,
@@ -879,6 +882,18 @@ class NodeApiController extends Controller
     ];
 
     /**
+     * 后量子 (PQ) 模式的 v2_name 集合.
+     * 这些模式在 nginx 层锁定 ssl_ecdh_curve X25519MLKEM768 (仅 TLS 1.3),
+     * 要求节点 OpenSSL >= PQ_MIN_OPENSSL (3.5). 不满足时 register 降级到
+     * node_default_v2_name (默认 vision-curvePreferences, PQ 曲线改由 xray 强制).
+     * 新增 nginx 层 PQ 变体需在此登记.
+     */
+    const PQ_V2_NAMES = [
+        "xhttp-pq",
+        "vision-reality-pq",
+    ];
+
+    /**
      * REALITY (偷自己) 模式的 v2_name 集合.
      * 这些模式共享 REALITY 行为: register 时生成 X25519 密钥对 + shortId,
      * applyV2Preset 写入 reality 覆写标记 (v2_fp=firefox + vision flow),
@@ -888,6 +903,7 @@ class NodeApiController extends Controller
     const REALITY_V2_NAMES = [
         "vision-reality",
         "vision-reality-min-firefox",
+        "vision-reality-pq",
         "xhttp-reality-minClientVer",
         "xhttp-reality-min-firefox",
     ];
@@ -920,6 +936,16 @@ class NodeApiController extends Controller
         // realitySettings 的两个静态字段 (minClientVer / fingerprint), 渲染器只做
         // 占位符替换, 这两个字段原样进入下发配置.
         "vision-reality-min-firefox" => ["vision", "vision", "vision"],
+        // vision-reality-pq: vision-reality (reality 偷本地 nginx 8443) 的后量子变体.
+        // 实验目的: 验证 reality 偷本地时, 若被偷的 nginx 8443 只允许 X25519MLKEM768
+        // 后量子曲线 (ssl_ecdh_curve + ssl_protocols TLSv1.3), reality 的 TLS 握手
+        // (xray Go TLS 作为 client 连 dest=127.0.0.1:8443) 会怎样 — Go TLS < 1.23 /
+        // OpenSSL < 3.5 不支持该组, 握手失败 (alert 40), 节点可能无法工作.
+        // xray 这层与 vision-reality 完全一致 (security=reality, dest=8443, vision flow),
+        // PQ 锁仅在 nginx 8443 (vision-reality-pq.conf); 协议槽同 vision-reality.
+        // 前置: 节点 OpenSSL >= 3.5 (register 据 node_openssl 校验; 不满足则降级到
+        // node_default_v2_name, PQ 改由 xray curvePreferences 强制).
+        "vision-reality-pq" => ["vision", "vision", "vision"],
         // xhttp-reality-minClientVer: VLESS + xhttp 传输 + REALITY (偷自己). xray 监听 443,
         // realitySettings.dest=127.0.0.1:8443 偷本机 nginx 8443 泛域名证书完成 TLS 握手;
         // xhttp 传输由 xray 在 reality 隧道内直接处理 (nginx 不反代 path, 仅作伪装站).

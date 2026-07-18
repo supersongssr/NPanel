@@ -627,7 +627,7 @@ class SubscribeController extends Controller
     {
         return $node
             && isset($node->v2_name)
-            && in_array($node->v2_name, ['vision-reality', 'vision-reality-min-firefox', 'xhttp-reality-minClientVer', 'xhttp-reality-min-firefox'], true);
+            && in_array($node->v2_name, ['vision-reality', 'vision-reality-min-firefox', 'vision-reality-pq', 'xhttp-reality-minClientVer', 'xhttp-reality-min-firefox'], true);
     }
 
     /**
