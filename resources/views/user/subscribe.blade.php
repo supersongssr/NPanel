@@ -338,7 +338,7 @@
                                                         <input type="text" class="form-control sub-link-input" value="{{$link}}" readonly onclick="this.select();" />
                                                         <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
                                                     </div>
-                                                    <li><strong class="step-label">① 安装软件</strong>：<a href="https://dl.v2rayng.org/releases/latest/v2rayNG_2.2.5-fdroid_arm64-v8a.apk">点此下载 v2rayNG</a> - 安装 - 打开软件。</li>
+                                                    <li><strong class="step-label">① 安装软件</strong>：<a href="/public/clients/v2rayNG_arm64-v8a.apk">点此下载 v2rayNG</a> - 安装 - 打开软件。</li>
                                                     <li><strong class="step-label">② 添加订阅</strong>：软件界面 - 右滑 - 订阅设置 - 点击右上角 <code>＋</code> - 备注随意 - 地址：<strong>复制上方订阅地址</strong> - 返回主界面 - 点击右上角打开菜单 - 更新订阅。</li>
                                                     <li><strong class="step-label">③ 使用节点</strong>：选择一个节点 - 点击右下角小飞机 - 开始使用吧。</li>
                                                     <li><strong class="step-label">④ 图文教程</strong>：<a href="/article?id=58">图文教程</a></li>
