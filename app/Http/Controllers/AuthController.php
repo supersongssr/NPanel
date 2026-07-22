@@ -113,11 +113,7 @@ class AuthController extends Controller
                     return Redirect::back()->withInput()->withErrors('账号异常，请点击<a href="/reActiveUser?username=' . $request->username . '" target="_blank"><span style="color:#000">【解封您的账号】</span></a>');
                 }
 
-                if (Auth::user()->status == 0 && self::$systemConfig['is_active_register']) {
-                    Auth::logout(); // 强制销毁会话，因为Auth::attempt的时候会产生会话
-
-                    return Redirect::back()->withInput()->withErrors('账号异常，请点击<a href="/activeUser?username=' . $request->username . '" target="_blank"><span style="color:#000">【保护您的账号】</span></a>');
-                }
+                // status == 0 的未激活账号不再强制登出，改由 isActive 中间件跳转到 /activateSelf 自助激活
             }
 
             // 写入登录日志

@@ -31,3 +31,4 @@ tmp/
 .zed/
 tests/
 .config.php
+.todo.md

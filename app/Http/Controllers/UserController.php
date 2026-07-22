@@ -61,6 +61,37 @@ class UserController extends Controller
         self::$systemConfig = Helpers::systemConfig();
     }
 
+    /**
+     * 激活页（GET /activateSelf）
+     * 仅 status==0 的未激活账号会被 isActive 中间件重定向到这里
+     */
+    public function activateSelfPage()
+    {
+        return Response::view('user.activateSelf');
+    }
+
+    /**
+     * 执行激活（POST /activateSelf）
+     * 只激活当前登录账号，只修改 status，不修改 enable
+     */
+    public function activateSelf(Request $request)
+    {
+        $user = Auth::user();
+        if ($user->is_admin) {
+            return Response::json(['status' => 'fail', 'message' => '管理员账号无需激活']);
+        }
+        if ($user->status != 0) {
+            return Response::json(['status' => 'fail', 'message' => '账号已激活，无需重复操作']);
+        }
+
+        $ret = User::query()->where('id', $user->id)->where('status', 0)->update(['status' => 1]);
+        if (!$ret) {
+            return Response::json(['status' => 'fail', 'message' => '激活失败，请重试']);
+        }
+
+        return Response::json(['status' => 'success', 'message' => '账号激活成功']);
+    }
+
     public function index(Request $request)
     {
 

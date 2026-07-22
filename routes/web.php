@@ -113,7 +113,14 @@ Route::group(['middleware' => ['isLogin', 'isAdmin']], function () {
     Route::post('admin/artisan/run', 'SystemCommandController@run'); // 执行Artisan命令
 });
 
+// 激活页 + 激活接口：仅校验登录，不挂 isActive，避免未激活账号跳转死循环
 Route::group(['middleware' => ['isLogin']], function () {
+    Route::get('activateSelf', 'UserController@activateSelfPage'); // 激活页
+    Route::post('activateSelf', 'UserController@activateSelf');   // 执行激活(只改 status)
+});
+
+// 用户业务页面：登录 + 未激活(status==0)强制跳转激活页
+Route::group(['middleware' => ['isLogin', 'isActive']], function () {
     Route::any('/', 'UserController@index'); // 用户首页
     Route::any('article', 'UserController@article'); // 文章详情
     Route::post('exchangeSubscribe', 'UserController@exchangeSubscribe'); // 更换节点订阅地址
