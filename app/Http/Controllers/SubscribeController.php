@@ -265,16 +265,19 @@ class SubscribeController extends Controller
             $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443'.'#'.urlencode('有效期：'.$user->expire_time)."\n";
         }
         $newsList = SsNode::query()->where('status',1)->where('node_group',0)->orderBy('level', 'desc')->get();     //获取等级为0的news节点，新闻通知节点。
+        // 通知节点地址: 使用 RFC 5737 TEST-NET-1 (192.0.2.0/24) 中的 192.0.2.1,
+        // 该网段专门用于文档与示例, 不在公网路由, 避免通知节点被客户端误连.
+        $notifyAddr = '192.0.2.1';
         foreach ($newsList as $key => $node) {
             $nodeDisplayName = $this->getNodeDisplayName($node);
             if ( $node->type == 1 && !$ss_disabled && ($ss_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {
-                $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$requestDomain.':443';
+                $scheme .= 'ss://YWVzLTEyOC1nY206d29yZHByZXNz@'.$notifyAddr.':443';
                 $scheme .= '#'.urlencode($nodeDisplayName . '_#' . $node->id) ."\n";
             } elseif ( $node->type == 2 && ($vmess_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {       // 获取 vmess节点
                 $v2_json = [
                     "v"    => "2",
                     "ps"   => $nodeDisplayName . '_#' . $node->id ,
-                    "add"  => $requestDomain ,
+                    "add"  => $notifyAddr ,
                     "port" => 443 ,
                     "id"   => '11886d96-252e-4166-9535-ec72467ad095' ,
                     "aid"  => 0 ,
@@ -289,10 +292,10 @@ class SubscribeController extends Controller
                 ];
                 $scheme .= 'vmess://' . base64_encode(json_encode($v2_json)) . "\n";
             } elseif ( $node->type == 3 && ($vless_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {   // vless节点获取
-                $scheme .= 'vless://11886d96-252e-4166-9535-ec72467ad095@'.$requestDomain.':443?encryption=none';
+                $scheme .= 'vless://11886d96-252e-4166-9535-ec72467ad095@'.$notifyAddr.':443?encryption=none';
                 $scheme .= '#'.urlencode($nodeDisplayName . '_#' . $node->id) . "\n";
             } elseif ( $node->type == 4 && ($trojan_sub || $ver == "2" || $v2ray_sub || $rocket_sub) ) {  // trojan节点获取
-                $scheme .= 'trojan://33216f76-f96d-417d-855a-7bd40bb3b884@'.$requestDomain.':443';
+                $scheme .= 'trojan://33216f76-f96d-417d-855a-7bd40bb3b884@'.$notifyAddr.':443';
                 $scheme .= '#'.urlencode($nodeDisplayName . '_#' . $node->id) . "\n";
             }
         }
