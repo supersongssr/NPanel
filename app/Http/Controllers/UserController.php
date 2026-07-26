@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Components\Helpers;
-use App\Components\ServerChan;
-use App\Components\Telegram;
+use App\Services\Notification\NotifyService;
 use App\Http\Models\Article;
 use App\Http\Models\Coupon;
 use App\Http\Models\Goods;
@@ -584,7 +583,7 @@ class UserController extends Controller
 
         $ret = Ticket::uid()->where('id', $id)->update(['status' => 2,'sort' => 0]);
         if ($ret) {
-            ServerChan::send('工单关闭提醒', '工单：ID' . $id . '用户已手动关闭');
+            app(NotifyService::class)->info('工单关闭提醒', '工单：ID' . $id . '用户已手动关闭');
 
             return Response::json(['status' => 'success', 'data' => '', 'message' => '关闭成功']);
         } else {
@@ -1176,11 +1175,11 @@ class UserController extends Controller
         $obj->status = 0;
         $obj->save();
 
-        // 发送 Telegram 通知
+        // 通知管理员 (按 telegram_min_level 决定是否投递)
         $user = Auth::user();
         $title = "🎉 邀请返利提现申请";
         $content = "用户：{$user->username} (ID: {$user->id})\n提现类型：邀请返利\n提现金额：" . ($aff_amount / 100) . " 元\n状态：待审核\n\n请前往管理后台处理：/admin/applyList?status=0";
-        Telegram::send($title, $content);
+        app(NotifyService::class)->info($title, $content);
 
         return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，记得在个人设置中添加收款信息呦']);
     }
@@ -1285,11 +1284,11 @@ class UserController extends Controller
         $obj->status = 0;
         $obj->save();
 
-        // 发送 Telegram 通知
+        // 通知管理员 (按 telegram_min_level 决定是否投递)
         $user = Auth::user();
         $title = "💰 消费返利提现申请";
         $content = "用户：{$user->username} (ID: {$user->id})\n提现类型：消费返利\n提现金额：" . ($ref_amount / 100) . " 元\n状态：待审核\n\n请前往管理后台处理：/admin/applyList?status=0";
-        Telegram::send($title, $content);
+        app(NotifyService::class)->info($title, $content);
 
         return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，记得在个人设置中添加收款信息呦']);
     }

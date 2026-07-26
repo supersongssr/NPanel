@@ -2309,8 +2309,9 @@ EOF;
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '设置失败：请求参数异常']);
         }
 
-        // 屏蔽异常配置
-        if (!array_key_exists($name, self::$systemConfig)) {
+        // 屏蔽异常配置 (已迁移到嵌套数组的旧扁平名也视为已知, 如 is_telegram -> telegram.enabled)
+        $legacyNested = ['is_telegram', 'telegram_bot_token', 'telegram_chat_id', 'telegram_min_level', 'is_server_chan', 'server_chan_key', 'is_push_bear', 'push_bear_send_key', 'push_bear_qrcode'];
+        if (!array_key_exists($name, self::$systemConfig) && !in_array($name, $legacyNested)) {
             return Response::json(['status' => 'fail', 'data' => '', 'message' => '设置失败：配置不存在']);
         }
 

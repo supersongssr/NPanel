@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Components\Helpers;
 use Illuminate\Console\Command;
-use App\Components\ServerChan;
+use App\Services\Notification\NotifyService;
 use App\Http\Models\SsNode;
 use App\Http\Models\SsNodeInfo;
 use App\Mail\nodeCrashWarning;
@@ -152,7 +152,7 @@ class AutoCheckNodeTCP extends Command
     private function notifyMaster($title, $content, $nodeName, $nodeServer)
     {
         $this->notifyMasterByEmail($title, $content, $nodeName, $nodeServer);
-        ServerChan::send($title, $content);
+        app(NotifyService::class)->error($title, $content);
     }
 
     /**

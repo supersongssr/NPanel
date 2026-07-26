@@ -178,16 +178,17 @@ return [
     'clonepay_apis'     => '',   // CP代付 apis 配置 (JSON); web 的 apis 配置
 
     /* ============================================================
-     * 通知: ServerChan / PushBear / Telegram
+     * 通知: Telegram (管理员告警, 统一由 app/Services/Notification 投递)
+     *   级别: error(系统故障) > warning(需关注) > info(日常事件)
+     *   Telegram 默认仅推送 error; 可由 min_level 放宽
+     *   .config.php 覆盖时支持只写部分键 (systemConfig 已递归合并 telegram 子键)
      * ============================================================ */
-    'is_server_chan'     => '0',  // ServerChan 开关; 推送节点离线/流量异常/节点使用报告
-    'server_chan_key'    => '',   // ServerChan SCKEY (https://sct.ftqq.com)
-    'is_push_bear'       => '0',  // PushBear 开关
-    'push_bear_send_key' => '',   // PushBear send_key
-    'push_bear_qrcode'   => '',   // PushBear 推送二维码
-    'is_telegram'        => '0',  // Telegram 通知开关
-    'telegram_bot_token' => '',   // Telegram Bot Token (从 BotFather 获取)
-    'telegram_chat_id'   => '',   // Telegram Chat ID (接收通知的个人或群组)
+    'telegram' => [
+        'enabled'   => false,   // 开关; 仅通知管理员
+        'bot_token' => '',      // Bot Token (从 @BotFather 获取)
+        'chat_id'   => '',      // 接收通知的 Chat ID (个人或群组)
+        'min_level' => 'error', // 接受的最低级别; error(仅故障) / warning / info
+    ],
 
     /* ============================================================
      * 验证码: 极验 Geetest / Google reCAPTCHA

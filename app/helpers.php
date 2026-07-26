@@ -1,5 +1,13 @@
 <?php
 
+// 管理员告警通知便捷入口: notify()->error('title', 'content')
+if (!function_exists('notify')) {
+    function notify()
+    {
+        return app(\App\Services\Notification\NotifyService::class);
+    }
+}
+
 // 生成SS密码
 if (!function_exists('makeRandStr')) {
     function makeRandStr($length = 6, $isNumbers = false)

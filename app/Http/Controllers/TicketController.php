@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Components\Helpers;
-use App\Components\ServerChan;
+use App\Services\Notification\NotifyService;
 use App\Http\Models\Ticket;
 use App\Http\Models\TicketReply;
 use App\Mail\closeTicket;
@@ -78,7 +78,7 @@ class TicketController extends Controller
 
                 // 通过ServerChan发微信消息提醒管理员
                 if (!Auth::user()->is_admin) {
-                    ServerChan::send($title, $content);
+                    app(NotifyService::class)->info($title, $content);
                 }
 
                 return Response::json(['status' => 'success', 'data' => '', 'message' => '回复成功']);
@@ -137,7 +137,7 @@ class TicketController extends Controller
 
                 // 通过ServerChan发微信消息提醒管理员
                 if (!Auth::user()->is_admin) {
-                    ServerChan::send($title, $content);
+                    app(NotifyService::class)->info($title, $content);
                 }
 
                 return Response::json(['status' => 'success', 'data' => '', 'message' => '回复成功']);

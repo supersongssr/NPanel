@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Components\Helpers;
-use App\Components\ServerChan;
+use App\Services\Notification\NotifyService;
 use App\Components\Yzy;
 use App\Http\Models\Goods;
 use App\Http\Models\GoodsLabel;
@@ -756,7 +756,7 @@ class AutoJob extends Command
                 // 10分钟内无节点负载信息且TCP检测认为不是离线则认为是后端炸了
                 $nodeTTL = SsNodeInfo::query()->where('node_id', $node->id)->where('log_time', '>=', strtotime("-10 minutes"))->orderBy('id', 'desc')->first();
                 if (!$nodeTTL) {
-                    ServerChan::send('节点异常警告', "节点**{$node->name}【{$node->ip}】**异常：**心跳异常，可能离线了**");
+                    app(NotifyService::class)->error('节点异常警告', "节点**{$node->name}【{$node->ip}】**异常：**心跳异常，可能离线了**");
                 }
             }
         }

@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Components\Helpers;
-use App\Components\ServerChan;
+use App\Services\Notification\NotifyService;
 use Illuminate\Console\Command;
 use App\Http\Models\User;
 use App\Http\Models\UserTrafficHourly;
@@ -51,7 +51,7 @@ class UserTrafficAbnormalAutoWarning extends Command
 
                     $content = "用户**{$user->username}(ID:{$user->id})**，最近1小时**上行流量：" . flowAutoShow($traffic->totalU) . "，下行流量：" . flowAutoShow($traffic->totalD) . "，共计：" . flowAutoShow($traffic->totalTraffic) . "**。";
 
-                    ServerChan::send($title, $content);
+                    app(NotifyService::class)->warning($title, $content);
                 }
             }
         }

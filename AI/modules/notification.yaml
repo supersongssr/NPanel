@@ -1,0 +1,89 @@
+# ============================================================
+# 模块: Notification (管理员告警通知统一抽象)
+# 文件: AI/modules/notification.yaml
+# 创建: 2025-07
+# ============================================================
+module: Notification
+status: active
+path: app/Services/Notification/
+
+where: |
+  app/Services/Notification/
+    ├── NotifyService.php           # 主入口 ->error()/->warning()/->info()
+    ├── Level.php                   # const ERROR=400 / WARNING=300 / INFO=200
+    ├── Notification.php            # 消息值对象 (不可变)
+    ├── NotificationLogger.php      # 投递日志, 复用 email_log
+    └── Channels/
+        ├── ChannelInterface.php    # 渠道契约
+        └── TelegramChannel.php     # 唯一渠道 (Bot API)
+
+why: |
+  统一 "通知管理员" 的告警入口。业务点只声明 "发生了什么 / 多严重", 不关心走哪个渠道。
+  历史问题: Telegram / ServerChan 各自为政, 调用点分散; 且 Telegram 误接 info(返利提现)
+  而漏接 error(节点离线/TCP阻断)。本模块用级别过滤纠正倒挂: Telegram 默认仅收 error。
+
+how: |
+  业务点:
+    app(NotifyService::class)->error('节点离线', '节点A 心跳超时');
+  或便捷函数:
+    notify()->error(...);
+  NotifyService 遍历已注册渠道, 对 enabled() 且 level >= minLevel() 的投递。
+  新增渠道 (Bark/钉钉/飞书): 实现 ChannelInterface + 在 NotifyService::channels() 注册。
+
+input: |
+  - level:   int    (Level::ERROR / WARNING / INFO)
+  - title:   string
+  - content: string
+  - context: array  (可选, 预留给未来格式化层)
+
+output: |
+  - 返回 int: 实际投递成功的渠道数
+  - 副作用: 写 email_log (type=3 = Telegram); 调用 Telegram Bot API
+
+do: |
+  - 按 level 分发到各已注册渠道
+  - 每渠道独立 try-catch, 单渠道异常不影响其他渠道与主流程
+  - 成功/失败都写投递日志
+
+must: |
+  - PHP 7.4 兼容 (禁用 enum/union/match/命名参数/构造器提升)
+  - Telegram minLevel 默认 ERROR, 可由 config 'telegram.min_level' 调整
+  - 渠道 enabled() 在凭证缺失时必须返回 false (绝不发空 token 请求)
+  - 单渠道异常不可影响主业务流程
+  - 与 "通知用户" (Mail::to 用户 / app/Mail/*) 严格区分, 本模块只通知管理员
+
+config:                         # 关联数组, 便于统一开关与归类
+  telegram:
+    enabled:   false            # 开关
+    bot_token: ''               # Bot Token (从 @BotFather 获取)
+    chat_id:   ''               # 接收通知的 Chat ID
+    min_level: 'error'          # 接受的最低级别: error(仅故障) / warning / info
+  # systemConfig() 已改为递归合并 (mergeConfig), .config.php 支持只覆盖部分子键
+
+# 已迁移的调用点 (原 ServerChan::send / Telegram::send)
+call_sites:
+  error:   # 系统故障 -> Telegram 收到
+    - app/Console/Commands/AutoJob.php (节点离线/心跳异常)
+    - app/Console/Commands/AutoCheckNodeTCP.php (节点 TCP 阻断)
+  warning: # 需关注 -> Telegram 不收 (error-only)
+    - app/Console/Commands/UserTrafficAbnormalAutoWarning.php (流量异常)
+  info:    # 日常事件 -> Telegram 不收 (error-only)
+    - app/Http/Controllers/UserController.php (工单关闭 / 返利提现申请 ×2)
+    - app/Http/Controllers/TicketController.php (工单回复 ×2)
+    - app/Console/Commands/AutoReportNode.php (节点日报)
+
+removed:
+  - app/Components/Telegram.php    (逻辑迁入 Channels/TelegramChannel.php)
+  - app/Components/ServerChan.php  (生产环境 is_server_chan=0 且 key 为空, 确认未启用 -> 取消)
+  - config: is_server_chan / server_chan_key / is_push_bear / push_bear_send_key / push_bear_qrcode
+
+test:
+  - tests/test_notification.php (25 cases, 含 mergeConfig 递归合并测试, 全部通过)
+
+note: |
+  - 生产环境 Telegram 当前未配置 (telegram.enabled=false, token 空)。
+    要真正收到告警, 需在生产 .config.php 填写:
+      'telegram' => ['enabled' => true, 'bot_token' => '...', 'chat_id' => '...']
+  - UserController 中 /* Song ... */ 注释块内的 ServerChan::send 为历史死代码, 已保留不动
+    (不擅自恢复已注释逻辑, 属产品决策)。
+  - email_log.type: 1=邮件 / 2=ServerChan(历史,已废弃) / 3=Telegram。

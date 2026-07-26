@@ -82,9 +82,10 @@ class Helpers
         $data = self::loadFileConfig('config.default.php');
 
         // 2. 用户手工覆盖 (.config.php, 仅 include, 代码不修改此文件)
+        //    递归合并: 嵌套配置(如 telegram)支持只覆盖部分子键, 标量键与 array_merge 一致
         $override = self::loadFileConfig('.config.php');
         if (is_array($override)) {
-            $data = array_merge($data, $override);
+            $data = self::mergeConfig($data, $override);
         }
 
         // 3. DB 动态白名单 (仅 traffic_record_group1/2 等运行时写入项, 其余静态配置不读 DB)
@@ -142,6 +143,29 @@ class Helpers
         }
         $arr = include $path;
         return is_array($arr) ? $arr : [];
+    }
+
+    /**
+     * 递归合并配置
+     * - 标量键: 直接覆盖 (与 array_merge 行为一致)
+     * - 数组键: 深度合并, 保证 .config.php 只写 telegram['bot_token'] 时
+     *   不会丢失 enabled / min_level 等默认值
+     *
+     * @param array $base
+     * @param array $override
+     * @return array
+     */
+    private static function mergeConfig(array $base, array $override)
+    {
+        foreach ($override as $k => $v) {
+            if (is_array($v) && isset($base[$k]) && is_array($base[$k])) {
+                $base[$k] = self::mergeConfig($base[$k], $v);
+            } else {
+                $base[$k] = $v;
+            }
+        }
+
+        return $base;
     }
 
     // 获取默认加密方式

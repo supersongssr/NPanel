@@ -597,30 +597,9 @@
                                                     </div>
                                                     <div class="form-group">
                                                         <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="is_server_chan" class="col-md-3 control-label">ServerChan</label>
-                                                            <div class="col-md-9">
-                                                                <input type="checkbox" class="make-switch" @if($is_server_chan) checked @endif id="is_server_chan" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
-                                                                <span class="help-block"> 推送节点离线提醒、用户流量异常警告、节点使用报告（<a href="http://sc.ftqq.com" target="_blank">绑定微信</a>） </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
-                                                            <label for="server_chan_key" class="col-md-3 control-label">SCKEY</label>
-                                                            <div class="col-md-9">
-                                                                <div class="input-group">
-                                                                    <input class="form-control" type="text" name="server_chan_key" value="{{$server_chan_key}}" id="server_chan_key" placeholder="请到ServerChan申请" />
-                                                                    <span class="input-group-btn">
-                                                                        <button class="btn btn-success" type="button" onclick="setServerChanKey()">修改</button>
-                                                                    </span>
-                                                                </div>
-                                                                <span class="help-block"> 启用ServerChan，请务必填入本值（<a href="http://sc.ftqq.com" target="_blank">申请SCKEY</a>） </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <div class="col-md-6 col-sm-6 col-xs-12">
                                                             <label for="is_telegram" class="col-md-3 control-label">Telegram通知</label>
                                                             <div class="col-md-9">
-                                                                <input type="checkbox" class="make-switch" @if($is_telegram) checked @endif id="is_telegram" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
+                                                                <input type="checkbox" class="make-switch" @if($telegram['enabled']) checked @endif id="is_telegram" data-on-color="success" data-off-color="danger" data-on-text="启用" data-off-text="关闭">
                                                                 <span class="help-block"> 启用后通过Telegram发送通知（<a href="https://core.telegram.org/bots#6-botfather" target="_blank">创建Bot</a>） </span>
                                                             </div>
                                                         </div>
@@ -628,7 +607,7 @@
                                                             <label for="telegram_bot_token" class="col-md-3 control-label">Bot Token</label>
                                                             <div class="col-md-9">
                                                                 <div class="input-group">
-                                                                    <input class="form-control" type="text" name="telegram_bot_token" value="{{$telegram_bot_token}}" id="telegram_bot_token" placeholder="请填入Bot Token" />
+                                                                    <input class="form-control" type="text" name="telegram_bot_token" value="{{$telegram['bot_token']}}" id="telegram_bot_token" placeholder="请填入Bot Token" />
                                                                     <span class="input-group-btn">
                                                                         <button class="btn btn-success" type="button" onclick="setTelegramBotToken()">修改</button>
                                                                     </span>
@@ -642,7 +621,7 @@
                                                             <label for="telegram_chat_id" class="col-md-3 control-label">Chat ID</label>
                                                             <div class="col-md-9">
                                                                 <div class="input-group">
-                                                                    <input class="form-control" type="text" name="telegram_chat_id" value="{{$telegram_chat_id}}" id="telegram_chat_id" placeholder="请填入Chat ID" />
+                                                                    <input class="form-control" type="text" name="telegram_chat_id" value="{{$telegram['chat_id']}}" id="telegram_chat_id" placeholder="请填入Chat ID" />
                                                                     <span class="input-group-btn">
                                                                         <button class="btn btn-success" type="button" onclick="setTelegramChatId()">修改</button>
                                                                     </span>
