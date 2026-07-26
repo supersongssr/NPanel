@@ -34,25 +34,41 @@ class NotifyService
      * @param array  $context
      * @return int 实际投递成功的渠道数
      */
-    public function error($title, $content, array $context = [])
+    public function error($title, $content, array $context = [], $force = false)
     {
-        return $this->notify(Level::ERROR, $title, $content, $context);
+        return $this->notify(Level::ERROR, $title, $content, $context, $force);
     }
 
     /**
      * WARNING 级别 (需关注: 流量异常/阈值告警)
      */
-    public function warning($title, $content, array $context = [])
+    public function warning($title, $content, array $context = [], $force = false)
     {
-        return $this->notify(Level::WARNING, $title, $content, $context);
+        return $this->notify(Level::WARNING, $title, $content, $context, $force);
     }
 
     /**
      * INFO 级别 (日常事件: 工单/提现申请/日报)
      */
-    public function info($title, $content, array $context = [])
+    public function info($title, $content, array $context = [], $force = false)
     {
-        return $this->notify(Level::INFO, $title, $content, $context);
+        return $this->notify(Level::INFO, $title, $content, $context, $force);
+    }
+
+    /**
+     * 强制广播: 无视各渠道 min_level 过滤, 对所有 enabled() 渠道投递。
+     *
+     * 用于必须由管理员即时人工处理的关键业务通知 (如返利提现申请)。
+     * 与 info/warning/error 的区别仅在投递策略: 绕过级别过滤, 只要凭证齐全即推送。
+     *
+     * @param string $title
+     * @param string $content
+     * @param array  $context
+     * @return int 实际投递成功的渠道数
+     */
+    public function broadcast($title, $content, array $context = [])
+    {
+        return $this->notify(Level::INFO, $title, $content, $context, true);
     }
 
     /**
@@ -64,17 +80,18 @@ class NotifyService
      * @param array  $context
      * @return int 实际投递成功的渠道数
      */
-    public function notify($level, $title, $content, array $context = [])
+    public function notify($level, $title, $content, array $context = [], $force = false)
     {
-        $notification = new Notification($level, $title, $content, $context);
+        $notification = new Notification($level, $title, $content, $context, $force);
         $sent         = 0;
 
         foreach ($this->channels() as $channel) {
             if (!$channel->enabled()) {
                 continue;
             }
-            if ($notification->getLevel() < $channel->minLevel()) {
-                continue; // 级别不够, 该渠道不投递
+            // 强制投递无视级别过滤; 否则仅当 level >= channel.minLevel() 才投递
+            if (!$notification->isForce() && $notification->getLevel() < $channel->minLevel()) {
+                continue;
             }
             try {
                 if ($channel->send($notification)) {

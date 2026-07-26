@@ -1175,11 +1175,11 @@ class UserController extends Controller
         $obj->status = 0;
         $obj->save();
 
-        // 通知管理员 (按 telegram_min_level 决定是否投递)
+        // 通知管理员: 返利提现需即时人工审核, 用 broadcast() 强制送达 (无视 min_level 过滤)
         $user = Auth::user();
         $title = "🎉 邀请返利提现申请";
         $content = "用户：{$user->username} (ID: {$user->id})\n提现类型：邀请返利\n提现金额：" . ($aff_amount / 100) . " 元\n状态：待审核\n\n请前往管理后台处理：/admin/applyList?status=0";
-        app(NotifyService::class)->info($title, $content);
+        app(NotifyService::class)->broadcast($title, $content);
 
         return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，记得在个人设置中添加收款信息呦']);
     }
@@ -1284,11 +1284,11 @@ class UserController extends Controller
         $obj->status = 0;
         $obj->save();
 
-        // 通知管理员 (按 telegram_min_level 决定是否投递)
+        // 通知管理员: 返利提现需即时人工审核, 用 broadcast() 强制送达 (无视 min_level 过滤)
         $user = Auth::user();
         $title = "💰 消费返利提现申请";
         $content = "用户：{$user->username} (ID: {$user->id})\n提现类型：消费返利\n提现金额：" . ($ref_amount / 100) . " 元\n状态：待审核\n\n请前往管理后台处理：/admin/applyList?status=0";
-        app(NotifyService::class)->info($title, $content);
+        app(NotifyService::class)->broadcast($title, $content);
 
         return Response::json(['status' => 'success', 'data' => '', 'message' => '申请成功，记得在个人设置中添加收款信息呦']);
     }

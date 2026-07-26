@@ -81,9 +81,11 @@ test:
   - tests/test_notification.php (25 cases, 含 mergeConfig 递归合并测试, 全部通过)
 
 note: |
-  - 生产环境 Telegram 当前未配置 (telegram.enabled=false, token 空)。
-    要真正收到告警, 需在生产 .config.php 填写:
-      'telegram' => ['enabled' => true, 'bot_token' => '...', 'chat_id' => '...']
+  - 生产环境 Telegram 已配置 (.config.php: enabled=true + token + chat_id, min_level=error)。
+    error 级故障告警 + broadcast 强制投递 (提现申请) 可送达;
+    info/warning (工单/日报/流量异常) 受 min_level=error 过滤不推送。
+    如需放宽日常通知, 将 min_level 改为 'warning' 或 'info'。
+  - 已端到端验证: broadcast() 投递返回 1, Telegram Bot API ok=true, email_log type=3 status=1。
   - UserController 中 /* Song ... */ 注释块内的 ServerChan::send 为历史死代码, 已保留不动
     (不擅自恢复已注释逻辑, 属产品决策)。
   - email_log.type: 1=邮件 / 2=ServerChan(历史,已废弃) / 3=Telegram。
