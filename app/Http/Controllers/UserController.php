@@ -176,9 +176,11 @@ class UserController extends Controller
         // 订阅连接
         $view['link'] = (self::$systemConfig['subscribe_domain'] ? self::$systemConfig['subscribe_domain'] : self::$systemConfig['website_url']) . '/s/' . Auth::user()->subscribe->code;
 
-        // 多订阅地址
+        // 多订阅地址 (新版 subscribe_domain_list 数组优先; 回退旧版 subscribe_domains JSON 字符串)
         $subscribeDomains = array();
-        if (!empty(self::$systemConfig['subscribe_domains'])) {
+        if (!empty(self::$systemConfig['subscribe_domain_list']) && is_array(self::$systemConfig['subscribe_domain_list'])) {
+            $subscribeDomains = array_values(self::$systemConfig['subscribe_domain_list']);
+        } elseif (!empty(self::$systemConfig['subscribe_domains'])) {
             $decoded = json_decode(self::$systemConfig['subscribe_domains'], true);
             if (is_array($decoded)) {
                 $subscribeDomains = $decoded;

@@ -29,7 +29,13 @@ class Helpers
     private static $dynamicConfigKeys = ['traffic_record_group1', 'traffic_record_group2'];
 
     /**
-     * Parse node_domain_pool config into a normalized map.
+     * Parse node domain pool config into a normalized map.
+     *
+     * 解析优先级 (新版优先, 旧版兑底):
+     *   - 新版 node_domain_map: 原生 PHP 关联数组 (domain => meta), 直接使用;
+     *   - 旧版 node_domain_pool: JSON 字符串 (已废弃), json_decode 回退.
+     * 当新版键非空时用新版 (替代旧版), 否则回退旧版 JSON 字符串 —
+     * 实现“有新配置则替代, 无则兼容旧版”.
      *
      * @param array $sysConf  Result of self::systemConfig()
      * @return array ['domainPool' => [...], 'primaryDomain' => string]
@@ -37,23 +43,33 @@ class Helpers
     public static function parseDomainPool(array $sysConf)
     {
         $domainPool = array();
-        $raw = isset($sysConf['node_domain_pool']) ? $sysConf['node_domain_pool'] : '';
 
-        if (!empty($raw)) {
-            $decoded = json_decode($raw, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                $firstKey = null;
-                foreach ($decoded as $k => $v) {
-                    $firstKey = $k;
-                    break;
+        // 新版 node_domain_map (PHP 关联数组) 优先; 旧版 node_domain_pool (JSON 字符串) 回退.
+        $decoded = null;
+        if (isset($sysConf['node_domain_map']) && is_array($sysConf['node_domain_map']) && !empty($sysConf['node_domain_map'])) {
+            $decoded = $sysConf['node_domain_map'];
+        } else {
+            $raw = isset($sysConf['node_domain_pool']) ? $sysConf['node_domain_pool'] : '';
+            if (is_string($raw) && $raw !== '') {
+                $tmp = json_decode($raw, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($tmp)) {
+                    $decoded = $tmp;
                 }
-                if ($firstKey !== null && is_string($firstKey) && is_array($decoded[$firstKey])) {
-                    $domainPool = $decoded;
-                } else {
-                    foreach (array_values(array_unique(array_filter($decoded))) as $domain) {
-                        if (is_string($domain) && $domain !== '') {
-                            $domainPool[$domain] = array();
-                        }
+            }
+        }
+
+        if (!empty($decoded)) {
+            $firstKey = null;
+            foreach ($decoded as $k => $v) {
+                $firstKey = $k;
+                break;
+            }
+            if ($firstKey !== null && is_string($firstKey) && is_array($decoded[$firstKey])) {
+                $domainPool = $decoded;
+            } else {
+                foreach (array_values(array_unique(array_filter($decoded))) as $domain) {
+                    if (is_string($domain) && $domain !== '') {
+                        $domainPool[$domain] = array();
                     }
                 }
             }

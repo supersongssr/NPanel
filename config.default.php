@@ -3,9 +3,13 @@
  * config.default.php — 系统默认配置 (随版本发布, 提交 git)
  *
  * 结构: 扁平 [name => value], 与 DB config 表 1:1, value 全部为字符串.
- *       JSON 类配置 (node_protocol_presets / node_domain_pool / host_pools /
- *       subscribe_domains / clonepay_webs / clonepay_apis) 仍以 JSON 字符串保存,
- *       消费点 json_decode 零改动.
+ *       JSON 类配置 (node_protocol_presets / host_pools / clonepay_webs /
+ *       clonepay_apis) 仍以 JSON 字符串保存, 消费点 json_decode 零改动.
+ *       原生数组配置 (新版): node_domain_map (关联数组 domain=>meta) /
+ *       subscribe_domain_list (索引数组) 为新版写法, 优先于同名 JSON 旧键;
+ *       旧键 node_domain_pool / subscribe_domains 保留为 JSON 字符串以兼容
+ *       历史配置, 已标注废弃. 解析规则: 新键非空则用新键 (替代旧键),
+ *       否则回退旧键 (JSON 字符串) — 实现“有新配置则替代, 无则兼容旧版”.
  *
  * 覆盖: .config.php (git ignore, 仅手工编辑, 代码不修改) 的同名 key 整体替换本文件值.
  * 动态: traffic_record_group1 / traffic_record_group2 由定时任务
@@ -85,8 +89,9 @@ return [
      * 订阅
      * ============================================================ */
     'subscribe_max'       => '3',   // 订阅节点数; 客户端订阅取几个节点, 0返回全部
-    'subscribe_domain'    => '',    // 节点订阅地址; 防 DNS 投毒, 需带 http:// 或 https://
-    'subscribe_domains'   => '[]',  // 多订阅域名列表 (JSON 数组); 用户订阅页展示多个订阅地址, 每个需带 http(s)://
+    'subscribe_domain'      => '',    // 节点订阅地址; 防 DNS 投毒, 需带 http:// 或 https://
+    'subscribe_domain_list' => [],    // 多订阅域名列表 (PHP 索引数组, 如 ['https://1.example.com','https://2.example.com']); 用户订阅页展示多个订阅地址, 每个需带 http(s)://. 新版写法, 优先于 subscribe_domains
+    'subscribe_domains'     => '[]',  // [已废弃] 多订阅域名列表 (JSON 字符串); 已被 subscribe_domain_list 替代, 保留以兼容旧版
     'is_subscribe_ban'    => '1',   // 订阅异常自动封禁; 订阅异常用户自动分组-1
     'subscribe_ban_times' => '20',  // 订阅请求阈值; 24小时内订阅链接请求次数限制
     'mix_subscribe'       => '0',   // 混合订阅; 订阅信息含 V2Ray 节点 (仅 Shadowrocket/Quantumult/v2rayN)
@@ -111,7 +116,8 @@ return [
     'pow_base_difficulty'     => '10000', // PoW 基础难度; 客户端工作量证明基础难度
     'node_protocol_presets'   => '{"threshold_mb":2048,"high":"xhttp-hy2-ws-grpc","low":"vision-hy2-ws-grpc"}',  // 节点协议预设 (JSON: threshold_mb/high/low)
     'node_default_v2_name'    => 'vision-curvePreferences',  // 默认 v2 name; 节点注册时未指定 v2_name 的兜底值
-    'node_domain_pool'        => '[]',    // 节点域名池 (JSON); 含 cf_token 等敏感数据, 真实值放 .config.php
+    'node_domain_map'         => [],    // 节点域名池 (PHP 关联数组: ['域名' => ['cdn'=>bool,'cf_token'=>str,'zone_id'=>str,'records_limit'=>int,'expire_date'=>str,'ech'=>str]]); 新版写法, 优先于 node_domain_pool. 含 cf_token 等敏感数据, 真实值放 .config.php
+    'node_domain_pool'        => '[]',  // [已废弃] 节点域名池 (JSON 字符串); 已被 node_domain_map 替代, 保留以兼容旧版. 含敏感数据, 真实值放 .config.php
     'host_pools'              => '{}',    // 多站点配置 (JSON: host => website_name/website_url/subscribe_domain)
 
     /* ============================================================

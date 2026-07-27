@@ -51,7 +51,7 @@
                                                 </div>
                                                 <button type="button" class="btn btn-info" onclick="addDomainRow()"> <i class="fa fa-plus"></i> 添加域名 </button>
                                                 <button type="button" class="btn btn-success" onclick="saveNodeDomainPool()"> <i class="fa fa-save"></i> 保存域名列表 </button>
-                                                <input type="hidden" id="domain_pool_data" value="{{$node_domain_pool ?? ''}}" />
+                                                <input type="hidden" id="domain_pool_data" value="{{ (!empty($node_domain_map) && is_array($node_domain_map)) ? json_encode($node_domain_map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : ($node_domain_pool ?? '') }}" />
 
                                                 <hr style="margin: 20px 0; border-top: 1px solid #e5e5e5;">
 

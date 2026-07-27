@@ -1254,7 +1254,7 @@
                                                     <div class="form-group">
                                                         <label class="col-md-2 control-label"><strong>多订阅地址</strong></label>
                                                         <div class="col-md-10">
-                                                            <input type="hidden" id="subscribe-domains-data" value="{{$subscribe_domains ?? '[]'}}" />
+                                                            <input type="hidden" id="subscribe-domains-data" value="{{ (!empty($subscribe_domain_list) && is_array($subscribe_domain_list)) ? json_encode($subscribe_domain_list, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : ($subscribe_domains ?? '[]') }}" />
                                                             <div id="subscribe-domains-list" style="margin-bottom:8px;"></div>
                                                             <div class="input-group">
                                                                 <input class="form-control" type="text" id="new_subscribe_domain" placeholder="https://rss-xx.example.com" />
