@@ -125,8 +125,8 @@ class TestAutoDeleteExpiredDns extends Command
             $this->error('  ❌ FAIL');
         }
 
-        // ---------- 测试 9: 独立 Token 的 CDN 域名必须用对应 Provider ----------
-        $this->info('--- 测试 9: CDN 域名 (cdn:true + cf_token) → resolveProvider 返回独立 Token Provider ---');
+        // ---------- 测试 9: 配了 cf_token 的域名 (与是否 cdn 无关) 必须用对应 Provider ----------
+        $this->info('--- 测试 9: cf_token 域名 (cdn 或非 cdn) → resolveProvider 返回独立 Token Provider ---');
         if ($this->testResolveProviderCdnToken()) {
             $passed++;
             $this->info('  ✅ PASS');
@@ -449,37 +449,44 @@ class TestAutoDeleteExpiredDns extends Command
 
     /**
      * 测试 DnsRecordCleanupService::resolveProvider():
-     *   - CDN 域名 (cdn:true + cf_token) → 返回带独立 Token 的 Provider
-     *   - 普通域名 → 返回使用全局 Token 的 Provider
+     *   - 配了 cf_token 的域名 (无论是否 cdn) → 返回带独立 Token 的 Provider
+     *   - 普通域名 (无 cf_token) → 返回使用全局 Token 的 Provider
      *   - 未配置域名 → 返回全局 Provider
      *
-     * 这验证了 AutoDeleteExpiredDns / DnsSyncer 删除 CDN 域名记录时会用对 Token.
+     * cf_token 与 cdn 正交解耦: 跨 CF 账号托管的普通域名 (非 CDN) 配了 cf_token
+     * 也必须用独立 Token, 否则鉴权失败.
      */
     private function testResolveProviderCdnToken()
     {
         $cdnToken = 'independent-cdn-token-' . uniqid();
+        $xaccToken = 'independent-xacc-token-' . uniqid();
         $pool = array(
             'normal.com' => array('zone_id' => 'zone-normal', 'cdn' => false),
             'cdn.xyz'    => array('zone_id' => 'zone-cdn', 'cdn' => true, 'cf_token' => $cdnToken),
+            'xacc.com'   => array('zone_id' => 'zone-xacc', 'cdn' => false, 'cf_token' => $xaccToken),
         );
 
         $cdnProvider = DnsRecordCleanupService::resolveProvider('cdn.xyz', $pool);
         $normalProvider = DnsRecordCleanupService::resolveProvider('normal.com', $pool);
         $missingProvider = DnsRecordCleanupService::resolveProvider('not.in.pool', $pool);
+        $xaccProvider = DnsRecordCleanupService::resolveProvider('xacc.com', $pool);
 
         $cdnTokenActual = $this->readProviderToken($cdnProvider);
         $normalTokenActual = $this->readProviderToken($normalProvider);
+        $xaccTokenActual = $this->readProviderToken($xaccProvider);
         $globalToken = env('CLOUDFLARE_TOKEN');
 
         $cdnMatched = $cdnTokenActual === $cdnToken;
+        $xaccMatched = $xaccTokenActual === $xaccToken; // 解耦: 非 CDN + cf_token 也走独立 Token
         $normalIsGlobal = ($globalToken !== false && $normalTokenActual === $globalToken);
         $missingOk = ($missingProvider instanceof CloudflareProvider);
 
         $this->line('    cdn_token_matched=' . var_export($cdnMatched, true)
+            . ' xacc_token_matched=' . var_export($xaccMatched, true)
             . ' normal_uses_global=' . var_export($normalIsGlobal, true)
             . ' missing_is_provider=' . var_export($missingOk, true));
 
-        return $cdnMatched && $normalIsGlobal && $missingOk;
+        return $cdnMatched && $xaccMatched && $normalIsGlobal && $missingOk;
     }
 
     /**

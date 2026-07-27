@@ -76,7 +76,7 @@
                                                     1. 根域名必须在 Cloudflare 托管并已获取 Zone ID。<br>
                                                     2. 记录上限控制每个域名下可创建的 DNS 记录数量，默认 180。<br>
                                                     3. <b>开启 CDN</b>：勾选后该域名将走 Cloudflare CDN（仅 <code>xhttp-cdn</code> 节点会选用此类域名），用于隔离防封号。<br>
-                                                    4. <b>CF Token</b>：开启 CDN 时需填写<b>独立的</b> Cloudflare API Token，与全局 Token 隔离；<b>留空则不开启 CDN</b>，并使用 <code>.env</code> 中的默认 <code>CLOUDFLARE_TOKEN</code>。<br>
+                                                    4. <b>CF Token (独立)</b>：当域名托管在<b>不同的</b> Cloudflare 账号时填写该账号的 API Token (与全局 <code>CLOUDFLARE_TOKEN</code> 隔离); 留空则用 <code>.env</code> 的默认 Token。<b>与是否开启 CDN 无关</b> —— 例如某个普通节点域名托管在别的 CF 账号, 只填 Token 不勾 CDN 即可正常增删 DNS 记录。<br>
                                                     5. 协议默认使用 <code>xhttp-hy2</code>，节点注册时可通过 <code>v2_name</code> 指定。<br>
                                                     6. 修改后对新注册的节点立即生效，已有节点需重新注册。
                                                 </div>
@@ -217,21 +217,10 @@
                 .replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        // 事件委托: 动态行交互约束 (留空 Token = 不开启 CDN + 使用默认 Token)
-        //   - CF Token 清空 => 自动取消勾选 CDN
-        //   - 勾选 CDN 但 Token 为空 => 阻止并提示, 避免保存成无效的 CDN 域名
-        $('#domain_pool_table').on('change', '.domain-cf-token', function () {
-            if (!$.trim($(this).val())) {
-                $(this).closest('tr').find('.domain-cdn').prop('checked', false);
-            }
-        });
-        $('#domain_pool_table').on('change', '.domain-cdn', function () {
-            var $row = $(this).closest('tr');
-            if ($(this).is(':checked') && !$.trim($row.find('.domain-cf-token').val())) {
-                layer.msg('请先填写独立的 CF Token（留空将使用默认 Token 且不开启 CDN）', { time: 2000 });
-                $(this).prop('checked', false);
-            }
-        });
+        // 事件委托: cf_token 与 cdn 已正交解耦, 无需联动约束.
+        //   - CDN 勾选 = 该域名走 CF CDN 代理 (供 xhttp-cdn 节点选用);
+        //   - CF Token = 域名托管在独立 CF 账号时填写, 留空则用全局 CLOUDFLARE_TOKEN.
+        //   两者独立, 可任意组合 (如跨账号普通域名: 不勾 CDN + 填 Token).
 
         function addDomainRow(domain, zoneId, recordsLimit, expireDate, cdn, cfToken) {
             domain = domain || '';
@@ -244,8 +233,8 @@
             html += '<td><input type="text" class="form-control input-sm domain-key" value="' + escAttr(domain) + '" placeholder="example.com"></td>';
             html += '<td><input type="text" class="form-control input-sm domain-zone" value="' + escAttr(zoneId) + '" placeholder="CF Zone ID"></td>';
             html += '<td><input type="number" class="form-control input-sm domain-limit" style="width: 80px;" value="' + escAttr(recordsLimit) + '"></td>';
-            html += '<td style="text-align:center; vertical-align:middle;"><input type="checkbox" class="domain-cdn"' + (cdn ? ' checked' : '') + ' title="勾选走 CF CDN（需独立 Token）"></td>';
-            html += '<td><input type="text" class="form-control input-sm domain-cf-token" value="' + escAttr(cfToken) + '" placeholder="留空=默认Token+关CDN"></td>';
+            html += '<td style="text-align:center; vertical-align:middle;"><input type="checkbox" class="domain-cdn"' + (cdn ? ' checked' : '') + ' title="勾选走 CF CDN 代理 (xhttp-cdn 节点选用)"></td>';
+            html += '<td><input type="text" class="form-control input-sm domain-cf-token" value="' + escAttr(cfToken) + '" placeholder="留空=全局默认Token"></td>';
             html += '<td><input type="date" class="form-control input-sm domain-expire" value="' + escAttr(expireDate) + '"></td>';
             html += '<td><button type="button" class="btn btn-danger btn-sm" onclick="$(this).closest(\'tr\').remove()"><i class="fa fa-trash"></i></button></td>';
             html += '</tr>';
@@ -261,17 +250,19 @@
                 var expire = $(this).find('.domain-expire').val().trim();
                 var cdnChecked = $(this).find('.domain-cdn').is(':checked');
                 var token = $(this).find('.domain-cf-token').val().trim();
-                // 规则: CF Token 留空 => 不开启 CDN, 且使用默认 CLOUDFLARE_TOKEN (不写 cf_token)
-                var cdnOn = cdnChecked && token !== '';
+                // cf_token 与 cdn 正交解耦:
+                //   - cdn = 勾选即开启 (走 CF CDN 代理, 供 xhttp-cdn 节点选用);
+                //   - cf_token = 填写即写入 (域名托管在独立 CF 账号时用, 与全局 Token 隔离),
+                //     留空则用 .env 的默认 CLOUDFLARE_TOKEN.
                 if (domain) {
                     var entry = {
                         provider: 'cloudflare',
                         records_limit: limit,
                         zone_id: zoneId,
                         expire_date: expire,
-                        cdn: cdnOn
+                        cdn: cdnChecked
                     };
-                    if (cdnOn) {
+                    if (token !== '') {
                         entry.cf_token = token;
                     }
                     pool[domain] = entry;

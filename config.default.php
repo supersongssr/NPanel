@@ -116,7 +116,57 @@ return [
     'pow_base_difficulty'     => '10000', // PoW 基础难度; 客户端工作量证明基础难度
     'node_protocol_presets'   => '{"threshold_mb":2048,"high":"xhttp-hy2-ws-grpc","low":"vision-hy2-ws-grpc"}',  // 节点协议预设 (JSON: threshold_mb/high/low)
     'node_default_v2_name'    => 'vision-curvePreferences',  // 默认 v2 name; 节点注册时未指定 v2_name 的兜底值
-    'node_domain_map'         => [],    // 节点域名池 (PHP 关联数组: ['域名' => ['cdn'=>bool,'cf_token'=>str,'zone_id'=>str,'records_limit'=>int,'expire_date'=>str,'ech'=>str]]); 新版写法, 优先于 node_domain_pool. 含 cf_token 等敏感数据, 真实值放 .config.php
+    /*
+    | -----------------------------------------------------------------
+    | node_domain_map  节点域名池 (PHP 关联数组: domain => meta)
+    | -----------------------------------------------------------------
+    | 新版写法 (优先于已废弃的 node_domain_pool JSON 字符串). 默认空数组;
+    | 真实配置 (含 cf_token 等敏感数据) 放 .config.php, 代码不修改该文件.
+    |
+    | meta 支持的键 (均在 production 读取, 唯 provider 例外):
+    |   zone_id        str  必填. CF Zone ID; 缺失则该域名无法增删 DNS 记录.
+    |   cf_token       str  可选. 该域名所在 CF 账号的 API Token (跨账号域名必填);
+    |                        留空则用 .env 的全局 CLOUDFLARE_TOKEN. 与 cdn 正交.
+    |   cdn            bool 可选. true=该域名走 CF CDN, 仅供 xhttp-cdn 协议节点选用
+    |                        (resolveDomainAffinity cdnOnly). 默认 false.
+    |   records_limit  int  可选. 该域名下 DNS 记录数上限, 默认 180.
+    |   proxied        bool 可选. DNS 记录是否 CF 橙云代理. 默认 false (灰云直连源站);
+    |                        UI 不暴露此键, 仅手写 .config.php 时可设 true.
+    |   ech            str  可选. ECH 规格 `ech.{domain}+udp://1.1.1.1`; 留空用默认.
+    |   expire_date    str  可选. 域名到期日 (YYYY-MM-DD), 仅记录/展示用.
+    |   provider       str  ⚠️ 僵尸字段: 代码不读取, 恒为 'cloudflare'.
+    |                        仅 UI/历史数据保留, 手写时可省略.
+    |
+    | 参考配置 (复制到 .config.php 的 'node_domain_map' 键下):
+    |
+    |   'node_domain_map' => [
+    |       // 1) 普通域名: 只需 zone_id, 用 .env 全局 CLOUDFLARE_TOKEN
+    |       'ssmail.win' => [
+    |           'zone_id' => '11112222333344445555666677778888',
+    |           'records_limit' => 200,
+    |       ],
+    |
+    |       // 2) 跨账号普通域名 (如 vvup.top): 非独立 CDN, 但托管在别的 CF 账号
+    |       //    → 必须填该账号的 cf_token, 不勾 cdn. 这就是 "不同 domain 用不同 Token" 的场景.
+    |       'vvup.top' => [
+    |           'zone_id'  => 'aaaabbbbccccddddeeeeffff00001111',
+    |           'cf_token' => 'vvup-account-api-token',   // 该域名所在 CF 账号的 Token
+    |           'records_limit' => 180,
+    |       ],
+    |
+    |       // 3) CDN 域名: 走 CF CDN, 供 xhttp-cdn 协议节点选用 (防封隔离)
+    |       //    通常用独立账号 Token 隔离; cdn 与 cf_token 正交, 也可共用全局 Token.
+    |       'sspcccdn.xyz' => [
+    |           'zone_id'  => '99998888777766665555444433332222',
+    |           'cdn'      => true,
+    |           'cf_token' => 'cdn-account-api-token',
+    |           'records_limit' => 1000,
+    |           'ech'      => 'ech.sspcccdn.xyz+udp://1.1.1.1',
+    |           'expire_date' => '2026-12-31',
+    |       ],
+    |   ],
+    */
+    'node_domain_map'         => [],    // 默认空; 真实配置 (含 cf_token) 放 .config.php
     'node_domain_pool'        => '[]',  // [已废弃] 节点域名池 (JSON 字符串); 已被 node_domain_map 替代, 保留以兼容旧版. 含敏感数据, 真实值放 .config.php
     'host_pools'              => '{}',    // 多站点配置 (JSON: host => website_name/website_url/subscribe_domain)
 

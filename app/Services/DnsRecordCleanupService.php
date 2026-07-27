@@ -30,9 +30,12 @@ class DnsRecordCleanupService
     /**
      * 为指定根域名解析对应的 CloudflareProvider.
      *
-     * DNS 模块已独立: CDN 域名 (node_domain_pool 中 cdn:true + cf_token) 使用独立的
-     * Cloudflare Token, 与全局 CLOUDFLARE_TOKEN 隔离 (防封号). 删除 CDN 域名记录时
-     * 必须用其独立 Token, 否则用全局 Token 会因鉴权失败导致远端记录无法删除 (残留).
+     * cf_token 与 cdn 正交解耦:
+     *   - cf_token = 该域名托管在哪个 Cloudflare 账号 (鉴权), 与全局 CLOUDFLARE_TOKEN 隔离;
+     *   - cdn      = 该域名是否走 Cloudflare CDN 代理 (proxied 行为).
+     * 只要域名池配置了 cf_token (无论是否 cdn), 就用它构造独立 Provider; 否则回退全局
+     * CLOUDFLARE_TOKEN. 这样 "在不同 CF 账号托管的普通域名" (如 vvup.top) 也能被正确
+     * 增删 DNS 记录, 而不会因用错账号的 Token 导致鉴权失败 / 远端记录残留.
      *
      * 这是 DnsSyncer::providerForDomain() 与 AutoDeleteExpiredDns 共用的唯一入口,
      * 保证「创建/更新」与「删除」两条路径对 Token 的选择完全一致.
@@ -47,7 +50,9 @@ class DnsRecordCleanupService
             ? $domainPool[$rootDomain]
             : array();
 
-        if (!empty($meta['cdn']) && !empty($meta['cf_token'])) {
+        // 有 cf_token 即用独立 Token (与是否 cdn 无关): 跨 CF 账号托管的域名
+        // 必须用对应账号的 Token, 否则鉴权失败导致记录无法增删.
+        if (!empty($meta['cf_token'])) {
             return CloudflareProvider::withToken($meta['cf_token']);
         }
 

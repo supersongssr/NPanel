@@ -1441,7 +1441,7 @@ class NodeApiController extends Controller
             }
             if (empty($cdnDomains)) {
                 Log::error(
-                    "[Node API] resolveDomainAffinity: CDN 模式未找到 cdn:true 的域名池配置, 请在 node_domain_pool 中添加 CDN 域名 (含独立 cf_token / zone_id)",
+                    "[Node API] resolveDomainAffinity: CDN 模式未找到 cdn:true 的域名池配置, 请在 node_domain_pool 中添加 CDN 域名 (含 zone_id; cf_token 可选, 跨账号时填写)",
                 );
                 return $primaryDomain;
             }

@@ -21,8 +21,9 @@ class CloudflareProvider implements DnsProviderInterface
     /**
      * 构造一个使用指定 Token 的 CloudflareProvider 实例.
      *
-     * 用于 xhttp-cdn 模式: CDN 域名在域名池配置中使用独立的 cf_token,
-     * 与全局 CLOUDFLARE_TOKEN 隔离, 防止 CDN 域名被封号影响普通节点域名.
+     * 用于域名池中配置了独立 cf_token 的域名 (与全局 CLOUDFLARE_TOKEN 隔离).
+     * cf_token 与 cdn 正交: 跨账号托管的普通域名 (非 CDN) 同样需要独立 Token,
+     * 防止 CDN 域名被封号 / 跨账号鉴权失败影响 DNS 记录增删.
      *
      * @param  string $token 独立的 Cloudflare API Token
      * @return static

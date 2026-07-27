@@ -16,13 +16,14 @@ use App\Services\DnsRecordCleanupService;
  * 定时任务 (Console\Kernel 每日 04:10) 无命令行参数时读取 dns_expire_days 配置.
  *
  * 清理范围：
- * - Cloudflare 服务商的 DNS 记录（远端, 含独立 Token 的 CDN 域名）
+ * - Cloudflare 服务商的 DNS 记录（远端, 含独立 Token 的域名）
  * - 本地 dns_records 表记录
  *
  * DNS 模块独立性:
- * - CDN 域名 (node_domain_pool 中 cdn:true + cf_token) 使用独立 Cloudflare Token,
- *   与全局 CLOUDFLARE_TOKEN 隔离 (防封号). 本命令按记录根域名解析对应 Token,
- *   否则用全局 Token 删 CDN 域名记录会因鉴权失败而残留 (永远释放不了).
+ * - cf_token 与 cdn 正交解耦: 域名池中配置了 cf_token 的域名 (无论是否 cdn,
+ *   可能托管在不同 CF 账号) 使用独立 Cloudflare Token, 与全局 CLOUDFLARE_TOKEN 隔离.
+ *   本命令按记录根域名解析对应 Token, 否则用全局 Token 删跨账号域名记录会因
+ *   鉴权失败而残留 (永远释放不了).
  *
  * 安全约束：
  * - 只处理 A/AAAA 类型记录
@@ -79,7 +80,7 @@ class AutoDeleteExpiredDns extends Command
             'cf_deleted'       => 0,
             'cf_deleted_404'   => 0,
             'cf_failed'        => 0,
-            'cdn_token_records'=> 0,
+            'independent_token_records'=> 0,
             'rate_limited'     => false,
         );
 
@@ -119,15 +120,15 @@ class AutoDeleteExpiredDns extends Command
                 $this->line("  Node#{$node->id} \"{$node->name}\" — {$records->count()} DNS record(s), heartbeat_at={$node->heartbeat_at}");
 
                 foreach ($records as $record) {
-                    // DNS 模块已独立: CDN 域名 (cdn:true + cf_token) 使用独立 Token,
-                    // 必须按记录的根域名解析对应的 CloudflareProvider, 否则用全局 Token
-                    // 删除 CDN 域名记录会因鉴权失败而永远残留.
+                    // cf_token 与 cdn 正交解耦: 只要域名池配了 cf_token (无论是否 cdn),
+                    // 就必须用该独立 Token 调 Cloudflare API, 否则用全局 Token 删除跨账号
+                    // 域名记录会因鉴权失败而永远残留.
                     $dnsProvider = DnsRecordCleanupService::resolveProvider($record->root_domain, $domainPool);
                     $poolMeta = isset($domainPool[$record->root_domain]) && is_array($domainPool[$record->root_domain])
                         ? $domainPool[$record->root_domain]
                         : array();
-                    if (!empty($poolMeta['cdn']) && !empty($poolMeta['cf_token'])) {
-                        $stats['cdn_token_records']++;
+                    if (!empty($poolMeta['cf_token'])) {
+                        $stats['independent_token_records']++;
                     }
                     $result = $cleanupService->cleanupRecord($record, $dnsProvider, $domainPool, $dryRun, $tag);
 
@@ -187,8 +188,8 @@ class AutoDeleteExpiredDns extends Command
         if ($stats['rate_limited']) {
             $this->warn('Rate limited by Cloudflare: batch aborted early, remaining nodes deferred to next run.');
         }
-        if ($stats['cdn_token_records'] > 0) {
-            $this->info("CDN-token records (独立Token删除): {$stats['cdn_token_records']}");
+        if ($stats['independent_token_records'] > 0) {
+            $this->info("独立Token域名记录 (独立Token删除): {$stats['independent_token_records']}");
         }
 
         if ($dryRun) {
