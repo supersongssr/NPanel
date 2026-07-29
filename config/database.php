@@ -40,12 +40,14 @@ return [
         ],
 
         // 中央 SQLite 状态库: 存储非关键、需长期持久化、又不必进 MySQL 热表 (ss_node 等)
-        // 的状态数据 (如节点流量重置时间). 全局所有 SQLite 用途共用此连接, 避免散落多个 .db.
-        // 文件懒创建 (首次连接时生成); 表由使用方懒建 DDL (CREATE TABLE IF NOT EXISTS).
-        // 路径经 SQLITE_STATE_DB 覆盖, 默认 storage/app/state.sqlite (ACL 已保障 www-data 可写).
+        // 的状态数据 (如节点流量重置时间). 全局所有 SQLite 用途共用此连接, 统一放在
+        // 项目根 .sqlite/ 目录 (避免散落多个 .db). 文件懒创建 (首次连接时生成);
+        // 表由使用方懒建 DDL (CREATE TABLE IF NOT EXISTS).
+        // 路径经 SQLITE_STATE_DB 覆盖, 默认 .sqlite/state.sqlite
+        // (.sqlite/ 已设 default ACL g:www-data:rwX, www-data/root 均可写).
         'sqlite_state' => [
             'driver' => 'sqlite',
-            'database' => env('SQLITE_STATE_DB', storage_path('app/state.sqlite')),
+            'database' => env('SQLITE_STATE_DB', base_path('.sqlite/state.sqlite')),
             'prefix' => '',
         ],
 

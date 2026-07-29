@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Log;
  * 存储:
  *   连接 = DB::connection('sqlite_state')  (config/database.php, 全局 SQLite 唯一入口)
  *   表   = node_traffic_reset (node_id PK, reset_at TEXT "Y-m-d H:i:s")
- *   文件 = storage/app/state.sqlite (首次连接懒创建, 表懒建 DDL)
+ *   文件 = .sqlite/state.sqlite (项目根 .sqlite/ 目录, 懒创建; 表懒建 DDL)
  *
  * 容错:
  *   所有方法吞掉 DB 异常并返回安全默认值 (null / [] / 0), 确保存储故障 (磁盘满 / 权限)
@@ -40,7 +40,7 @@ class NodeTrafficResetStore
     /**
      * 懒建表 (CREATE TABLE IF NOT EXISTS, 幂等). 进程内只执行一次.
      * Laravel 的 SQLite 连接要求库文件预先存在 (不会自动创建空文件),
-     * 故先 touch 出空文件, 再 CREATE TABLE.
+     * 故先确保目录存在 (mkdir -p) 再 touch 出空文件, 再 CREATE TABLE.
      *
      * @return void
      */
@@ -50,10 +50,17 @@ class NodeTrafficResetStore
             return;
         }
         try {
-            // 确保库文件存在 (storage/app 已由 ACL 保障 www-data / root 可写).
+            // 确保库目录 + 文件存在 (.sqlite/ 已设 default ACL g:www-data:rwX,
+            // www-data(FPM) / root(cron) 均可写). :memory: 跳过文件处理.
             $path = config('database.connections.' . self::CONNECTION . '.database');
-            if ($path && $path !== ':memory:' && !file_exists($path)) {
-                @touch($path);
+            if ($path && $path !== ':memory:') {
+                $dir = dirname($path);
+                if (!is_dir($dir)) {
+                    @mkdir($dir, 0775, true);
+                }
+                if (!file_exists($path)) {
+                    @touch($path);
+                }
             }
             DB::connection(self::CONNECTION)->statement(
                 'CREATE TABLE IF NOT EXISTS ' . self::TABLE . ' (' .

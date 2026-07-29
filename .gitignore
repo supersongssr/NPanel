@@ -10,7 +10,7 @@
 /storage/app/public
 /storage/app/purifier
 /storage/*.key
-/storage/app/state.sqlite*
+/.sqlite/
 /.idea
 /.vagrant
 /.vscode
