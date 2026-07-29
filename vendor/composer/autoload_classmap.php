@@ -18,6 +18,7 @@ return array(
     'App\\Components\\NodeTrafficResetStore' => $baseDir . '/app/Components/NodeTrafficResetStore.php',
     'App\\Components\\ProofOfWork' => $baseDir . '/app/Components/ProofOfWork.php',
     'App\\Components\\QQWry' => $baseDir . '/app/Components/QQWry.php',
+    'App\\Components\\Sqlite\\SqliteManager' => $baseDir . '/app/Components/Sqlite/SqliteManager.php',
     'App\\Components\\Trimepay' => $baseDir . '/app/Components/Trimepay.php',
     'App\\Components\\Yzy' => $baseDir . '/app/Components/Yzy.php',
     'App\\Console\\Commands\\AutoCheckNodeStatus' => $baseDir . '/app/Console/Commands/AutoCheckNodeStatus.php',

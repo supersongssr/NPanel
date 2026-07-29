@@ -2,76 +2,49 @@
 
 namespace App\Components;
 
-use Illuminate\Support\Facades\DB;
+use App\Components\Sqlite\SqliteManager;
 use Illuminate\Support\Facades\Log;
 
 /**
- * 节点流量重置时间存储 (中央 SQLite 状态库, 非关键参数, 不入 MySQL).
+ * 节点流量重置时间存储 (基于 SQLite 底层模块, 非关键参数, 不入 MySQL).
  *
  * 背景:
  *   AutoResetNodeTraffic 按 reset_day 每月重置 traffic_used, 并用一道 32 天安全网
  *   (超过 32 天未重置则强制重置 + 告警) 兜底 cron 停跑 / 时钟漂移 / reset_day 错改.
  *   "上次重置时间" 只是安全网的计时基准, 非业务关键数据, 但需长期持久化 (跨重启不丢),
- *   故存中央 SQLite (config 连接 sqlite_state), 不写入 ss_node (订阅热表).
+ *   故存中央 SQLite (经 SqliteManager), 不写入 ss_node (订阅热表).
  *
  * 存储:
- *   连接 = DB::connection('sqlite_state')  (config/database.php, 全局 SQLite 唯一入口)
+ *   库   = SqliteManager (config 连接 sqlite_state, 默认 .sqlite/sqlite.db)
  *   表   = node_traffic_reset (node_id PK, reset_at TEXT "Y-m-d H:i:s")
- *   文件 = .sqlite/state.sqlite (项目根 .sqlite/ 目录, 懒创建; 表懒建 DDL)
+ *   表/库/目录由 SqliteManager 懒创建 (本类只声明 DDL).
  *
- * 容错:
- *   所有方法吞掉 DB 异常并返回安全默认值 (null / [] / 0), 确保存储故障 (磁盘满 / 权限)
- *   不会拖垮关键的流量重置逻辑 (MySQL 操作). 降级时安全网暂时失效, 月度正常重置不受影响.
+ * 容错: 查询方法吞掉 DB 异常返回安全默认值 (null / [] / 0), 确保存储故障 (磁盘满 / 权限)
+ *   不会拖垮关键的流量重置逻辑 (MySQL). 降级时安全网暂时失效, 月度正常重置不受影响.
  *
  * 详见: app/Console/Commands/AutoResetNodeTraffic.php
  *       app/Http/Controllers/Api/NodeApiController.php (register / applyId)
  */
 class NodeTrafficResetStore
 {
-    /** 全局 SQLite 状态库连接名 (config/database.php). */
-    const CONNECTION = 'sqlite_state';
-
     /** 节点流量重置时间表. */
     const TABLE = 'node_traffic_reset';
 
-    /** 进程内表已建标记 (避免每次调用都 DDL). */
-    private static $booted = false;
+    /** 建表 DDL (交 SqliteManager.ensureTable 懒建, 幂等). */
+    const DDL = 'CREATE TABLE IF NOT EXISTS node_traffic_reset (' .
+        'node_id INTEGER PRIMARY KEY,' .
+        'reset_at TEXT NOT NULL' .
+        ')';
 
     /**
-     * 懒建表 (CREATE TABLE IF NOT EXISTS, 幂等). 进程内只执行一次.
-     * Laravel 的 SQLite 连接要求库文件预先存在 (不会自动创建空文件),
-     * 故先确保目录存在 (mkdir -p) 再 touch 出空文件, 再 CREATE TABLE.
+     * 确保表就绪并返回 SQLite 连接.
      *
-     * @return void
+     * @return \Illuminate\Database\ConnectionInterface
      */
-    private static function boot()
+    private static function db()
     {
-        if (self::$booted) {
-            return;
-        }
-        try {
-            // 确保库目录 + 文件存在 (.sqlite/ 已设 default ACL g:www-data:rwX,
-            // www-data(FPM) / root(cron) 均可写). :memory: 跳过文件处理.
-            $path = config('database.connections.' . self::CONNECTION . '.database');
-            if ($path && $path !== ':memory:') {
-                $dir = dirname($path);
-                if (!is_dir($dir)) {
-                    @mkdir($dir, 0775, true);
-                }
-                if (!file_exists($path)) {
-                    @touch($path);
-                }
-            }
-            DB::connection(self::CONNECTION)->statement(
-                'CREATE TABLE IF NOT EXISTS ' . self::TABLE . ' (' .
-                '  node_id INTEGER PRIMARY KEY,' .
-                '  reset_at TEXT NOT NULL' .
-                ')'
-            );
-            self::$booted = true;
-        } catch (\Exception $e) {
-            Log::warning('[NodeTrafficResetStore] 建表失败: ' . $e->getMessage());
-        }
+        SqliteManager::ensureTable(self::TABLE, self::DDL);
+        return SqliteManager::connection();
     }
 
     /**
@@ -82,9 +55,8 @@ class NodeTrafficResetStore
      */
     public static function get($nodeId)
     {
-        self::boot();
         try {
-            $row = DB::connection(self::CONNECTION)->table(self::TABLE)
+            $row = self::db()->table(self::TABLE)
                 ->where('node_id', (int) $nodeId)
                 ->first();
             return $row ? (string) $row->reset_at : null;
@@ -103,9 +75,8 @@ class NodeTrafficResetStore
      */
     public static function set($nodeId, $timestamp = null)
     {
-        self::boot();
         try {
-            DB::connection(self::CONNECTION)->statement(
+            self::db()->statement(
                 'INSERT OR REPLACE INTO ' . self::TABLE . ' (node_id, reset_at) VALUES (?, ?)',
                 [(int) $nodeId, $timestamp ?: date('Y-m-d H:i:s')]
             );
@@ -122,9 +93,8 @@ class NodeTrafficResetStore
      */
     public static function forget($nodeId)
     {
-        self::boot();
         try {
-            DB::connection(self::CONNECTION)->table(self::TABLE)
+            self::db()->table(self::TABLE)
                 ->where('node_id', (int) $nodeId)
                 ->delete();
         } catch (\Exception $e) {
@@ -139,9 +109,8 @@ class NodeTrafficResetStore
      */
     public static function all()
     {
-        self::boot();
         try {
-            $rows = DB::connection(self::CONNECTION)->table(self::TABLE)->get();
+            $rows = self::db()->table(self::TABLE)->get();
             $out = [];
             foreach ($rows as $r) {
                 $out[(int) $r->node_id] = (string) $r->reset_at;
@@ -168,10 +137,9 @@ class NodeTrafficResetStore
         if (empty($nodeIds)) {
             return 0;
         }
-        self::boot();
         $ts = $timestamp ?: date('Y-m-d H:i:s');
         try {
-            $conn = DB::connection(self::CONNECTION);
+            $conn = self::db();
             // 取已存在的 node_id 集合 (whereIn 对数百 ID 无压力)
             $existing = $conn->table(self::TABLE)->whereIn('node_id', $nodeIds)->pluck('node_id');
             $existingSet = [];

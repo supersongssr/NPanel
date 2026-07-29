@@ -620,6 +620,7 @@ class ComposerStaticInitafff032aeb9b4610f8ed2f20cc405693
         'App\\Components\\NodeTrafficResetStore' => __DIR__ . '/../..' . '/app/Components/NodeTrafficResetStore.php',
         'App\\Components\\ProofOfWork' => __DIR__ . '/../..' . '/app/Components/ProofOfWork.php',
         'App\\Components\\QQWry' => __DIR__ . '/../..' . '/app/Components/QQWry.php',
+        'App\\Components\\Sqlite\\SqliteManager' => __DIR__ . '/../..' . '/app/Components/Sqlite/SqliteManager.php',
         'App\\Components\\Trimepay' => __DIR__ . '/../..' . '/app/Components/Trimepay.php',
         'App\\Components\\Yzy' => __DIR__ . '/../..' . '/app/Components/Yzy.php',
         'App\\Console\\Commands\\AutoCheckNodeStatus' => __DIR__ . '/../..' . '/app/Console/Commands/AutoCheckNodeStatus.php',
