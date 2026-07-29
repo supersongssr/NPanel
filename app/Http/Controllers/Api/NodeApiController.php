@@ -155,6 +155,12 @@ class NodeApiController extends Controller
         if ($node) {
             $recycled = true;
             $this->safeCleanupNodeDns($node->id, 'applyId');
+            // 回收身份清零: 旧 traffic_used + 旧重置时间记录必须清除.
+            // 否则若 applyId 后 register 未跟上 (节点中途崩溃), 该 ID 残留 is_clone=0 +
+            // 旧 traffic_used>0 + 旧重置时间, 会触发 32 天安全网误判为"流量卡死"
+            // 而强制清零 + 误告警. register 跟上时会重新填充, 不受影响.
+            $node->traffic_used = 0;
+            NodeTrafficResetStore::forget($node->id);
         } else {
             $node = new SsNode();
         }
