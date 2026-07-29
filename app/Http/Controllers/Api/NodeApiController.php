@@ -405,6 +405,11 @@ class NodeApiController extends Controller
             $node->last_raw_total = $initTx;
         }
 
+        // 流量重置时间基线: register 是节点活跃计费的起点 (resetNodeToDefaults 已清空),
+        // 设为当前时间作为 AutoResetNodeTraffic 32 天安全网的计时基线.
+        // 后续正常月度重置会持续刷新该字段.
+        $node->traffic_reset_at = date("Y-m-d H:i:s");
+
         // --- Mirror-overwrite: reset unreported fields to defaults ---
         // Ensures recycled nodes carry no stale config from previous owners.
         $node->traffic_used_daily = 0;
@@ -752,6 +757,8 @@ class NodeApiController extends Controller
         $node->node_onload = 0;
         $node->node_health = 1;
         $node->reset_day = 1;
+        // 流量重置时间: resetNodeToDefaults 清空, register() 会重新初始化为当前时间
+        $node->traffic_reset_at = null;
         $node->heartbeat_at = null;
         $node->server_uptime = 0;
         $node->server_total_traffic = 0;
