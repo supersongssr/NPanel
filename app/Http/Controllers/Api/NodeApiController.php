@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Models\SsNode;
 use App\Http\Models\DnsRecord;
 use App\Components\Helpers;
+use App\Components\NodeTrafficResetStore;
 use App\Components\DNS\CloudflareProvider;
 use App\Services\DnsRecordCleanupService;
 use App\Services\NodeAddress\NodeAddressService;
@@ -405,10 +406,10 @@ class NodeApiController extends Controller
             $node->last_raw_total = $initTx;
         }
 
-        // 流量重置时间基线: register 是节点活跃计费的起点 (resetNodeToDefaults 已清空),
+        // 流量重置时间基线 (Redis, 非关键参数不入库): register 是节点活跃计费的起点,
         // 设为当前时间作为 AutoResetNodeTraffic 32 天安全网的计时基线.
-        // 后续正常月度重置会持续刷新该字段.
-        $node->traffic_reset_at = date("Y-m-d H:i:s");
+        // 后续正常月度重置会持续刷新该记录.
+        NodeTrafficResetStore::set($node->id, date("Y-m-d H:i:s"));
 
         // --- Mirror-overwrite: reset unreported fields to defaults ---
         // Ensures recycled nodes carry no stale config from previous owners.
@@ -757,8 +758,6 @@ class NodeApiController extends Controller
         $node->node_onload = 0;
         $node->node_health = 1;
         $node->reset_day = 1;
-        // 流量重置时间: resetNodeToDefaults 清空, register() 会重新初始化为当前时间
-        $node->traffic_reset_at = null;
         $node->heartbeat_at = null;
         $node->server_uptime = 0;
         $node->server_total_traffic = 0;
