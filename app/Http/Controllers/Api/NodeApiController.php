@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Models\SsNode;
 use App\Http\Models\DnsRecord;
 use App\Components\Helpers;
-use App\Components\NodeTrafficResetStore;
+use App\Components\NodeTrafficReset;
 use App\Components\DNS\CloudflareProvider;
 use App\Services\DnsRecordCleanupService;
 use App\Services\NodeAddress\NodeAddressService;
@@ -155,12 +155,12 @@ class NodeApiController extends Controller
         if ($node) {
             $recycled = true;
             $this->safeCleanupNodeDns($node->id, 'applyId');
-            // 回收身份清零: 旧 traffic_used + 旧重置时间记录必须清除.
+            // 回收身份重置: 旧 traffic_used + last_traffic_reset_at 必须清零/刷新.
             // 否则若 applyId 后 register 未跟上 (节点中途崩溃), 该 ID 残留 is_clone=0 +
             // 旧 traffic_used>0 + 旧重置时间, 会触发 32 天安全网误判为"流量卡死"
             // 而强制清零 + 误告警. register 跟上时会重新填充, 不受影响.
-            $node->traffic_used = 0;
-            NodeTrafficResetStore::forget($node->id);
+            // 经 NodeTrafficReset 单点模块处理 (与月度重置 / 安全网共用同一逻辑).
+            NodeTrafficReset::reset($node);
         } else {
             $node = new SsNode();
         }
@@ -412,10 +412,11 @@ class NodeApiController extends Controller
             $node->last_raw_total = $initTx;
         }
 
-        // 流量重置时间基线 (Redis, 非关键参数不入库): register 是节点活跃计费的起点,
+        // 流量重置时间基线: register 是节点活跃计费的起点,
         // 设为当前时间作为 AutoResetNodeTraffic 32 天安全网的计时基线.
+        // 此处仅写时间, 不动 traffic_used (信任节点上报的累计流量); 不调 NodeTrafficReset::reset().
         // 后续正常月度重置会持续刷新该记录.
-        NodeTrafficResetStore::set($node->id, date("Y-m-d H:i:s"));
+        $node->last_traffic_reset_at = date("Y-m-d H:i:s");
 
         // --- Mirror-overwrite: reset unreported fields to defaults ---
         // Ensures recycled nodes carry no stale config from previous owners.

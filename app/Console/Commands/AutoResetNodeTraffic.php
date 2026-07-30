@@ -3,8 +3,10 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use App\Http\Models\SsNode;
-use App\Components\NodeTrafficResetStore;
+use App\Components\NodeTrafficReset;
 use App\Services\Notification\NotifyService;
 use Illuminate\Support\Facades\Log;
 
@@ -13,17 +15,18 @@ use Illuminate\Support\Facades\Log;
  *
  * 三段式逻辑:
  *   1. 正常月度重置: 按 reset_day 匹配当天应重置的节点 (LEAST(reset_day, 当月天数) = 今天),
- *      清零 traffic_used 并记录重置时间 (Redis: NodeTrafficResetStore).
- *   2. 懒初始化基线: Redis 中无重置时间记录的老节点 (迁移前 / Redis 重启后) 补写当前时间,
- *      不动 traffic_used 不告警. 避免首次启用安全网时老节点被误判"从未重置"而全量清零.
+ *      经 NodeTrafficReset::reset() 清零 traffic_used/daily 并刷新 last_traffic_reset_at.
+ *   2. 懒初始化基线: last_traffic_reset_at 仍为 NULL 的节点 (迁移后新建 / 漏回填) 统一补 now,
+ *      不动 traffic_used 不告警. 一条 SQL 完成.
  *   3. 安全网兜底: 主节点 (is_clone=0) 若上次重置距今超过 FORCE_RESET_DAYS 天
- *      且 traffic_used > 0, 强制清零 traffic_used + 记录重置时间
+ *      且 traffic_used > 0, 强制经 NodeTrafficReset::reset() 清零 + 记录时间
  *      + 发送 error notify. 防止定时任务停跑 / 时钟漂移 / reset_day 错改导致节点流量
- *      永不归零、被 120GB 熔断 (status=0) 后无声卡死.
+ *      永不归零、被熔断 (status=0) 后无声卡死.
  *
- * "上次重置时间" 为非关键参数, 存 Redis Hash (NodeTrafficResetStore), 不写入 ss_node.
- * 详见: app/Components/NodeTrafficResetStore.php
- *       app/Http/Controllers/Api/NodeApiController.php (register 初始化基线)
+ * "上次重置时间" 直接挂 ss_node.last_traffic_reset_at (强一致, 随节点生命周期),
+ * 不再依赖外部 SQLite/Redis 存储.
+ * 详见: app/Components/NodeTrafficReset.php
+ *       app/Http/Controllers/Api/NodeApiController.php (register 设基线 / applyId 回收重置)
  */
 class AutoResetNodeTraffic extends Command
 {
@@ -40,6 +43,13 @@ class AutoResetNodeTraffic extends Command
     {
         $jobStartTime = microtime(true);
 
+        // 守卫: 列缺失 (代码已上线但 migrate 未跑成功) 时直接告警退出,
+        // 避免后续 SQL 引用不存在列导致整个命令 500 + 日志刷屏.
+        if (!Schema::hasColumn('ss_node', 'last_traffic_reset_at')) {
+            Log::error('[AutoResetNodeTraffic] ss_node 缺少 last_traffic_reset_at 列, 请先执行 php artisan migrate');
+            return;
+        }
+
         $today = (int) date('d');
         $daysInMonth = (int) date('t');
         $now = date('Y-m-d H:i:s');
@@ -50,51 +60,36 @@ class AutoResetNodeTraffic extends Command
 
         $resetCount = 0;
         foreach ($resetNodes as $node) {
-            $node->traffic_used = 0;
-            $node->save();
-            NodeTrafficResetStore::set($node->id, $now); // 记录本次重置时间 (Redis)
+            NodeTrafficReset::reset($node, $now); // 清零 traffic_used/daily + 刷新 last_traffic_reset_at
             $resetCount++;
         }
 
-        // --- 2. 懒初始化基线: Redis 中缺失重置时间记录的节点补写当前时间 ---
-        // 迁移前 / Redis 重启后, 全部节点的重置时间记录为空. 首次每日运行时补成 now 作为
-        // 安全网计时基线. 只记录时间, 不动 traffic_used, 不告警 ——
-        // 避免老节点被误判为"从未重置"而触发全量强制清零 (会一次性清零所有节点累计流量).
-        // 新节点 (register) 已写入, 此处主要兜老数据 / Redis 重启.
-        $allNodeIds = SsNode::pluck('id')->all();
-        $initCount = NodeTrafficResetStore::initMissing($allNodeIds, $now);
+        // --- 2. 懒初始化基线: last_traffic_reset_at 仍为 NULL 的节点补 now (不动流量, 不告警) ---
+        // 迁移后新建 / 漏回填 / 列被外部清空的节点, 统一补成 now 作为安全网计时基线.
+        // 一条 SQL 完成, 不逐条 save (数百节点无压力).
+        $initCount = SsNode::whereNull('last_traffic_reset_at')->update([
+            'last_traffic_reset_at' => $now,
+        ]);
 
         // --- 3. 安全网兜底: 上次重置超过 FORCE_RESET_DAYS 天的主节点强制重置 + 告警 ---
         // 仅主节点 (is_clone=0) 参与判定: 主节点是流量计费单元, clone 不独立计费 (不调 status()).
         // traffic_used=0 的节点无流量可重置, 跳过避免误报.
-        $cutoff = strtotime('-' . self::FORCE_RESET_DAYS . ' days');
-        $allResetTimes = NodeTrafficResetStore::all(); // [nodeId => "Y-m-d H:i:s"]
-        $overdueIds = [];
-        foreach ($allResetTimes as $id => $ts) {
-            if (strtotime($ts) < $cutoff) {
-                $overdueIds[] = (int) $id;
-            }
-        }
+        $cutoff = date('Y-m-d H:i:s', strtotime('-' . self::FORCE_RESET_DAYS . ' days'));
 
-        // Redis 过期时间与 MySQL 节点状态交叉: 仅留 is_clone=0 且 traffic_used>0 的主节点.
-        $overdueNodes = empty($overdueIds)
-            ? collect()
-            : SsNode::whereIn('id', $overdueIds)
-                ->where('is_clone', 0)
-                ->where('traffic_used', '>', 0)
-                ->get();
+        $overdueNodes = SsNode::where('is_clone', 0)
+            ->where('traffic_used', '>', 0)
+            ->where('last_traffic_reset_at', '<', $cutoff)
+            ->get();
 
         $forcedCount = 0;
         foreach ($overdueNodes as $node) {
-            // 快照旧值 (保存后 Redis 记录会被覆盖成 $now)
-            $lastReset = NodeTrafficResetStore::get($node->id) ?: '从未';
+            // 快照旧值 (reset 后 last_traffic_reset_at 会被覆盖成 $now)
+            $lastReset = $node->last_traffic_reset_at ?: '从未';
             $staleDays = $lastReset !== '从未'
                 ? (int) round((time() - strtotime($lastReset)) / 86400)
                 : -1;
 
-            $node->traffic_used = 0;
-            $node->save();
-            NodeTrafficResetStore::set($node->id, $now);
+            NodeTrafficReset::reset($node, $now);
             $forcedCount++;
 
             $title = '⚠️ 节点流量强制重置';

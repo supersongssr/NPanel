@@ -54,3 +54,12 @@ else
     echo "❌ 错误：切换失败，请检查本地是否存在未提交的修改。"
     exit 1
 fi
+
+# 7. 应用数据库迁移 (代码同步后自动升级数据库)
+# 经 ./run 菜单入口触发, 幂等. 失败不阻断 (代码已就位, 可后续手动 ./run migrate).
+echo "📦 应用数据库迁移..."
+if [ -x ./run ]; then
+    ./run migrate
+else
+    php artisan migrate --force
+fi

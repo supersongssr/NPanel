@@ -39,15 +39,6 @@ return [
             'prefix' => '',
         ],
 
-        // 中央 SQLite 状态库 (底层模块 App\Components\Sqlite\SqliteManager):
-        // 全局所有 SQLite 用途共用此单一库文件. 目录经 SQLITE_STATE_DIR 自定义, 默认 .sqlite/
-        // (项目根), 库文件名固定 sqlite.db. 文件/目录/表均由 SqliteManager 懒创建 + 权限处理.
-        'sqlite_state' => [
-            'driver'   => 'sqlite',
-            'database' => rtrim((string) env('SQLITE_STATE_DIR', base_path('.sqlite')), '/') . '/sqlite.db',
-            'prefix'   => '',
-        ],
-
         'mysql' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST', '127.0.0.1'),

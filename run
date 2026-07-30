@@ -1,0 +1,154 @@
+#!/bin/sh
+####
+# NPanel 项目菜单入口 (./run)
+#
+# 用法:
+#   ./run                       # 交互菜单
+#   ./run migrate               # 非交互: 应用数据库迁移 (供 prod.deploy 远程触发)
+#   ./run migrate-status        # 非交互: 查看迁移状态
+#   ./run cache-clear           # 非交互: 清理应用缓存
+#
+# 远程触发示例 (prod.deploy 同步完代码后):
+#   ssh "$HOST" "cd $PATH && ./run migrate"
+####
+
+# PHP CLI 路径: 优先用 PATH 里的 php (宝塔/crontab 已配好);
+# 否则可经环境变量覆盖: PHP_BIN=/www/server/php/74/bin/php ./run migrate
+PHP_BIN="${PHP_BIN:-php}"
+
+# 退出码
+EXIT_OK=0
+EXIT_FAIL=1
+
+# ----------------------------------------------------------------------
+# 各功能函数
+# ----------------------------------------------------------------------
+
+# 应用数据库迁移 (幂等, 旧环境首次会把历史迁移全部 no-op 补跑)
+migrate_db() {
+    echo "📦 应用数据库迁移 (php artisan migrate --force)..."
+    if "$PHP_BIN" artisan migrate --force; then
+        echo "✅ 数据库迁移完成"
+        return $EXIT_OK
+    else
+        echo "🔴⛔ 数据库迁移失败, 请手动检查: $PHP_BIN artisan migrate:status"
+        return $EXIT_FAIL
+    fi
+}
+
+# 查看迁移状态
+migrate_status() {
+    echo "📋 数据库迁移状态:"
+    "$PHP_BIN" artisan migrate:status
+}
+
+# 回滚最近一次迁移 (危险操作, 仅交互菜单可见, 不暴露给远程非交互调用)
+migrate_rollback() {
+    echo "⏪ 回滚最近一次迁移 (php artisan migrate:rollback --force)..."
+    "$PHP_BIN" artisan migrate:rollback --force
+}
+
+# 清理应用缓存 (config/route/view/cache)
+cache_clear() {
+    echo "🧹 清理应用缓存..."
+    "$PHP_BIN" artisan optimize:clear
+}
+
+# 重启队列 worker (若用 queue.sh 托管)
+queue_restart() {
+    if [ -x ./queue.sh ]; then
+        echo "🔄 重启队列 worker..."
+        ./queue.sh
+    else
+        echo "⚠️  未找到 ./queue.sh, 跳过"
+    fi
+}
+
+# ----------------------------------------------------------------------
+# 非交互模式: ./run <command>
+# ----------------------------------------------------------------------
+run_direct() {
+    cmd="$1"
+    case "$cmd" in
+        migrate|migrate:up)
+            migrate_db
+            return $?
+            ;;
+        migrate-status|status)
+            migrate_status
+            return $?
+            ;;
+        migrate-rollback|rollback)
+            migrate_rollback
+            return $?
+            ;;
+        cache-clear|cache:clear|clear)
+            cache_clear
+            return $?
+            ;;
+        queue-restart|queue)
+            queue_restart
+            return $?
+            ;;
+        *)
+            echo "🔴 未知命令: $cmd"
+            echo "可用命令: migrate | migrate-status | migrate-rollback | cache-clear | queue-restart"
+            return $EXIT_FAIL
+            ;;
+    esac
+}
+
+# ----------------------------------------------------------------------
+# 交互菜单
+# ----------------------------------------------------------------------
+show_menu() {
+    cat <<'EOF'
+
+==========================================
+  NPanel 管理菜单
+==========================================
+  1) 应用数据库迁移          (migrate)
+  2) 查看迁移状态            (migrate:status)
+  3) 回滚最近一次迁移        (migrate:rollback)  [危险]
+  4) 清理应用缓存            (optimize:clear)
+  5) 重启队列 worker         (queue.sh)
+  0) 退出
+==========================================
+EOF
+}
+
+menu_loop() {
+    while true; do
+        show_menu
+        printf "请选择 [0-5]: "
+        read -r choice
+        case "$choice" in
+            1) migrate_db ;;
+            2) migrate_status ;;
+            3) migrate_rollback ;;
+            4) cache_clear ;;
+            5) queue_restart ;;
+            0|q|Q)
+                echo "👋 再见"
+                break
+                ;;
+            *)
+                echo "🔴 无效选择: $choice"
+                ;;
+        esac
+        echo ""
+        printf "按回车继续..."
+        read -r dummy
+    done
+}
+
+# ----------------------------------------------------------------------
+# 入口
+# ----------------------------------------------------------------------
+if [ $# -gt 0 ]; then
+    # 非交互模式
+    run_direct "$@"
+    exit $?
+else
+    menu_loop
+fi
