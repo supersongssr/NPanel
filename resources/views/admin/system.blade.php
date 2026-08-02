@@ -2902,7 +2902,7 @@
         function saveSubscribeDomains() {
             $.post('/admin/setConfig', {
                 _token: '{{csrf_token()}}',
-                name: 'subscribe_domains',
+                name: 'subscribe_domain_list',
                 value: JSON.stringify(subscribeDomains)
             }, function(ret) {
                 layer.msg(ret.message, {time:1000});

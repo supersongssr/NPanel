@@ -271,7 +271,7 @@
 
             $.post("/admin/setConfig", {
                 _token: '{{csrf_token()}}',
-                name: 'node_domain_pool',
+                name: 'node_domain_map',
                 value: JSON.stringify(pool)
             }, function (ret) {
                 layer.msg(ret.message, {time: 1000}, function () {
