@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\Log;
  *      不动 traffic_used 不告警. 一条 SQL 完成.
  *   3. 安全网兜底: 主节点 (is_clone=0) 若上次重置距今超过 FORCE_RESET_DAYS 天
  *      且 traffic_used > 0, 强制经 NodeTrafficReset::reset() 清零 + 记录时间
- *      + 发送 error notify. 防止定时任务停跑 / 时钟漂移 / reset_day 错改导致节点流量
+ *      + 发送聚合 error notify (单条摘要, 防止多节点连发触发 Telegram 速率限制).
+ *      防止定时任务停跑 / 时钟漂移 / reset_day 错改导致节点流量
  *      永不归零、被熔断 (status=0) 后无声卡死.
  *
  * "上次重置时间" 直接挂 ss_node.last_traffic_reset_at (强一致, 随节点生命周期),
@@ -82,6 +83,7 @@ class AutoResetNodeTraffic extends Command
             ->get();
 
         $forcedCount = 0;
+        $digestLines = [];
         foreach ($overdueNodes as $node) {
             // 快照旧值 (reset 后 last_traffic_reset_at 会被覆盖成 $now)
             $lastReset = $node->last_traffic_reset_at ?: '从未';
@@ -92,26 +94,18 @@ class AutoResetNodeTraffic extends Command
             NodeTrafficReset::reset($node, $now);
             $forcedCount++;
 
-            $title = '⚠️ 节点流量强制重置';
-            $content = sprintf(
-                "节点 **%s** (ID:%d, %s) 超过 %d 天未重置流量 (上次重置: %s, 距今 %s), 已强制清零.\n" .
-                "请检查 `autoResetNodeTraffic` 定时任务是否正常运行 / 系统时钟是否准确.",
+            // 聚合摘要行: 逐节点连发会触发 Telegram 同 chat ~1msg/s 速率限制 (429),
+            // 故循环内只收集, 循环外合并成单条摘要投递 (见下方 sendForcedResetDigest).
+            $digestLines[] = sprintf(
+                '• %s (ID:%d, %s) 上次重置 %s, 距今 %s',
                 $node->name ?: ('Node#' . $node->id),
                 $node->id,
                 $node->ip ?: ($node->ipv6 ?: 'no-ip'),
-                self::FORCE_RESET_DAYS,
                 $lastReset,
                 $staleDays > 0 ? ($staleDays . ' 天') : '从未重置'
             );
 
-            app(NotifyService::class)->error($title, $content, [
-                'node_id' => $node->id,
-                'node_name' => $node->name,
-                'node_ip' => $node->ip ?: ($node->ipv6 ?: ''),
-                'last_reset' => $lastReset,
-                'stale_days' => $staleDays,
-            ]);
-
+            // 逐节点明细仍写入日志 (日志不受速率限制, 摘要截断时据此查全量).
             Log::error('[AutoResetNodeTraffic] 强制重置节点流量 (超过' . self::FORCE_RESET_DAYS . '天未重置)', [
                 'node_id' => $node->id,
                 'node_name' => $node->name,
@@ -120,9 +114,66 @@ class AutoResetNodeTraffic extends Command
             ]);
         }
 
+        // 安全网告警聚合: 无论命中多少节点, 每次运行只投递一条摘要 (超长则截断并指向日志),
+        // 避免逐节点连发触发 Telegram 同 chat 速率限制 (429) 导致告警丢失.
+        if ($forcedCount > 0) {
+            $this->sendForcedResetDigest($forcedCount, $digestLines);
+        }
+
         $jobEndTime = microtime(true);
         $jobUsedTime = round(($jobEndTime - $jobStartTime), 4);
 
         Log::info('执行定时任务【' . $this->description . '】，正常重置 ' . $resetCount . ' 个节点，懒初始化 ' . $initCount . ' 个节点，强制重置 ' . $forcedCount . ' 个节点，耗时' . $jobUsedTime . '秒');
+    }
+
+    /**
+     * 投递安全网强制重置的聚合摘要告警.
+     *
+     * 单条 Telegram 消息上限 4096 字符. 命中节点很多时按字符预算截断明细并在文末提示
+     * "另 N 台见日志" (完整明细已由循环内 Log::error 记录), 保证每次运行始终只投递一条消息,
+     * 永不触发 Telegram 同 chat ~1msg/s 速率限制 (429) 而丢消息.
+     *
+     * @param int   $count 命中并已强制重置的主节点数
+     * @param array $lines 每个节点的摘要行 (已格式化, 与 $count 等长)
+     * @return void
+     */
+    private function sendForcedResetDigest($count, array $lines)
+    {
+        $title  = sprintf('⚠️ 节点流量强制重置 (%d 台)', $count);
+        $header = sprintf("超过 %d 天未重置流量, 已强制清零:\n", self::FORCE_RESET_DAYS);
+        $footer = "\n请检查 `autoResetNodeTraffic` 定时任务是否正常运行 / 系统时钟是否准确.";
+
+        app(NotifyService::class)->error($title, $header . $this->buildDigestLines($lines) . $footer, [
+            'forced_count' => $count,
+        ]);
+    }
+
+    /**
+     * 把节点摘要行拼接到不超 Telegram 单条上限的正文里, 超出部分截断.
+     *
+     * Telegram sendMessage 单条上限 4096 字符; 扣除标题/header/footer/Markdown 标记后,
+     * 节点明细用保守的 3000 字符预算, 命中超额时截断并补 "另 N 台见日志".
+     *
+     * @param array $lines
+     * @return string
+     */
+    private function buildDigestLines(array $lines)
+    {
+        $budget = 3000;
+        $body   = '';
+        $shown  = 0;
+        $total  = count($lines);
+        foreach ($lines as $line) {
+            if (mb_strlen($body . $line . "\n") > $budget) {
+                break;
+            }
+            $body .= $line . "\n";
+            $shown++;
+        }
+        if ($shown < $total) {
+            $body .= sprintf("…(另 %d 台明细见日志)\n", $total - $shown);
+        }
+
+        return $body;
     }
 }
