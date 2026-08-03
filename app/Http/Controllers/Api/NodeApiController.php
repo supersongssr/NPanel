@@ -1870,6 +1870,9 @@ class NodeApiController extends Controller
             (int) $request->input("node_bandwidth", $node->bandwidth) +
             $node->level;
         $node->heartbeat_at = date("Y-m-d H:i:s");
+        // 节点上报的监控地址 (monitor) 写入 monitor_url, 供面板展示与统计.
+        // 仅当上报时覆盖, 否则保留原值 (镜像覆盖语义, 同 server_uptime).
+        $node->monitor_url = $request->input("monitor", $node->monitor_url);
 
         // 基于 reset_day 计算已过天数和剩余天数（remaining 不含 today）
         $resetDay = (int) $node->reset_day;
