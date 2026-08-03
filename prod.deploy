@@ -66,13 +66,11 @@ deploy_nPanel() {
 
     echo "✅ rsync 同步完成！"
 
-    # 同步数据库: 远程触发 ./run migrate (幂等; 旧环境首次会把历史迁移全部 no-op 补跑).
-    # migrate 在 opcache 重启之前执行, 确保新代码加载时表结构已就绪.
-    echo "📦 远程应用数据库迁移..."
-    ssh "$PROD_DEPLOY_HOST" "cd \"$PROD_DEPLOY_PATH\" && ./run migrate"
-
     # 服务端开启了 opcache, 重启 PHP-FPM (宝塔 php-fpm-74) 使新代码立即生效
     ssh "$PROD_DEPLOY_HOST" '/etc/init.d/php-fpm-74 restart'
+
+    echo "⚠️  数据库迁移未自动执行。如本次发布包含表结构变更，请手动确认后单独运行:"
+    echo "    ssh \"$PROD_DEPLOY_HOST\" \"cd \"$PROD_DEPLOY_PATH\" && ./run migrate\""
 }
 
 # --- 主函数 ---
