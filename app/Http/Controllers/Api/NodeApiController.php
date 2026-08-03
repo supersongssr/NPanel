@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Models\SsNode;
 use App\Http\Models\DnsRecord;
 use App\Components\Helpers;
-use App\Components\NodeTrafficReset;
+use App\Components\NodeDefaults;
 use App\Components\DNS\CloudflareProvider;
 use App\Services\DnsRecordCleanupService;
 use App\Services\NodeAddress\NodeAddressService;
@@ -155,15 +155,14 @@ class NodeApiController extends Controller
         if ($node) {
             $recycled = true;
             $this->safeCleanupNodeDns($node->id, 'applyId');
-            // 回收身份重置: 旧 traffic_used + last_traffic_reset_at 必须清零/刷新.
-            // 否则若 applyId 后 register 未跟上 (节点中途崩溃), 该 ID 残留 is_clone=0 +
-            // 旧 traffic_used>0 + 旧重置时间, 会触发 32 天安全网误判为"流量卡死"
-            // 而强制清零 + 误告警. register 跟上时会重新填充, 不受影响.
-            // 经 NodeTrafficReset 单点模块处理 (与月度重置 / 安全网共用同一逻辑).
-            NodeTrafficReset::reset($node);
         } else {
             $node = new SsNode();
         }
+        // 身份继承原则: applyId 交付一个“全部默认值”的全新干净节点 (无论新建还是回收).
+        // 全量重置经 NodeDefaults 单点模块, 含 traffic_used=0 + last_traffic_reset_at=null.
+        // register 跟上时在其上记录节点上报值 + if-null 激活基线; 若 register 未跟上
+        // (节点崩溃), traffic_used=0 + 基线 null 也不会触发 32 天安全网误报.
+        NodeDefaults::resetToDefaults($node);
 
         $node->name = "New Node " . ($nodeIp ?: $nodeIpv6);
         $node->ip = $nodeIp ?: "";
@@ -262,9 +261,10 @@ class NodeApiController extends Controller
             );
         }
 
-        // Reset all v2 fields to clean defaults before applying new config,
-        // preventing stale values (e.g. leftover v2_flow) from previous registrations.
-        $this->resetNodeToDefaults($node);
+        // 身份继承原则: register 只清 v2/派生子集 (防换 v2_name 时旧字段残留),
+        // 不动 traffic/identity/metrics —— 这些由节点上报或 status() 维护.
+        // (全新/回收身份的 traffic/identity 已由 applyId 的 NodeDefaults::resetToDefaults 全清.)
+        NodeDefaults::resetV2Derived($node);
 
         $sysConf = Helpers::systemConfig();
 
@@ -412,18 +412,17 @@ class NodeApiController extends Controller
             $node->last_raw_total = $initTx;
         }
 
-        // 流量重置时间基线: register 是节点活跃计费的起点,
-        // 设为当前时间作为 AutoResetNodeTraffic 32 天安全网的计时基线.
-        // 此处仅写时间, 不动 traffic_used (信任节点上报的累计流量); 不调 NodeTrafficReset::reset().
-        // 后续正常月度重置会持续刷新该记录.
-        $node->last_traffic_reset_at = date("Y-m-d H:i:s");
-
-        // --- Mirror-overwrite: reset unreported fields to defaults ---
-        // Ensures recycled nodes carry no stale config from previous owners.
-        $node->traffic_used_daily = 0;
-        $node->traffic_left_daily = 0;
-        $node->server_uptime = 0;
-        $node->heartbeat_at = null;
+        // 流量重置时间基线 (last_traffic_reset_at) —— 遵循“身份继承原则”:
+        //   - 同机重装: 节点带缓存 node_id 直连 register (applyId 被 proxyInstall.sh Step0 跳过),
+        //     此处【保留】DB 里真实的 last_traffic_reset_at, 与已保留的 traffic_used 对齐,
+        //     保证计费时间线连续; 若写成 now() 会反复刷新基线, 让 AutoResetNodeTraffic
+        //     32 天安全网永久“失明” (重装即清零计时).
+        //   - 全新 / 回收 id (过 applyId): NodeDefaults::resetToDefaults 已把基线置 null
+        //     (全新未激活), 此处 if-null → now 激活安全网计时; 不会继承前任旧值.
+        // 故: 仅当 last_traffic_reset_at 为 null 时初始化, 否则一律保留 (不动 traffic_used).
+        if ($node->last_traffic_reset_at === null) {
+            $node->last_traffic_reset_at = date("Y-m-d H:i:s");
+        }
 
         $node->save();
 
@@ -583,11 +582,11 @@ class NodeApiController extends Controller
 
             if ($i < $existingClones->count()) {
                 $clone = $existingClones[$i];
-                $this->resetNodeToDefaults($clone);
+                NodeDefaults::resetV2Derived($clone);
                 $clone->name = $node->name;
                 $clone->v2_name = $v2Name;
-                // resetNodeToDefaults 把 is_clone 清零, 这里必须恢复指向主节点,
-                // 否则 clone 会被误判为主节点 (is_clone=0) 导致 DNS/地址逻辑异常.
+                // 显式指向当前主节点 (resetV2Derived 不动 is_clone, 这里确保 clone
+                // 始终归属当前主节点, 不会被误判为主节点 is_clone=0).
                 $clone->is_clone = $nodeId;
                 $clone->node_rxtx = $node->node_rxtx;
                 // clone 与主节点同一物理机, 同时存储物理节点的 ip+ipv6 (不做单栈互斥).
@@ -617,7 +616,9 @@ class NodeApiController extends Controller
                 $clone = null;
                 if ($deadIdx < $deadNodes->count()) {
                     $clone = $deadNodes[$deadIdx++];
-                    $this->resetNodeToDefaults($clone);
+                    // 回收的孤儿 clone = 全新干净节点 (同 applyId 回收主节点语义),
+                    // 经 NodeDefaults::resetToDefaults 全清后再作为当前主节点的 clone.
+                    NodeDefaults::resetToDefaults($clone);
                     $this->safeCleanupNodeDns($clone->id, 'register.deadClone');
                 } else {
                     $clone = new SsNode();
@@ -697,129 +698,6 @@ class NodeApiController extends Controller
             "ip" => $node->ip,
             "ipv6" => $node->ipv6,
         ]);
-    }
-
-    private function resetNodeToDefaults($node)
-    {
-        // Identity (preserved: id, created_at, updated_at)
-        $node->name = "";
-        $node->v2_name = "";
-
-        // Service type
-        $node->type = 0;
-
-        // Grouping & location
-        $node->group_id = 0;
-        $node->node_group = 1;
-        $node->country_code = "un";
-        $node->node_country = null;
-        $node->node_city = null;
-
-        // Server
-        $node->server = "";
-        $node->ip = "";
-        $node->ipv6 = "";
-        $node->desc = "";
-        $node->ssh_port = 22;
-
-        // SS legacy fields
-        $node->method = "aes-256-cfb";
-        $node->protocol = "origin";
-        $node->protocol_param = "";
-        $node->obfs = "plain";
-        $node->obfs_param = "";
-
-        // Traffic & bandwidth
-        $node->traffic_rate = 1.0;
-        $node->bandwidth = 100;
-        $node->traffic = 1000;
-        $node->traffic_limit = 1099511627776;
-        $node->traffic_lasthour = 0;
-        $node->traffic_lastday = 0;
-        $node->traffic_used = 0;
-        $node->traffic_left = 0;
-        $node->traffic_used_daily = 0;
-        $node->traffic_left_daily = 0;
-        $node->last_raw_total = 0;
-
-        // Feature flags
-        $node->is_subscribe = 1;
-        $node->is_nat = 0;
-        $node->is_transit = 0;
-        $node->is_tcp_check = 1;
-        $node->compatible = 0;
-        $node->single = 0;
-        $node->single_force = 0;
-        $node->single_port = "";
-        $node->single_passwd = "";
-        $node->single_method = "";
-        $node->single_protocol = "";
-        $node->single_obfs = "";
-
-        // Status & metrics
-        $node->sort = 0;
-        $node->level = 1;
-        $node->status = 0;
-        $node->node_cost = 0;
-        $node->node_online = 0;
-        $node->node_onload = 0;
-        $node->node_health = 1;
-        $node->reset_day = 1;
-        $node->heartbeat_at = null;
-        $node->server_uptime = 0;
-        $node->server_total_traffic = 0;
-
-        // Hardware
-        $node->node_cpu = null;
-        $node->node_memory = null;
-        $node->node_disk = null;
-
-        // Billing
-        $node->node_rxtx = null;
-
-        // Unlock & info
-        $node->node_unlock = "";
-        $node->info = "";
-        $node->monitor_url = null;
-        $node->node_uuid = null;
-
-        // Clone / fission
-        $node->is_clone = 0;
-        $node->node_ids = null;
-
-        // V2Ray — all reset to blank/zero
-        $node->v2_net = "";
-        $node->v2_tls = 0;
-        $node->v2_port = 0;
-        $node->v2_hop_ports = null;
-        $node->v2_flow = null;
-        $node->v2_fp = "";
-        $node->v2_method = "";
-        $node->v2_encryption = "";
-        $node->v2_alter_id = 0;
-        $node->v2_type = "";
-        $node->v2_host = "";
-        $node->v2_sni = null;
-        $node->v2_path = "";
-        $node->v2_xhttp_verify = null;
-        $node->v2_alpn = null;
-        $node->v2_mode = null;
-        $node->v2_servicename = null;
-        $node->v2_cdn = "";
-        $node->v2_cdn_ip = "";
-        // xhttp-cdn / xhttp-cdn-hy2 的 ECH 下载规格: 回收节点时清空, 防止旧值残留.
-        $node->v2_ech = null;
-        // xhttp-split 的下行域名 / 下行地址: 回收节点时清空, 防止旧值残留.
-        $node->v2_xhttp_dl_host = null;
-        $node->v2_xhttp_dl_add = null;
-        $node->v2_insider_port = 0;
-        $node->v2_outsider_port = 0;
-
-        // vision-reality: REALITY X25519 密钥对 + shortId (配套, register 时生成).
-        // 回收节点时清空, 防止旧密钥残留.
-        $node->v2_reality_pbk = null;
-        $node->v2_reality_private = null;
-        $node->v2_reality_sid = null;
     }
 
     /**

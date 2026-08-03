@@ -18,11 +18,13 @@ use Illuminate\Support\Facades\Log;
  *      经 NodeTrafficReset::reset() 清零 traffic_used/daily 并刷新 last_traffic_reset_at.
  *   2. 懒初始化基线: last_traffic_reset_at 仍为 NULL 的节点 (迁移后新建 / 漏回填) 统一补 now,
  *      不动 traffic_used 不告警. 一条 SQL 完成.
- *   3. 安全网兜底: 主节点 (is_clone=0) 若上次重置距今超过 FORCE_RESET_DAYS 天
- *      且 traffic_used > 0, 强制经 NodeTrafficReset::reset() 清零 + 记录时间
- *      + 发送聚合 error notify (单条摘要, 防止多节点连发触发 Telegram 速率限制).
- *      防止定时任务停跑 / 时钟漂移 / reset_day 错改导致节点流量
- *      永不归零、被熔断 (status=0) 后无声卡死.
+ *   3. 安全网兜底: 主节点 (is_clone=0) 若【在线】(近 FORCE_RESET_DAYS 天内有心跳) 且
+ *      上次重置距今超过 FORCE_RESET_DAYS 天、traffic_used > 0, 判定为月度 cron 停跑,
+ *      强制经 NodeTrafficReset::reset() 清零 + 记录时间 + 发送聚合 error notify
+ *      (单条摘要, 防止多节点连发触发 Telegram 速率限制).
+ *      "在线" 限定把死节点 (无心跳/心跳超期) 交给 applyId 回收, 也避免误伤刚 register
+ *      (heartbeat_at 尚为 null) 的新身份. 防止 cron 停跑 / 时钟漂移 / reset_day 错改导致
+ *      节点流量永不归零、被熔断 (status=0) 后无声卡死.
  *
  * "上次重置时间" 直接挂 ss_node.last_traffic_reset_at (强一致, 随节点生命周期),
  * 不再依赖外部 SQLite/Redis 存储.
@@ -72,14 +74,23 @@ class AutoResetNodeTraffic extends Command
             'last_traffic_reset_at' => $now,
         ]);
 
-        // --- 3. 安全网兜底: 上次重置超过 FORCE_RESET_DAYS 天的主节点强制重置 + 告警 ---
-        // 仅主节点 (is_clone=0) 参与判定: 主节点是流量计费单元, clone 不独立计费 (不调 status()).
-        // traffic_used=0 的节点无流量可重置, 跳过避免误报.
+        // --- 3. 安全网兜底: 在线主节点上次重置超过 FORCE_RESET_DAYS 天 → 强制重置 + 告警 ---
+        // 判定条件 (全部满足才强制重置):
+        //   - is_clone=0     : 仅主节点 (流量计费单元; clone 不独立计费, 不调 status()).
+        //   - traffic_used>0 : 无流量可重置的节点跳过, 避免误报.
+        //   - last_traffic_reset_at < cutoff : 上次重置距今超 FORCE_RESET_DAYS 天.
+        //   - heartbeat_at IS NOT NULL 且 >= cutoff : 【关键】节点近 FORCE_RESET_DAYS 天内仍在心跳,
+        //     即"在线却长期未重置"——这才是月度重置 cron 停跑的特征.
+        // 为何限定"在线": 死节点 (无心跳 / 心跳超期) 交给 applyId 回收流程处理, 不归安全网管;
+        // 也避免误伤刚 register (heartbeat_at 尚为 null) 或手工迁移中尚未上报的新身份.
+        // (register 显式置 heartbeat_at=null, 故全新/复用身份首跑不会被安全网打断, 留足首个重置周期.)
         $cutoff = date('Y-m-d H:i:s', strtotime('-' . self::FORCE_RESET_DAYS . ' days'));
 
         $overdueNodes = SsNode::where('is_clone', 0)
             ->where('traffic_used', '>', 0)
             ->where('last_traffic_reset_at', '<', $cutoff)
+            ->whereNotNull('heartbeat_at')
+            ->where('heartbeat_at', '>=', $cutoff)
             ->get();
 
         $forcedCount = 0;

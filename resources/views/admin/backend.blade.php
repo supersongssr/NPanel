@@ -32,26 +32,37 @@
                                         <div class="tab-pane active" id="tab_node">
                                             <div class="portlet-body">
                                                 <div class="table-scrollable">
-                                                    <table class="table table-hover table-light" id="domain_pool_table">
+                                                    <table class="table table-hover table-light">
                                                         <thead>
                                                             <tr>
                                                                 <th> 根域名 </th>
                                                                 <th> Zone ID </th>
                                                                 <th> 记录上限 </th>
-                                                                <th> 开启CDN </th>
-                                                                <th> CF Token (独立) </th>
+                                                                <th> CDN </th>
+                                                                <th> CF Token </th>
                                                                 <th> 到期日期 </th>
-                                                                <th> 操作 </th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            <!-- Rows rendered by JS on page load -->
+                                                            @php
+                                                                $domainPoolView = (!empty($node_domain_map) && is_array($node_domain_map)) ? $node_domain_map : (json_decode($node_domain_pool ?? '[]', true) ?: []);
+                                                            @endphp
+                                                            @forelse ($domainPoolView as $dpDomain => $dpMeta)
+                                                                <tr>
+                                                                    <td>{{ $dpDomain }}</td>
+                                                                    <td>{{ is_array($dpMeta) ? ($dpMeta['zone_id'] ?? '') : '' }}</td>
+                                                                    <td>{{ is_array($dpMeta) ? ($dpMeta['records_limit'] ?? 180) : 180 }}</td>
+                                                                    <td>{{ (is_array($dpMeta) && !empty($dpMeta['cdn'])) ? '✅ 是' : '—' }}</td>
+                                                                    <td>{{ (is_array($dpMeta) && !empty($dpMeta['cf_token'])) ? '🔑 独立Token' : '全局默认' }}</td>
+                                                                    <td>{{ (is_array($dpMeta) && !empty($dpMeta['expire_date'])) ? $dpMeta['expire_date'] : '—' }}</td>
+                                                                </tr>
+                                                            @empty
+                                                                <tr><td colspan="6" class="text-center text-muted">暂未配置（请在 <code>.config.php</code> 的 <code>node_domain_map</code> 中添加）</td></tr>
+                                                            @endforelse
                                                         </tbody>
                                                     </table>
                                                 </div>
-                                                <button type="button" class="btn btn-info" onclick="addDomainRow()"> <i class="fa fa-plus"></i> 添加域名 </button>
-                                                <button type="button" class="btn btn-success" onclick="saveNodeDomainPool()"> <i class="fa fa-save"></i> 保存域名列表 </button>
-                                                <input type="hidden" id="domain_pool_data" value="{{ (!empty($node_domain_map) && is_array($node_domain_map)) ? json_encode($node_domain_map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : ($node_domain_pool ?? '') }}" />
+                                                <span class="help-block">域名池为文件配置，请直接编辑 <code>.config.php</code> 的 <code>node_domain_map</code>（CF Token 不在页面明文展示）。</span>
 
                                                 <hr style="margin: 20px 0; border-top: 1px solid #e5e5e5;">
 
@@ -193,94 +204,6 @@
                 }
             });
         });
-
-        // --- Node Domain Pool ---
-        $(document).ready(function() {
-            var domainPoolRaw = $('#domain_pool_data').val();
-            if (domainPoolRaw) {
-                try {
-                    var pools = JSON.parse(domainPoolRaw);
-                    for (var domain in pools) {
-                        var cfg = pools[domain];
-                        addDomainRow(domain, cfg.zone_id || '', cfg.records_limit || 180, cfg.expire_date || '', cfg.cdn || false, cfg.cf_token || '');
-                    }
-                } catch (e) {
-                    console.error("Parse domain_pool error:", e);
-                }
-            }
-        });
-
-        // HTML 属性转义 (防 token / 域名中的特殊字符破坏 input 的 value 属性)
-        function escAttr(s) {
-            return String(s == null ? '' : s)
-                .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
-                .replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }
-
-        // 事件委托: cf_token 与 cdn 已正交解耦, 无需联动约束.
-        //   - CDN 勾选 = 该域名走 CF CDN 代理 (供 xhttp-cdn 节点选用);
-        //   - CF Token = 域名托管在独立 CF 账号时填写, 留空则用全局 CLOUDFLARE_TOKEN.
-        //   两者独立, 可任意组合 (如跨账号普通域名: 不勾 CDN + 填 Token).
-
-        function addDomainRow(domain, zoneId, recordsLimit, expireDate, cdn, cfToken) {
-            domain = domain || '';
-            zoneId = zoneId || '';
-            recordsLimit = recordsLimit || 180;
-            expireDate = expireDate || '';
-            cdn = !!cdn;
-            cfToken = cfToken || '';
-            var html = '<tr>';
-            html += '<td><input type="text" class="form-control input-sm domain-key" value="' + escAttr(domain) + '" placeholder="example.com"></td>';
-            html += '<td><input type="text" class="form-control input-sm domain-zone" value="' + escAttr(zoneId) + '" placeholder="CF Zone ID"></td>';
-            html += '<td><input type="number" class="form-control input-sm domain-limit" style="width: 80px;" value="' + escAttr(recordsLimit) + '"></td>';
-            html += '<td style="text-align:center; vertical-align:middle;"><input type="checkbox" class="domain-cdn"' + (cdn ? ' checked' : '') + ' title="勾选走 CF CDN 代理 (xhttp-cdn 节点选用)"></td>';
-            html += '<td><input type="text" class="form-control input-sm domain-cf-token" value="' + escAttr(cfToken) + '" placeholder="留空=全局默认Token"></td>';
-            html += '<td><input type="date" class="form-control input-sm domain-expire" value="' + escAttr(expireDate) + '"></td>';
-            html += '<td><button type="button" class="btn btn-danger btn-sm" onclick="$(this).closest(\'tr\').remove()"><i class="fa fa-trash"></i></button></td>';
-            html += '</tr>';
-            $('#domain_pool_table tbody').append(html);
-        }
-
-        function saveNodeDomainPool() {
-            var pool = {};
-            $('#domain_pool_table tbody tr').each(function() {
-                var domain = $(this).find('.domain-key').val().trim();
-                var zoneId = $(this).find('.domain-zone').val().trim();
-                var limit = parseInt($(this).find('.domain-limit').val()) || 180;
-                var expire = $(this).find('.domain-expire').val().trim();
-                var cdnChecked = $(this).find('.domain-cdn').is(':checked');
-                var token = $(this).find('.domain-cf-token').val().trim();
-                // cf_token 与 cdn 正交解耦:
-                //   - cdn = 勾选即开启 (走 CF CDN 代理, 供 xhttp-cdn 节点选用);
-                //   - cf_token = 填写即写入 (域名托管在独立 CF 账号时用, 与全局 Token 隔离),
-                //     留空则用 .env 的默认 CLOUDFLARE_TOKEN.
-                if (domain) {
-                    var entry = {
-                        provider: 'cloudflare',
-                        records_limit: limit,
-                        zone_id: zoneId,
-                        expire_date: expire,
-                        cdn: cdnChecked
-                    };
-                    if (token !== '') {
-                        entry.cf_token = token;
-                    }
-                    pool[domain] = entry;
-                }
-            });
-
-            $.post("/admin/setConfig", {
-                _token: '{{csrf_token()}}',
-                name: 'node_domain_map',
-                value: JSON.stringify(pool)
-            }, function (ret) {
-                layer.msg(ret.message, {time: 1000}, function () {
-                    if (ret.status == 'success') {
-                        window.location.reload();
-                    }
-                });
-            });
-        }
 
         // --- DNS Expire Days ---
         function saveDnsExpireDays() {

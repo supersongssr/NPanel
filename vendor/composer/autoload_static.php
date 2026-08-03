@@ -617,6 +617,7 @@ class ComposerStaticInitafff032aeb9b4610f8ed2f20cc405693
         'App\\Components\\Helpers' => __DIR__ . '/../..' . '/app/Components/Helpers.php',
         'App\\Components\\IPIP' => __DIR__ . '/../..' . '/app/Components/IPIP.php',
         'App\\Components\\Namesilo' => __DIR__ . '/../..' . '/app/Components/Namesilo.php',
+        'App\\Components\\NodeDefaults' => __DIR__ . '/../..' . '/app/Components/NodeDefaults.php',
         'App\\Components\\NodeTrafficReset' => __DIR__ . '/../..' . '/app/Components/NodeTrafficReset.php',
         'App\\Components\\ProofOfWork' => __DIR__ . '/../..' . '/app/Components/ProofOfWork.php',
         'App\\Components\\QQWry' => __DIR__ . '/../..' . '/app/Components/QQWry.php',

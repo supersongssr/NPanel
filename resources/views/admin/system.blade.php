@@ -1254,15 +1254,19 @@
                                                     <div class="form-group">
                                                         <label class="col-md-2 control-label"><strong>多订阅地址</strong></label>
                                                         <div class="col-md-10">
-                                                            <input type="hidden" id="subscribe-domains-data" value="{{ (!empty($subscribe_domain_list) && is_array($subscribe_domain_list)) ? json_encode($subscribe_domain_list, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : ($subscribe_domains ?? '[]') }}" />
-                                                            <div id="subscribe-domains-list" style="margin-bottom:8px;"></div>
-                                                            <div class="input-group">
-                                                                <input class="form-control" type="text" id="new_subscribe_domain" placeholder="https://rss-xx.example.com" />
-                                                                <span class="input-group-btn">
-                                                                    <button class="btn btn-success" type="button" onclick="addSubscribeDomain()">添加</button>
-                                                                </span>
-                                                            </div>
-                                                            <span class="help-block"> 用户订阅页面将展示多个不同网络的订阅地址，自动检测可用性。每个域名需带 http:// 或 https:// </span>
+                                                            @php
+                                                                $subscribeDomainView = (!empty($subscribe_domain_list) && is_array($subscribe_domain_list)) ? $subscribe_domain_list : (json_decode($subscribe_domains ?? '[]', true) ?: []);
+                                                            @endphp
+                                                            @if (!empty($subscribeDomainView))
+                                                                <div style="margin-bottom:8px;">
+                                                                    @foreach ($subscribeDomainView as $_sd)
+                                                                        <div style="margin-bottom:4px;word-break:break-all;"><i class="fa fa-link"></i> {{ $_sd }}</div>
+                                                                    @endforeach
+                                                                </div>
+                                                            @else
+                                                                <div class="text-muted" style="margin-bottom:8px;">暂未配置</div>
+                                                            @endif
+                                                            <span class="help-block"> 多订阅地址为文件配置，请直接编辑 <code>.config.php</code> 的 <code>subscribe_domain_list</code>；用户订阅页将展示这些地址并自动检测可用性。每个域名需带 http:// 或 https:// </span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2860,53 +2864,6 @@
                         window.location.reload();
                     }
                 });
-            });
-        }
-
-        // 多订阅地址 - 渲染列表
-        var subscribeDomains = [];
-        try { subscribeDomains = JSON.parse(document.getElementById('subscribe-domains-data').value); } catch(e) { subscribeDomains = []; }
-
-        function escapeHtml(str) {
-            var div = document.createElement('div');
-            div.appendChild(document.createTextNode(str));
-            return div.innerHTML;
-        }
-
-        function renderSubscribeDomains() {
-            var html = '';
-            for (var i = 0; i < subscribeDomains.length; i++) {
-                html += '<div style="margin-bottom:4px;display:flex;align-items:center;">' +
-                    '<span style="flex:1;word-break:break-all;">' + escapeHtml(subscribeDomains[i]) + '</span>' +
-                    '&nbsp;<button class="btn btn-xs red" onclick="removeSubscribeDomain(' + i + ')"><i class="fa fa-trash"></i></button>' +
-                    '</div>';
-            }
-            $('#subscribe-domains-list').html(html);
-        }
-        renderSubscribeDomains();
-
-        function addSubscribeDomain() {
-            var val = $('#new_subscribe_domain').val().trim();
-            if (!val) { layer.msg('请输入域名', {time:1000}); return; }
-            if (subscribeDomains.indexOf(val) !== -1) { layer.msg('域名已存在', {time:1000}); return; }
-            subscribeDomains.push(val);
-            saveSubscribeDomains();
-            $('#new_subscribe_domain').val('');
-        }
-
-        function removeSubscribeDomain(idx) {
-            subscribeDomains.splice(idx, 1);
-            saveSubscribeDomains();
-        }
-
-        function saveSubscribeDomains() {
-            $.post('/admin/setConfig', {
-                _token: '{{csrf_token()}}',
-                name: 'subscribe_domain_list',
-                value: JSON.stringify(subscribeDomains)
-            }, function(ret) {
-                layer.msg(ret.message, {time:1000});
-                renderSubscribeDomains();
             });
         }
 

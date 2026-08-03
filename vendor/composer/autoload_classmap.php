@@ -15,6 +15,7 @@ return array(
     'App\\Components\\Helpers' => $baseDir . '/app/Components/Helpers.php',
     'App\\Components\\IPIP' => $baseDir . '/app/Components/IPIP.php',
     'App\\Components\\Namesilo' => $baseDir . '/app/Components/Namesilo.php',
+    'App\\Components\\NodeDefaults' => $baseDir . '/app/Components/NodeDefaults.php',
     'App\\Components\\NodeTrafficReset' => $baseDir . '/app/Components/NodeTrafficReset.php',
     'App\\Components\\ProofOfWork' => $baseDir . '/app/Components/ProofOfWork.php',
     'App\\Components\\QQWry' => $baseDir . '/app/Components/QQWry.php',
