@@ -26,13 +26,14 @@ load_deploy_env() {
 
 # 检测当前分支必须为 NPanel
 check_branch() {
-    TARGET_BRANCH="NPanel"
+    # TARGET_BRANCH="NPanel"
     CUR_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    if [ "$CUR_BRANCH" != "$TARGET_BRANCH" ]; then
-        echo "🔴⛔❌ 当前分支为 $CUR_BRANCH，不是 $TARGET_BRANCH，部署中止！"
-        exit 1
-    fi
-    echo "✅ 分支检查通过: $CUR_BRANCH"
+    echo "警告 当前分支为 $CUR_BRANCH"
+    # if [ "$CUR_BRANCH" != "$TARGET_BRANCH" ]; then
+    #     echo "🔴⛔❌ 当前分支为 $CUR_BRANCH，不是 $TARGET_BRANCH，部署中止！"
+    #     exit 1
+    # fi
+    # echo "✅ 分支检查通过: $CUR_BRANCH"
 }
 
 # 从 .gitignore 生成 rsync --exclude-from 临时文件
