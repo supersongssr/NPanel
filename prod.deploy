@@ -3,7 +3,40 @@ set -e
 
 ####
 # nPanel 自动化部署脚本 (rsync 同步)
+#
+# 用法:
+#   ./prod.deploy                  # 仅同步代码 + 重启 PHP-FPM (默认, 不迁移)
+#   ./prod.deploy --migrate        # 同步后执行数据库迁移 (醒目警告 + 二次确认)
+#   ./prod.deploy --migrate -y     # 同上, 跳过确认 (危险, 仅供自动化/CI)
+#   ./prod.deploy --no-migrate     # 显式关闭迁移 (覆盖环境变量)
+#
+# 环境变量 (等价开关, 命令行参数优先):
+#   DEPLOY_MIGRATE=1               # 等价 --migrate
+#   DEPLOY_ASSUME_YES=1            # 等价 -y
+#
+# 执行顺序 (--migrate 已确认时):
+#   rsync 同步 -> 数据库迁移 -> 重启 PHP-FPM
+#   (让 "新代码 + 新表结构" 同时生效, 避免中间态)
 ####
+
+# --- ANSI 颜色 (非 tty 自动禁用, 避免日志里出现乱码) ---
+if [ -t 1 ]; then
+    C_RED='\033[1;31m'
+    C_YEL='\033[1;33m'
+    C_GRN='\033[1;32m'
+    C_BLD='\033[1m'
+    C_RST='\033[0m'
+else
+    C_RED=''
+    C_YEL=''
+    C_GRN=''
+    C_BLD=''
+    C_RST=''
+fi
+
+# 默认开关
+DO_MIGRATE=0      # 同步后是否自动迁移
+ASSUME_YES=0      # 是否跳过确认
 
 # 从 .env 读取部署配置
 load_deploy_env() {
@@ -24,11 +57,42 @@ load_deploy_env() {
     echo "📡 目标: $PROD_DEPLOY_HOST:$PROD_DEPLOY_PATH"
 }
 
+# 解析命令行参数
+parse_args() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --migrate|-m)
+                DO_MIGRATE=1
+                ;;
+            --yes|-y)
+                ASSUME_YES=1
+                ;;
+            --no-migrate)
+                DO_MIGRATE=0
+                ;;
+            -h|--help)
+                sed -n '4,22p' "$0"
+                exit 0
+                ;;
+            *)
+                echo "🔴⛔❌ 未知参数: $1"
+                echo "用法: $0 [--migrate] [--yes|-y] [--no-migrate]"
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+    # 环境变量兜底
+    [ "$DEPLOY_MIGRATE" = "1" ] && DO_MIGRATE=1
+    [ "$DEPLOY_ASSUME_YES" = "1" ] && ASSUME_YES=1
+}
+
 # 检测当前分支必须为 NPanel
 check_branch() {
     # TARGET_BRANCH="NPanel"
     CUR_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    echo "警告 当前分支为 $CUR_BRANCH"
+    echo "⚠️  当前分支为 $CUR_BRANCH"
     # if [ "$CUR_BRANCH" != "$TARGET_BRANCH" ]; then
     #     echo "🔴⛔❌ 当前分支为 $CUR_BRANCH，不是 $TARGET_BRANCH，部署中止！"
     #     exit 1
@@ -39,12 +103,13 @@ check_branch() {
 # 从 .gitignore 生成 rsync --exclude-from 临时文件
 build_exclude_file() {
     GITIGNORE="$(cd "$(dirname "$0")" && pwd)/.gitignore"
+    EXCLUDE_FILE=$(mktemp /tmp/rsync-exclude.XXXXXX)
     if [ ! -f "$GITIGNORE" ]; then
-        echo "⚠️  .gitignore 不存在，跳过排除规则"
+        echo "⚠️  .gitignore 不存在，仅排除 .git/" >&2
         echo ".git/" > "$EXCLUDE_FILE"
+        echo "$EXCLUDE_FILE"
         return
     fi
-    EXCLUDE_FILE=$(mktemp /tmp/rsync-exclude.XXXXXX)
     # .gitignore 每行一条规则，可直接被 rsync --exclude-from 使用
     # 额外追加 .git/ 目录本身（.gitignore 里通常不写）
     cat "$GITIGNORE" > "$EXCLUDE_FILE"
@@ -52,7 +117,73 @@ build_exclude_file() {
     echo "$EXCLUDE_FILE"
 }
 
-# rsync 同步
+# ----------------------------------------------------------------------
+# 数据库迁移相关
+# ----------------------------------------------------------------------
+
+# 醒目警告横幅: 提醒即将在生产环境执行迁移
+banner_migrate_warn() {
+    printf "\n"
+    printf "${C_RED}##############################################################################${C_RST}\n"
+    printf "${C_RED}##${C_RST}                                                                          ${C_RED}##${C_RST}\n"
+    printf "${C_RED}##${C_RST}   ⚠️⚠️⚠️              危  险  操  作  警  告              ⚠️⚠️⚠️           ${C_RED}##${C_RST}\n"
+    printf "${C_RED}##${C_RST}                                                                          ${C_RED}##${C_RST}\n"
+    printf "${C_RED}##${C_RST}   即将在【生产环境】执行数据库迁移 (php artisan migrate --force)        ${C_RED}##${C_RST}\n"
+    printf "${C_RED}##${C_RST}                                                                          ${C_RED}##${C_RST}\n"
+    printf "${C_RED}##${C_RST}     目标主机 : ${C_BLD}%-20s${C_RST}                              ${C_RED}##${C_RST}\n" "$PROD_DEPLOY_HOST"
+    printf "${C_RED}##${C_RST}     目标路径 : ${C_BLD}%-32s${C_RST}                  ${C_RED}##${C_RST}\n" "$PROD_DEPLOY_PATH"
+    printf "${C_RED}##${C_RST}                                                                          ${C_RED}##${C_RST}\n"
+    printf "${C_RED}##${C_RST}   🔴 此操作会修改生产数据库表结构, 部分变更不可回滚!                    ${C_RED}##${C_RST}\n"
+    printf "${C_RED}##${C_RST}   🔴 请确认本次发布的迁移文件已在本地/预发环境充分测试!                 ${C_RED}##${C_RST}\n"
+    printf "${C_RED}##${C_RST}   🔴 强烈建议迁移前先备份数据库!                                         ${C_RED}##${C_RST}\n"
+    printf "${C_RED}##${C_RST}                                                                          ${C_RED}##${C_RST}\n"
+    printf "${C_RED}##############################################################################${C_RST}\n"
+}
+
+# 二次确认: 必须输入大写 YES 才继续
+confirm_migrate() {
+    if [ "$ASSUME_YES" = "1" ]; then
+        printf "${C_YEL}⏭️  --yes 已指定, 跳过确认, 将直接执行迁移...${C_RST}\n"
+        return 0
+    fi
+    printf "\n${C_BLD}👉 确认在生产环境执行数据库迁移?${C_RST}\n"
+    printf "   输入大写 ${C_RED}YES${C_RST} 继续, 其它任意输入取消: "
+    read REPLY || REPLY=""
+    [ "$REPLY" = "YES" ]
+}
+
+# 远程执行迁移
+do_remote_migrate() {
+    printf "${C_BLD}🚀 开始远程执行数据库迁移...${C_RST}\n"
+    ssh "$PROD_DEPLOY_HOST" "cd \"$PROD_DEPLOY_PATH\" && ./run migrate"
+    printf "${C_GRN}✅ 远程数据库迁移执行完成${C_RST}\n"
+}
+
+# 默认(未启用迁移)的醒目提醒: 告知未迁移 + 手动命令
+remind_manual_migrate() {
+    printf "\n${C_YEL}🟡🟡🟡  数据库迁移【未自动执行】  🟡🟡🟡${C_RST}\n"
+    printf "${C_YEL}   如本次发布包含表结构变更, 请人工确认迁移文件后手动执行:${C_RST}\n\n"
+    printf "     ${C_BLD}ssh \"%s\" \"cd %s && ./run migrate\"${C_RST}\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH"
+    printf "     ${C_BLD}ssh \"%s\" \"cd %s && ./run migrate-status\"${C_RST}\n\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH"
+}
+
+# 用户请求迁移却取消了: 不重启 PHP-FPM (避免新代码上线但表结构没迁移), 中止部署
+abort_after_cancel() {
+    printf "\n${C_RED}##############################################################################${C_RST}\n"
+    printf "${C_RED}##${C_RST}  ⛔ 已取消自动迁移。${C_RST}\n"
+    printf "${C_RED}##${C_RST}  为安全起见, PHP-FPM ${C_BLD}未重启${C_RST}, 新代码尚未生效。${C_RST}\n"
+    printf "${C_RED}##${C_RST}  请手动完成迁移后再重启 PHP-FPM:${C_RST}\n\n"
+    printf "     ${C_BLD}ssh \"%s\" \"cd %s && ./run migrate\"${C_RST}\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH"
+    printf "     ${C_BLD}ssh \"%s\" '/etc/init.d/php-fpm-74 restart'${C_RST}\n\n" "$PROD_DEPLOY_HOST"
+    printf "${C_RED}##############################################################################${C_RST}\n"
+    exit 2
+}
+
+# ----------------------------------------------------------------------
+# 主部署流程
+# ----------------------------------------------------------------------
+
+# rsync 同步 + (可选)迁移 + 重启 PHP-FPM
 deploy_nPanel() {
     LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)/"
     EXCLUDE_FILE=$(build_exclude_file)
@@ -65,18 +196,47 @@ deploy_nPanel() {
 
     rm -f "$EXCLUDE_FILE"
 
-    echo "✅ rsync 同步完成！"
+    printf "${C_GRN}✅ rsync 同步完成！${C_RST}\n"
+
+    # 迁移处理: 在重启 PHP-FPM 之前完成, 让 "新代码 + 新表结构" 一起生效
+    if [ "$DO_MIGRATE" = "1" ]; then
+        banner_migrate_warn
+        if confirm_migrate; then
+            do_remote_migrate
+            MIGRATE_STATE=done
+        else
+            MIGRATE_STATE=cancel
+        fi
+    else
+        MIGRATE_STATE=skip
+    fi
+
+    # 用户请求迁移却取消了 -> 不重启, 中止 (避免危险中间态)
+    if [ "$MIGRATE_STATE" = "cancel" ]; then
+        abort_after_cancel
+    fi
+
+    # 默认(未启用迁移): 醒目提醒手动迁移
+    if [ "$MIGRATE_STATE" = "skip" ]; then
+        remind_manual_migrate
+    fi
 
     # 服务端开启了 opcache, 重启 PHP-FPM (宝塔 php-fpm-74) 使新代码立即生效
+    printf "${C_BLD}🔄 重启 PHP-FPM (php-fpm-74) 使新代码立即生效...${C_RST}\n"
     ssh "$PROD_DEPLOY_HOST" '/etc/init.d/php-fpm-74 restart'
-
-    echo "⚠️  数据库迁移未自动执行。如本次发布包含表结构变更，请手动确认后单独运行:"
-    echo "    ssh \"$PROD_DEPLOY_HOST\" \"cd \"$PROD_DEPLOY_PATH\" && ./run migrate\""
+    printf "${C_GRN}✅ PHP-FPM 已重启${C_RST}\n"
 }
 
 # --- 主函数 ---
 main() {
-    echo "🚀 nPanel rsync 部署脚本启动"
+    parse_args "$@"
+
+    printf "${C_BLD}🚀 nPanel rsync 部署脚本启动${C_RST}\n"
+    if [ "$DO_MIGRATE" = "1" ]; then
+        printf "${C_YEL}   ⚠ 已启用 --migrate, 同步后将执行数据库迁移 (需二次确认)${C_RST}\n"
+    else
+        printf "${C_YEL}   ℹ 未启用 --migrate, 本次仅同步代码 (迁移需手动执行)${C_RST}\n"
+    fi
     echo "⏰ 时间: $(date '+%Y-%m-%d %H:%M:%S')"
     echo "=========================================="
 
@@ -85,7 +245,7 @@ main() {
     deploy_nPanel
 
     echo "=========================================="
-    echo "✅ 部署脚本执行完成"
+    printf "${C_GRN}✅ 部署脚本执行完成${C_RST}\n"
 }
 
-main
+main "$@"
