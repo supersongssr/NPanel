@@ -61,39 +61,42 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 | `node_ids` | text | nullable | 主节点专属字段，逗号分隔的 ID 字符串（如 `"42,43,44,45"`） |
 | `last_raw_total` | bigint unsigned | 0 | 上一次上报的原始流量总值，用于增量计算 |
 | `server_uptime` | bigint unsigned | 0 | 服务器运行时间（秒） |
+| `last_traffic_reset_at` | datetime | nullable | 上次流量重置时间；`AutoResetNodeTraffic` 32 天安全网计时基线（由 `register` 初始化、`applyId` 回收清零、月度重置刷新） |
 
 ---
 
-## 系统配置项（config 表）
+## 系统配置项
 
-协议分配和域名池由 config 表驱动，**非硬编码**，可通过后台管理界面修改：
+协议预设、根域名等通用项由系统配置（`config` 表 / `config.default.php`）驱动；**域名池**则由 `.config.php` 的 `node_domain_map`（PHP 关联数组）驱动，**非硬编码**。域名池后台页面仅**只读展示**，修改请直接编辑 `.config.php` 的 `node_domain_map`（CF Token 不在页面明文展示）。
 
-| 配置项 | 格式 | 说明 |
-|--------|------|------|
-| `node_root_domain` | string | 兜底主域名（如 `ssmail.win`），当域名池为空时使用 |
-| `node_domain_pool` | JSON object | 富字典格式域名池，详见下方 |
-| `node_protocol_presets` | JSON object | 协议预设配置，详见下方 |
+| 配置项 | 格式 | 位置 | 说明 |
+|--------|------|------|--------|
+| `node_root_domain` | string | config | 兜底主域名（如 `ssmail.win`），当域名池为空时使用 |
+| `node_domain_map` | PHP 关联数组 | `.config.php` | 富字典格式域名池（domain => meta），详见下方 |
+| `node_protocol_presets` | JSON object | config | 协议预设配置，详见下方 |
 
-**node_domain_pool 结构（富字典格式）：**
-```json
-{
-    "ssmail.win": {
-        "provider": "cloudflare",
-        "records_limit": 1000,
-        "zone_id": "45356a7ae9254b65b016839dbe141b28",
-        "expire_date": "2027-01-01"
-    },
-    "backup.net": {
-        "provider": "cloudflare",
-        "records_limit": 500,
-        "zone_id": "abc123def456"
-    }
-}
+> 旧键 `node_domain_pool`（config 表 JSON 字符串）已**废弃**，仅作向后兼容回退；真实配置（含 `cf_token` 等敏感数据）请放 `.config.php` 的 `node_domain_map`。
+
+**node_domain_map 结构（PHP 关联数组，domain => meta）：**
+```php
+// 配置在 .config.php 中 (示例); meta 为 domain => 数组
+'ssmail.win' => [
+    'zone_id'        => '45356a7ae9254b65b016839dbe141b28', // 必填: CF Zone ID
+    'records_limit'  => 1000,                                // 可选: DNS 记录数上限, 默认 180
+    'cdn'            => false,                               // 可选: true=走 CF CDN (供 xhttp-cdn 节点), 默认 false
+    'cf_token'       => '',                                  // 可选: 跨账号域名填该账号 Token; 留空用全局 CLOUDFLARE_TOKEN. 与 cdn 正交
+    'expire_date'    => '2027-01-01',                        // 可选: 仅记录/展示用
+],
+'backup.net' => [
+    'zone_id'       => 'abc123def456',
+    'records_limit' => 500,
+],
 ```
 
-- 每个域名为 key，value 为包含 `zone_id`（Cloudflare Zone ID）和 `records_limit`（DNS 记录容量上限）的字典
+- 每个域名为 key，value 为 meta 数组；`zone_id`（Cloudflare Zone ID）**必填**，`records_limit`（DNS 记录容量上限，默认 180）可选
+- 可选 meta 键：`cf_token`（跨账号 Token，与 `cdn` 正交）、`cdn`（走 CF CDN，供 xhttp-cdn 节点选用）、`proxied`、`ech`、`expire_date`（详见 `config.default.php`）
 - 域名池中的**第一个 key** 即为 primary domain（优先于 `node_root_domain`）
-- 也兼容纯数组格式 `["a.com", "b.com"]`，此时 `records_limit` 默认 180
+- 兼容纯数组格式 `["a.com", "b.com"]`（meta 为空，`records_limit` 默认 180）；此为旧版 `node_domain_pool` 的回退写法，新配置推荐用上述 meta 数组
 
 **node_protocol_presets 结构：**
 ```json
@@ -128,7 +131,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 #### 节点 ID 回收机制
 
-面板优先查找心跳超过 **32 天**的死亡节点复用其 ID（同时清理该节点的 `dns_records`），实现 ID 资源回收。若无死亡节点则创建新记录。
+面板优先查找心跳超过 **32 天**的死亡节点复用其 ID（同时清理该节点的 `dns_records`），实现 ID 资源回收。若无死亡节点则创建新记录。**回收的旧身份会经 `NodeDefaults::resetToDefaults()` 全量重置为干净默认值**（含 `traffic_used=0`、`traffic_used_daily=0`、`last_traffic_reset_at=null` 及身份/指标/V2 字段），再交给后续 `register` 激活新基线，保证回收节点不残留前任计费/配置。
 
 **此步骤决定了节点的 IP 栈命运**：apply_id 时写入的 `ip`/`ipv6` 会被 register 阶段强制执行单栈互斥。
 
@@ -234,7 +237,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 系统按照以下优先级分配节点的 `root_domain`：
 1. **优先使用请求携带的 `root_domain`**：从域名池 meta 中取 `records_limit`（默认 180），若 `dns_records` 表中该域名的记录数 < limit 则沿用。
-2. **自动从域名池选取**：若未携带或已满，按 `node_domain_pool` 字典顺序遍历，选取第一个记录数 < limit 的域名。
+2. **自动从域名池选取**：若未携带或已满，按 `node_domain_map` 字典顺序遍历，选取第一个记录数 < limit 的域名。
 3. **兜底策略**：若全部溢出，使用域名池第一个 key 作为 primary domain（**优先于** `node_root_domain`）。仅当域名池完全为空时才回退到 `node_root_domain`。
 
 #### node_ids 封卷
@@ -283,7 +286,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 1. 从主节点的 `node_ids` 字段解析出所有节点 ID（逗号分隔字符串 → 数组）
 2. 遍历每个节点，根据其 `server` 字段（如 `n42.ssmail.win`）解析出 subdomain 和 root_domain
-3. 从 `node_domain_pool` 配置动态获取该域名的 `zone_id`
+3. 从 `node_domain_map` 配置动态获取该域名的 `zone_id`
 4. 为每个节点生成 DNS 蓝图（blueprint），包含 subdomain、IP、proxied 状态
 5. 对每个蓝图执行三向对账
 6. 清理孤儿记录（节点不再需要的 record_type）
@@ -447,6 +450,7 @@ nginx -t && systemctl restart nginx
 | raw_tx | float | 否 | `0` | 原始发送字节总数 |
 | server_uptime | integer | 否 | *(沿用)* | 服务器运行时间（秒） |
 | node_bandwidth | integer | 否 | *(沿用)* | 带宽（Mbps） |
+| monitor | string | 否 | *(沿用)* | 节点监控地址，写入 `monitor_url`（镜像覆盖语义，留空则保留原值） |
 
 #### 计费与健康引擎
 - **计费模式**：依据 `node_rxtx` 字段执行 `tx`（仅上行）或 `rxtx`（双向均值）逻辑。
@@ -475,7 +479,7 @@ php artisan initDnsRecords
 ```
 
 **执行逻辑：**
-1. 遍历 `config` 表中 `node_domain_pool` 包含的所有 Root Domain。
+1. 遍历 `node_domain_map`（`.config.php`）包含的所有 Root Domain。
 2. 调用 Cloudflare API 拉取该域名下**所有的 A 和 AAAA 记录**。
 3. **Diff 清理**：查询本地 `dns_records` 表中该域名的 A/AAAA 记录，若某条记录在云端不存在，物理删除。
 4. **关联入库**：遍历云端拉回的 A/AAAA 记录，通过 FQDN 匹配 `ss_node.server` 字段（如 `n156.ssmail.win`），若匹配成功则写入或更新至 `dns_records` 表并绑定 `node_id`。
@@ -497,13 +501,13 @@ php artisan initDnsRecords
 | `CLOUDFLARE_API_KEY` | Cloudflare API Key |
 | `CLOUDFLARE_ZONE_ID` | Cloudflare 默认 Zone ID |
 
-### config 表配置
+### 环境与配置
 
-| 配置项 | 说明 |
-|---|---|
-| `node_root_domain` | 兜底主域名 |
-| `node_domain_pool` | 富字典格式域名池（含 per-domain zone_id, records_limit） |
-| `node_protocol_presets` | 协议预设（threshold_mb, high, low） |
+| 配置项 | 位置 | 说明 |
+|---|---|---|
+| `node_root_domain` | config | 兜底主域名 |
+| `node_domain_map` | `.config.php` | 富字典格式域名池（domain => meta: zone_id, records_limit, cf_token, cdn …） |
+| `node_protocol_presets` | config | 协议预设（threshold_mb, high, low） |
 
 ### 模板文件依赖
 
@@ -523,4 +527,4 @@ resources/templates/
 
 ---
 
-*文档更新时间: 2026-05-18 | 基于 commit: 36f943a8*
+*文档更新时间: 2026-08-04 | 基于 commit: f332dcb0*
