@@ -527,4 +527,4 @@ resources/templates/
 
 ---
 
-*文档更新时间: 2026-08-04 | 基于 commit: f332dcb0*
+*文档更新时间: 2026-08-05 | 基于 commit: 83944cd3*
