@@ -84,8 +84,14 @@ parse_args() {
     done
 
     # 环境变量兜底
-    [ "$DEPLOY_MIGRATE" = "1" ] && DO_MIGRATE=1
-    [ "$DEPLOY_ASSUME_YES" = "1" ] && ASSUME_YES=1
+    # 注意: 不能用 `[ ... ] && VAR=...` 形式, 否则条件为假时整条语句返回 1,
+    # 会作为 parse_args 的退出码, 在 `set -e` 下导致脚本静默退出。
+    if [ "$DEPLOY_MIGRATE" = "1" ]; then
+        DO_MIGRATE=1
+    fi
+    if [ "$DEPLOY_ASSUME_YES" = "1" ]; then
+        ASSUME_YES=1
+    fi
 }
 
 # 检测当前分支必须为 NPanel
