@@ -19,7 +19,7 @@ use App\Services\DnsRecordCleanupService;
  * 行为 (无全局开关, resolve_dns 端点统一处理 address + host):
  *   - 主节点 (is_clone == 0): 连接地址恒为 IP → 删除残留记录后跳过 (不解析).
  *   - ipv6 节点 (server 含 ':' 即原生 ipv6, 或旧格式含 `ipv6n`): 直连 ipv6 → 删除残留记录后跳过 (不解析).
- *   - clone ipv4 节点 (server=域名 n{cloneid}.domain): 创建 A 记录解析连接域名到节点 IPv4.
+ *   - clone ipv4 节点 (server=域名 {random8}n{cloneid}.domain): 创建 A 记录解析连接域名到节点 IPv4.
  *
  * 即整个集群只有 clone 的 ipv4 节点需要 DNS 记录, 主节点 + ipv6 节点直连, 降低
  * DNS 解析数量. 节点是 ipv4 还是 ipv6 由 register 写入的 server 判定 (ipv6=原生 ipv6 字面量
@@ -255,8 +255,13 @@ class DnsSyncer
     {
         $blueprints = [];
         if ($node->ip) {
+            // subdomain 从 server 字段解析 (首个 '.' 之前整段), 与 register 写入的连接域名前缀
+            // 完全一致 (含随机前缀 {random8}n{id}; 旧数据为固定 n{id}). 这样 DNS A 记录与 server
+            // 始终对齐, 无需在此处假设固定前缀 —— server 改前缀时这里零改动.
+            $serverParts = $this->parseServerField($node->server);
+            $subdomain = $serverParts ? $serverParts['subdomain'] : ('n' . $node->id);
             $blueprints[] = [
-                'type' => 'A', 'subdomain' => 'n' . $node->id,
+                'type' => 'A', 'subdomain' => $subdomain,
                 'content' => $node->ip, 'root_domain' => $rootDomain,
                 'zone_id' => $zoneId, 'proxied' => $proxied,
             ];

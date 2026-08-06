@@ -28,7 +28,7 @@ class NodeApiController extends Controller
      *       main=ipv4, clone1=ipv4, clone2=ipv4, clone3=ipv6, clone4=ipv6, clone5=ipv6.
      *   - 每个节点 (主节点 + clone) 同时存储物理节点的 ip (IPv4) 与 ipv6 (IPv6), 不再互斥.
      *   - ipv6 节点的连接地址 (server) = 原生 ipv6 字面量 (ipv6 DNS 解析不可靠, 直连 IP);
-     *     ipv4 节点 server = IP (主节点, 直连) / `n{id}` clone (resolve_dns 建 A 记录解析到节点 IP).
+     *     ipv4 节点 server = IP (主节点, 直连) / `{random8}n{id}` clone (resolve_dns 建 A 记录解析到节点 IP).
      *     isIpv6Node / resolveAddress
      *     据此判定 (server 含 ':' 即 ipv6; 兼容旧数据 server 含 `ipv6n` 标识).
      *   - ipv6 节点连接地址始终为 ipv6 (resolveAddress 恒返回 ipv6), 不做 host 解析;
@@ -597,11 +597,12 @@ class NodeApiController extends Controller
                 $clone->node_group = $node->node_group;
                 $clone->traffic_rate = $node->traffic_rate;
                 $clone->status = 1;
-                // clone 连接地址 (server): ipv4 = 连接域名 n{id}.domain (resolve_dns 创建 A 记录);
+                // clone 连接地址 (server): ipv4 = 连接域名 {random8}n{id}.domain (resolve_dns 建 A 记录;
+                // 随机 8 位前缀降域名特征被识别, DNS subdomain 由 DnsSyncer 从 server 解析, 与前缀解耦);
                 // ipv6 = 原生 ipv6 字面量 (ipv6 DNS 解析不可靠, 直连 IP). host/sni 复用 clusterHost.
                 $clone->server = $isIpv6
                     ? ($node->ipv6 ?: "")
-                    : "n" . $clone->id . "." . $rootDomain;
+                    : $this->buildCloneServer($clone->id, $rootDomain);
                 $this->applyV2Preset(
                     $clone,
                     $slot["protocol"],
@@ -638,11 +639,12 @@ class NodeApiController extends Controller
                 $clone->status = 1;
                 $clone->save();
 
-                // clone 连接地址 (server): ipv4 = 连接域名 n{id}.domain (resolve_dns 创建 A 记录);
+                // clone 连接地址 (server): ipv4 = 连接域名 {random8}n{id}.domain (resolve_dns 建 A 记录;
+                // 随机 8 位前缀降域名特征被识别, DNS subdomain 由 DnsSyncer 从 server 解析, 与前缀解耦);
                 // ipv6 = 原生 ipv6 字面量 (ipv6 DNS 解析不可靠, 直连 IP). host/sni 复用 clusterHost.
                 $clone->server = $isIpv6
                     ? ($node->ipv6 ?: "")
-                    : "n" . $clone->id . "." . $rootDomain;
+                    : $this->buildCloneServer($clone->id, $rootDomain);
                 $this->applyV2Preset(
                     $clone,
                     $slot["protocol"],
@@ -1069,6 +1071,29 @@ class NodeApiController extends Controller
     {
         $random8 = substr(str_replace('-', '', Helpers::genRandomUuid()), 0, 8);
         return $random8 . ($isIpv6 ? 'ipv6n' : 'n') . $mainNodeId . '.' . $rootDomain;
+    }
+
+    /**
+     * 构建 clone ipv4 节点的连接域名 (server): {random8}n{cloneId}.{rootDomain}.
+     *
+     * 替代旧的固定 "n{cloneId}" 前缀: 随机 8 位前缀 (UUID v4 前 8 位 hex [0-9a-f])
+     * 降低连接域名特征被 GFW 识别追踪的可能性. 与 clusterHost ({random8}n{mainId}) 同构,
+     * 但每个 clone 独立生成自己的随机前缀 (各自独立的连接域名 + A 记录, 无共享前缀可关联).
+     *
+     * resolve_dns 时 DnsSyncer 从该 server 字段解析 subdomain (首个 '.' 之前的整段),
+     * 故 DNS A 记录的 subdomain 与 server 前缀始终一致, 与随机前缀完全解耦.
+     * register 每次 (重装/重启上报) 生成新前缀 → 旧 A 记录由 reconcileThreeWay Scene B 删旧重建.
+     *
+     * 仅 ipv4 clone 调用; ipv6 clone server = 原生 ipv6 字面量 (直连, 无需 DNS).
+     *
+     * @param  int    $cloneId    clone 节点 ID
+     * @param  string $rootDomain 根域名
+     * @return string 例如 "a1b2c3d4n456.example.com"
+     */
+    private function buildCloneServer($cloneId, $rootDomain)
+    {
+        $random8 = substr(str_replace('-', '', Helpers::genRandomUuid()), 0, 8);
+        return $random8 . 'n' . $cloneId . '.' . $rootDomain;
     }
 
     /**
