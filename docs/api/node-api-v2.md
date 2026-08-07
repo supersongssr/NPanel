@@ -61,7 +61,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 | `node_ids` | text | nullable | 主节点专属字段，逗号分隔的 ID 字符串（如 `"42,43,44,45"`） |
 | `last_raw_total` | bigint unsigned | 0 | 上一次上报的原始流量总值，用于增量计算 |
 | `server_uptime` | bigint unsigned | 0 | 服务器运行时间（秒） |
-| `last_traffic_reset_at` | datetime | nullable | 上次流量重置时间；`AutoResetNodeTraffic` 32 天安全网计时基线（由 `register` 初始化、`applyId` 回收清零、月度重置刷新） |
+| `last_traffic_reset_at` | datetime | nullable | 上次流量重置时间；`AutoResetNodeTraffic` 32 天安全网计时基线（全新身份由 `register` 在为 null 时初始化、`applyId` 回收时置 null、月度重置刷新；**同机重装带缓存 id 上报时保留既有基线不重置**——身份继承原则） |
 
 ---
 
@@ -188,7 +188,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 | 仅 IPv6 | 接受 `node_ipv6`，强制置空 `ip` |
 | 两者都有 | 正常接受两个 |
 
-子域名前缀也因此区分：IPv4 节点使用 `n{id}`，IPv6 节点使用 `ipv6n{id}`。
+子域名前缀也因此区分：IPv4 节点使用 `{random8}n{id}`（随机 8 位前缀降低连接域名特征被 GFW 识别追踪），IPv6 节点使用 `{random8}ipv6n{id}`。其中 ipv4 主节点直连 IP 无需 DNS；只有 ipv4 **clone** 节点的连接域名（`{random8}n{cloneId}.domain`）由 `resolve_dns` 建 A 记录，每个 clone 各自独立生成随机前缀。
 
 #### 标准化命名
 
@@ -285,7 +285,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 #### 集群级批量处理
 
 1. 从主节点的 `node_ids` 字段解析出所有节点 ID（逗号分隔字符串 → 数组）
-2. 遍历每个节点，根据其 `server` 字段（如 `n42.ssmail.win`）解析出 subdomain 和 root_domain
+2. 遍历每个节点，根据其 `server` 字段（ipv4 clone 连接域名含随机前缀，如 `a1b2c3d4n42.ssmail.win`）解析出 subdomain（首个 `.` 之前整段）和 root_domain；subdomain 始终与 `server` 前缀对齐，与前缀是否随机解耦
 3. 从 `node_domain_map` 配置动态获取该域名的 `zone_id`
 4. 为每个节点生成 DNS 蓝图（blueprint），包含 subdomain、IP、proxied 状态
 5. 对每个蓝图执行三向对账
@@ -330,8 +330,8 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 {
     "status": "success",
     "results": [
-        {"action": "no_change", "success": true, "node_id": 42, "type": "A", "fqdn": "n42.ssmail.win", "proxied": false},
-        {"action": "created", "success": true, "node_id": 43, "type": "A", "fqdn": "n43.ssmail.win", "cf_id": "abc123", "proxied": true}
+        {"action": "no_change", "success": true, "node_id": 42, "type": "A", "fqdn": "a1b2c3d4n42.ssmail.win", "proxied": false},
+        {"action": "created", "success": true, "node_id": 43, "type": "A", "fqdn": "b2c3d4e5n43.ssmail.win", "cf_id": "abc123", "proxied": true}
     ],
     "stats": {
         "created": 1,
@@ -482,7 +482,7 @@ php artisan initDnsRecords
 1. 遍历 `node_domain_map`（`.config.php`）包含的所有 Root Domain。
 2. 调用 Cloudflare API 拉取该域名下**所有的 A 和 AAAA 记录**。
 3. **Diff 清理**：查询本地 `dns_records` 表中该域名的 A/AAAA 记录，若某条记录在云端不存在，物理删除。
-4. **关联入库**：遍历云端拉回的 A/AAAA 记录，通过 FQDN 匹配 `ss_node.server` 字段（如 `n156.ssmail.win`），若匹配成功则写入或更新至 `dns_records` 表并绑定 `node_id`。
+4. **关联入库**：遍历云端拉回的 A/AAAA 记录，通过 FQDN 匹配 `ss_node.server` 字段（ipv4 clone 连接域名含随机前缀，如 `a1b2c3d4n156.ssmail.win`），若匹配成功则写入或更新至 `dns_records` 表并绑定 `node_id`。
 
 **安全约束：**
 - 严格过滤 `A` 和 `AAAA` 类型，**绝不触碰** TXT、MX、CNAME 等非节点解析记录。
@@ -527,4 +527,4 @@ resources/templates/
 
 ---
 
-*文档更新时间: 2026-08-05 | 基于 commit: 83944cd3*
+*文档更新时间: 2026-08-08 | 基于 commit: 1c905378*

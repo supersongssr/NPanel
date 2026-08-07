@@ -9,10 +9,11 @@
 | 文件 | 操作 | 说明 |
 |------|------|------|
 | `app/Console/Commands/AutoResetNodeTraffic.php` | 新建 | 每天 00:01 执行，按 `reset_day` 重置节点流量 + 32 天安全网兜底 |
-| `app/Components/NodeTrafficReset.php` | 新建 | 单点重置模块：清零 `traffic_used`/`traffic_used_daily` + 刷新 `last_traffic_reset_at`（供 cron / applyId / register 共用） |
+| `app/Components/NodeTrafficReset.php` | 新建 | 单点重置模块：清零 `traffic_used`/`traffic_used_daily` + 刷新 `last_traffic_reset_at`（仅供 `AutoResetNodeTraffic` 月度重置 / 32 天安全网兜底共用） |
+| `app/Components/NodeDefaults.php` | 新建 | 节点默认值工厂：`resetToDefaults()` 全量重置（applyId 回收身份用，含 `last_traffic_reset_at=null`）、`resetV2Derived()` 仅清 v2 派生子集（register 用） |
 | `database/migrations/2026_07_30_000000_add_last_traffic_reset_at_to_ss_node_table.php` | 新建 | 给 `ss_node` 增加 `last_traffic_reset_at` 列并回填 NOW() |
 | `app/Console/Kernel.php` | 修改 | 注册命令 + 添加调度 |
-| `app/Http/Controllers/Api/NodeApiController.php` | 修改 | 删除 `status()` 中的重置逻辑（原 L1240-1248）；register 初始化基线 / applyId 回收全清 |
+| `app/Http/Controllers/Api/NodeApiController.php` | 修改 | 删除 `status()` 中的重置逻辑（原 L1240-1248）；applyId 经 `NodeDefaults::resetToDefaults()` 全量重置（含 `last_traffic_reset_at=null`）；register 改为仅在基线为 null 时初始化（身份继承原则：同机重装带缓存 id 上报时保留既有基线，不重置） |
 
 ## 核心逻辑
 
