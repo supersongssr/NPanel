@@ -135,11 +135,9 @@ class AutoStatisticsNodeDailyTraffic extends Command
             // 此时差值取重置后至今的累计流量,避免丢失当天数据。
             $traffic_today < 0 && $traffic_today = $node->traffic_used;
 
-            // 写入每天流量差值记录
-            $node->monitor_url = round($traffic_today / 1073741824) . ',' . $node->monitor_url;
-            $node->monitor_url = substr($node->monitor_url, 0, 32);
-            $node->is_subscribe == 0 && $node->monitor_url = 'U'.$node->monitor_url;
-            $node->monitor_url .= '|'.date("Y-m-d");
+            // 注: monitor_url 不再在此打包每日流量历史. 该字段现由 status() 心跳写入节点上报的
+            // 监控地址 (见 NodeApiController::status); 二者竞争同一列会让心跳高频覆盖本处写入.
+            // 每日流量差值的权威记录见下方 SsNodeTrafficDaily, 不依赖 monitor_url.
 
             # 流量统计和节点故障预警 ，排除一种情况，流量少，但是实际上是 流量已用超那种
             if ( $node->id > 9 && $node->is_clone == 0 ) {

@@ -83,7 +83,9 @@ class AutoResetNodeTraffic extends Command
         //     即"在线却长期未重置"——这才是月度重置 cron 停跑的特征.
         // 为何限定"在线": 死节点 (无心跳 / 心跳超期) 交给 applyId 回收流程处理, 不归安全网管;
         // 也避免误伤刚 register (heartbeat_at 尚为 null) 或手工迁移中尚未上报的新身份.
-        // (register 显式置 heartbeat_at=null, 故全新/复用身份首跑不会被安全网打断, 留足首个重置周期.)
+        // (全新/复用身份的 heartbeat_at=null 由 applyId 的 NodeDefaults::resetToDefaults 设置;
+        //  register 不再置 heartbeat_at=null, 仅在 last_traffic_reset_at===null 时激活基线,
+        //  故新身份首跑不会被安全网打断, 留足首个重置周期.)
         $cutoff = date('Y-m-d H:i:s', strtotime('-' . self::FORCE_RESET_DAYS . ' days'));
 
         $overdueNodes = SsNode::where('is_clone', 0)

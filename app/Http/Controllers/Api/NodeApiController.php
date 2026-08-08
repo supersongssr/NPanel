@@ -1896,8 +1896,12 @@ class NodeApiController extends Controller
             $node->level;
         $node->heartbeat_at = date("Y-m-d H:i:s");
         // 节点上报的监控地址 (monitor) 写入 monitor_url, 供面板展示与统计.
-        // 仅当上报时覆盖, 否则保留原值 (镜像覆盖语义, 同 server_uptime).
-        $node->monitor_url = $request->input("monitor", $node->monitor_url);
+        // 仅当上报非空值时覆盖, 否则保留原值: input() 的 default 仅在 key 缺失时生效,
+        // 无法区分 "未上报" 与 "上报空串" (后者会误清原值), 故显式判空.
+        $monitor = $request->input("monitor");
+        if ($monitor !== null && $monitor !== '') {
+            $node->monitor_url = $monitor;
+        }
 
         // 基于 reset_day 计算已过天数和剩余天数（remaining 不含 today）
         $resetDay = (int) $node->reset_day;
