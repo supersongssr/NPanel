@@ -450,7 +450,7 @@ nginx -t && systemctl restart nginx
 | raw_tx | float | 否 | `0` | 原始发送字节总数 |
 | server_uptime | integer | 否 | *(沿用)* | 服务器运行时间（秒） |
 | node_bandwidth | integer | 否 | *(沿用)* | 带宽（Mbps） |
-| monitor | string | 否 | *(沿用)* | 节点监控地址，写入 `monitor_url`（镜像覆盖语义，留空则保留原值） |
+| monitor | string | 否 | *(沿用)* | 节点监控地址，写入 `monitor_url`（仅当上报非空值时覆盖；为空或缺失则保留原值，避免空串误清。`monitor_url` 现由本心跳 `status()` 维护，不再由每日 cron 打包写入） |
 
 #### 计费与健康引擎
 - **计费模式**：依据 `node_rxtx` 字段执行 `tx`（仅上行）或 `rxtx`（双向均值）逻辑。
@@ -527,4 +527,4 @@ resources/templates/
 
 ---
 
-*文档更新时间: 2026-08-08 | 基于 commit: 1c905378*
+*文档更新时间: 2026-08-09 | 基于 commit: 2c985d9f*
