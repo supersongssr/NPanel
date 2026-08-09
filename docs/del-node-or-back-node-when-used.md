@@ -60,13 +60,31 @@ Cloudflare 免费版通常有 **1000 条解析记录** 的硬上限。
 
 ---
 
-## 4. 结论与架构建议
+## 4. 死节点比例硬回收 (AutoReclaimDeadNodes)
+
+资源池回收模式在「临时节点高频增减」场景下会暴露一个缺口：死节点要等满 `dns_expire_days`（默认 32）才进入 clone 回收池，若增减周期 < 32 天，死节点来不及被消费，每次注册被迫 `new SsNode()`，导致节点 **行数与 id 双暴涨**。
+
+为此系统在「池回收」之上叠加了一层 **比例制硬删除安全帽** `AutoReclaimDeadNodes`（`Console\Kernel` 每日 04:20，排在 `autoDeleteExpiredDns` 之后）：
+
+- **死节点定义复用**：`status=0 AND (heartbeat_at < cutoff OR (heartbeat_at IS NULL AND created_at < cutoff)) AND id > 99`，与 DNS 清理 / clone 回收三者共用 `dns_expire_days` 阈值。
+- **触发条件（比例 + 绝对下限）**：`dead/total > node_recycle_ratio`（默认 `0.50`）**且** `dead >= node_recycle_min_dead`（默认 `500`）。低于下限视为「无存储压力」直接跳过。
+- **配额**：删除 `dead - targetDead` 个最老的死节点（`id ASC`，裁回收池的「死寂端」，对回收零损耗），回归到 `targetDead = floor(ratio * alive / (1 - ratio))`（ratio=0.5 时即 `dead == alive`）。
+- **删前先清 CF 远端 DNS**：每条 victim 删除前调 `DnsSyncer::cleanupNodeRecords`，避免留下 Cloudflare 孤儿记录；随后事务级联 13 张表（`ss_node` 本体 + `delNode` 9 张 + `dns_records` + `ss_node_ip` + `ss_node_deny`）。
+- **安全闸门**：`status=0` 从源头排除在用节点；保留区 `id<100`（PingController 预留）永不删；强制支持 `--dry-run` 预演 + `withoutOverlapping` 防重叠。
+
+> 调整阈值无需改代码：在 `config.default.php` / `.config.php` 修改 `node_recycle_ratio`、`node_recycle_min_dead`、`dns_expire_days` 即可。设计细节见 `plans/nodes/autoReclaimDeadNodes.md`。
+
+因此当前架构实为 **混合模式**：常态下走池回收（id 紧凑、审计连续），仅在死节点占比失控时才硬裁冗余，二者并不冲突。
+
+---
+
+## 5. 结论与架构建议
 
 ### 分析结论：
 **“将旧节点放入节点池，下次回收使用”是性能最优、最稳健的方法。** 但为了解决 DNS 资源限制，必须配合**“延迟强制清理”**逻辑。
 
 ### 最终架构建议：
-1.  **坚持回收池模式**：避免物理删除，减小数据库压力。
+1.  **池回收为主 + 比例硬删除为辅（已落地）**：常态走回收池模式（减小数据库压力、id 紧凑、审计连续）；死节点占比失控（`dead/total > node_recycle_ratio` 且 `dead >= node_recycle_min_dead`）时由 `AutoReclaimDeadNodes` 比例硬删除兜底，避免行数/id 无界膨胀（见第 4 节）。纯物理删除仅作为容量安全帽，不取代池回收。
 2.  **实施 DNS 强力释放 (阈值可配)**：
     - `Console\Kernel` 每日 04:10 执行 `AutoDeleteExpiredDns`，扫描超过阈值 (`dns_expire_days`, 默认 32) 无心跳的节点。
     - 调用 Cloudflare API 删除这些不活跃节点关联的 A/AAAA 记录，提前释放 Cloudflare 槽位。

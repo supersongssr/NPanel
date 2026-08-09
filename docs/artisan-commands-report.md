@@ -4,7 +4,7 @@ This report provides an overview of the custom Artisan commands and scheduled ta
 
 ## Summary
 
-There are **22** commands explicitly listed in the `$commands` array of `Kernel.php`, and **24** command files found in the `app/Console/Commands` directory. The application relies heavily on these commands for automated maintenance, statistics, and billing tasks.
+There are **26** commands explicitly listed in the `$commands` array of `Kernel.php`, and **29** command files found in the `app/Console/Commands` directory. The application relies heavily on these commands for automated maintenance, statistics, and billing tasks.
 
 ## Registered Commands
 
@@ -31,18 +31,25 @@ The following commands are registered in `app/Console/Kernel.php`:
 | `upgradeUserVmessId` | 重新生成用户的vmess_id字段 (Regenerate user vmess_id fields) |
 | `autoReportNode` | 自动报告节点昨日使用情况 (Auto-report node usage from yesterday) |
 | `upgradeUserBannoPay` | 封禁疑似滥用邀请账户 (Ban accounts suspected of abusing invitations) |
-| `AutoCheckNodeStatus` | 自动检查节点状态status (Auto-check node status) |
+| `autoCheckNodeStatus` | 自动检查节点状态status (Auto-check node status) |
+| `autoResetNodeTraffic` | 自动重置节点流量（按 reset_day）+ 32 天未重置强制兜底告警 (Auto-reset node traffic by reset_day + 32-day safety-net) |
 | `autoBanUserNoMoney` | 自动禁用余额低于0的用户 (Auto-ban users with balance < 0) |
-| `Test` | Test测试 (Testing command) |
+| `autoDeleteExpiredDns` | 自动删除超过指定天数无心跳节点的DNS解析记录（含独立Token的CDN域名, Cloudflare远端）(Auto-delete DNS records of expired dead nodes) |
+| `autoReclaimDeadNodes` | 死节点比例回收: 死节点超总节点 50% 时硬删除冗余, 删前先清理 CF 远端 DNS (Proportional hard-reclaim of dead nodes) |
+| `autoRotateCdnIp` | 每日轮换 xhttp-cdn 节点的 CF 优选 IP (CSV 来源, 缓存到 v2_cdn_ip) (Daily rotation of CF optimized IPs for xhttp-cdn nodes) |
+| `test` | Test测试 (Testing command) |
+
+> `autoReclaimDeadNodes` 与 `autoDeleteExpiredDns`、`autoRotateCdnIp` 复用 `dns_expire_days` 作为死节点判定阈值，三者窗口一致。`autoReclaimDeadNodes` 额外读取配置 `node_recycle_ratio`（触发比例，默认 0.50）与 `node_recycle_min_dead`（死节点绝对下限，默认 500）。
 
 ## Additional Commands (Not explicitly in $commands array but in directory)
 
-These commands are found in `app/Console/Commands` and are likely loaded automatically via `$this->load(__DIR__.'/Commands')`:
+These commands are found in `app/Console/Commands` and are loaded automatically via `$this->load(__DIR__.'/Commands')`:
 
 | Command Signature | Description |
 | :--- | :--- |
 | `initDnsRecords` | Sync DNS records from Cloudflare: clean orphans, upsert matched A/AAAA records |
 | `rate-limit:clear {code?}` | Clear subscription rate limit cache from Redis |
+| `test:autoDeleteExpiredDns` | 模拟测试 AutoDeleteExpiredDns 各场景 (Scenario test harness for AutoDeleteExpiredDns) |
 
 ## Scheduled Tasks
 
@@ -54,6 +61,7 @@ The following tasks are scheduled in the `schedule` method:
 | `autoClearLog` | Every 30 minutes | - |
 | `autoDecGoodsTraffic` | Hourly | - |
 | `autoResetUserTraffic` | Daily | - |
+| `autoResetNodeTraffic` | Daily | 00:01 |
 | `autoCheckNodeTCP` | Hourly | - |
 | `autoStatisticsNodeDailyTraffic` | Daily | 3:13 |
 | `autoStatisticsNodeHourlyTraffic` | Hourly | - |
@@ -64,6 +72,11 @@ The following tasks are scheduled in the `schedule` method:
 | `userTrafficAutoWarning` | Daily | 10:30 |
 | `autoReportNode` | Daily | 09:00 |
 | `autoBanUserNoMoney` | Daily | 05:00 |
+| `autoDeleteExpiredDns` | Daily | 04:10 (`withoutOverlapping`) |
+| `autoReclaimDeadNodes` | Daily | 04:20 (`withoutOverlapping`) |
+| `autoRotateCdnIp` | Daily | 04:30 (`withoutOverlapping`) |
+
+> 注：`autoCheckNodeStatus` 在 `Kernel.php` 中已被注释，未参与调度。
 
 ---
-*Report generated on May 1, 2026*
+*Report refreshed on August 10, 2026 (synced to `app/Console/Kernel.php` as of commit de4ef95c)*
