@@ -27,6 +27,7 @@ return array(
     'App\\Console\\Commands\\AutoDecGoodsTraffic' => $baseDir . '/app/Console/Commands/AutoDecGoodsTraffic.php',
     'App\\Console\\Commands\\AutoDeleteExpiredDns' => $baseDir . '/app/Console/Commands/AutoDeleteExpiredDns.php',
     'App\\Console\\Commands\\AutoJob' => $baseDir . '/app/Console/Commands/AutoJob.php',
+    'App\\Console\\Commands\\AutoReclaimDeadNodes' => $baseDir . '/app/Console/Commands/AutoReclaimDeadNodes.php',
     'App\\Console\\Commands\\AutoReportNode' => $baseDir . '/app/Console/Commands/AutoReportNode.php',
     'App\\Console\\Commands\\AutoResetNodeTraffic' => $baseDir . '/app/Console/Commands/AutoResetNodeTraffic.php',
     'App\\Console\\Commands\\AutoResetUserTraffic' => $baseDir . '/app/Console/Commands/AutoResetUserTraffic.php',

@@ -19,6 +19,14 @@ class NodeApiController extends Controller
     const DEFAULT_RECORDS_LIMIT = 180;
 
     /**
+     * 死节点回收池 LIMIT 上限 (纯性能安全帽).
+     * register() 拉 deadNodes 作为 clone 时, 单次最多载入此数量, 防止死节点暴涨时
+     * get() 一次性载入过多行撑爆请求内存. 注册一次最多消费 ~5 个 clone
+     * (slots = IP类型 × 协议数), 500 已是 100 倍冗余, 无需运维调参.
+     */
+    const RECYCLE_POOL_LIMIT = 500;
+
+    /**
      * register 时只负责节点身份 (ID / ip+ipv6 / 协议预置). server 域名前缀编码 ip 栈信息:
      *   - 客户端连接地址: NodeAddressService::resolveAddress() (订阅时惰性)
      *   - DNS 记录同步: DnsSyncer::syncCluster() (resolve_dns 端点)
@@ -148,7 +156,7 @@ class NodeApiController extends Controller
                     );
                 });
         })
-            ->orderBy("heartbeat_at", "desc")
+            ->orderBy("id", "desc")
             ->first();
 
         $recycled = false;
@@ -501,9 +509,11 @@ class NodeApiController extends Controller
                     );
                 });
         })
+            ->where("status", 0)
             ->where("id", "!=", $nodeId)
             ->where("is_clone", "!=", $nodeId)
-            ->orderBy("heartbeat_at", "desc")
+            ->orderBy("id", "desc")
+            ->limit(self::RECYCLE_POOL_LIMIT)
             ->get();
         $deadIdx = 0;
 

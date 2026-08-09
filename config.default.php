@@ -113,6 +113,8 @@ return [
     'node_fallback_host'      => '',      // 回落基础域名; 伪装站域名不含协议, 推导 __httpProxyHost__/__v2Fallback__/__HYSTERIA_URL__
     'node_root_domain'        => '',      // 节点根域名; 域名池为空时的兜底主域名
     'dns_expire_days'         => '30',    // DNS 自动清理阈值 (天); 心跳超期无活跃节点的 DNS 记录被定时清理, 默认 32
+    'node_recycle_ratio'      => '0.50',  // 死节点回收触发比例; 死节点/总节点 超此值则硬删除冗余 (见 autoReclaimDeadNodes)
+    'node_recycle_min_dead'   => '500',   // 死节点回收绝对下限; 死节点低于此值不触发回收 (无存储压力不折腾)
     'pow_base_difficulty'     => '10000', // PoW 基础难度; 客户端工作量证明基础难度
     'node_protocol_presets'   => '{"threshold_mb":2048,"high":"xhttp-hy2-ws-grpc","low":"vision-hy2-ws-grpc"}',  // 节点协议预设 (JSON: threshold_mb/high/low)
     'node_default_v2_name'    => 'vision-curvePreferences',  // 默认 v2 name; 节点注册时未指定 v2_name 的兜底值

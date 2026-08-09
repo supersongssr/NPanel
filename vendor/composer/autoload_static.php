@@ -629,6 +629,7 @@ class ComposerStaticInitafff032aeb9b4610f8ed2f20cc405693
         'App\\Console\\Commands\\AutoDecGoodsTraffic' => __DIR__ . '/../..' . '/app/Console/Commands/AutoDecGoodsTraffic.php',
         'App\\Console\\Commands\\AutoDeleteExpiredDns' => __DIR__ . '/../..' . '/app/Console/Commands/AutoDeleteExpiredDns.php',
         'App\\Console\\Commands\\AutoJob' => __DIR__ . '/../..' . '/app/Console/Commands/AutoJob.php',
+        'App\\Console\\Commands\\AutoReclaimDeadNodes' => __DIR__ . '/../..' . '/app/Console/Commands/AutoReclaimDeadNodes.php',
         'App\\Console\\Commands\\AutoReportNode' => __DIR__ . '/../..' . '/app/Console/Commands/AutoReportNode.php',
         'App\\Console\\Commands\\AutoResetNodeTraffic' => __DIR__ . '/../..' . '/app/Console/Commands/AutoResetNodeTraffic.php',
         'App\\Console\\Commands\\AutoResetUserTraffic' => __DIR__ . '/../..' . '/app/Console/Commands/AutoResetUserTraffic.php',
