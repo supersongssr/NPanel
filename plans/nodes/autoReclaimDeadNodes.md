@@ -312,7 +312,7 @@ $schedule->command('autoReclaimDeadNodes')->dailyAt('04:20')->withoutOverlapping
 
 1. **阶段一止血**:改 `register()` 与 `applyId()` 的死节点查询(加 `status=0`、`id DESC`、`LIMIT`)。在 `NodeApiController` 定义类常量 `RECYCLE_POOL_LIMIT = 500`(纯性能安全帽,不做配置)。
 2. **阶段二命令**:新建 `AutoReclaimDeadNodes`,实现比例判定 + 配额计算 + 级联删除。
-3. **配置**:在 `config.default.php` 加 3 个 `node_recycle_*` 项。
+3. **配置**:在 `config.default.php` 加 2 个 `node_recycle_*` 项(`node_recycle_ratio` / `node_recycle_min_dead`)。
 4. **调度**:`Kernel.php` 注册,每日 04:20,`withoutOverlapping()`。
 5. **测试**:见"测试与验证"。
 
