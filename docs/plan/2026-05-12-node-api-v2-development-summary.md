@@ -122,7 +122,7 @@ node_memory <= threshold           → vision-hy2-ws-grpc (标准)
 - 如果 apply_id 给了 IPv4 → 只接受 node_ip，将 ipv6 置空
 - 如果 apply_id 给了 IPv6 → 只接受 node_ipv6，将 ip 置空
 
-子域名前缀也因此区分：IPv4 用 `n{id}`，IPv6 用 `ipv6n{id}`。
+子域名前缀也因此区分：IPv4 用 `{random8}n{id}`，IPv6 用 `{random8}ipv6n{id}`（随机 8 位前缀降低连接域名/SNI 特征被识别追踪；clone 连接域名前缀由 `resolve_dns` 从 `server` 字段解析，与前缀是否随机解耦）。
 
 #### 4.2.3 裂变矩阵构建
 ```
