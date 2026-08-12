@@ -34,7 +34,7 @@
 
 ### C. 网络协议与地址
 - **IPv4/IPv6**：通过查看 `ip` 和 `ipv6` 字段。通常一个克隆节点只开启其中一个地址。
-- **Server 地址**：每个克隆节点都有独立的 `server` 字段（如 `node157.ssmail.win`），其解析记录对应其特定的 IP。
+- **Server 地址**：每个克隆节点都有独立的 `server` 字段（ipv4 clone 为随机前缀连接域名，形如 `{random8}n{id}.根域名`，例如 `a1b2c3d4n157.ssmail.win`，随机前缀用于降低连接域名特征被识别；ipv6 clone 则为原生 ipv6 字面量直连），其 A 记录由 `resolve_dns` 解析 `server` 字段创建，对应其特定的 IP。
 
 ---
 
