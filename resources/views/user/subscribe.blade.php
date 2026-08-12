@@ -181,7 +181,7 @@
                                                         <input type="text" class="form-control sub-link-input" value="{{$link}}" readonly onclick="this.select();" />
                                                         <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
                                                     </div>
-                                                    <li><strong class="step-label">① 安装软件</strong>：<a href="https://dl.v2rayn.co/apps/v2rayn/7.22.7/v2rayN-macos-arm64.dmg" target="_blank">点此下载 v2rayN（Apple Silicon / M 系列芯片）</a>，打开 dmg，将 <code>v2rayN</code> 拖入「应用程序」文件夹完成安装。<br><strong style="color:#e7505a;">重要</strong>：安装后<strong>首次启动前</strong>，必须先打开「终端」（Terminal）执行以下命令解除 macOS 隔离属性，否则无法启动：<pre style="background:#f5f5f5;padding:8px 12px;border-radius:4px;margin:6px 0;"><code>xattr -cr /Applications/v2rayN.app</code></pre></li>
+                                                    <li><strong class="step-label">① 安装软件</strong>：<a href="https://dl.v2rayn.co/apps/v2rayn/7.24.4/v2rayN-macos-arm64.dmg" target="_blank">点此下载 v2rayN（Apple Silicon / M 系列芯片）</a>，打开 dmg，将 <code>v2rayN</code> 拖入「应用程序」文件夹完成安装。<br><strong style="color:#e7505a;">重要</strong>：安装后<strong>首次启动前</strong>，必须先打开「终端」（Terminal）执行以下命令解除 macOS 隔离属性，否则无法启动：<pre style="background:#f5f5f5;padding:8px 12px;border-radius:4px;margin:6px 0;"><code>xattr -cr /Applications/v2rayN.app</code></pre></li>
                                                     <li><strong class="step-label">② 添加订阅</strong>：启动 v2rayN，软件界面 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<strong>复制上方订阅地址</strong> - 确定 - 返回软件界面 - 订阅 - 更新订阅。</li>
                                                     <li><strong class="step-label">③ 使用节点</strong>：软件界面 - 右键任意节点 - 设为活动的服务器； v2rayN 软件界面 - 代理 - 自动设置系统代理；打开浏览器上网吧。</li>
                                                     <li><strong class="step-label">④ 图文教程</strong>：<span style="color:#999;">敬请期待</span></li>
@@ -229,7 +229,7 @@
                                                         <input type="text" class="form-control sub-link-input" value="{{$link}}" readonly onclick="this.select();" />
                                                         <button type="button" class="sub-link-copy" onclick="copySubLink(this)">复制</button>
                                                     </div>
-                                                    <li><strong class="step-label">① 安装软件</strong>：<a href="https://dl.v2rayn.co/apps/v2rayn/7.22.7/v2rayN-windows-64.zip" target="_blank">点此下载 V2rayN</a>，解压缩后右键以管理员身份运行 <code>V2rayN.exe</code>。</li>
+                                                    <li><strong class="step-label">① 安装软件</strong>：<a href="https://dl.v2rayn.co/apps/v2rayn/7.24.4/v2rayN-windows-64.zip" target="_blank">点此下载 V2rayN</a>，解压缩后右键以管理员身份运行 <code>V2rayN.exe</code>。</li>
                                                     <li><strong class="step-label">② 添加订阅</strong>：双击任务栏右下角 <code>V2rayN</code> 图标 - 软件界面 - 订阅 - 订阅设置 - 添加 - 备注随意 - 地址：<strong>复制上方订阅地址</strong> - 确定 - 返回软件界面 - 订阅 - 更新订阅。</li>
                                                     <li><strong class="step-label">③ 使用节点</strong>：软件界面 - 右键任意节点 - 设为活动的服务器； v2rayN 软件界面 - 代理 - 自动设置系统代理；打开浏览器上网吧。</li>
                                                     <li><strong class="step-label">④ 图文教程</strong>：<a href="/article?id=47">没看懂？点我图文教程</a></li>
