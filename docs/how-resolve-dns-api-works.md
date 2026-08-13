@@ -7,12 +7,12 @@ The `api/node/resolve_dns` endpoint ensures that DNS records in Cloudflare match
 ### 1. Fission Awareness (Node Clusters)
 The API is cluster-aware. When triggered for a main node (`node_id`), it automatically extracts the `node_ids` group (which includes the main node and all its clones) and reconciles DNS for the entire族群 (family) in a single request.
 
-### 2. Strict Dual-Stack Isolation
-To prevent conflicts between IPv4 and IPv6 addresses, the system enforces a strict prefix-based isolation:
-- **IPv4 Records (Type A):** Only **clone ipv4 nodes** carry a DNS record; the subdomain is parsed from the node's `server` field (the clone connection domain, e.g. `{random8}n{id}`). Example: `a1b2c3d4n123.example.com`
-- **IPv6 Records (Type AAAA):** Uses the `ipv6node` prefix. Example: `ipv6node123.example.com`
+### 2. DNS Record vs Direct Connection
+Only **clone ipv4 nodes** carry a DNS record; main nodes and all IPv6 nodes connect directly and need no DNS entry:
+- **Clone IPv4 Nodes (Type A):** The subdomain is parsed from the node's `server` field (the clone connection domain, e.g. `{random8}n{id}`). Example: `a1b2c3d4n123.example.com` → resolves to the node IPv4.
+- **Main Nodes & IPv6 Nodes (Direct Connect, no record):** Main ipv4 nodes connect via their raw IP; IPv6 nodes (whose `server` is the native IPv6 literal) connect via IPv6. They carry **no DNS record**, and any residual records left from older layouts are deleted during reconciliation.
 
-This ensures that a single node can have both A and AAAA records on distinct subdomains, avoiding issues with clients that might prefer one over the other in a shared-subdomain setup.
+Node classification is driven by the `server` field (clone ipv4 = `{random8}n{id}` domain; IPv6 = raw IPv6 literal / legacy `ipv6n` marker), not by which IP column is populated. This keeps DNS records minimal — only clone ipv4 connection domains are reconciled — leaving headroom under the Cloudflare record quota.
 
 ### 3. Ghost Record Detection (State Desync Fix)
 The system uses a **DB-Driven Diff with Real-time Verification** strategy.
@@ -29,7 +29,7 @@ When `resolve_dns` is called:
 1.  **Extract Cluster:** Expands the `node_ids` for the given main node.
 2.  **Iterate Nodes:** For each node in the cluster:
     - **IPv4 Reconciliation:** For clone ipv4 nodes, parse the subdomain from the node's `server` field (e.g. `{random8}n{id}`) and reconcile the Type A record to `node_ip`.
-    - **IPv6 Reconciliation:** If `node_ipv6` exists, reconcile `ipv6node{$id}` (Type AAAA).
+    - **Main / IPv6 Nodes:** Skipped (direct connect) — delete any residual records; no DNS record is created.
 3.  **Diff & Verify:**
     - **Scene A: Identical & Verified:** DB matches desired state AND Cloudflare verification confirms it. (Response: `no_change`)
     - **Scene B: IP Update:** Domain matches, but IP differs. (Response: `updated_ip`)
