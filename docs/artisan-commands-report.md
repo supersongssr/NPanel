@@ -4,7 +4,7 @@ This report provides an overview of the custom Artisan commands and scheduled ta
 
 ## Summary
 
-There are **26** commands explicitly listed in the `$commands` array of `Kernel.php`, and **29** command files found in the `app/Console/Commands` directory. The application relies heavily on these commands for automated maintenance, statistics, and billing tasks.
+There are **26** commands explicitly listed in the `$commands` array of `Kernel.php`, and **30** command files found in the `app/Console/Commands` directory. The application relies heavily on these commands for automated maintenance, statistics, and billing tasks.
 
 ## Registered Commands
 
@@ -50,6 +50,7 @@ These commands are found in `app/Console/Commands` and are loaded automatically 
 | `initDnsRecords` | Sync DNS records from Cloudflare: clean orphans, upsert matched A/AAAA records |
 | `rate-limit:clear {code?}` | Clear subscription rate limit cache from Redis |
 | `test:autoDeleteExpiredDns` | 模拟测试 AutoDeleteExpiredDns 各场景 (Scenario test harness for AutoDeleteExpiredDns) |
+| `downtime:compensation {--dry-run} {--yes}` | 一次性停机补偿：给 status=0/1 且非管理员用户余额 +3 元（300 分），写 `user_balance_log` 幂等标记；整批完成后写 `storage/downtime_compensation.lock` 永久锁禁止二次运行。**不进 schedule，仅人工手动执行**（详见 `AI/done/2026-08-13-downtime-compensation-3yuan.md`） |
 
 ## Scheduled Tasks
 
@@ -79,4 +80,4 @@ The following tasks are scheduled in the `schedule` method:
 > 注：`autoCheckNodeStatus` 在 `Kernel.php` 中已被注释，未参与调度。
 
 ---
-*Report refreshed on August 10, 2026 (synced to `app/Console/Kernel.php` as of commit de4ef95c)*
+*Report refreshed on August 14, 2026 (synced to `app/Console/Kernel.php` / `app/Console/Commands` as of commit 8acfb1ff)*
