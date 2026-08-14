@@ -640,6 +640,7 @@ class ComposerStaticInitafff032aeb9b4610f8ed2f20cc405693
         'App\\Console\\Commands\\AutoStatisticsUserHourlyTraffic' => __DIR__ . '/../..' . '/app/Console/Commands/AutoStatisticsUserHourlyTraffic.php',
         'App\\Console\\Commands\\ClearRateLimitCommand' => __DIR__ . '/../..' . '/app/Console/Commands/ClearRateLimitCommand.php',
         'App\\Console\\Commands\\InitDnsRecords' => __DIR__ . '/../..' . '/app/Console/Commands/InitDnsRecords.php',
+        'App\\Console\\Commands\\SendDowntimeCompensation' => __DIR__ . '/../..' . '/app/Console/Commands/SendDowntimeCompensation.php',
         'App\\Console\\Commands\\Test' => __DIR__ . '/../..' . '/app/Console/Commands/Test.php',
         'App\\Console\\Commands\\TestAutoDeleteExpiredDns' => __DIR__ . '/../..' . '/app/Console/Commands/TestAutoDeleteExpiredDns.php',
         'App\\Console\\Commands\\UserExpireAutoWarning' => __DIR__ . '/../..' . '/app/Console/Commands/UserExpireAutoWarning.php',
