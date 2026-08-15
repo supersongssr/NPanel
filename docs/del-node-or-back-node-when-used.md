@@ -48,11 +48,11 @@ Cloudflare 免费版通常有 **1000 条解析记录** 的硬上限。
 
 建议将节点状态分为三个阶段管理，以最大限度节省 DNS 数量：
 
-1.  **活跃期 (0 - 32天)**：
+1.  **活跃期 (0 - `dns_expire_days`，默认 30 天)**：
     - 正常心跳。DNS 记录必须保持。
-2.  **回收池/冷却期 (32 - 64天)**：
+2.  **回收池/冷却期 (`dns_expire_days` - 64天)**：
     - 节点被视为“死亡”，进入可分配池。
-    - **保留 DNS**：因为原节点主可能有短暂故障，32天后回来还能立刻恢复业务，无需重新解析。
+    - **保留 DNS**：因为原节点主可能有短暂故障，超过 `dns_expire_days` 后回来还能立刻恢复业务，无需重新解析。
 3.  **强制释放期 (> 64天)**：
     - 节点依然留在池中，但执行 **“DNS 强制销毁”**。
     - **操作**：调用 Cloudflare API 删除该 ID 关联的所有 A/AAAA 记录，并将数据库中的 `cf_record_id` 设为 `null`。
@@ -62,7 +62,7 @@ Cloudflare 免费版通常有 **1000 条解析记录** 的硬上限。
 
 ## 4. 死节点比例硬回收 (AutoReclaimDeadNodes)
 
-资源池回收模式在「临时节点高频增减」场景下会暴露一个缺口：死节点要等满 `dns_expire_days`（默认 32）才进入 clone 回收池，若增减周期 < 32 天，死节点来不及被消费，每次注册被迫 `new SsNode()`，导致节点 **行数与 id 双暴涨**。
+资源池回收模式在「临时节点高频增减」场景下会暴露一个缺口：死节点要等满 `dns_expire_days`（默认 30）才进入 clone 回收池，若增减周期 < 30 天，死节点来不及被消费，每次注册被迫 `new SsNode()`，导致节点 **行数与 id 双暴涨**。
 
 为此系统在「池回收」之上叠加了一层 **比例制硬删除安全帽** `AutoReclaimDeadNodes`（`Console\Kernel` 每日 04:20，排在 `autoDeleteExpiredDns` 之后）：
 
@@ -86,7 +86,7 @@ Cloudflare 免费版通常有 **1000 条解析记录** 的硬上限。
 ### 最终架构建议：
 1.  **池回收为主 + 比例硬删除为辅（已落地）**：常态走回收池模式（减小数据库压力、id 紧凑、审计连续）；死节点占比失控（`dead/total > node_recycle_ratio` 且 `dead >= node_recycle_min_dead`）时由 `AutoReclaimDeadNodes` 比例硬删除兜底，避免行数/id 无界膨胀（见第 4 节）。纯物理删除仅作为容量安全帽，不取代池回收。
 2.  **实施 DNS 强力释放 (阈值可配)**：
-    - `Console\Kernel` 每日 04:10 执行 `AutoDeleteExpiredDns`，扫描超过阈值 (`dns_expire_days`, 默认 32) 无心跳的节点。
+    - `Console\Kernel` 每日 04:10 执行 `AutoDeleteExpiredDns`，扫描超过阈值 (`dns_expire_days`, 默认 30) 无心跳的节点。
     - 调用 Cloudflare API 删除这些不活跃节点关联的 A/AAAA 记录，提前释放 Cloudflare 槽位。
     - 这样可以保证 Cloudflare 的 1000 个名额始终只留给“近期活跃”的 500-800 个活跃 ID，让系统可以弹性支撑更大的节点规模。
     - **DNS 模块独立性**：CDN 域名 (`node_domain_pool` 中 `cdn:true + cf_token`) 使用独立 Cloudflare Token

@@ -131,7 +131,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 #### 节点 ID 回收机制
 
-面板优先查找心跳超过 **32 天**的死亡节点复用其 ID（同时清理该节点的 `dns_records`），实现 ID 资源回收。若无死亡节点则创建新记录。**回收的旧身份会经 `NodeDefaults::resetToDefaults()` 全量重置为干净默认值**（含 `traffic_used=0`、`traffic_used_daily=0`、`last_traffic_reset_at=null` 及身份/指标/V2 字段），再交给后续 `register` 激活新基线，保证回收节点不残留前任计费/配置。
+面板优先查找心跳超过 **`dns_expire_days`（默认 30 天）** 的死亡节点复用其 ID（cutoff 由配置驱动，与 `autoDeleteExpiredDns` / `autoReclaimDeadNodes` 同源，不再硬编码天数）（同时清理该节点的 `dns_records`），实现 ID 资源回收。若无死亡节点则创建新记录。**回收的旧身份会经 `NodeDefaults::resetToDefaults()` 全量重置为干净默认值**（含 `traffic_used=0`、`traffic_used_daily=0`、`last_traffic_reset_at=null` 及身份/指标/V2 字段），再交给后续 `register` 激活新基线，保证回收节点不残留前任计费/配置。
 
 **此步骤决定了节点的 IP 栈命运**：apply_id 时写入的 `ip`/`ipv6` 会被 register 阶段强制执行单栈互斥。
 
@@ -216,7 +216,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 重装触发 `/register` 时，不会盲目 `INSERT` 新记录。分两层复用：
 
 1. **旧克隆复用**：通过 `WHERE is_clone = 主节点ID` 查出并更新已有克隆记录
-2. **死亡节点回收**：若旧克隆不足，从全局心跳超时 > 32 天的死亡节点池中回收 ID，同时清理其 DNS 记录
+2. **死亡节点回收**：若旧克隆不足，从全局心跳超时 > `dns_expire_days`（默认 30 天）且 `status=0` 的死亡节点池中回收 ID（单次载入上限 `RECYCLE_POOL_LIMIT=500`），同时清理其 DNS 记录
 3. 仅在两者都不足时才创建新节点
 
 多余的旧克隆节点被降级（`is_clone = 0, status = 0`）。
@@ -527,4 +527,4 @@ resources/templates/
 
 ---
 
-*文档更新时间: 2026-08-09 | 基于 commit: 2c985d9f*
+*文档更新时间: 2026-08-15 | 基于 commit: 69014ca1*
