@@ -144,7 +144,7 @@ class NodeApiController extends Controller
         $nodeIp = $request->input("node_ip");
         $nodeIpv6 = $request->input("node_ipv6");
 
-        $cutoff = date("Y-m-d H:i:s", strtotime("-32 days"));
+        $cutoff = $this->resolveDeadNodeCutoff();
         $node = SsNode::where(function ($query) use ($cutoff) {
             $query
                 ->where("heartbeat_at", "<", $cutoff)
@@ -496,7 +496,7 @@ class NodeApiController extends Controller
         $existingClones = SsNode::where("is_clone", $nodeId)
             ->get()
             ->values();
-        $cutoff = date("Y-m-d H:i:s", strtotime("-32 days"));
+        $cutoff = $this->resolveDeadNodeCutoff();
 
         $deadNodes = SsNode::where(function ($query) use ($cutoff) {
             $query
@@ -1420,6 +1420,28 @@ class NodeApiController extends Controller
     {
         $syncer = new \App\Services\NodeAddress\DnsSyncer();
         $syncer->cleanupNodeRecords($nodeId, 'NodeApi.' . $context);
+    }
+
+    /**
+     * 死节点 cutoff 阈值: 读配置 dns_expire_days, 与 AutoDeleteExpiredDns / AutoReclaimDeadNodes
+     * 同源 (三者一致, 避免窗口错位). 未配置或非法时回退 30 天 (与 AutoReclaimDeadNodes 默认一致).
+     *
+     * 此前 applyId / register 硬编码 -32 天, 与配置默认 30 天错位 2 天; 且运维调大 dns_expire_days
+     * 时回收路径不会跟随, 会在配置窗口内提前复用节点. 统一由配置驱动后, 调阈值只改 config.
+     *
+     * @return string Y-m-d H:i:s 格式的 cutoff 时间
+     */
+    private function resolveDeadNodeCutoff()
+    {
+        $days = 30;
+        $sysConf = Helpers::systemConfig();
+        if (isset($sysConf['dns_expire_days'])) {
+            $cfgDays = (int) $sysConf['dns_expire_days'];
+            if ($cfgDays >= 1) {
+                $days = $cfgDays;
+            }
+        }
+        return date('Y-m-d H:i:s', strtotime('-' . $days . ' days'));
     }
 
 
