@@ -36,6 +36,8 @@ use App\Services\NodeAddress\DnsSyncer;
  *   - 删除前先调 DnsSyncer::cleanupNodeRecords 清理 Cloudflare 远端 DNS (不只是删本地行)
  *   - 级联 13 张表 (delNode 9 张 + dns_records + ss_node_ip + ss_node_deny), 避免残留
  *   - 保留区 id<100 (PingController 预留)
+ *   - 竞态守卫: victim 逐个删除前重查 DB 确认仍为死节点; ss_node 删除本身带
+ *     status=0+心跳超期条件 (影响行数=0 视为已恢复, 放弃级联), 运行期间复活的节点不会被误删
  *   - 强制 --dry-run 预演, withoutOverlapping 防重叠
  *
  * 配置 (config.default.php / .config.php, 与 dns_expire_days 同源):
@@ -78,13 +80,7 @@ class AutoReclaimDeadNodes extends Command
         $this->info('');
 
         // —— 死节点基础查询 (status=0 + 心跳超期 + 保留区) ——
-        $deadQuery = SsNode::where('status', 0)
-            ->where(function ($q) use ($cutoff) {
-                $q->where('heartbeat_at', '<', $cutoff)
-                  ->orWhere(function ($q2) use ($cutoff) {
-                      $q2->whereNull('heartbeat_at')->where('created_at', '<', $cutoff);
-                  });
-            })
+        $deadQuery = $this->deadNodeScope($cutoff)
             ->where('id', '>', self::RESERVE_ID_FLOOR);
 
         $total = SsNode::count();
@@ -129,17 +125,17 @@ class AutoReclaimDeadNodes extends Command
             'planned' => $deleteCount,
             'deleted' => 0,
             'failed' => 0,
+            'guarded' => 0,
             'deleted_ids' => array(),
         );
 
         foreach ($victims as $node) {
-            // 二次校验: 命令运行期间节点可能恢复心跳/被启用, 重新确认仍为死节点
-            $stillDead = ($node->status === 0)
-                && ($node->heartbeat_at === null
-                    ? ($node->created_at !== null && $node->created_at < $cutoff)
-                    : ($node->heartbeat_at < $cutoff));
-            if (!$stillDead) {
+            // 二次校验: 重查 DB 确认仍为死节点. 不能读 victim 快照属性判断 —— 那些正是
+            // 选取时的命中条件, 恒为真, 对运行期间恢复心跳/被启用/被 register 回收的
+            // 节点毫无防御力. 重查可让已复活节点零副作用跳过 (连 CF DNS 都不清).
+            if (!$this->deadNodeScope($cutoff)->where('id', $node->id)->exists()) {
                 $this->line("  Node#{$node->id} \"{$node->name}\" [SKIP] 运行期间状态恢复, 跳过");
+                $stats['guarded']++;
                 continue;
             }
 
@@ -150,7 +146,12 @@ class AutoReclaimDeadNodes extends Command
             }
 
             try {
-                $this->cascadeDelete($node->id, $tag);
+                if (!$this->cascadeDelete($node->id, $cutoff, $tag)) {
+                    // 守卫拦截: CF 清理期间节点恢复, 条件删除影响 0 行, 放弃级联保留节点
+                    $this->line("  Node#{$node->id} \"{$node->name}\" [SKIP] 删除守卫拦截 (运行期间恢复), 节点保留");
+                    $stats['guarded']++;
+                    continue;
+                }
                 $this->info("  [DELETED] Node#{$node->id} \"{$node->name}\"");
                 $stats['deleted']++;
                 $stats['deleted_ids'][] = $node->id;
@@ -162,7 +163,7 @@ class AutoReclaimDeadNodes extends Command
 
         $this->info('');
         $this->info("--- Summary ---");
-        $this->info("Planned: {$stats['planned']} | Deleted: {$stats['deleted']} | Failed: {$stats['failed']}");
+        $this->info("Planned: {$stats['planned']} | Deleted: {$stats['deleted']} | Failed: {$stats['failed']} | Guarded: {$stats['guarded']}");
         if ($dryRun) {
             $this->warn('[DRY-RUN] No changes were made.');
         }
@@ -173,17 +174,43 @@ class AutoReclaimDeadNodes extends Command
     }
 
     /**
-     * 级联删除节点: 先清 Cloudflare 远端 DNS, 再删 ss_node 本体 + 12 张关联表.
+     * 死节点判定 scope (status=0 且 心跳超期, 或 无心跳且创建超期).
+     *
+     * 单一事实源: 候选集选取 / 逐节点删除前的重查 / cascadeDelete 的守卫式条件删除
+     * 三处共用同一条件, 避免"选人条件"与"删人条件"漂移.
+     *
+     * @param  string $cutoff
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    protected function deadNodeScope($cutoff)
+    {
+        return SsNode::where('status', 0)
+            ->where(function ($q) use ($cutoff) {
+                $q->where('heartbeat_at', '<', $cutoff)
+                  ->orWhere(function ($q2) use ($cutoff) {
+                      $q2->whereNull('heartbeat_at')->where('created_at', '<', $cutoff);
+                  });
+            });
+    }
+
+    /**
+     * 级联删除节点: 先清 Cloudflare 远端 DNS, 再守卫式删 ss_node 本体 + 12 张关联表.
      *
      * 顺序关键: 必须先调 DnsSyncer 清理远端 CF 记录 (否则只删本地行会留下 CF 孤儿记录,
      * 永远释放不了额度). DnsSyncer 内部按记录 root_domain 解析对应 cf_token (跨账号域名),
      * 失败会强制删本地并告警, 不抛异常.
      *
-     * @param int $nodeId
-     * @param string $tag 日志标签
+     * ss_node 删除带死节点守卫 (与 deadNodeScope 同源): 若 CF 清理期间节点恢复心跳/被启用,
+     * 条件删除影响 0 行 → 回滚放弃整个级联, 节点保留. 该小窗口内其 CF 记录可能已被清,
+     * 节点下次 resolve_dns 会自行重建 (reconcileThreeWay Scene B), 自愈无残留.
+     *
+     * @param int    $nodeId
+     * @param string $cutoff 死节点判定阈值 (与 handle 同源)
+     * @param string $tag    日志标签
+     * @return bool  true=已删除; false=守卫拦截 (节点已恢复, 本体与关联表均未动)
      * @throws \Exception 数据库事务失败时抛出 (上层 catch 记录, 节点保留待下次)
      */
-    protected function cascadeDelete($nodeId, $tag)
+    protected function cascadeDelete($nodeId, $cutoff, $tag)
     {
         // 1. 先清理 Cloudflare 远端 DNS (复用 NodeApiController::safeCleanupNodeDns 同一入口)
         try {
@@ -194,10 +221,19 @@ class AutoReclaimDeadNodes extends Command
             Log::warning("{$tag} DnsSyncer cleanup exception for node#{$nodeId}: " . $e->getMessage());
         }
 
-        // 2. 级联删本地表 (事务包裹, 失败回滚保留节点)
+        // 2. 级联删本地表 (事务包裹, 失败回滚保留节点).
+        //    ss_node 删除带死节点守卫: 判定与删除在同一条 DELETE 内原子完成, 消除
+        //    "查的时候是死节点, 删的时候已复活" 的检查-删除竞态窗口.
         DB::beginTransaction();
         try {
-            SsNode::where('id', $nodeId)->delete();
+            $affected = $this->deadNodeScope($cutoff)
+                ->where('id', $nodeId)
+                ->delete();
+            if ($affected === 0) {
+                DB::rollBack();
+                Log::warning("{$tag} 删除守卫拦截 node#{$nodeId}: 运行期间恢复心跳, 节点保留");
+                return false;
+            }
             SsGroupNode::where('node_id', $nodeId)->delete();
             SsNodeLabel::where('node_id', $nodeId)->delete();
             SsNodeInfo::where('node_id', $nodeId)->delete();
@@ -216,6 +252,8 @@ class AutoReclaimDeadNodes extends Command
             Log::error("{$tag} cascade 失败 node#{$nodeId}: " . $e->getMessage());
             throw $e;
         }
+
+        return true;
     }
 
     /**
