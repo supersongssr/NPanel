@@ -177,21 +177,27 @@ class AutoReclaimDeadNodes extends Command
             ->get(['id', 'name', 'heartbeat_at', 'created_at']);
 
         foreach ($victims as $node) {
+            // 二次校验: 重查 DB 确认仍为死节点 (deadNodeScope 同源条件).
+            // 不能读 victim 快照属性判断 —— 那正是选取时的命中条件, 恒为真, 毫无防御力;
+            // 重查可让运行期间恢复心跳/被启用/被 register 回收的节点零副作用跳过.
+            if (!$this->deadNodeScope($cutoff)->where('id', $node->id)->exists()) {
+                continue;  // guarded++
+            }
             if ($dryRun) {
                 $this->line("  [DRY] del #{$node->id} \"{$node->name}\" hb={$node->heartbeat_at}");
                 continue;
             }
-            $this->cascadeDelete($node->id);  // 复用 delNode 级联 (见下)
+            $this->cascadeDelete($node->id, $cutoff, $tag);  // 守卫式级联 (见下), 返回 false=守卫拦截节点保留
         }
         // 输出 summary + Log::info
     }
 }
 ```
 
-**级联删除 `cascadeDelete($id)`** —— **删前先调 `DnsSyncer::cleanupNodeRecords` 清理 Cloudflare 远端 DNS**(不只删本地行,避免 CF 孤儿记录),再事务级联 13 张表(完整删/留清单见"关联表清理审计"):
+**级联删除 `cascadeDelete($id, $cutoff, $tag)`(守卫式,返回 `bool`)** —— **删前先调 `DnsSyncer::cleanupNodeRecords` 清理 Cloudflare 远端 DNS**(不只删本地行,避免 CF 孤儿记录),再事务级联 13 张表(完整删/留清单见"关联表清理审计")。死节点判定抽取为单一事实源 `deadNodeScope($cutoff)`,候选集选取 / 逐节点删除前重查 / 守卫式条件删除三处共用同一条件,避免"选人条件"与"删人条件"漂移:
 
 ```php
-protected function cascadeDelete($id, $tag)
+protected function cascadeDelete($id, $cutoff, $tag)
 {
     // 1. 先清理 Cloudflare 远端 DNS (复用 NodeApiController::safeCleanupNodeDns 同一入口)
     //    DnsSyncer 内部按记录 root_domain 解析对应 cf_token (跨账号域名),
@@ -203,10 +209,16 @@ protected function cascadeDelete($id, $tag)
         Log::warning("{$tag} DnsSyncer cleanup exception for node#{$id}: " . $e->getMessage());
     }
 
-    // 2. 级联删本地表 (事务包裹, 失败回滚保留节点)
+    // 2. 级联删本地表 (事务包裹, 失败回滚保留节点).
+    //    ss_node 删除带死节点守卫 (deadNodeScope 同源条件): 判定与删除在同一条 DELETE 内
+    //    原子完成, 消除"查的时候是死节点, 删的时候已复活"的检查-删除竞态窗口.
     DB::beginTransaction();
     try {
-        SsNode::where('id', $id)->delete();
+        $affected = $this->deadNodeScope($cutoff)->where('id', $id)->delete();
+        if ($affected === 0) {
+            DB::rollBack();
+            return false;  // 守卫拦截: CF 清理期间节点恢复, 本体与关联表均未动, 节点保留
+        }
         SsGroupNode::where('node_id', $id)->delete();
         SsNodeLabel::where('node_id', $id)->delete();
         SsNodeInfo::where('node_id', $id)->delete();
@@ -225,6 +237,8 @@ protected function cascadeDelete($id, $tag)
         Log::error("{$tag} cascade 失败 node#{$id}: " . $e->getMessage());
         throw $e;
     }
+
+    return true;  // true=已删除; false=守卫拦截 (上层计 guarded, 节点保留待下次)
 }
 ```
 
@@ -300,11 +314,11 @@ $schedule->command('autoReclaimDeadNodes')->dailyAt('04:20')->withoutOverlapping
 命令输出:
 - 当前节点统计:`total / dead / alive / ratio`
 - 触发判定结果(跳过原因 或 配额 `deleteCount`)
-- 逐节点删除日志(dry-run 列表 / 实际删除)
-- summary:扫描数、删除数、失败数
+- 逐节点删除日志(dry-run 列表 / 实际删除 / 守卫拦截跳过)
+- summary:计划数(planned)、删除数(deleted)、失败数(failed)、守卫拦截数(guarded)
 
 日志(`Log::info`):
-- `tag`、`cutoff`、`total`、`dead`、`alive`、`ratio`、`delete_count`、`deleted_ids`、`failed`
+- `tag`、`cutoff`、`total`、`dead`、`alive`、`ratio`、`delete_count`、`deleted_ids`、`failed`、`guarded`
 
 ---
 
@@ -326,7 +340,7 @@ $schedule->command('autoReclaimDeadNodes')->dailyAt('04:20')->withoutOverlapping
 4. **必须 `--dry-run`**:dry-run 下不写库,完整预览影响范围。
 5. **必须分批**:删除用 `limit($deleteCount)` 单次取,逐条级联(事务包裹);禁止一次性全表扫无上限。
 6. **必须 `withoutOverlapping()`**:删除耗时不可控,防重叠。
-7. **删除前二次校验**(可选加固):逐条删除前 re-fetch 确认仍为 dead(防命令运行期间节点恢复心跳)。
+7. **删除前二次校验(已落地,双重守卫)**:逐条删除前重查 DB(与候选集同源的 `deadNodeScope`)确认仍为 dead;且 `cascadeDelete` 内 `ss_node` 删除本身带同源条件(守卫式条件删除,影响行数=0 即回滚放弃级联)——防命令运行期间节点恢复心跳/被启用/被 register 回收后被误删(被守卫跳过的计入 `guarded` 统计)。
 8. **不动 `id < 100`**:保留区,`PingController::getNewNode()` 依赖。
 9. **阶段一独立可上线**:止血改动不依赖阶段二,可先行提交,先行见效。
 10. **通知节点保护**:回收查询必须含 `status=0` 过滤(通知节点 status=1,heartbeat 恒 NULL 但被过滤挡在死池外)。

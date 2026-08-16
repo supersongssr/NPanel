@@ -70,7 +70,7 @@ Cloudflare 免费版通常有 **1000 条解析记录** 的硬上限。
 - **触发条件（比例 + 绝对下限）**：`dead/total > node_recycle_ratio`（默认 `0.50`）**且** `dead >= node_recycle_min_dead`（默认 `500`）。低于下限视为「无存储压力」直接跳过。
 - **配额**：删除 `dead - targetDead` 个最老的死节点（`id ASC`，裁回收池的「死寂端」，对回收零损耗），回归到 `targetDead = floor(ratio * alive / (1 - ratio))`（ratio=0.5 时即 `dead == alive`）。
 - **删前先清 CF 远端 DNS**：每条 victim 删除前调 `DnsSyncer::cleanupNodeRecords`，避免留下 Cloudflare 孤儿记录；随后事务级联 13 张表（`ss_node` 本体 + `delNode` 9 张 + `dns_records` + `ss_node_ip` + `ss_node_deny`）。
-- **安全闸门**：`status=0` 从源头排除在用节点；保留区 `id<100`（PingController 预留）永不删；强制支持 `--dry-run` 预演 + `withoutOverlapping` 防重叠。
+- **安全闸门**：`status=0` 从源头排除在用节点；保留区 `id<100`（PingController 预留）永不删；逐节点删除前重查 DB 二次确认仍为死节点，且 `ss_node` 删除为守卫式条件删除（与候选集同源条件，影响 0 行即回滚放弃级联），命令运行期间恢复心跳/被启用的节点不会被误删；强制支持 `--dry-run` 预演 + `withoutOverlapping` 防重叠。
 
 > 调整阈值无需改代码：在 `config.default.php` / `.config.php` 修改 `node_recycle_ratio`、`node_recycle_min_dead`、`dns_expire_days` 即可。设计细节见 `plans/nodes/autoReclaimDeadNodes.md`。
 
