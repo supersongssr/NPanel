@@ -102,15 +102,17 @@ class NodeController extends Controller
         $now = time();
 
         // 校验 + 按 userId 合并(防重复 id 导致 CASE 覆盖)
+        // 严格 is_int: JSON 里超出 PHP int 范围的数字会解码成 float(如 1e30),
+        // (int) 强转会产生垃圾正数直接污染计费 —— 盲盒测试发现的真 bug, 必须拒收
         $merged = [];
         foreach ($items as $item) {
             if (!is_array($item)) {
                 return $this->err(400, 'BAD_REQUEST', 'item must be an object');
             }
-            $userId = (int)array_get($item, 'userId', 0);
-            $up = (int)array_get($item, 'uplinkBytes', -1);
-            $down = (int)array_get($item, 'downlinkBytes', -1);
-            if ($userId <= 0 || $up < 0 || $down < 0) {
+            $userId = array_get($item, 'userId');
+            $up = array_get($item, 'uplinkBytes');
+            $down = array_get($item, 'downlinkBytes');
+            if (!is_int($userId) || $userId <= 0 || !is_int($up) || $up < 0 || !is_int($down) || $down < 0) {
                 return $this->err(400, 'BAD_REQUEST', 'invalid item fields');
             }
             if (!isset($merged[$userId])) {
