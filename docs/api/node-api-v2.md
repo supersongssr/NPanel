@@ -16,6 +16,8 @@ apply_id → register → resolve_dns → config → status(循环)
 
 **适用版本:** commit `36f943a8` (2026-05-12) 及之后。
 
+> 本文描述的是**节点生命周期 API**（`/api/node/*`，全局 `API_TOKEN` 鉴权）。机器对机器的**节点后端 API v2**（`/api/v2/backend/*`：用户快照 / 流量上报 / 状态心跳，每节点独立 Bearer token）是另一套接口，详见 [backend-node-api-v2.md](backend-node-api-v2.md)。
+
 ---
 
 ## 生命周期流程图

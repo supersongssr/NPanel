@@ -4,7 +4,7 @@ This report provides an overview of the custom Artisan commands and scheduled ta
 
 ## Summary
 
-There are **26** commands explicitly listed in the `$commands` array of `Kernel.php`, and **29** command files found in the `app/Console/Commands` directory. The application relies heavily on these commands for automated maintenance, statistics, and billing tasks.
+There are **26** commands explicitly listed in the `$commands` array of `Kernel.php`, and **31** command files found in the `app/Console/Commands` directory. The application relies heavily on these commands for automated maintenance, statistics, and billing tasks.
 
 ## Registered Commands
 
@@ -50,6 +50,8 @@ These commands are found in `app/Console/Commands` and are loaded automatically 
 | `initDnsRecords` | Sync DNS records from Cloudflare: clean orphans, upsert matched A/AAAA records |
 | `rate-limit:clear {code?}` | Clear subscription rate limit cache from Redis |
 | `test:autoDeleteExpiredDns` | 模拟测试 AutoDeleteExpiredDns 各场景 (Scenario test harness for AutoDeleteExpiredDns) |
+| `node:generate-api-tokens {--show} {--node=}` | 批量生成 v2 后端节点 API（`/api/v2/backend`）的每节点 Bearer token（`ss_node.api_token`，43 字符 base64url；仅补齐空值，已有 token 保持不变）(Batch-generate per-node Bearer tokens for the v2 backend node API) |
+| `downtime:compensation {--dry-run} {--yes}` | 一次性停机补偿：给 status=0/1 且非管理员用户余额 +3 元（300 分）并写 user_balance_log；storage/downtime_compensation.lock 永久锁 + desc 幂等标记保证仅执行一次。不进 schedule，仅人工手动执行 (One-shot downtime compensation, manual only) |
 
 ## Scheduled Tasks
 
@@ -79,4 +81,4 @@ The following tasks are scheduled in the `schedule` method:
 > 注：`autoCheckNodeStatus` 在 `Kernel.php` 中已被注释，未参与调度。
 
 ---
-*Report refreshed on August 10, 2026 (synced to `app/Console/Kernel.php` as of commit de4ef95c)*
+*Report refreshed on August 19, 2026 — 新增 `node:generate-api-tokens` 与 `downtime:compensation`（commit 342f80da）；此前于 August 10, 2026 同步至 commit de4ef95c*

@@ -2,13 +2,14 @@
 
 ## 概述
 
-NPanel API 提供节点管理、端口检测、支付处理等功能。所有 API 接口都需要进行 token 验证以确保安全性。
+NPanel API 提供节点管理、端口检测、支付处理等功能。除无鉴权的健康检查等探活接口外，所有 API 接口都需要进行 token 验证以确保安全性。
 
 **Base URL:** `http://your-domain.com/api`
 
 **认证方式:** 
 - 大部分接口使用 `API_TOKEN`（在 `.env` 文件中配置）
 - 部分接口使用 MD5 签名验证
+- 节点后端 API v2（`/api/v2/backend/*`）使用**每节点独立** Bearer token（`ss_node.api_token`，由 `php artisan node:generate-api-tokens` 生成），不共用全局 `API_TOKEN`，详见 [backend-node-api-v2.md](backend-node-api-v2.md)；其中 `GET /api/v2/backend/healthz` 为无鉴权健康检查
 
 ---
 
@@ -419,4 +420,4 @@ token=5d41402abc4b2a76b9719d911017c592&salt=hello&ip=1&time=1&due_time=1
 
 ---
 
-*文档最后更新时间: 2026-04-23*
+*文档最后更新时间: 2026-08-19*
