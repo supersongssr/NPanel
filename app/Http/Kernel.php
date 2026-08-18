@@ -67,6 +67,7 @@ class Kernel extends HttpKernel
         'isForbidden'   => \App\Http\Middleware\isForbidden::class,
         'affiliate'     => \App\Http\Middleware\Affiliate::class,
         'node.api.token' => \App\Http\Middleware\NodeApiToken::class,
+        'backend.token' => \App\Http\Middleware\BackendToken::class,
 
     ];
 }

@@ -32,4 +32,16 @@ Route::group(['namespace' => 'Api'], function () {
         Route::post('status', 'NodeApiController@status');
         Route::post('unlock_check', 'NodeApiController@unlockCheck');
     });
+
+    // v2 后端节点 API(机器对机器: xray-plugin-api 节点插件 ↔ 面板)
+    // 契约: xray-plugin-api docs/openapi.yaml; 每节点独立 Bearer token(ss_node.api_token)
+    // 不与旧 node 组共用 env('API_TOKEN') 全局 key; 不挂 session/CSRF
+    Route::group(['prefix' => 'v2/backend', 'middleware' => 'backend.token'], function () {
+        Route::get('users', 'V2\Backend\NodeController@users');
+        Route::post('traffic', 'V2\Backend\NodeController@traffic');
+        Route::post('status', 'V2\Backend\NodeController@status');
+    });
 });
+
+// 健康检查不鉴权(给 nginx/监控探活)
+Route::get('v2/backend/healthz', 'Api\V2\Backend\NodeController@healthz');
