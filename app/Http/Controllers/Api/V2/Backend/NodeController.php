@@ -120,6 +120,10 @@ class NodeController extends Controller
             }
             $merged[$userId][0] += $up;
             $merged[$userId][1] += $down;
+            // 合并求和溢出防护: 多条同 userId 累加溢出 int 后变 float, 拒收整批
+            if (!is_int($merged[$userId][0]) || !is_int($merged[$userId][1])) {
+                return $this->err(400, 'BAD_REQUEST', 'item sum overflow');
+            }
         }
 
         $accepted = count($merged);
@@ -232,8 +236,43 @@ class NodeController extends Controller
             $online->save();
         }
 
-        $node->heartbeat_at = date('Y-m-d H:i:s', $now);
-        $node->save();
+        // 每日派生字段(与 NodeApiController::status 同口径), 保持管理页展示新鲜
+        $freshNode = SsNode::query()->find($node->id);
+        if ($freshNode !== null) {
+            $resetDay = (int)$freshNode->reset_day;
+            $today = (int)date('j');
+            $daysInMonth = (int)date('t');
+
+            if ($resetDay > 0) {
+                $rd = min($resetDay, $daysInMonth);
+                if ($today >= $rd) {
+                    $daysElapsed = max(1, $today - $rd + 1);
+                    $daysRemaining = max(1, $daysInMonth - $today + $rd);
+                } else {
+                    $lastMonth = (int)date('n') - 1 ?: 12;
+                    $lastYear = (int)date('Y') - ($lastMonth === 12 ? 1 : 0);
+                    $daysInLastMonth = (int)date('t', mktime(0, 0, 0, $lastMonth, 1, $lastYear));
+                    $daysElapsed = max(1, $daysInLastMonth - min($resetDay, $daysInLastMonth) + $today + 1);
+                    $daysRemaining = max(1, $rd - $today);
+                }
+            } else {
+                $daysElapsed = max(1, $today);
+                $daysRemaining = max(1, $daysInMonth - $today);
+            }
+
+            $freshNode->server_uptime = $uptime;
+            $freshNode->traffic_left = max(0, $freshNode->traffic_limit - $freshNode->traffic_used);
+            $freshNode->traffic_used_daily = (int)($freshNode->traffic_used / $daysElapsed);
+            $freshNode->traffic_left_daily = (int)(max(0, $freshNode->traffic_left) / $daysRemaining);
+            $avgUsed = $freshNode->traffic_used / $daysElapsed;
+            $avgRemaining = max(0, $freshNode->traffic_left) / $daysRemaining;
+            $freshNode->node_health = $avgUsed > $avgRemaining ? 0 : 1;
+            $freshNode->heartbeat_at = date('Y-m-d H:i:s', $now);
+            $freshNode->save();
+        } else {
+            $node->heartbeat_at = date('Y-m-d H:i:s', $now);
+            $node->save();
+        }
 
         return $this->ok(['accepted' => true]);
     }
