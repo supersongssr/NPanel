@@ -9,6 +9,7 @@ use App\Http\Models\SsNodeOnlineLog;
 use App\Http\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -30,6 +31,9 @@ use Illuminate\Http\JsonResponse;
  */
 class NodeController extends Controller
 {
+    /** 单条字节上限(1<<60 ≈ 1.15EB): 超过必为恶意/损坏数据, 防止 bigint 溢出 */
+    const MAX_ITEM_BYTES = 1152921504606846976;
+
     /**
      * GET /users — 本节点有效用户全量快照
      *
@@ -104,6 +108,7 @@ class NodeController extends Controller
         // 校验 + 按 userId 合并(防重复 id 导致 CASE 覆盖)
         // 严格 is_int: JSON 里超出 PHP int 范围的数字会解码成 float(如 1e30),
         // (int) 强转会产生垃圾正数直接污染计费 —— 盲盒测试发现的真 bug, 必须拒收
+        // 单条上限(1<<60): 防止 bigint 溢出, 60 秒周期内不可能超过 1EB
         $merged = [];
         foreach ($items as $item) {
             if (!is_array($item)) {
@@ -114,6 +119,9 @@ class NodeController extends Controller
             $down = array_get($item, 'downlinkBytes');
             if (!is_int($userId) || $userId <= 0 || !is_int($up) || $up < 0 || !is_int($down) || $down < 0) {
                 return $this->err(400, 'BAD_REQUEST', 'invalid item fields');
+            }
+            if ($up > self::MAX_ITEM_BYTES || $down > self::MAX_ITEM_BYTES) {
+                return $this->err(400, 'BAD_REQUEST', 'byte count exceeds sane limit');
             }
             if (!isset($merged[$userId])) {
                 $merged[$userId] = [0, 0];
@@ -133,61 +141,80 @@ class NodeController extends Controller
 
         $nodeId = (int)$node->id;
         $totalRaw = 0;
+        // 始终用小数字面量(1.0 而非 1): bigint + decimal 不会触发 1690 溢出错,
+        // 配合 LEAST 封顶 → 饱和而非报错(报错会让插件 at-least-once 无限重试, 卡死整节点上报)
         $rateStr = var_export($rate, true); // float 字面量, e.g. '0.5'
-        if ($rateStr === '1.0') {
-            $rateStr = '1';
+        if (strpos($rateStr, '.') === false) {
+            $rateStr .= '.0';
         }
+        $bigintMax = '9223372036854775807';
 
-        // CASE WHEN 单语句原子累加(u/d 乘倍率), 值全部来自上面强转的整数
+        // CASE WHEN 单语句原子累加(u/d 乘倍率 + LEAST 饱和封顶), 值全部来自上面强转的整数
         $caseU = '';
         $caseD = '';
         $ids = [];
         foreach ($merged as $userId => $pair) {
             $ids[] = $userId;
-            $caseU .= sprintf(' WHEN %d THEN u + %d * %s', $userId, $pair[0], $rateStr);
-            $caseD .= sprintf(' WHEN %d THEN d + %d * %s', $userId, $pair[1], $rateStr);
+            $caseU .= sprintf(' WHEN %d THEN LEAST(u + %d * %s, %s)', $userId, $pair[0], $rateStr, $bigintMax);
+            $caseD .= sprintf(' WHEN %d THEN LEAST(d + %d * %s, %s)', $userId, $pair[1], $rateStr, $bigintMax);
             $totalRaw += $pair[0] + $pair[1];
+        }
+        // 总和溢出防护: 全批字节数超出 int(极端构造)拒收
+        if (!is_int($totalRaw)) {
+            return $this->err(400, 'BAD_REQUEST', 'batch total overflow');
         }
         $idList = implode(',', $ids);
 
-        DB::transaction(function () use ($idList, $caseU, $caseD, $rateStr, $now, $nodeId, $merged, $totalRaw) {
-            DB::update(
-                "UPDATE `user` SET
-                    `u` = CASE `id` {$caseU} END,
-                    `d` = CASE `id` {$caseD} END,
-                    `t` = {$now}
-                WHERE `id` IN ({$idList})"
-            );
+        // 事务内任何异常(连接断/死锁/溢出)都返回契约信封 500 INTERNAL,
+        // 否则 Laravel 默认渲染非契约格式的异常响应, 插件无法区分语义
+        try {
+            DB::transaction(function () use ($idList, $caseU, $caseD, $rateStr, $now, $nodeId, $merged, $totalRaw) {
+                DB::update(
+                    "UPDATE `user` SET
+                        `u` = CASE `id` {$caseU} END,
+                        `d` = CASE `id` {$caseD} END,
+                        `t` = {$now}
+                    WHERE `id` IN ({$idList})"
+                );
 
-            // 流量明细: 一条多 VALUES 批量 INSERT(每 500 行一批)
-            $rows = [];
-            foreach ($merged as $userId => $pair) {
-                $rows[] = [
-                    'user_id' => $userId,
-                    'u' => $pair[0],
-                    'd' => $pair[1],
-                    'node_id' => $nodeId,
-                    'rate' => (float)$rateStr,
-                    'traffic' => flowAutoShow(($pair[0] + $pair[1]) * (float)$rateStr),
-                    'log_time' => $now,
-                ];
-            }
-            foreach (array_chunk($rows, 500) as $chunk) {
-                DB::table('user_traffic_log')->insert($chunk);
-            }
+                // 流量明细: 一条多 VALUES 批量 INSERT(每 500 行一批)
+                $rows = [];
+                foreach ($merged as $userId => $pair) {
+                    $rows[] = [
+                        'user_id' => $userId,
+                        'u' => $pair[0],
+                        'd' => $pair[1],
+                        'node_id' => $nodeId,
+                        'rate' => (float)$rateStr,
+                        'traffic' => flowAutoShow(($pair[0] + $pair[1]) * (float)$rateStr),
+                        'log_time' => $now,
+                    ];
+                }
+                foreach (array_chunk($rows, 500) as $chunk) {
+                    DB::table('user_traffic_log')->insert($chunk);
+                }
 
-            // 节点用量累加原始字节(原子 UPDATE)
-            DB::update(
-                "UPDATE `ss_node` SET `traffic_used` = `traffic_used` + {$totalRaw} WHERE `id` = {$nodeId}"
-            );
-        });
+                // 节点用量累加原始字节(原子 UPDATE)
+                DB::update(
+                    "UPDATE `ss_node` SET `traffic_used` = `traffic_used` + {$totalRaw} WHERE `id` = {$nodeId}"
+                );
+            });
+        } catch (\Exception $e) {
+            Log::error('[BackendApi v2] traffic write failed', ['node' => $nodeId, 'err' => $e->getMessage()]);
+            return $this->err(500, 'INTERNAL', 'traffic write failed');
+        }
 
         // 派生字段刷新(剩余流量, 与 NodeApiController::status 口径一致): 取库内最新值重算
-        $freshNode = SsNode::query()->find($node->id);
-        if ($freshNode !== null) {
-            $freshNode->traffic_left = max(0, $freshNode->traffic_limit - $freshNode->traffic_used);
-            $freshNode->heartbeat_at = date('Y-m-d H:i:s');
-            $freshNode->save();
+        // 失败不影响已入账流量(下一轮重算), 只记日志
+        try {
+            $freshNode = SsNode::query()->find($node->id);
+            if ($freshNode !== null) {
+                $freshNode->traffic_left = max(0, $freshNode->traffic_limit - $freshNode->traffic_used);
+                $freshNode->heartbeat_at = date('Y-m-d H:i:s');
+                $freshNode->save();
+            }
+        } catch (\Exception $e) {
+            Log::warning('[BackendApi v2] traffic derived refresh failed', ['node' => $nodeId, 'err' => $e->getMessage()]);
         }
 
         return $this->ok(['accepted' => $accepted]);
@@ -221,57 +248,63 @@ class NodeController extends Controller
         );
 
         $now = time();
-        $info = new SsNodeInfo();
-        $info->node_id = (int)$node->id;
-        $info->uptime = $uptime;
-        $info->load = $load;
-        $info->log_time = $now;
-        $info->save();
+        // 写入异常(连接断/死锁)返回契约信封 500 INTERNAL, 不让 Laravel 渲染非契约异常页
+        try {
+            $info = new SsNodeInfo();
+            $info->node_id = (int)$node->id;
+            $info->uptime = $uptime;
+            $info->load = $load;
+            $info->log_time = $now;
+            $info->save();
 
-        if ($onlineUsers > 0) {
-            $online = new SsNodeOnlineLog();
-            $online->node_id = (int)$node->id;
-            $online->online_user = $onlineUsers;
-            $online->log_time = $now;
-            $online->save();
-        }
-
-        // 每日派生字段(与 NodeApiController::status 同口径), 保持管理页展示新鲜
-        $freshNode = SsNode::query()->find($node->id);
-        if ($freshNode !== null) {
-            $resetDay = (int)$freshNode->reset_day;
-            $today = (int)date('j');
-            $daysInMonth = (int)date('t');
-
-            if ($resetDay > 0) {
-                $rd = min($resetDay, $daysInMonth);
-                if ($today >= $rd) {
-                    $daysElapsed = max(1, $today - $rd + 1);
-                    $daysRemaining = max(1, $daysInMonth - $today + $rd);
-                } else {
-                    $lastMonth = (int)date('n') - 1 ?: 12;
-                    $lastYear = (int)date('Y') - ($lastMonth === 12 ? 1 : 0);
-                    $daysInLastMonth = (int)date('t', mktime(0, 0, 0, $lastMonth, 1, $lastYear));
-                    $daysElapsed = max(1, $daysInLastMonth - min($resetDay, $daysInLastMonth) + $today + 1);
-                    $daysRemaining = max(1, $rd - $today);
-                }
-            } else {
-                $daysElapsed = max(1, $today);
-                $daysRemaining = max(1, $daysInMonth - $today);
+            if ($onlineUsers > 0) {
+                $online = new SsNodeOnlineLog();
+                $online->node_id = (int)$node->id;
+                $online->online_user = $onlineUsers;
+                $online->log_time = $now;
+                $online->save();
             }
 
-            $freshNode->server_uptime = $uptime;
-            $freshNode->traffic_left = max(0, $freshNode->traffic_limit - $freshNode->traffic_used);
-            $freshNode->traffic_used_daily = (int)($freshNode->traffic_used / $daysElapsed);
-            $freshNode->traffic_left_daily = (int)(max(0, $freshNode->traffic_left) / $daysRemaining);
-            $avgUsed = $freshNode->traffic_used / $daysElapsed;
-            $avgRemaining = max(0, $freshNode->traffic_left) / $daysRemaining;
-            $freshNode->node_health = $avgUsed > $avgRemaining ? 0 : 1;
-            $freshNode->heartbeat_at = date('Y-m-d H:i:s', $now);
-            $freshNode->save();
-        } else {
-            $node->heartbeat_at = date('Y-m-d H:i:s', $now);
-            $node->save();
+            // 每日派生字段(与 NodeApiController::status 同口径), 保持管理页展示新鲜
+            $freshNode = SsNode::query()->find($node->id);
+            if ($freshNode !== null) {
+                $resetDay = (int)$freshNode->reset_day;
+                $today = (int)date('j');
+                $daysInMonth = (int)date('t');
+
+                if ($resetDay > 0) {
+                    $rd = min($resetDay, $daysInMonth);
+                    if ($today >= $rd) {
+                        $daysElapsed = max(1, $today - $rd + 1);
+                        $daysRemaining = max(1, $daysInMonth - $today + $rd);
+                    } else {
+                        $lastMonth = (int)date('n') - 1 ?: 12;
+                        $lastYear = (int)date('Y') - ($lastMonth === 12 ? 1 : 0);
+                        $daysInLastMonth = (int)date('t', mktime(0, 0, 0, $lastMonth, 1, $lastYear));
+                        $daysElapsed = max(1, $daysInLastMonth - min($resetDay, $daysInLastMonth) + $today + 1);
+                        $daysRemaining = max(1, $rd - $today);
+                    }
+                } else {
+                    $daysElapsed = max(1, $today);
+                    $daysRemaining = max(1, $daysInMonth - $today);
+                }
+
+                $freshNode->server_uptime = $uptime;
+                $freshNode->traffic_left = max(0, $freshNode->traffic_limit - $freshNode->traffic_used);
+                $freshNode->traffic_used_daily = (int)($freshNode->traffic_used / $daysElapsed);
+                $freshNode->traffic_left_daily = (int)(max(0, $freshNode->traffic_left) / $daysRemaining);
+                $avgUsed = $freshNode->traffic_used / $daysElapsed;
+                $avgRemaining = max(0, $freshNode->traffic_left) / $daysRemaining;
+                $freshNode->node_health = $avgUsed > $avgRemaining ? 0 : 1;
+                $freshNode->heartbeat_at = date('Y-m-d H:i:s', $now);
+                $freshNode->save();
+            } else {
+                $node->heartbeat_at = date('Y-m-d H:i:s', $now);
+                $node->save();
+            }
+        } catch (\Exception $e) {
+            Log::error('[BackendApi v2] status write failed', ['node' => $node->id, 'err' => $e->getMessage()]);
+            return $this->err(500, 'INTERNAL', 'status write failed');
         }
 
         return $this->ok(['accepted' => true]);
