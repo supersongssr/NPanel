@@ -1526,6 +1526,12 @@ class NodeApiController extends Controller
             // reality serverNames 必须等于客户端 SNI (v2_sni); host/sni 复用后 clone 的
             // v2_sni = clusterHost ≠ server, 故取 v2_sni 而非 server, 否则 reality 握手失败.
             "__realityServerName__" => $node->v2_sni ?: ($node->server ?: $nodeDomain),
+            // v2 面板 API: baseURL 完整到 /api/v2/backend 路由组(设计文档 §8.2),
+            // 专用域名优先(NODE_API_BASE_URL), 回退 app.url
+            "__panelBaseURL__" =>
+                rtrim(env("NODE_API_BASE_URL", config("app.url")), "/") .
+                "/api/v2/backend",
+            "__panelToken__" => (string) ($node->api_token ?? ""),
         ];
 
         $config = $this->injectVariables($config, $vars);
@@ -1556,6 +1562,31 @@ class NodeApiController extends Controller
             } else {
                 unset($config["ssrpanel"]["user"]["flows"]);
             }
+        }
+
+        // v2 面板 API 模式(xray-plugin-api 插件, 配置段 panelApi):
+        //   - api_token 已签发: 填真实 baseURL/token, 保留 ssrpanel 段 —— 新旧插件
+        //     都可用(xray 核心忽略未知顶级键), DB 凭据保留 = 回滚能力(设计文档 §8.5)
+        //   - 未签发: 删除 panelApi 段, 输出与旧 srp 时代一致(零回归)
+        //   - Phase 4 收尾开关 NODE_API_DROP_MYSQL_CREDENTIALS=true: 删除 ssrpanel 段,
+        //     节点不再持有 DB 凭据(设计文档 §9 Phase 4 验收项)
+        if (isset($config["panelApi"])) {
+            if (!empty($node->api_token)) {
+                $config["panelApi"]["user"]["inboundTags"] = $inboundTags;
+
+                if (in_array("proxy-vision", $inboundTags)) {
+                    $config["panelApi"]["user"]["flows"] = [
+                        "proxy-vision" => "xtls-rprx-vision",
+                    ];
+                } else {
+                    unset($config["panelApi"]["user"]["flows"]);
+                }
+            } else {
+                unset($config["panelApi"]);
+            }
+        }
+        if (env("NODE_API_DROP_MYSQL_CREDENTIALS", false)) {
+            unset($config["ssrpanel"]);
         }
 
         if ($node->node_unlock) {
@@ -1593,6 +1624,13 @@ class NodeApiController extends Controller
         $logVars = $vars;
         $logVars["__dbPassword__"] = "******";
         $logVars["__realityPrivateKey__"] = "******";
+        // panelApi token 日志打码(与插件侧口径一致: 只露前4后4)
+        if (isset($logVars["__panelToken__"])) {
+            $t = (string) $logVars["__panelToken__"];
+            $logVars["__panelToken__"] = strlen($t) > 8
+                ? substr($t, 0, 4) . "****" . substr($t, -4)
+                : "******";
+        }
 
         Log::debug("[Node API] 配置下发", [
             "node_id" => $node->id,

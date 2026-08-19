@@ -138,5 +138,29 @@
             "password": "__dbPassword__",
             "dbname": "__dbName__"
         }
+    },
+    "panelApi": {
+        "api": {
+            "baseURL": "__panelBaseURL__",
+            "token": "__panelToken__",
+            "timeoutSeconds": 10,
+            "insecure": false
+        },
+        "pollIntervalSeconds": 60,
+        "ipLimit": 3,
+        "ignoreEmptyVmessID": true,
+        "user": {
+            "inboundTag": "proxy",
+            "inboundTags": [
+                "__inboundTags__"
+            ],
+            "level": 0,
+            "alterId": 0,
+            "flow": "",
+            "flows": {
+                "__vlessVisionTag__": "__v2Flow__"
+            },
+            "securityConfig": "auto"
+        }
     }
 }
