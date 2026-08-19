@@ -394,6 +394,12 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 4. **流媒体解锁模板：** 从 `resources/templates/xray/unlock/{service}.json` 文件加载解锁规则，支持 config 表中的 `unlock_{service}_address/port/password/method` 变量注入。
 
+5. **panelApi 双段下发（v2 HTTP 模式）：** 模板内置 `panelApi` 段（占位符 `__panelBaseURL__` / `__panelToken__`），按节点 token 状态动态处理：
+   - `api_token` 已签发：保留 `panelApi` 段（`baseURL` = env `NODE_API_BASE_URL`（专用域名优先）或 `app.url` + `/api/v2/backend`，`token` = 节点 api_token；`user.inboundTags` / `flows` 与 `ssrpanel` 段同管线填充），**同时保留 `ssrpanel` 段** —— 新旧插件都可用（xray 核心忽略未知顶级键），DB 凭据保留 = 回滚能力。
+   - `api_token` 未签发：删除 `panelApi` 段，输出与旧版完全一致（零回归）。
+   - env `NODE_API_DROP_MYSQL_CREDENTIALS=true`：额外删除 `ssrpanel` 段，节点不再持有 MySQL 凭据。
+   - 面板 API 契约详见 [backend-node-api-v2.md](backend-node-api-v2.md)。
+
 ---
 
 ### Step 3.5: 拉取 Nginx 配置
@@ -529,4 +535,4 @@ resources/templates/
 
 ---
 
-*文档更新时间: 2026-08-09 | 基于 commit: 2c985d9f*
+*文档更新时间: 2026-08-19 | 基于 commit: 93f2fa81*

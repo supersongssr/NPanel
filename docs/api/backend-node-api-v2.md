@@ -70,7 +70,21 @@ php artisan node:generate-api-tokens --show     # 仅列出各节点 token, 不�
 php artisan node:generate-api-tokens --node=3   # 查看/生成单节点
 ```
 
-生成后把 token 填入对应节点 config.json 的 `panelApi.api.token` 段。
+生成后 token **无需手工填写**:`POST /api/node/config` 会自动把 `panelApi` 段（baseURL + token）注入下发的 config.json，详见下节。
+
+---
+
+## panelApi 段自动下发（`/api/node/config` 双段兼容）
+
+`resources/templates/xray/*.json` 全部模板内置 `panelApi` 段（占位符 `__panelBaseURL__` / `__panelToken__`），由 `NodeApiController::config` 按节点 token 状态动态处理：
+
+| 场景 | 下发行为 |
+|---|---|
+| `ss_node.api_token` 已签发 | 保留 `panelApi` 段并填真实值：`api.baseURL` = `rtrim(NODE_API_BASE_URL ?: app.url, '/') . '/api/v2/backend'`（专用域名优先，回退 `app.url`）、`api.token` = 节点 api_token，`user.inboundTags` / `flows` 与 `ssrpanel` 段同管线按协议组填充；**同时保留 `ssrpanel` 段** —— 新旧插件都可用（xray 核心忽略未知顶级键），DB 凭据保留 = 回滚能力 |
+| `api_token` 未签发 | 删除 `panelApi` 段，输出与旧版完全一致（零回归） |
+| env `NODE_API_DROP_MYSQL_CREDENTIALS=true` | 额外删除 `ssrpanel` 段，节点不再持有 MySQL 凭据（Phase 4 收尾开关） |
+
+下发日志中 panelApi token 打码（仅露前 4 后 4 位），与插件侧口径一致。
 
 ---
 
@@ -200,4 +214,4 @@ php artisan node:generate-api-tokens --node=3   # 查看/生成单节点
 
 ---
 
-*文档更新时间: 2026-08-19 | 基于 commit: 342f80da*
+*文档更新时间: 2026-08-19 | 基于 commit: 93f2fa81*
