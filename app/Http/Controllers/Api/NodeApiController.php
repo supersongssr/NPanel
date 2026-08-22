@@ -1572,11 +1572,14 @@ class NodeApiController extends Controller
         }
 
         // v2 面板 API 模式(xray-plugin-api 插件, 配置段 panelApi):
-        //   - api_token 已签发: 填真实 baseURL/token, 保留 ssrpanel 段 —— 新旧插件
-        //     都可用(xray 核心忽略未知顶级键), DB 凭据保留 = 回滚能力(设计文档 §8.5)
-        //   - 未签发: 删除 panelApi 段, 输出与旧 srp 时代一致(零回归)
-        //   - Phase 4 收尾开关 NODE_API_DROP_MYSQL_CREDENTIALS=true: 删除 ssrpanel 段,
-        //     节点不再持有 DB 凭据(设计文档 §9 Phase 4 验收项)
+        //   - api_token 已签发: 填真实 baseURL/token, panelApi 可用; 默认删除
+        //     ssrpanel 段 —— 安全默认, 节点已走 HTTP API, 不应继续持有库地址/
+        //     账号/密码(最低安全保证: DB 凭据不下发给 API 节点)
+        //   - 未签发: 删除 panelApi 段, ssrpanel 保留(旧插件仍靠直连库), 零回归
+        //   - 回滚开关 NODE_API_KEEP_MYSQL_CREDENTIALS=true: 临时恢复双段下发
+        //     (换回旧插件前打开, 切稳后关掉; 显式 opt-in, 期间节点重新持有 DB 凭据)
+        //   - Phase 4 收尾开关 NODE_API_DROP_MYSQL_CREDENTIALS=true: 所有下发(含
+        //     旧插件节点)均删除 ssrpanel 段, 全网不再有 DB 凭据
         if (isset($config["panelApi"])) {
             if (!empty($node->api_token)) {
                 $config["panelApi"]["user"]["inboundTags"] = $inboundTags;
@@ -1591,6 +1594,10 @@ class NodeApiController extends Controller
             } else {
                 unset($config["panelApi"]);
             }
+        }
+        if (isset($config["panelApi"])
+            && !env("NODE_API_KEEP_MYSQL_CREDENTIALS", false)) {
+            unset($config["ssrpanel"]);
         }
         if (env("NODE_API_DROP_MYSQL_CREDENTIALS", false)) {
             unset($config["ssrpanel"]);

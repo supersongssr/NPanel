@@ -78,15 +78,16 @@ php artisan node:generate-api-tokens --node=3   # 查看/生成单节点
 
 ---
 
-## panelApi 段自动下发（`/api/node/config` 双段兼容）
+## panelApi 段自动下发（`/api/node/config`，安全默认不带 DB 凭据）
 
 `resources/templates/xray/*.json` 全部模板内置 `panelApi` 段（占位符 `__panelBaseURL__` / `__panelToken__`），由 `NodeApiController::config` 按节点 token 状态动态处理：
 
 | 场景 | 下发行为 |
 |---|---|
-| `ss_node.api_token` 已签发 | 保留 `panelApi` 段并填真实值：`api.baseURL` = `rtrim(NODE_API_BASE_URL ?: app.url, '/') . '/api/v2/backend'`（专用域名优先，回退 `app.url`）、`api.token` = 节点 api_token，`user.inboundTags` / `flows` 与 `ssrpanel` 段同管线按协议组填充；**同时保留 `ssrpanel` 段** —— 新旧插件都可用（xray 核心忽略未知顶级键），DB 凭据保留 = 回滚能力 |
-| `api_token` 未签发 | 删除 `panelApi` 段，输出与旧版完全一致（零回归） |
-| env `NODE_API_DROP_MYSQL_CREDENTIALS=true` | 额外删除 `ssrpanel` 段，节点不再持有 MySQL 凭据（Phase 4 收尾开关） |
+| `ss_node.api_token` 已签发 | 保留 `panelApi` 段并填真实值：`api.baseURL` = `rtrim(NODE_API_BASE_URL ?: app.url, '/') . '/api/v2/backend'`（专用域名优先，回退 `app.url`）、`api.token` = 节点 api_token，`user.inboundTags` / `flows` 按协议组填充；**默认删除 `ssrpanel` 段** —— 已走 HTTP API 的节点不应继续持有库地址/账号/密码（最低安全保证： DB 凭据不下发给 API 节点） |
+| `api_token` 未签发 | 删除 `panelApi` 段，保留 `ssrpanel` 段（旧插件仍靠直连库），输出与旧版完全一致（零回归） |
+| env `NODE_API_KEEP_MYSQL_CREDENTIALS=true` | 回滚开关：已签发 token 的节点恢复双段下发（`panelApi` + `ssrpanel`/DB 凭据）。仅在需要换回旧直连库插件时临时打开，切稳后务必改回 |
+| env `NODE_API_DROP_MYSQL_CREDENTIALS=true` | 收尾开关：一律删除 `ssrpanel` 段（含未签发 token 的旧插件节点），全网不再持有 MySQL 凭据（Phase 4） |
 
 下发日志中 panelApi token 打码（仅露前 4 后 4 位），与插件侧口径一致。
 
