@@ -68,6 +68,7 @@ class Kernel extends HttpKernel
         'affiliate'     => \App\Http\Middleware\Affiliate::class,
         'node.api.token' => \App\Http\Middleware\NodeApiToken::class,
         'backend.token' => \App\Http\Middleware\BackendToken::class,
+        'user.api.token' => \App\Http\Middleware\UserApiToken::class,
 
     ];
 }

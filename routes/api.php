@@ -33,6 +33,14 @@ Route::group(['namespace' => 'Api'], function () {
         Route::post('unlock_check', 'NodeApiController@unlockCheck');
     });
 
+    // v2 用户查询 API(机器对机器: 运维/监控/客服系统 ↔ 面板)
+    // 只读: 按 id/email 查询用户流量信息; 独立 Bearer token(env USER_API_TOKEN, 不与节点共用)
+    // 不挂 session/CSRF
+    Route::group(['prefix' => 'v2/user', 'middleware' => 'user.api.token'], function () {
+        Route::get('traffic', 'V2\User\UserController@traffic');       // 单用户: ?id= 或 ?email=
+        Route::post('traffic', 'V2\User\UserController@trafficBatch'); // 批量: {"data":{"ids":[...]}} / {"data":{"emails":[...]}}
+    });
+
     // v2 后端节点 API(机器对机器: xray-plugin-api 节点插件 ↔ 面板)
     // 契约: xray-plugin-api docs/openapi.yaml; 每节点独立 Bearer token(ss_node.api_token)
     // 不与旧 node 组共用 env('API_TOKEN') 全局 key; 不挂 session/CSRF
