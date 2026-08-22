@@ -19,7 +19,7 @@
 return [
 
     /* ============================================================
-     * 网站基础
+     * 🌐 网站基础
      * ============================================================ */
     'website_name'             => 'NPanel',  // 网站名称, 发邮件时展示
     'website_url'              => '',        // 网站地址, 生成重置密码/邀请码/充值专用 URL
@@ -27,12 +27,12 @@ return [
     'website_home_logo'        => '',        // 首页 LOGO, 推荐尺寸 300x90 透明背景
     'website_analytics'        => '',        // 网站统计代码 (如 Google Analytics / 百度统计 JS)
     'website_customer_service' => '',        // 在线客服代码
-    'website_security_code'    => '',        // 网站安全码; 非空时需通过 /login?securityCode=安全码 访问
+    'website_security_code'    => '',        // 🔒 网站安全码; 非空时需通过 /login?securityCode=安全码 访问
     'wechat_qrcode'            => '',        // 微信二维码图片路径
     'alipay_qrcode'            => '',        // 支付宝收款二维码图片路径
 
     /* ============================================================
-     * 注册 / 登录
+     * 🔑 注册 / 登录
      * ============================================================ */
     'is_register'          => '1',  // 用户注册开关 (1启用 0关闭), 关闭后无法注册
     'is_invite_register'   => '2',  // 邀请注册 (0关闭 1可选 2必须)
@@ -43,10 +43,10 @@ return [
     'is_captcha'           => '0',  // 验证码 (0关闭 1普通验证码 2极验Geetest 3Google reCAPTCHA)
     'is_verify_register'   => '0',  // 注册校验验证码; 注册前需邮件获取验证码 (启用后"激活账号"失效)
     'register_ip_limit'    => '5',  // 同IP注册限制; 24小时内允许注册数量, 0不限制
-    'is_ban_status'        => '0',  // 过期自动封禁 (慎重); 封禁会重置账号数据且无法登录
+    'is_ban_status'        => '0',  // ⚠️ 过期自动封禁 (慎重); 封禁会重置账号数据且无法登录
 
     /* ============================================================
-     * 邀请 / 推广返利
+     * 🎁 邀请 / 推广返利
      * ============================================================ */
     'invite_num'                => '3',    // 可生成邀请码数; 用户可生成的邀请码数量
     'referral_traffic'          => '1024', // 注册送流量 (MiB); 经推广链接/邀请码注册赠送的流量
@@ -59,7 +59,7 @@ return [
     'admin_invite_days'         => '7',    // 邀请码有效期-管理员 (天); 管理员生成邀请码的有效期
 
     /* ============================================================
-     * 流量 / 端口
+     * 📊 流量 / 端口
      * ============================================================ */
     'default_traffic'         => '1024',  // 初始流量 (MiB); 用户注册时默认可用流量
     'default_days'            => '7',     // 初始有效期 (天); 用户注册时默认账户有效期, 0即当天到期
@@ -79,28 +79,28 @@ return [
     'auto_release_port'       => '1',     // 端口自动释放; 被封禁/过期一个月的用户端口自动释放
 
     /* ============================================================
-     * 签到
+     * 📆 签到
      * ============================================================ */
     'is_checkin'       => '1',   // 签到加流量; 登录时按流量范围随机得到流量
     'min_rand_traffic' => '10',  // 签到流量下限 (M)
     'max_rand_traffic' => '500', // 签到流量上限 (M)
 
     /* ============================================================
-     * 订阅
+     * 🔗 订阅
      * ============================================================ */
-    'subscribe_max'       => '3',   // 订阅节点数; 客户端订阅取几个节点, 0返回全部
-    'subscribe_domain'      => '',    // 节点订阅地址; 防 DNS 投毒, 需带 http:// 或 https://
-    'subscribe_domain_list' => [],    // 多订阅域名列表 (PHP 索引数组, 如 ['https://1.example.com','https://2.example.com']); 用户订阅页展示多个订阅地址, 每个需带 http(s)://. 新版写法, 优先于 subscribe_domains
-    'subscribe_domains'     => '[]',  // [已废弃] 多订阅域名列表 (JSON 字符串); 已被 subscribe_domain_list 替代, 保留以兼容旧版
-    'is_subscribe_ban'    => '1',   // 订阅异常自动封禁; 订阅异常用户自动分组-1
-    'subscribe_ban_times' => '20',  // 订阅请求阈值; 24小时内订阅链接请求次数限制
-    'mix_subscribe'       => '0',   // 混合订阅; 订阅信息含 V2Ray 节点 (仅 Shadowrocket/Quantumult/v2rayN)
-    'rand_subscribe'      => '0',   // 随机订阅; 订阅时随机返回节点, 否则按排序返回
-    'is_custom_subscribe' => '0',   // 高级订阅; 订阅顶部显示过期时间/剩余流量
-    'sub_rss_url'         => '',    // 订阅转换地址
+    'subscribe_max'          => '3',   // 订阅节点数; 客户端订阅取几个节点, 0返回全部
+    'subscribe_domain'       => '',    // 节点订阅地址; 防 DNS 投毒, 需带 http:// 或 https://
+    'subscribe_domain_list'  => [],    // 多订阅域名列表 (PHP 索引数组, 如 ['https://1.example.com','https://2.example.com']); 用户订阅页展示多个订阅地址, 每个需带 http(s)://. 新版写法, 优先于 subscribe_domains
+    'subscribe_domains'      => '[]',  // ⚠️ [已废弃] 多订阅域名列表 (JSON 字符串); 已被 subscribe_domain_list 替代, 保留以兼容旧版
+    'is_subscribe_ban'       => '1',   // 订阅异常自动封禁; 订阅异常用户自动分组-1
+    'subscribe_ban_times'    => '20',  // 订阅请求阈值; 24小时内订阅链接请求次数限制
+    'mix_subscribe'          => '0',   // 混合订阅; 订阅信息含 V2Ray 节点 (仅 Shadowrocket/Quantumult/v2rayN)
+    'rand_subscribe'         => '0',   // 随机订阅; 订阅时随机返回节点, 否则按排序返回
+    'is_custom_subscribe'    => '0',   // 高级订阅; 订阅顶部显示过期时间/剩余流量
+    'sub_rss_url'            => '',    // 订阅转换地址
 
     /* ============================================================
-     * 节点 / 监控
+     * 🛰️ 节点 / 监控
      * ============================================================ */
     'is_clear_log'            => '1',     // 自动清除日志 (推荐); 自动清除无用日志
     'is_node_crash_warning'   => '0',     // 节点离线提醒; 节点离线通过 ServerChan 推送
@@ -169,11 +169,11 @@ return [
     |   ],
     */
     'node_domain_map'         => [],    // 默认空; 真实配置 (含 cf_token) 放 .config.php
-    'node_domain_pool'        => '[]',  // [已废弃] 节点域名池 (JSON 字符串); 已被 node_domain_map 替代, 保留以兼容旧版. 含敏感数据, 真实值放 .config.php
-    'host_pools'              => '{}',    // 多站点配置 (JSON: host => website_name/website_url/subscribe_domain)
+    'node_domain_pool'        => '[]',  // ⚠️ [已废弃] 节点域名池 (JSON 字符串); 已被 node_domain_map 替代, 保留以兼容旧版. 含敏感数据, 真实值放 .config.php
+    'host_pools'              => '{}',  // 多站点配置 (JSON: host => website_name/website_url/subscribe_domain)
 
     /* ============================================================
-     * 支付: 支付宝国际
+     * 💳 支付: 支付宝国际
      * ============================================================ */
     'is_alipay'          => '0',    // 支付宝国际支付开关
     'alipay_sign_type'   => 'MD5',  // 支付宝加密方式 (MD5 / RSA)
@@ -185,7 +185,7 @@ return [
     'alipay_currency'    => 'USD',  // 支付宝结算币种
 
     /* ============================================================
-     * 支付: 支付宝当面付 (F2FPay)
+     * 📱 支付: 支付宝当面付 (F2FPay)
      * ============================================================ */
     'is_f2fpay'           => '0',  // 支付宝当面付开关
     'f2fpay_app_id'       => '',   // 当面付应用 ID (APPID)
@@ -194,14 +194,14 @@ return [
     'f2fpay_subject_name' => '',   // 自定义商品名称; 用户支付宝客户端显示
 
     /* ============================================================
-     * 支付: PayPal
+     * 💵 支付: PayPal
      * ============================================================ */
     'paypal_status'        => '0',  // PayPal 开关
     'paypal_client_id'     => '',   // PayPal Client ID
     'paypal_client_secret' => '',   // PayPal Client Secret
 
     /* ============================================================
-     * 支付: 有赞云
+     * 🛒 支付: 有赞云
      * ============================================================ */
     'is_youzan'            => '0',  // 有赞云支付开关
     'youzan_client_id'     => '',   // 有赞云 client_id
@@ -209,7 +209,7 @@ return [
     'kdt_id'               => '',   // 有赞云 kdt_id (授权店铺 id)
 
     /* ============================================================
-     * 支付: TrimePay
+     * 💰 支付: TrimePay
      * ============================================================ */
     'is_trimepay'       => '0',  // TrimePay 开关
     'trimepay_appid'    => '',   // TrimePay app_id
@@ -217,14 +217,14 @@ return [
     'pay_notify_url'    => '',   // 支付回调域名; 生成重置密码/在线支付必备, 如 https://www.ssrpanel.com
 
     /* ============================================================
-     * 支付: 发卡 (fakapay)
+     * 🎫 支付: 发卡 (fakapay)
      * ============================================================ */
     'fakapay'        => '',  // 发卡支付开关 (值 on / off)
     'fakapay_10url'  => '',  // 发卡 10 元链接
     'fakapay_100url' => '',  // 发卡 100 元链接
 
     /* ============================================================
-     * 支付: CP代付 (clonepay)
+     * 💸 支付: CP代付 (clonepay)
      * ============================================================ */
     'clonepay'          => '',   // CP代付开关 (值 on / off)
     'clonepay_token'    => '',   // CP代付 token
@@ -236,7 +236,7 @@ return [
     'clonepay_apis'     => '',   // CP代付 apis 配置 (JSON); web 的 apis 配置
 
     /* ============================================================
-     * 通知: Telegram (管理员告警, 统一由 app/Services/Notification 投递)
+     * ✈️ 通知: Telegram (管理员告警, 统一由 app/Services/Notification 投递)
      *   级别: error(系统故障) > warning(需关注) > info(日常事件)
      *   Telegram 默认仅推送 error; 可由 min_level 放宽
      *   .config.php 覆盖时支持只写部分键 (systemConfig 已递归合并 telegram 子键)
@@ -249,7 +249,7 @@ return [
     ],
 
     /* ============================================================
-     * 验证码: 极验 Geetest / Google reCAPTCHA
+     * 🤖 验证码: 极验 Geetest / Google reCAPTCHA
      * ============================================================ */
     'geetest_id'             => '',  // 极验 ID
     'geetest_key'            => '',  // 极验 KEY
@@ -257,13 +257,13 @@ return [
     'google_captcha_secret'  => '',  // Google reCAPTCHA 密钥 (secret)
 
     /* ============================================================
-     * DNS: Namesilo
+     * 🌍 DNS: Namesilo
      * ============================================================ */
     'is_namesilo'  => '0',  // Namesilo 开关; 添加/编辑节点域名时自动更新 DNS 记录为节点 IP
     'namesilo_key' => '',   // Namesilo API KEY
 
     /* ============================================================
-     * 其他
+     * ⚙️ 其他
      * ============================================================ */
     'is_free_code'                  => '0',    // 免费邀请码; 关闭后免费邀请码不可见
     'is_forbid_robot'               => '0',    // 阻止机器人访问; 机器人/爬虫/代理访问抛 404
@@ -271,7 +271,7 @@ return [
     'goods_purchase_limit_strategy' => 'none', // 商品限购策略 (none/package/free/package&free/all); 限制 24 小时内重复购买
 
     /* ============================================================
-     * 流量统计 (历史滚动数据)
+     * 📈 流量统计 (历史滚动数据)
      * traffic_record_group1/2 由定时任务 AutoStatisticsNodeDailyTraffic 每日写入 DB,
      * 代码以白名单从 DB 读取. 此处保留空字符串仅作兜底, 实际值来自 DB.
      * ============================================================ */
@@ -286,15 +286,49 @@ return [
     'traffic_record_group2'       => '',  // 分组2 流量滚动记录 (定时任务每日写入, 实际值来自 DB)
 
     /* ============================================================
-     * 解锁服务 (每个服务 4 项: address / port / password / method)
+     * 🔓 解锁服务 (每个服务 4 项: address / port / password / method)
      * 只有节点 node_unlock 包含对应服务时才下发. address/password 为用户自有
      * 解锁服务器, 真实值放 .config.php.
      * ============================================================ */
-    'unlock_netflix_address'        => '',  'unlock_netflix_port' => '8388',  'unlock_netflix_password' => '',  'unlock_netflix_method' => 'chacha20-ietf-poly1305',  // Netflix 解锁
-    'unlock_openai_address'         => '',  'unlock_openai_port'  => '8388',  'unlock_openai_password'  => '',  'unlock_openai_method'  => 'chacha20-ietf-poly1305',  // OpenAI / ChatGPT 解锁
-    'unlock_disney_address'         => '',  'unlock_disney_port'  => '8388',  'unlock_disney_password'  => '',  'unlock_disney_method'  => 'chacha20-ietf-poly1305',  // Disney+ 解锁
-    'unlock_tiktok_address'         => '',  'unlock_tiktok_port'  => '8388',  'unlock_tiktok_password'  => '',  'unlock_tiktok_method'  => 'chacha20-ietf-poly1305',  // TikTok 解锁
-    'unlock_bahamut_address'        => '',  'unlock_bahamut_port' => '8388',  'unlock_bahamut_password' => '',  'unlock_bahamut_method' => 'chacha20-ietf-poly1305',  // 动画疯 Bahamut 解锁
-    'unlock_claude_address'         => '',  'unlock_claude_port'  => '8388',  'unlock_claude_password'  => '',  'unlock_claude_method'  => 'chacha20-ietf-poly1305',  // Claude 解锁
-    'unlock_google_scholar_address' => '',  'unlock_google_scholar_port'  => '8388',  'unlock_google_scholar_password' => '',  'unlock_google_scholar_method' => 'chacha20-ietf-poly1305',  // Google Scholar 解锁
+    // ── Netflix 解锁 ──────────────────────────
+    'unlock_netflix_address'  => '',                        // 解锁服务器地址; 真实值放 .config.php
+    'unlock_netflix_port'     => '8388',                    // 端口
+    'unlock_netflix_password' => '',                        // 密码
+    'unlock_netflix_method'   => 'chacha20-ietf-poly1305',  // 加密方式
+
+    // ── OpenAI / ChatGPT 解锁 ────────────────
+    'unlock_openai_address'   => '',
+    'unlock_openai_port'      => '8388',
+    'unlock_openai_password'  => '',
+    'unlock_openai_method'    => 'chacha20-ietf-poly1305',
+
+    // ── Disney+ 解锁 ──────────────────────────
+    'unlock_disney_address'   => '',
+    'unlock_disney_port'      => '8388',
+    'unlock_disney_password'  => '',
+    'unlock_disney_method'    => 'chacha20-ietf-poly1305',
+
+    // ── TikTok 解锁 ──────────────────────────
+    'unlock_tiktok_address'   => '',
+    'unlock_tiktok_port'      => '8388',
+    'unlock_tiktok_password'  => '',
+    'unlock_tiktok_method'    => 'chacha20-ietf-poly1305',
+
+    // ── 动画疯 Bahamut 解锁 ────────────────────
+    'unlock_bahamut_address'  => '',
+    'unlock_bahamut_port'     => '8388',
+    'unlock_bahamut_password' => '',
+    'unlock_bahamut_method'   => 'chacha20-ietf-poly1305',
+
+    // ── Claude 解锁 ──────────────────────────
+    'unlock_claude_address'   => '',
+    'unlock_claude_port'      => '8388',
+    'unlock_claude_password'  => '',
+    'unlock_claude_method'    => 'chacha20-ietf-poly1305',
+
+    // ── Google Scholar 解锁 ──────────────────
+    'unlock_google_scholar_address'  => '',
+    'unlock_google_scholar_port'     => '8388',
+    'unlock_google_scholar_password' => '',
+    'unlock_google_scholar_method'   => 'chacha20-ietf-poly1305',
 ];
