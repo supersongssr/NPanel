@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Models\SsNode;
 use App\Http\Models\DnsRecord;
 use App\Components\Helpers;
+use App\Components\NodeApiToken;
 use App\Components\NodeDefaults;
 use App\Components\DNS\CloudflareProvider;
 use App\Services\DnsRecordCleanupService;
@@ -273,6 +274,12 @@ class NodeApiController extends Controller
         // 不动 traffic/identity/metrics —— 这些由节点上报或 status() 维护.
         // (全新/回收身份的 traffic/identity 已由 applyId 的 NodeDefaults::resetToDefaults 全清.)
         NodeDefaults::resetV2Derived($node);
+
+        // v2 面板 API 自愈: 存量节点(在自动签发之前创建、且从未跑过批量命令)重装时
+        // 自带 ID 上报、不走 applyId, api_token 可能为空 → /api/node/config 只会
+        // 下发旧式 ssrpanel 段。在此补发后, 节点重拉配置即带 panelApi 段;
+        // 已有 token 不动(节点无需重新配置)。随下方 save() 落库。
+        NodeApiToken::issueIfNeeded($node);
 
         $sysConf = Helpers::systemConfig();
 

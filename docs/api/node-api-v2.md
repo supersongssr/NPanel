@@ -398,6 +398,8 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
    - `api_token` 已签发：保留 `panelApi` 段（`baseURL` = env `NODE_API_BASE_URL`（专用域名优先）或 `app.url` + `/api/v2/backend`，`token` = 节点 api_token；`user.inboundTags` / `flows` 与 `ssrpanel` 段同管线填充），**同时保留 `ssrpanel` 段** —— 新旧插件都可用（xray 核心忽略未知顶级键），DB 凭据保留 = 回滚能力。
    - `api_token` 未签发：删除 `panelApi` 段，输出与旧版完全一致（零回归）。
    - env `NODE_API_DROP_MYSQL_CREDENTIALS=true`：额外删除 `ssrpanel` 段，节点不再持有 MySQL 凭据。
+
+   token 签发时机（新装节点拿不到 `panelApi` 段的根因修复）：`applyId`（provisioning）无条件签发（新建首发 / 回收轮换），`register` 为空则补发；详见 [backend-node-api-v2.md](backend-node-api-v2.md)。
    - 面板 API 契约详见 [backend-node-api-v2.md](backend-node-api-v2.md)。
 
 ---

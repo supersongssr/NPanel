@@ -128,6 +128,16 @@ class NodeDefaults
         // --- Clone / fission identity ---
         $node->is_clone = 0;
 
+        // --- v2 面板 API 凭据 (provisioning 签发) ---
+        // /api/node/config 双段方案: api_token 非空才下发 panelApi 段 (v2 HTTP 模式,
+        // xray-plugin-api 新插件读), 为空则只下发旧式 ssrpanel 段。token 若只靠
+        // `node:generate-api-tokens` 人工补发, 命令之后新申请的节点永远拿不到
+        // panelApi 段 → 安装 (proxyInstall.sh) 后仍是旧式 ssrpanel.nodeId 配置。
+        // 故 provisioning (本方法 = applyId 唯一干净态入口) 统一签发:
+        //   新建节点 → 首发 token; 回收死节点 → 轮换旧 token (旧机器可能仍持有,
+        //   轮换即吊销)。未迁移面板 (无 api_token 列) 时跳过, 保持旧行为。
+        NodeApiToken::rotate($node);
+
         // --- 流量重置基线: 全新节点 = 未激活 (null). register 时 if-null → now 激活;
         //     若 register 未跟上 (节点崩溃), traffic_used=0 + 基线 null 也不会触发安全网. ---
         $node->last_traffic_reset_at = null;

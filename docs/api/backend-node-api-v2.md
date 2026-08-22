@@ -64,6 +64,10 @@ migration 幂等:up()/down() 均先做列存在性检查,重复执行(含手工 
 
 ### 生成 token(artisan)
 
+**自动签发（provisioning/register，默认路径）**：`applyId`（`NodeDefaults::resetToDefaults`）无条件签发 token —— 新建节点首发，回收死节点轮换旧 token（旧机器可能仍持有，轮换即吊销）；`register` 为空则补发（自愈存量节点，已有 token 不动）。新装节点无需任何人工步骤即可在 `POST /api/node/config` 拿到含 `panelApi` 段的配置。实现见 `app/Components/NodeApiToken.php`，测试 `tests/Feature/NodeApiTokenProvisioningTest.php`。
+
+**批量补齐**（仅用于存量节点一次性补空 token）：
+
 ```bash
 php artisan node:generate-api-tokens            # 给所有 api_token 为空的节点生成(已有 token 的节点保持不变)
 php artisan node:generate-api-tokens --show     # 仅列出各节点 token, 不生成

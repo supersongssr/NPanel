@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Components\NodeApiToken;
 use App\Http\Models\SsNode;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -90,11 +91,12 @@ class GenerateNodeApiTokens extends Command
     }
 
     /**
-     * 32 字节随机数的 base64url(43 字符, 无填充) —— 契约规定格式
+     * 32 字节随机数的 base64url(43 字符, 无填充) —— 契约规定格式。
+     * 与 App\Components\NodeApiToken::generate 同一算法(provisioning/register
+     * 自动签发用), 此处包一层仅为兼容命令内既有调用点。
      */
     private function generateApiToken()
     {
-        $raw = random_bytes(32);
-        return rtrim(strtr(base64_encode($raw), '+/', '-_'), '=');
+        return NodeApiToken::generate();
     }
 }
