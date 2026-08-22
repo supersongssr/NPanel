@@ -303,6 +303,18 @@
                                                             <span class="help-block"> 独立节点UUID,默认留空 </span>
                                                         </div>
                                                     </div>
+                                                    <div class="form-group">
+                                                        <label for="api_token" class="col-md-3 control-label">api_token</label>
+                                                        <div class="col-md-8">
+                                                            <div class="input-group">
+                                                                <input type="text" class="form-control" id="api_token" value="{{$node->api_token ?? ''}}" readonly>
+                                                                <span class="input-group-btn">
+                                                                    <button class="btn btn-default" type="button" onclick="copyApiToken()">复制</button>
+                                                                </span>
+                                                            </div>
+                                                            <span class="help-block"> 节点 v2 后端 API Token（系统自动签发，只读，轮换即吊销），用于 Bearer 方式请求面板接口 </span>
+                                                        </div>
+                                                    </div>
                                                 <!-- SS/SSR 设置部分 -->
                                                 <div class="ss-setting {{$node->type == 1 ? '' : 'hidden'}}">
                                                     <div class="form-group">
@@ -639,6 +651,14 @@
     <script src="/assets/global/plugins/select2/js/select2.full.min.js" type="text/javascript"></script>
 
     <script type="text/javascript">
+        // 复制 api_token
+        function copyApiToken() {
+            var input = $('#api_token');
+            input.select();
+            document.execCommand('copy');
+            layer.msg('api_token 已复制', {time: 800});
+        }
+
         // 用户标签选择器
         $('#labels').select2({
             theme: 'bootstrap',
