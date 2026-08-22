@@ -9,7 +9,8 @@ NPanel API 提供节点管理、端口检测、支付处理等功能。除无鉴
 **认证方式:** 
 - 大部分接口使用 `API_TOKEN`（在 `.env` 文件中配置）
 - 部分接口使用 MD5 签名验证
-- 节点后端 API v2（`/api/v2/backend/*`）使用**每节点独立** Bearer token（`ss_node.api_token`，由 `php artisan node:generate-api-tokens` 生成），不共用全局 `API_TOKEN`，详见 [backend-node-api-v2.md](backend-node-api-v2.md)；其中 `GET /api/v2/backend/healthz` 为无鉴权健康检查
+- 节点后端 API v2（`/api/v2/backend/*`）使用**每节点独立** Bearer token（`ss_node.api_token`，由 provisioning（`apply_id`）/`register` **自动签发**；`php artisan node:generate-api-tokens` 仅用于存量节点一次性批量补齐），不共用全局 `API_TOKEN`，详见 [backend-node-api-v2.md](backend-node-api-v2.md)；其中 `GET /api/v2/backend/healthz` 为无鉴权健康检查
+- 用户查询 API v2（`/api/v2/user/*`）使用独立 Bearer token（`.env` 的 `USER_API_TOKEN`，未配置则接口整体禁用 fail-closed），按用户 id/email 只读查询流量信息，详见 [user-api-v2.md](user-api-v2.md)
 
 ---
 
@@ -420,4 +421,4 @@ token=5d41402abc4b2a76b9719d911017c592&salt=hello&ip=1&time=1&due_time=1
 
 ---
 
-*文档最后更新时间: 2026-08-19*
+*文档最后更新时间: 2026-08-22*

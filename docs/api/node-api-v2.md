@@ -16,7 +16,7 @@ apply_id → register → resolve_dns → config → status(循环)
 
 **适用版本:** commit `36f943a8` (2026-05-12) 及之后。
 
-> 本文描述的是**节点生命周期 API**（`/api/node/*`，全局 `API_TOKEN` 鉴权）。机器对机器的**节点后端 API v2**（`/api/v2/backend/*`：用户快照 / 流量上报 / 状态心跳，每节点独立 Bearer token）是另一套接口，详见 [backend-node-api-v2.md](backend-node-api-v2.md)。
+> 本文描述的是**节点生命周期 API**（`/api/node/*`，全局 `API_TOKEN` 鉴权）。机器对机器的**节点后端 API v2**（`/api/v2/backend/*`：用户快照 / 流量上报 / 状态心跳，每节点独立 Bearer token）是另一套接口，详见 [backend-node-api-v2.md](backend-node-api-v2.md)；面向运维/监控的**用户查询 API v2**（`/api/v2/user/*`：按 id/email 查用户流量，独立 `USER_API_TOKEN`）见 [user-api-v2.md](user-api-v2.md)。
 
 ---
 
@@ -133,7 +133,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 #### 节点 ID 回收机制
 
-面板优先查找心跳超过 **32 天**的死亡节点复用其 ID（同时清理该节点的 `dns_records`），实现 ID 资源回收。若无死亡节点则创建新记录。**回收的旧身份会经 `NodeDefaults::resetToDefaults()` 全量重置为干净默认值**（含 `traffic_used=0`、`traffic_used_daily=0`、`last_traffic_reset_at=null` 及身份/指标/V2 字段），再交给后续 `register` 激活新基线，保证回收节点不残留前任计费/配置。
+面板优先查找心跳超过 **32 天**的死亡节点复用其 ID（同时清理该节点的 `dns_records`），实现 ID 资源回收。若无死亡节点则创建新记录。**回收的旧身份会经 `NodeDefaults::resetToDefaults()` 全量重置为干净默认值**（含 `traffic_used=0`、`traffic_used_daily=0`、`last_traffic_reset_at=null` 及身份/指标/V2 字段），并轮换签发 v2 面板 API token（`api_token`：新建首发、回收轮换即吊销旧凭据，见 [backend-node-api-v2.md](backend-node-api-v2.md)），再交给后续 `register` 激活新基线，保证回收节点不残留前任计费/配置。
 
 **此步骤决定了节点的 IP 栈命运**：apply_id 时写入的 `ip`/`ipv6` 会被 register 阶段强制执行单栈互斥。
 
@@ -148,7 +148,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 ### Step 1: 注册节点信息与裂变
 
-向面板注册节点详细信息，触发 **动态协议分配**、**裂变逻辑**、**阶梯等级引擎**、**IP 互斥**，并分配 **域名亲和性**。
+向面板注册节点详细信息，触发 **动态协议分配**、**裂变逻辑**、**阶梯等级引擎**、**IP 互斥**，并分配 **域名亲和性**；同时为 `api_token` 为空的节点自动补发 token（存量节点自愈，已有 token 保持不变，见 [backend-node-api-v2.md](backend-node-api-v2.md)）。
 
 **接口地址:** `POST /api/node/register`
 

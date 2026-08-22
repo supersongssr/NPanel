@@ -196,7 +196,7 @@ USER_API_IP_ALLOWLIST=
 | `app/Http/Controllers/Api/V2/User/UserController.php` | 控制器(traffic / trafficBatch) |
 | `app/Http/Middleware/UserApiToken.php` | 鉴权中间件 |
 | `routes/api.php` | 路由组 `v2/user`(中间件 `user.api.token`) |
-| `tests/test_user_api_v2_traffic.php` | QA 测试(36 项断言) |
+| `tests/test_user_api_v2_traffic.php` | QA 测试(27 项断言) |
 
 ## 测试
 
