@@ -27,6 +27,12 @@
 
 本 API 不挂 session/CSRF 中间件。
 
+路由挂载于独立的 `routes/backendapi.php`（由 `RouteServiceProvider::mapBackendApiRoutes()`
+注册，仅 `prefix('api')`），**刻意不挂 `api` 中间件组的 `throttle:60,1`**：
+ThrottleRequests 无登录态时按出口 IP 计数，同一出口 IP 的全部节点共享 60 req/min 桶
+（20 节点 × 每轮 3 请求即触顶），429 会被插件按 RATE_LIMITED 退避重试形成恶性循环；
+防滥用由 `backend.token` 强鉴权承担，`healthz` 探活高频也是常态。
+
 ---
 
 ## 鉴权(BackendToken 中间件)
@@ -219,4 +225,4 @@ php artisan node:generate-api-tokens --node=3   # 查看/生成单节点
 
 ---
 
-*文档更新时间: 2026-08-19 | 基于 commit: 93f2fa81*
+*文档更新时间: 2026-08-23 | 基于 commit: a7061f61*
