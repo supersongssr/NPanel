@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Models\SsNode;
 use App\Http\Models\SsNodeInfo;
 use App\Http\Models\SsNodeOnlineLog;
-use App\Http\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -59,17 +58,18 @@ class NodeController extends Controller
             return $this->ok(['users' => []]);
         }
 
-        $query = User::query()
+        // 用查询构建器直取行数组而非 Eloquent 模型 hydrate —— 万级用户下
+        // 逐行构造模型对象占控制器一半以上 CPU, 此处只要三个标量列。
+        $usersRaw = DB::table('user')
             ->where('enable', 1)
             ->whereRaw('`transfer_enable` > `u` + `d`')
             ->where('level', '>=', $node->level);
 
         if ((int)$node->node_group !== 0) {
-            $query->where('node_group', (int)$node->node_group);
+            $usersRaw->where('node_group', (int)$node->node_group);
         }
 
-        // 单条 SELECT 取全部所需列(最小披露)
-        $usersRaw = $query->get(['id', 'username', 'vmess_id']);
+        $usersRaw = $usersRaw->get(['id', 'username', 'vmess_id']);
 
         $users = [];
         foreach ($usersRaw as $u) {
@@ -204,15 +204,18 @@ class NodeController extends Controller
             return $this->err(500, 'INTERNAL', 'traffic write failed');
         }
 
-        // 派生字段刷新(剩余流量, 与 NodeApiController::status 口径一致): 取库内最新值重算
-        // 失败不影响已入账流量(下一轮重算), 只记日志
+        // 派生字段刷新(剩余流量, 与 NodeApiController::status 口径一致)。
+        // 直接用中间件已加载的 $node 内存计算 + 单条 UPDATE, 省掉重查 SELECT:
+        //   - traffic_used 与事务内原子累加后的库值一致(同节点上报串行, 无并发写)
+        //   - 极端并发下派生字段最多滞后一轮, 下轮自愈, 与旧实现重查后写回的窗口风险等价
+        //   - traffic_used 本身不再写回(事务内已原子累加, 避免覆盖)
         try {
-            $freshNode = SsNode::query()->find($node->id);
-            if ($freshNode !== null) {
-                $freshNode->traffic_left = max(0, $freshNode->traffic_limit - $freshNode->traffic_used);
-                $freshNode->heartbeat_at = date('Y-m-d H:i:s');
-                $freshNode->save();
-            }
+            $used = (int)$node->traffic_used + $totalRaw;
+            $left = max(0, (int)$node->traffic_limit - $used);
+            DB::table('ss_node')->where('id', $nodeId)->update([
+                'traffic_left' => $left,
+                'heartbeat_at' => date('Y-m-d H:i:s'),
+            ]);
         } catch (\Exception $e) {
             Log::warning('[BackendApi v2] traffic derived refresh failed', ['node' => $nodeId, 'err' => $e->getMessage()]);
         }
@@ -264,44 +267,52 @@ class NodeController extends Controller
                 $online->log_time = $now;
                 $online->save();
             }
+        } catch (\Exception $e) {
+            Log::error('[BackendApi v2] status info/online write failed', ['node' => $node->id, 'err' => $e->getMessage()]);
+            return $this->err(500, 'INTERNAL', 'status write failed');
+        }
 
-            // 每日派生字段(与 NodeApiController::status 同口径), 保持管理页展示新鲜
-            $freshNode = SsNode::query()->find($node->id);
-            if ($freshNode !== null) {
-                $resetDay = (int)$freshNode->reset_day;
-                $today = (int)date('j');
-                $daysInMonth = (int)date('t');
+        // 每日派生字段(与 NodeApiController::status 同口径)。
+        // 用中间件已加载的 $node 内存计算 + 单条 UPDATE, 省掉重查 SELECT
+        // (status 是每轮首个请求, 内存值与库值一致; save() 全量事件也一并跳过)。
+        try {
+            $resetDay = (int)$node->reset_day;
+            $today = (int)date('j');
+            $daysInMonth = (int)date('t');
 
-                if ($resetDay > 0) {
-                    $rd = min($resetDay, $daysInMonth);
-                    if ($today >= $rd) {
-                        $daysElapsed = max(1, $today - $rd + 1);
-                        $daysRemaining = max(1, $daysInMonth - $today + $rd);
-                    } else {
-                        $lastMonth = (int)date('n') - 1 ?: 12;
-                        $lastYear = (int)date('Y') - ($lastMonth === 12 ? 1 : 0);
-                        $daysInLastMonth = (int)date('t', mktime(0, 0, 0, $lastMonth, 1, $lastYear));
-                        $daysElapsed = max(1, $daysInLastMonth - min($resetDay, $daysInLastMonth) + $today + 1);
-                        $daysRemaining = max(1, $rd - $today);
-                    }
+            if ($resetDay > 0) {
+                $rd = min($resetDay, $daysInMonth);
+                if ($today >= $rd) {
+                    $daysElapsed = max(1, $today - $rd + 1);
+                    $daysRemaining = max(1, $daysInMonth - $today + $rd);
                 } else {
-                    $daysElapsed = max(1, $today);
-                    $daysRemaining = max(1, $daysInMonth - $today);
+                    $lastMonth = (int)date('n') - 1 ?: 12;
+                    $lastYear = (int)date('Y') - ($lastMonth === 12 ? 1 : 0);
+                    $daysInLastMonth = (int)date('t', mktime(0, 0, 0, $lastMonth, 1, $lastYear));
+                    $daysElapsed = max(1, $daysInLastMonth - min($resetDay, $daysInLastMonth) + $today + 1);
+                    $daysRemaining = max(1, $rd - $today);
                 }
-
-                $freshNode->server_uptime = $uptime;
-                $freshNode->traffic_left = max(0, $freshNode->traffic_limit - $freshNode->traffic_used);
-                $freshNode->traffic_used_daily = (int)($freshNode->traffic_used / $daysElapsed);
-                $freshNode->traffic_left_daily = (int)(max(0, $freshNode->traffic_left) / $daysRemaining);
-                $avgUsed = $freshNode->traffic_used / $daysElapsed;
-                $avgRemaining = max(0, $freshNode->traffic_left) / $daysRemaining;
-                $freshNode->node_health = $avgUsed > $avgRemaining ? 0 : 1;
-                $freshNode->heartbeat_at = date('Y-m-d H:i:s', $now);
-                $freshNode->save();
             } else {
-                $node->heartbeat_at = date('Y-m-d H:i:s', $now);
-                $node->save();
+                $daysElapsed = max(1, $today);
+                $daysRemaining = max(1, $daysInMonth - $today);
             }
+
+            $used = (int)$node->traffic_used;
+            $limit = (int)$node->traffic_limit;
+            $left = max(0, $limit - $used);
+            $usedDaily = (int)($used / $daysElapsed);
+            $leftDaily = (int)($left / $daysRemaining);
+            $avgUsed = $used / $daysElapsed;
+            $avgRemaining = $left / $daysRemaining;
+
+            DB::table('ss_node')->where('id', (int)$node->id)->update([
+                'server_uptime' => $uptime,
+                'traffic_left' => $left,
+                'traffic_used_daily' => $usedDaily,
+                'traffic_left_daily' => $leftDaily,
+                'node_health' => $avgUsed > $avgRemaining ? 0 : 1,
+                'heartbeat_at' => date('Y-m-d H:i:s', $now),
+            ]);
         } catch (\Exception $e) {
             Log::error('[BackendApi v2] status write failed', ['node' => $node->id, 'err' => $e->getMessage()]);
             return $this->err(500, 'INTERNAL', 'status write failed');

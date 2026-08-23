@@ -295,7 +295,8 @@ CREATE TABLE `user` (
   `updated_at`           DATETIME DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `unq_username` (`username`),
-  INDEX `idx_search` (`enable`, `status`)
+  INDEX `idx_search` (`enable`, `status`),
+  INDEX `idx_enable_level` (`enable`, `level`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户';
 
 -- 默认管理员
