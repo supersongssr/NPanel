@@ -91,7 +91,7 @@ class Helpers
     // 原 getCdnOptimizedIps() / pickCdnOptimizedIp() (DB config 来源) 已移除.
 
     // 获取系统配置
-    // 读取优先级: DB(仅 $dynamicConfigKeys 动态白名单) > .config.php(用户手工覆盖) > config.default.php(默认)
+    // 读取优先级: DB(仅 $dynamicConfigKeys 动态白名单 + unlock_* 模式键) > .config.php(用户手工覆盖) > config.default.php(默认)
     public static function systemConfig()
     {
         // 1. 默认配置 (文件, opcache 零成本)
@@ -104,11 +104,17 @@ class Helpers
             $data = self::mergeConfig($data, $override);
         }
 
-        // 3. DB 动态白名单 (仅 traffic_record_group1/2 等运行时写入项, 其余静态配置不读 DB)
-        if (!empty(self::$dynamicConfigKeys)) {
-            foreach (Config::query()->whereIn('name', self::$dynamicConfigKeys)->get() as $vo) {
-                $data[$vo->name] = $vo->value;
-            }
+        // 3. DB 动态白名单 (traffic_record_group1/2 等运行时写入项 + unlock_* 模式键, 其余静态配置不读 DB)
+        //    unlock_* (远程解锁服务器 address/port/password/method): 运维惯把解锁转发
+        //    服务器凭据配在 DB config 表 (文件化迁移 93c0010c 前的存量位置); 不纳入
+        //    白名单则 NodeApiController::applyUnlocks() 恒拿到空 address -> /api/node/config
+        //    下发的 xray 配置缺失远程解锁 outbound/routing (LIKE 'unlock\_%', _ 已转义).
+        $dbConfig = Config::query()->where(function ($query) {
+            $query->whereIn('name', self::$dynamicConfigKeys)
+                ->orWhere('name', 'like', 'unlock\_%');
+        })->get();
+        foreach ($dbConfig as $vo) {
+            $data[$vo->name] = $vo->value;
         }
 
         if (!isset($data['host_pools'])) {

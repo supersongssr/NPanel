@@ -229,18 +229,7 @@ class NodeApiController extends Controller
             ], 404);
         }
 
-        $unlockServices = [
-            'netflix', 'disney', 'chatgpt', 'claude', 'tiktok',
-            'bilibili', 'iqiyi', 'bahamut', 'mewatch', 'bing',
-            'google_scholar', 'notebooklm',
-        ];
-        $unlockData = [];
-        foreach ($unlockServices as $service) {
-            $val = $request->input('unlock_' . $service);
-            if ($val !== null && $val !== '') {
-                $unlockData[$service] = $val;
-            }
-        }
+        $unlockData = $this->collectUnlockData($request);
 
         if (empty($unlockData)) {
             return response()->json([
@@ -256,6 +245,85 @@ class NodeApiController extends Controller
             'status'  => 'success',
             'updated' => array_keys($unlockData),
         ]);
+    }
+
+    /**
+     * 聚合请求中的 unlock_* 独立参数 (与 node_unlock 存储格式对齐).
+     *
+     * 两条上报链路共用, 保证聚合口径完全一致 (服务清单 / 空值过滤):
+     *   - register: proxyInstall.sh Step1 安装时随硬件/地理信息一并上报
+     *     (RunMediaUnlockCheck + GetMediaUnlockInfo 的 install 即时检测);
+     *   - unlock_check: unlockCheck.sh 独立上报端点 (后续巡检刷新).
+     *
+     * 空结果语义由调用方解释:
+     *   - register = 镜像覆写清空 (http_build_query([]) === '', 防回收节点残留前任解锁状态);
+     *   - unlock_check = no_data (不动存量值).
+     *
+     * @param  Request $request
+     * @return array  如 ['netflix' => 'Yes(Region=HK)', 'chatgpt' => 'No'], 无数据时为 []
+     */
+    private function collectUnlockData(Request $request)
+    {
+        $unlockServices = [
+            'netflix', 'disney', 'chatgpt', 'claude', 'gemini', 'tiktok',
+            'bilibili', 'iqiyi', 'bahamut', 'mewatch', 'bing',
+            'google_scholar', 'notebooklm',
+        ];
+        $unlockData = [];
+        foreach ($unlockServices as $service) {
+            $val = $request->input('unlock_' . $service);
+            if ($val !== null && $val !== '') {
+                $unlockData[$service] = $val;
+            }
+        }
+        return $unlockData;
+    }
+
+    /**
+     * 归一化 node_unlock 单参数 (SPanel 文档格式) 为 unlock_* 存储键集合.
+     *
+     * 兼容 "openai,netflix" (逗号分隔服务名, 值缺省 = Yes) 与
+     * "Netflix=Yes&OpenAI=No" (K=V 形态) 及两者混排:
+     *   - openai / anthropic 为 chatgpt / claude 的别名;
+     *   - 未知服务名丢弃 (白名单, 与 collectUnlockData 同口径);
+     *   - 值原样保留 (applyUnlocks 以 no/false/0/off 前缀判断是否需要远程解锁,
+     *     如 "No(Only Originals)" 也算未解锁).
+     *
+     * @param  string $raw
+     * @return array 如 ['netflix' => 'Yes(Region:US)', 'chatgpt' => 'No'], 无有效项时 []
+     */
+    private function parseNodeUnlockParam($raw)
+    {
+        $aliasToStorageKey = [
+            'netflix' => 'netflix', 'disney' => 'disney',
+            'openai' => 'chatgpt', 'chatgpt' => 'chatgpt',
+            'claude' => 'claude', 'anthropic' => 'claude',
+            'gemini' => 'gemini', 'tiktok' => 'tiktok',
+            'bilibili' => 'bilibili', 'iqiyi' => 'iqiyi',
+            'bahamut' => 'bahamut', 'mewatch' => 'mewatch',
+            'bing' => 'bing', 'google_scholar' => 'google_scholar',
+            'notebooklm' => 'notebooklm',
+        ];
+        $tokens = preg_split('/[,&]/', $raw);
+        $unlockData = [];
+        foreach ($tokens as $token) {
+            $token = trim($token);
+            if ($token === '') {
+                continue;
+            }
+            $value = 'Yes';
+            $eq = strpos($token, '=');
+            if ($eq !== false) {
+                $value = trim(substr($token, $eq + 1));
+                $token = trim(substr($token, 0, $eq));
+            }
+            $key = strtolower($token);
+            if (!isset($aliasToStorageKey[$key]) || $value === '') {
+                continue;
+            }
+            $unlockData[$aliasToStorageKey[$key]] = $value;
+        }
+        return $unlockData;
     }
 
     public function register(Request $request)
@@ -390,6 +458,25 @@ class NodeApiController extends Controller
             "node_bandwidth",
             $request->input("bandwidth", 100),
         );
+
+        // --- 流媒体解锁检测上报 (镜像覆写) ---
+        // proxyInstall.sh Step1 在 register 时随硬件/地理信息一并上报 13 个独立 unlock_*
+        // 字段 (unlockCheck 检测缓存解析, 重装场景加速); 同时兼容 SPanel 文档格式的
+        // node_unlock 单参数 (逗号服务名 openai,netflix / K=V 串 Netflix=Yes&OpenAI=No),
+        // 两形态归一化后聚合存入 node_unlock —— 紧随其后的 Step3 /api/node/config 拉取时
+        // applyUnlocks() 即可对未解锁 (No) 服务注入远程解锁 outbound/routing.
+        // 若 register 不落库, 安装期下发的 config.json 将永远缺少 unlock 段 —— 节点侧
+        // nodeAgent.sh 只上报 status, 首次 unlock_check 前无刷新时机.
+        // 聚合逻辑与 unlockCheck() 共用 collectUnlockData, 口径完全一致; unlock_* 与
+        // node_unlock 均未上报时写入空串 (镜像覆写清空, 防回收节点残留前任解锁状态).
+        $unlockData = $this->collectUnlockData($request);
+        if (empty($unlockData)) {
+            $rawNodeUnlock = trim((string) $request->input('node_unlock'));
+            if ($rawNodeUnlock !== '') {
+                $unlockData = $this->parseNodeUnlockParam($rawNodeUnlock);
+            }
+        }
+        $node->node_unlock = urldecode(http_build_query($unlockData));
 
         $node->info = $request->input("node_info", "");
         $node->level = $mainLevel;
@@ -1845,7 +1932,13 @@ class NodeApiController extends Controller
     private function applyUnlocks(&$config, $unlockStr)
     {
         $unlocks = [];
-        parse_str(str_replace(",", "&", $unlockStr), $unlocks);
+        // K=V 形态直接 parse_str (值可能含逗号, 如 "Yes(Region:US,CA)", 不能全局
+        // 把 ',' 换成 '&'); 仅纯逗号服务名列表 (无 '=') 才做 , → & 替换兼容
+        if (strpos($unlockStr, '=') !== false) {
+            parse_str($unlockStr, $unlocks);
+        } else {
+            parse_str(str_replace(',', '&', $unlockStr), $unlocks);
+        }
 
         $sysConf = Helpers::systemConfig();
 

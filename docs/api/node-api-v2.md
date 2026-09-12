@@ -166,7 +166,8 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 | node_memory | float | 否 | 0 | 内存大小（**GB**），未提供 `v2_name` 时决定协议组分配（向后兼容 `memory`） |
 | node_disk | float | 否 | - | 磁盘大小（GB）（向后兼容 `disk`） |
 | node_bandwidth | integer | 否 | 100 | 带宽（Mbps）（向后兼容 `bandwidth`） |
-| node_unlock | string | 否 | - | 解锁信息，原始 Query String 格式（如 `Netflix=Yes&Gemini=No`） |
+| unlock_* | string | 否 | - | 流媒体解锁检测结果，13 个独立字段（`unlock_netflix` / `unlock_disney` / `unlock_chatgpt` / `unlock_claude` / `unlock_gemini` / `unlock_tiktok` / `unlock_bilibili` / `unlock_iqiyi` / `unlock_bahamut` / `unlock_mewatch` / `unlock_bing` / `unlock_google_scholar` / `unlock_notebooklm`，proxyInstall.sh 安装期随 register 一并上报，重装场景解析 unlockCheck 缓存加速）。聚合存入 `node_unlock`（query string 格式），保证紧随其后的 `/api/node/config` 即可下发远程解锁 outbound/routing；未上报任何字段时镜像覆写清空 |
+| node_unlock | string | 否 | - | unlock_* 独立字段的单参数聚合形态（SPanel 文档格式）：逗号分隔服务名（如 `openai,netflix`，值缺省 = Yes）或 K=V 串（如 `Netflix=Yes&OpenAI=No`）。仅当未上报任何 unlock_* 独立字段时生效（unlock_* 优先）；openai/anthropic 为 chatgpt/claude 的别名，未知服务名丢弃，值原样保留 |
 | node_info | string | 否 | - | 节点描述信息 |
 | node_cost | float | 否 | 0 | 节点每 GB 流量成本，未提供 `node_level` 时决定节点等级 |
 | node_group | integer | 否 | `2` | 节点分组 ID |
@@ -392,7 +393,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 3. **HY2 直连 IP 覆盖：** 当节点 `v2_net === 'hysteria2'` 时，配置中所有 `server` 字段被替换为节点的原始 IP 地址（HY2 使用 QUIC/UDP，无法走 CDN 代理）。
 
-4. **流媒体解锁模板：** 从 `resources/templates/xray/unlock/{service}.json` 文件加载解锁规则，支持 config 表中的 `unlock_{service}_address/port/password/method` 变量注入。
+4. **流媒体解锁模板：** 从 `resources/templates/xray/unlock/{service}.json` 文件加载解锁规则，支持 config 表中的 `unlock_{service}_address/port/password/method` 变量注入。注入语义（与 SPanel 统一）：**Yes = 节点已解锁，直连即可不注入；No = 未解锁（值为 no/false/0/off 前缀）才注入远程解锁 outbound/routing**。
 
 5. **panelApi 下发（v2 HTTP 模式，安全默认不带 DB 凭据）：** 模板内置 `panelApi` 段（占位符 `__panelBaseURL__` / `__panelToken__`），按节点 token 状态动态处理：
    - `api_token` 已签发：保留 `panelApi` 段（`baseURL` = env `NODE_API_BASE_URL`（专用域名优先）或 `app.url` + `/api/v2/backend`，`token` = 节点 api_token；`user.inboundTags` / `flows` 按协议组填充），**默认删除 `ssrpanel` 段** —— 已走 HTTP API 的节点不应继续持有库地址/账号/密码（最低安全保证）。
