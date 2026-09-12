@@ -38,6 +38,7 @@ apply_id → register → resolve_dns → config → status(循环)
 │             ↓                                        │
 │  Step 4   POST /status    ←─── 循环上报               │
 │             ↑             状态/流量/健康               │
+│  巡检     POST /unlock_check ← 循环解锁检测刷新        │
 │             └──────────────────────────────────────── │
 └──────────────────────────────────────────────────────┘
 ```
@@ -477,6 +478,45 @@ nginx -t && systemctl restart nginx
     "node_status": 1
 }
 ```
+
+---
+
+### 巡检端点: 解锁状态刷新 (unlock_check)
+
+**接口地址:** `POST /api/node/unlock_check`
+
+独立于 `register` 的解锁巡检上报端点（节点侧 `unlockCheck.sh` 周期执行媒体解锁检测后调用），刷新存量节点的 `node_unlock`；刷新结果在下次 `/api/node/config` 拉取时由 `applyUnlocks()` 消费（No 才注入远程解锁 outbound/routing）。
+
+**请求参数:**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| token | string | 是 | API Token |
+| node_id | integer | 是 | 节点 ID |
+| unlock_* | string | 否 | 与 `register` 同口径的 13 个独立字段（`unlock_netflix` / `unlock_disney` / `unlock_chatgpt` / `unlock_claude` / `unlock_gemini` / `unlock_tiktok` / `unlock_bilibili` / `unlock_iqiyi` / `unlock_bahamut` / `unlock_mewatch` / `unlock_bing` / `unlock_google_scholar` / `unlock_notebooklm`）；服务清单与空值过滤共用 `collectUnlockData()`，聚合口径与 `register` 完全一致 |
+
+**与 register 的语义差异:**
+
+- 未上报任何有效 `unlock_*` 字段时返回 `no_data`，**不改动**存量 `node_unlock`（`register` 则镜像覆写清空，防回收节点残留前任解锁状态）。
+- **不接受** `node_unlock` 单参数（该 SPanel 兼容形态仅 `register` 支持）。
+
+**成功响应 (200):**
+```json
+{
+    "status": "success",
+    "updated": ["netflix", "gemini"]
+}
+```
+
+`updated` 为本次实际写入的服务名列表；无数据时返回 `{"status": "success", "message": "no_data"}`。
+
+**错误响应:**
+
+| 状态码 | message | 含义 |
+|--------|---------|------|
+| 400 | missing_node_id | 缺少 node_id |
+| 401 | Unauthorized | token 无效或缺失 |
+| 404 | Node not found | 节点不存在 |
 
 ---
 
