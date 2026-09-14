@@ -89,7 +89,8 @@ class NodeController extends Controller
      *
      * 写路径(与 SPanel 同口径, 倍率只在这里):
      *  - user.u/d 累加乘率值(原子 CASE WHEN 单语句, t 刷新)
-     *  - user_traffic_log 存原始字节 + 当次倍率 + 乘率后人类可读值(一条多 VALUES 批量 INSERT)
+     *  - user_traffic_log 存原始字节 + 当次倍率 + 乘率后人类可读值(一条多 VALUES 批量 INSERT;
+     *    u/d 列已扩为 BIGINT —— 2026_08_20 迁移, 单值可超 2GiB 安全入库)
      *  - ss_node.traffic_used 累加原始字节(原子 UPDATE) + traffic_left 派生刷新
      */
     public function traffic(Request $request)
@@ -117,7 +118,10 @@ class NodeController extends Controller
             $userId = array_get($item, 'userId');
             $up = array_get($item, 'uplinkBytes');
             $down = array_get($item, 'downlinkBytes');
-            if (!is_int($userId) || $userId <= 0 || !is_int($up) || $up < 0 || !is_int($down) || $down < 0) {
+            // userId 上限对齐 user.id / user_traffic_log.user_id 的 INT(11) 容量(2^31-1):
+            // 面板 user 表自增主键不可能超出, 超出的必为垃圾值(入库会 1264 炸掉整批事务)
+            if (!is_int($userId) || $userId <= 0 || $userId > 2147483647
+                || !is_int($up) || $up < 0 || !is_int($down) || $down < 0) {
                 return $this->err(400, 'BAD_REQUEST', 'invalid item fields');
             }
             if ($up > self::MAX_ITEM_BYTES || $down > self::MAX_ITEM_BYTES) {
@@ -177,7 +181,9 @@ class NodeController extends Controller
                     WHERE `id` IN ({$idList})"
                 );
 
-                // 流量明细: 一条多 VALUES 批量 INSERT(每 500 行一批)
+                // 流量明细: 一条多 VALUES 批量 INSERT(每 500 行一批)。
+                // u/d 列为 BIGINT(2026_08_20 迁移扩容), 原始字节(含 >2GiB 单值)可安全入库,
+                // 不会 1264 炸事务回滚卡死整节点上报
                 $rows = [];
                 foreach ($merged as $userId => $pair) {
                     $rows[] = [
@@ -228,6 +234,9 @@ class NodeController extends Controller
      *
      * 写 ss_node_info(uptime/load)+ 心跳; onlineUsers>0 写 ss_node_online_log。
      * 表结构与 SPanel 相同, 行为与旧插件直接写库一致。
+     * 另含 120GB 熔断(status 0/1 翻转; traffic_limit=0 不限量节点永不熔断)与
+     * clone 集群状态同步 —— 与 NodeApiController::status / syncClusterStatus 同口径
+     * (status 由流量阈值驱动, 手动置 0 的节点也会在心跳时按流量口径自动翻转, 与 v1 一致)。
      */
     public function status(Request $request)
     {
@@ -304,15 +313,57 @@ class NodeController extends Controller
             $leftDaily = (int)($left / $daysRemaining);
             $avgUsed = $used / $daysElapsed;
             $avgRemaining = $left / $daysRemaining;
+            $nodeHealth = $avgUsed > $avgRemaining ? 0 : 1;
+
+            // 120GB 熔断/自动恢复(与 NodeApiController::status 同口径):
+            // 剩余 < 120GB → status=0(下线, 中间件对 users/traffic 返回 NODE_DISABLED);
+            // 恢复 ≥ 120GB(如月度流量重置) → status=1。中间件对 POST /status 放行,
+            // 熔断节点的心跳/自动恢复通道才存在。traffic_limit=0 视为不限量, 永不熔断
+            // (与 users() 的不限量口径一致; v1 无此判断, 不限量节点会被误熔断, 此处修正)。
+            $threshold = 120 * 1024 * 1024 * 1024; // 120GB
+            if ($limit !== 0 && $limit - $used < $threshold) {
+                $newStatus = 0;
+                if ((int)$node->status !== 0) {
+                    Log::warning('[BackendApi v2] 节点熔断下线', [
+                        'node_id' => (int)$node->id,
+                        'reason' => 'Remaining traffic < 120GB',
+                        'remaining' => $limit - $used,
+                    ]);
+                }
+            } else {
+                $newStatus = 1;
+                if ((int)$node->status !== 1) {
+                    Log::info('[BackendApi v2] 节点自动恢复上线', [
+                        'node_id' => (int)$node->id,
+                        'traffic_left_gb' => round($left / 1024 / 1024 / 1024, 2),
+                    ]);
+                }
+            }
+
+            $heartbeatAt = date('Y-m-d H:i:s', $now);
 
             DB::table('ss_node')->where('id', (int)$node->id)->update([
                 'server_uptime' => $uptime,
                 'traffic_left' => $left,
                 'traffic_used_daily' => $usedDaily,
                 'traffic_left_daily' => $leftDaily,
-                'node_health' => $avgUsed > $avgRemaining ? 0 : 1,
-                'heartbeat_at' => date('Y-m-d H:i:s', $now),
+                'node_health' => $nodeHealth,
+                'status' => $newStatus,
+                'heartbeat_at' => $heartbeatAt,
             ]);
+
+            // 同步 clone 集群共享状态(与 NodeApiController::syncClusterStatus 同口径):
+            // clone 是同一物理机的协议/IP 分身, 不独立上报 status; main 熔断下线
+            // (status=0)后必须同步, 否则订阅层(按 status=1 过滤)会持续下发失效 clone。
+            // bandwidth v2 不上报, 同步写回 main 当前值以保持集群一致(与 v1 同字段集)。
+            if ((int)$node->is_clone === 0) {
+                SsNode::query()->where('is_clone', (int)$node->id)->update([
+                    'heartbeat_at' => $heartbeatAt,
+                    'status' => $newStatus,
+                    'node_health' => $nodeHealth,
+                    'bandwidth' => (int)$node->bandwidth,
+                ]);
+            }
         } catch (\Exception $e) {
             Log::error('[BackendApi v2] status write failed', ['node' => $node->id, 'err' => $e->getMessage()]);
             return $this->err(500, 'INTERNAL', 'status write failed');
