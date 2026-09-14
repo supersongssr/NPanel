@@ -11,6 +11,11 @@ use Log;
 /**
  * 一次性停机补偿批次
  *
+ * ⛔【批次已执行完毕 —— 2026-08-13 生产运行结束, 本命令仅留档备查, 禁止再次运行】
+ *    生产库 storage/downtime_compensation.lock 已写入, 重跑会被硬锁直接拒绝;
+ *    即使在其他环境重跑, per-user desc 幂等标记也会全部跳过, 不会重复发放。
+ *    如需发起新的补偿批次, 请复制本类并更换 BATCH_KEY/DESC/金额, 勿复用本命令。
+ *
  * 给 status=0/1 且非管理员用户余额 +3 元 (300 分),
  * 并写入用户余额变动日志 (user_balance_log)。
  *
@@ -43,7 +48,7 @@ class SendDowntimeCompensation extends Command
         {--dry-run : 仅统计不写入}
         {--yes : 跳过交互确认 (危险, 慎用)}';
 
-    protected $description = '一次性停机补偿: 给 status=0/1 且非管理员用户余额 +3元 (仅可运行一次)';
+    protected $description = '一次性停机补偿: 给 status=0/1 且非管理员用户余额 +3元 (⛔ 已执行完毕, 仅留档)';
 
     public function handle()
     {
