@@ -53,14 +53,24 @@ class GenerateNodeApiTokens extends Command
                     $token = $this->generateApiToken();
                     try {
                         // 条件更新防并发重复生成(唯一索引兜底)
+                        // 空字符串 '' 与 null 同视为"未生成": 此前仅匹配 null,
+                        // api_token='' 的节点更新命中 0 行后被误报为"已生成"(实际未写入)
                         $updated = DB::table('ss_node')
                             ->where('id', $node->id)
-                            ->whereNull('api_token')
+                            ->where(function ($query) {
+                                $query->whereNull('api_token')->orWhere('api_token', '');
+                            })
                             ->update(['api_token' => $token]);
                         if ($updated > 0) {
                             break;
                         }
-                        $token = SsNode::query()->find($node->id)->api_token;
+                        // 并发: 别的进程已写入 → 复用其值;
+                        // 仍为空(或节点已删)按失败处理, 不误报"已生成"
+                        $current = SsNode::query()->find($node->id);
+                        $token = $current !== null ? $current->api_token : null;
+                        if ($token === null || $token === '') {
+                            $token = null;
+                        }
                         break;
                     } catch (\Exception $e) {
                         // 唯一索引冲突(极小概率): 换一个重试
