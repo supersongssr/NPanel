@@ -90,10 +90,12 @@ php artisan node:generate-api-tokens --node=3   # 查看/生成单节点
 
 | 场景 | 下发行为 |
 |---|---|
-| `ss_node.api_token` 已签发 | 保留 `panelApi` 段并填真实值：`api.baseURL` = `rtrim(NODE_API_BASE_URL ?: app.url, '/') . '/api/v2/backend'`（专用域名优先，回退 `app.url`）、`api.token` = 节点 api_token，`user.inboundTags` / `flows` 按协议组填充；**默认删除 `ssrpanel` 段** —— 已走 HTTP API 的节点不应继续持有库地址/账号/密码（最低安全保证： DB 凭据不下发给 API 节点） |
+| `ss_node.api_token` 已签发 | 保留 `panelApi` 段并填真实值：`api.baseURL` = `rtrim(NODE_API_BASE_URL ?: app.url, '/') . '/api/v2/backend'`（专用域名优先，回退 `app.url`；经 `config/nodeapi.php` 读取，对 `config:cache` 免疫）、`api.token` = 节点 api_token，`user.inboundTags` / `flows` 按协议组填充；**默认删除 `ssrpanel` 段** —— 已走 HTTP API 的节点不应继续持有库地址/账号/密码（最低安全保证： DB 凭据不下发给 API 节点） |
 | `api_token` 未签发 | 删除 `panelApi` 段，保留 `ssrpanel` 段（旧插件仍靠直连库），输出与旧版完全一致（零回归） |
 | env `NODE_API_KEEP_MYSQL_CREDENTIALS=true` | 回滚开关：已签发 token 的节点恢复双段下发（`panelApi` + `ssrpanel`/DB 凭据）。仅在需要换回旧直连库插件时临时打开，切稳后务必改回 |
-| env `NODE_API_DROP_MYSQL_CREDENTIALS=true` | 收尾开关：一律删除 `ssrpanel` 段（含未签发 token 的旧插件节点），全网不再持有 MySQL 凭据（Phase 4） |
+| env `NODE_API_DROP_MYSQL_CREDENTIALS=true` | 收尾开关：删除 `ssrpanel` 段，全网不再持有 MySQL 凭据（Phase 4）。仅对已签发 token（有 v2 数据源）的节点摘除；未签发节点保守保留并记 warning（否则新旧插件均无用户数据源，用户同步静默冻结），需先 `node:generate-api-tokens` 或让节点重新 `register` 补签发 |
+
+> 三个开关均经 `config/nodeapi.php` 读取（`env()` 在 `config:cache` 后运行时恒为 null，安全开关会静默失效）；改动 `.env` 后需重建 config 缓存。
 
 下发日志中 panelApi token 打码（仅露前 4 后 4 位），与插件侧口径一致。
 

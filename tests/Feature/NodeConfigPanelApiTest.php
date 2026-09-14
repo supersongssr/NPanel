@@ -15,9 +15,12 @@ use Illuminate\Support\Facades\Artisan;
  *   2. api_token 非空 → panelApi 填真实 baseURL/token, 默认无 ssrpanel 段
  *      (不再下发库地址/账号/密码 — 最低安全保证)
  *   3. NODE_API_KEEP_MYSQL_CREDENTIALS=true → 恢复双段下发(显式回滚开关)
- *   4. NODE_API_DROP_MYSQL_CREDENTIALS=true → 删除 ssrpanel(Phase 4 收尾,
- *      含未签发 token 的旧插件节点)
+ *   4. NODE_API_DROP_MYSQL_CREDENTIALS=true → 已签发 token 节点删 ssrpanel;
+ *      未签发节点保留(守卫: 否则新旧插件均无用户数据源)
  *   5. panelApi.user 的 inboundTags/flows 填充正确
+ *
+ * 开关均读 config/nodeapi.php(收敛 env() → config, 对 config:cache 免疫),
+ * 测试内用 config() 注入。
  *
  * 运行: podman exec -e APP_ENV=test php7-npanel vendor/bin/phpunit tests/Feature/NodeConfigPanelApiTest.php
  */
@@ -53,23 +56,12 @@ class NodeConfigPanelApiTest extends TestCase
     protected function tearDown()
     {
         DB::table('ss_node')->where('name', 'panelapi-cfg-test')->delete();
-        $this->clearEnv('NODE_API_DROP_MYSQL_CREDENTIALS');
-        $this->clearEnv('NODE_API_KEEP_MYSQL_CREDENTIALS');
+        // config 开关复位(phpunit 每用例重建 app, 这里仅为防泄漏)
+        config([
+            'nodeapi.keep_mysql_credentials' => false,
+            'nodeapi.drop_mysql_credentials' => false,
+        ]);
         parent::tearDown();
-    }
-
-    private function clearEnv($key)
-    {
-        putenv($key);
-        unset($_ENV[$key], $_SERVER[$key]);
-    }
-
-    private function setEnv($key, $value)
-    {
-        // env() 读取顺序: $_ENV / $_SERVER / getenv
-        $_ENV[$key] = $value;
-        $_SERVER[$key] = $value;
-        putenv($key . '=' . $value);
     }
 
     private function fetchConfig()
@@ -102,7 +94,8 @@ class NodeConfigPanelApiTest extends TestCase
         $cfg = $this->fetchConfig();
 
         // panelApi 段填充
-        $expectedBase = rtrim(env('NODE_API_BASE_URL', config('app.url')), '/') . '/api/v2/backend';
+        // panelApi 段填充(baseURL 口径与实现一致: config 优先, 回退 app.url)
+        $expectedBase = rtrim(config('nodeapi.panel_base_url') ?: config('app.url'), '/') . '/api/v2/backend';
         $this->assertArrayHasKey('panelApi', $cfg);
         $this->assertSame($expectedBase, $cfg['panelApi']['api']['baseURL']);
         $this->assertSame('CfgTestTokenPanelApi0000000000000000', $cfg['panelApi']['api']['token']);
@@ -120,7 +113,7 @@ class NodeConfigPanelApiTest extends TestCase
     {
         DB::table('ss_node')->where('id', $this->nodeId)
             ->update(['api_token' => 'CfgTestTokenPanelApi0000000000000000']);
-        $this->setEnv('NODE_API_KEEP_MYSQL_CREDENTIALS', 'true');
+        config(['nodeapi.keep_mysql_credentials' => true]);
 
         $cfg = $this->fetchConfig();
 
@@ -152,15 +145,20 @@ class NodeConfigPanelApiTest extends TestCase
     /** @test */
     public function drop_mysql_credentials_switch_removes_ssrpanel()
     {
-        // Phase 4 收尾开关: 连未签发 token 的旧插件节点也强制删 ssrpanel
-        $this->setEnv('NODE_API_DROP_MYSQL_CREDENTIALS', 'true');
+        // Phase 4 收尾开关: 已签发 token 的节点摘除 DB 凭据;
+        // 未签发 token 的节点保守保留(否则新旧插件均无用户数据源, 用户同步静默冻结)
+        config(['nodeapi.drop_mysql_credentials' => true]);
 
-        // ① 无 token 旧节点: 本应保留 ssrpanel, 开关打开后也删
+        // ① 无 token 旧节点: 保留 ssrpanel(唯一数据源)且无 panelApi
         $cfg = $this->fetchConfig();
-        $this->assertArrayNotHasKey('ssrpanel', $cfg, 'Phase 4 开关应删除 ssrpanel/DB 凭据段');
         $this->assertArrayNotHasKey('panelApi', $cfg);
+        $this->assertArrayHasKey(
+            'ssrpanel',
+            $cfg,
+            '未签发 token 的节点应保留 ssrpanel, 否则失去全部用户同步来源(应记 warning 提示补签发)'
+        );
 
-        // ② 有 token 新节点: panelApi 保留
+        // ② 有 token 新节点: 摘除 ssrpanel, 保留 panelApi
         DB::table('ss_node')->where('id', $this->nodeId)
             ->update(['api_token' => 'CfgTestTokenPanelApi0000000000000000']);
         $cfg = $this->fetchConfig();

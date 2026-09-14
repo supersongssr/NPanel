@@ -400,7 +400,9 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
    - `api_token` 已签发：保留 `panelApi` 段（`baseURL` = env `NODE_API_BASE_URL`（专用域名优先）或 `app.url` + `/api/v2/backend`，`token` = 节点 api_token；`user.inboundTags` / `flows` 按协议组填充），**默认删除 `ssrpanel` 段** —— 已走 HTTP API 的节点不应继续持有库地址/账号/密码（最低安全保证）。
    - `api_token` 未签发：删除 `panelApi` 段，保留 `ssrpanel` 段（旧插件仍靠直连库），输出与旧版完全一致（零回归）。
    - env `NODE_API_KEEP_MYSQL_CREDENTIALS=true`：回滚开关，已签发 token 的节点恢复双段下发（换回旧插件前临时打开，切稳后务必改回）。
-   - env `NODE_API_DROP_MYSQL_CREDENTIALS=true`：收尾开关，一律删除 `ssrpanel` 段（含旧插件节点），全网不再持有 MySQL 凭据。
+   - env `NODE_API_DROP_MYSQL_CREDENTIALS=true`：收尾开关，删除 `ssrpanel` 段，全网不再持有 MySQL 凭据。仅对已签发 token（有 v2 数据源）的节点摘除；未签发节点保守保留并记 warning（否则新旧插件均无用户数据源），需先补签发。
+
+   三个开关均经 `config/nodeapi.php` 读取（运行时 `env()` 在 `config:cache` 后恒为 null，安全开关会静默失效）；改动 `.env` 后需重建 config 缓存。
 
    token 签发时机（新装节点拿不到 `panelApi` 段的根因修复）：`applyId`（provisioning）无条件签发（新建首发 / 回收轮换），`register` 为空则补发；详见 [backend-node-api-v2.md](backend-node-api-v2.md)。
    - 面板 API 契约详见 [backend-node-api-v2.md](backend-node-api-v2.md)。

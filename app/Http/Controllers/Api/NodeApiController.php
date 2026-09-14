@@ -1621,10 +1621,12 @@ class NodeApiController extends Controller
             // v2_sni = clusterHost ≠ server, 故取 v2_sni 而非 server, 否则 reality 握手失败.
             "__realityServerName__" => $node->v2_sni ?: ($node->server ?: $nodeDomain),
             // v2 面板 API: baseURL 完整到 /api/v2/backend 路由组(设计文档 §8.2),
-            // 专用域名优先(NODE_API_BASE_URL), 回退 app.url
+            // 专用域名优先(NODE_API_BASE_URL), 回退 app.url; 读 config 对 config:cache 免疫
             "__panelBaseURL__" =>
-                rtrim(env("NODE_API_BASE_URL", config("app.url")), "/") .
-                "/api/v2/backend",
+                rtrim(
+                    (string) (config("nodeapi.panel_base_url") ?: config("app.url")),
+                    "/"
+                ) . "/api/v2/backend",
             "__panelToken__" => (string) ($node->api_token ?? ""),
         ];
 
@@ -1665,8 +1667,10 @@ class NodeApiController extends Controller
         //   - 未签发: 删除 panelApi 段, ssrpanel 保留(旧插件仍靠直连库), 零回归
         //   - 回滚开关 NODE_API_KEEP_MYSQL_CREDENTIALS=true: 临时恢复双段下发
         //     (换回旧插件前打开, 切稳后关掉; 显式 opt-in, 期间节点重新持有 DB 凭据)
-        //   - Phase 4 收尾开关 NODE_API_DROP_MYSQL_CREDENTIALS=true: 所有下发(含
-        //     旧插件节点)均删除 ssrpanel 段, 全网不再有 DB 凭据
+        //   - Phase 4 收尾开关 NODE_API_DROP_MYSQL_CREDENTIALS=true: 删除 ssrpanel
+        //     段, 全网不再有 DB 凭据 —— 仅对已签发 token(有 v2 数据源)的节点摘除;
+        //     未签发节点保守保留并告警, 否则新旧插件均无用户数据源, 用户同步静默冻结
+        //   (开关均读 config/nodeapi.php, 对 config:cache 免疫)
         if (isset($config["panelApi"])) {
             if (!empty($node->api_token)) {
                 $config["panelApi"]["user"]["inboundTags"] = $inboundTags;
@@ -1683,11 +1687,24 @@ class NodeApiController extends Controller
             }
         }
         if (isset($config["panelApi"])
-            && !env("NODE_API_KEEP_MYSQL_CREDENTIALS", false)) {
+            && !config("nodeapi.keep_mysql_credentials", false)) {
             unset($config["ssrpanel"]);
         }
-        if (env("NODE_API_DROP_MYSQL_CREDENTIALS", false)) {
-            unset($config["ssrpanel"]);
+        if (config("nodeapi.drop_mysql_credentials", false)) {
+            if (isset($config["panelApi"])) {
+                // 有 v2 数据源: 摘除 DB 凭据
+                unset($config["ssrpanel"]);
+            } elseif (isset($config["ssrpanel"])) {
+                // 未签发 token 的节点删掉 ssrpanel 会失去全部用户同步来源,
+                // 保守保留并告警, 提示补签发(applyId/register 已自动签发,
+                // 无 token 属边缘态: 手工清空/迁移残留等)
+                Log::warning(
+                    "[Node API] config: NODE_API_DROP_MYSQL_CREDENTIALS 已开启, "
+                        . "但节点未签发 api_token, 保留 ssrpanel 段(否则新旧插件均无用户数据源); "
+                        . "请执行 node:generate-api-tokens 或让节点重新 register 补签发",
+                    ["node_id" => $node->id]
+                );
+            }
         }
 
         if ($node->node_unlock) {
