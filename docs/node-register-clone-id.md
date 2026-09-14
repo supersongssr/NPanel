@@ -25,7 +25,7 @@ NPanel 的节点注册与 ID 分配完全由后端 **`NodeApiController@register
 
 2. **优先级 2：回收“死亡”节点 (Recycle)**：
    如果既有克隆不足以满足槽位需求，系统会搜索 **“超过 `dns_expire_days`（默认 30 天）没有心跳”** 的节点（包括由于过期或停用被遗弃的旧节点）。
-   - **判定标准**：`heartbeat_at < dns_expire_days 天前` 或 `(heartbeat_at 为空 且 created_at < dns_expire_days 天前)`；阈值读配置 `dns_expire_days`（未配置或非法时回退 30 天），与 `autoDeleteExpiredDns` / `autoReclaimDeadNodes` 三者同源，不再硬编码天数。
+   - **判定标准**：`heartbeat_at < dns_expire_days 天前` 或 `(heartbeat_at 为空 且 created_at < dns_expire_days 天前)`；阈值读配置 `dns_expire_days`（未配置或非法时回退 30 天），与 `autoDeleteExpiredDns` / `autoReclaimDeadNodes` 三者同源，不再硬编码天数。另：`applyId` 分配时会写入占位心跳（`heartbeat_at=now`），刚分配尚未 register 的 ID 不会被本回收池/autoReclaimDeadNodes 误捡；节点崩溃不来 register 时，占位心跳过期后自然回归死节点池。
    - **分配原则**：先用 `status=0` 排除在用节点，再按 `id` 降序排列（主键有序、零 filesort，优先回收 id 较大的死节点），并限制单次载入上限（`RECYCLE_POOL_LIMIT`，默认 500）防止死节点暴涨时撑爆内存。`applyId` 申请主 ID 时同样改为按 `id` 降序取一条（不再按 `heartbeat_at` 排序）。
    - **清理**：在回收 ID 时，系统会自动清除该 ID 关联的所有旧 DNS 解析记录，确保新节点拥有干净的环境。
 

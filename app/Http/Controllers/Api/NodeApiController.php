@@ -177,6 +177,12 @@ class NodeApiController extends Controller
         $node->ipv6 = $nodeIpv6 ?: "";
         $node->status = 0;
         $node->is_clone = 0;
+        // 竞态守卫: 写入占位心跳, 使"刚分配、尚未 register"的节点不再命中死节点判定
+        // (status=0 AND 心跳超期 / 无心跳且创建超期). 否则夜间 autoReclaimDeadNodes 可在
+        // applyId→register 间隙按死节点将其连 13 张表硬删 (register 随即 Node not found),
+        // register 的克隆回收池也可能误捡他人刚申请的 ID. 节点崩溃不再 register 时,
+        // 占位心跳会在 dns_expire_days 后自然过期, 死节点回收语义不变.
+        $node->heartbeat_at = date("Y-m-d H:i:s");
         $node->save();
 
         Log::info("[Node API] ID 分配成功", [
