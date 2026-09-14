@@ -304,7 +304,8 @@ class NodeApiController extends Controller
             'bing' => 'bing', 'google_scholar' => 'google_scholar',
             'notebooklm' => 'notebooklm',
         ];
-        $tokens = preg_split('/[,&]/', $raw);
+        // 括号感知切分: 值内括号中的逗号 (如 "Yes(Region:US,CA)") 不是分隔符
+        $tokens = $this->splitUnlockTokens($raw);
         $unlockData = [];
         foreach ($tokens as $token) {
             $token = trim($token);
@@ -324,6 +325,47 @@ class NodeApiController extends Controller
             $unlockData[$aliasToStorageKey[$key]] = $value;
         }
         return $unlockData;
+    }
+
+    /**
+     * 括号感知地按 ',' / '&' 切分 unlock 串.
+     *
+     * 值内括号中的分隔符字符不是分隔符: 如 "Yes(Region:US,CA)" 保持为一个 token
+     * (否则值会在逗号处被截断, 见 #3); 括号外的 ',' 与 '&' 一律视为分隔符,
+     * 因此纯逗号列表 / K=V 串 / 混排 (如 "netflix,openai=No") 均可正确切分 (见 #2).
+     * parseNodeUnlockParam 与 applyUnlocks 共用, 保证写入/解析两端口径一致.
+     *
+     * @param  string $raw
+     * @return array  trim 后的非空 token 列表
+     */
+    private function splitUnlockTokens($raw)
+    {
+        $tokens = [];
+        $buf = '';
+        $depth = 0;
+        $len = strlen($raw);
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $raw[$i];
+            if ($ch === '(') {
+                $depth++;
+            } elseif ($ch === ')' && $depth > 0) {
+                $depth--;
+            }
+            if ($depth === 0 && ($ch === ',' || $ch === '&')) {
+                $token = trim($buf);
+                if ($token !== '') {
+                    $tokens[] = $token;
+                }
+                $buf = '';
+            } else {
+                $buf .= $ch;
+            }
+        }
+        $token = trim($buf);
+        if ($token !== '') {
+            $tokens[] = $token;
+        }
+        return $tokens;
     }
 
     public function register(Request $request)
@@ -1949,13 +1991,16 @@ class NodeApiController extends Controller
     private function applyUnlocks(&$config, $unlockStr)
     {
         $unlocks = [];
-        // K=V 形态直接 parse_str (值可能含逗号, 如 "Yes(Region:US,CA)", 不能全局
-        // 把 ',' 换成 '&'); 仅纯逗号服务名列表 (无 '=') 才做 , → & 替换兼容
-        if (strpos($unlockStr, '=') !== false) {
-            parse_str($unlockStr, $unlocks);
-        } else {
-            parse_str(str_replace(',', '&', $unlockStr), $unlocks);
+        // 先归一化再 parse_str: 括号感知地把 ',' / '&' 都作为对分隔符 (值内括号中的
+        // 逗号如 "Yes(Region:US,CA)" 不误切), 裸名段 (无 '=') 补 '=Yes' (与 SPanel 文档
+        // 及 parseNodeUnlockParam 口径一致: 裸名 = 已解锁, 不注入). 兼容纯逗号列表 /
+        // K=V 串 / 两者混排 (如 "netflix,openai=No" 旧逻辑会解析成单键 netflix,openai
+        // 导致 openai=No 不注入) 三种形态.
+        $pairs = [];
+        foreach ($this->splitUnlockTokens((string) $unlockStr) as $token) {
+            $pairs[] = strpos($token, '=') !== false ? $token : $token . '=Yes';
         }
+        parse_str(implode('&', $pairs), $unlocks);
 
         $sysConf = Helpers::systemConfig();
 
@@ -1987,7 +2032,7 @@ class NodeApiController extends Controller
 
                     if (empty($addr)) {
                         Log::warning(
-                            "[Node API] Unlock service {$service} enabled but address is missing in DB.",
+                            "[Node API] Unlock service {$service} enabled but address is missing in .config.php.",
                         );
                         continue;
                     }

@@ -394,7 +394,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 3. **HY2 直连 IP 覆盖：** 当节点 `v2_net === 'hysteria2'` 时，配置中所有 `server` 字段被替换为节点的原始 IP 地址（HY2 使用 QUIC/UDP，无法走 CDN 代理）。
 
-4. **流媒体解锁模板：** 从 `resources/templates/xray/unlock/{service}.json` 文件加载解锁规则，支持 config 表中的 `unlock_{service}_address/port/password/method` 变量注入。注入语义（与 SPanel 统一）：**Yes = 节点已解锁，直连即可不注入；No = 未解锁（值为 no/false/0/off 前缀）才注入远程解锁 outbound/routing**。
+4. **流媒体解锁模板：** 从 `resources/templates/xray/unlock/{service}.json` 文件加载解锁规则，支持配置文件中的 `unlock_{service}_address/port/password/method` 变量注入（`.config.php` 为最终优先级；DB config 表中的 `unlock_*` 存量行已废弃失效，不再读取）。注入语义（与 SPanel 统一）：**Yes = 节点已解锁，直连即可不注入；No = 未解锁（值为 no/false/0/off 前缀）才注入远程解锁 outbound/routing**。
 
 5. **panelApi 下发（v2 HTTP 模式，安全默认不带 DB 凭据）：** 模板内置 `panelApi` 段（占位符 `__panelBaseURL__` / `__panelToken__`），按节点 token 状态动态处理：
    - `api_token` 已签发：保留 `panelApi` 段（`baseURL` = env `NODE_API_BASE_URL`（专用域名优先）或 `app.url` + `/api/v2/backend`，`token` = 节点 api_token；`user.inboundTags` / `flows` 按协议组填充），**默认删除 `ssrpanel` 段** —— 已走 HTTP API 的节点不应继续持有库地址/账号/密码（最低安全保证）。
