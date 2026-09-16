@@ -10,15 +10,19 @@ set -e
 #   ./prod.deploy --migrate -y     # 同上, 跳过确认 (危险, 仅供自动化/CI)
 #   ./prod.deploy --no-migrate     # 完全关闭自动迁移 (覆盖环境变量)
 #
+# 同步后会自动重置并重建路由缓存 (php artisan route:clear + route:cache),
+# 再重启 PHP-FPM, 避免远端残留旧路由缓存导致新路由不生效。
+#
 # 环境变量 (等价开关, 命令行参数优先):
 #   DEPLOY_MIGRATE=1               # 等价 --migrate (强制迁移)
 #   DEPLOY_MIGRATE=0               # 等价 --no-migrate
 #   DEPLOY_ASSUME_YES=1            # 等价 -y
 #
 # 自动迁移流程 (默认): rsync 同步 -> 远程检测待执行迁移
-#   无待执行  -> 直接重启 PHP-FPM
-#   有待执行  -> 警告 + 二次确认 -> 迁移 -> 重启 (取消则中止, 不重启)
-#   检测失败  -> 警告并提示手动迁移命令, 照常重启
+#   无待执行  -> 直接重建路由缓存
+#   有待执行  -> 警告 + 二次确认 -> 迁移 -> 重建路由缓存 (取消则中止, 不重启)
+#   检测失败  -> 警告并提示手动迁移命令, 照常重建路由缓存
+# 之后统一: 重建路由缓存 (route:clear + route:cache) -> 重启 PHP-FPM
 ####
 
 # --- ANSI 颜色 (非 tty 自动禁用, 避免日志里出现乱码) ---
@@ -185,6 +189,21 @@ remind_manual_migrate() {
     printf "     ${C_BLD}ssh \"%s\" \"cd %s && ./run migrate-status\"${C_RST}\n\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH"
 }
 
+# 远程重置并重建路由缓存 (route:clear + route:cache)
+# 同步新代码后远端 bootstrap/cache 可能残留旧路由缓存文件,
+# 需先重置再重建, 否则新路由不生效 / 旧路由残留。
+# 失败时仅警告不中止: 旧缓存已被清除, 应用仍可从路由文件加载, 继续重启 FPM。
+do_remote_route_cache() {
+    printf "${C_BLD}📦 远程重置并重建路由缓存 (route:clear + route:cache)...${C_RST}\n"
+    ROUTE_CACHE_RC=0
+    ssh "$PROD_DEPLOY_HOST" "cd \"$PROD_DEPLOY_PATH\" && ./run route-cache" || ROUTE_CACHE_RC=$?
+    if [ "$ROUTE_CACHE_RC" -ne 0 ]; then
+        printf "${C_YEL}🟡 路由缓存重建失败 (旧缓存已清除, 路由将从文件加载), 可稍后手动重建:${C_RST}\n"
+        printf "     ${C_BLD}ssh \"%s\" \"cd %s && ./run route-cache\"${C_RST}\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH"
+    fi
+    return 0
+}
+
 # 用户请求迁移却取消了: 不重启 PHP-FPM (避免新代码上线但表结构没迁移), 中止部署
 abort_after_cancel() {
     printf "\n${C_RED}##############################################################################${C_RST}\n"
@@ -262,6 +281,9 @@ deploy_nPanel() {
         remind_manual_migrate
     fi
 
+    # 重置并重建路由缓存: 在重启 PHP-FPM 前完成, 让新路由缓存随新代码一起生效
+    do_remote_route_cache
+
     # 服务端开启了 opcache, 重启 PHP-FPM (宝塔 php-fpm-74) 使新代码立即生效
     printf "${C_BLD}🔄 重启 PHP-FPM (php-fpm-74) 使新代码立即生效...${C_RST}\n"
     ssh "$PROD_DEPLOY_HOST" '/etc/init.d/php-fpm-74 restart'
@@ -273,6 +295,7 @@ main() {
     parse_args "$@"
 
     printf "${C_BLD}🚀 nPanel rsync 部署脚本启动${C_RST}\n"
+    printf "${C_YEL}   ℹ 同步后将自动重置并重建路由缓存 (route:clear + route:cache)${C_RST}\n"
     if [ "$DO_MIGRATE" = "force" ]; then
         printf "${C_YEL}   ⚠ 已指定 --migrate, 同步后将强制执行数据库迁移 (需二次确认)${C_RST}\n"
     elif [ "$DO_MIGRATE" = "off" ]; then

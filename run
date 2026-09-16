@@ -8,6 +8,7 @@
 #   ./run migrate-status        # 非交互: 查看迁移状态
 #   ./run migrate-pending       # 非交互: 检测待执行迁移 (退出码 0=有 1=无 2=失败)
 #   ./run cache-clear           # 非交互: 清理应用缓存
+#   ./run route-cache           # 非交互: 重置并重建路由缓存 (route:clear + route:cache)
 #
 # 远程触发示例 (prod.deploy 同步完代码后):
 #   ssh "$HOST" "cd $PATH && ./run migrate"
@@ -75,6 +76,22 @@ cache_clear() {
     "$PHP_BIN" artisan optimize:clear
 }
 
+# 重置并重建路由缓存 (供 prod.deploy 同步代码后远程触发)
+# 先 route:clear 清掉残留旧缓存, 再 route:cache 重建, 避免新路由不生效
+route_cache() {
+    echo "🧹 重置路由缓存 (php artisan route:clear)..."
+    "$PHP_BIN" artisan route:clear
+    echo "📦 重建路由缓存 (php artisan route:cache)..."
+    if "$PHP_BIN" artisan route:cache; then
+        echo "✅ 路由缓存已重建"
+        return $EXIT_OK
+    else
+        echo "🔴⛔ 路由缓存重建失败 (旧缓存已清除, 路由将从文件加载)"
+        echo "   请检查是否存在闭包路由, 稍后手动重试: $PHP_BIN artisan route:cache"
+        return $EXIT_FAIL
+    fi
+}
+
 # 重启队列 worker (若用 queue.sh 托管)
 queue_restart() {
     if [ -x ./queue.sh ]; then
@@ -111,13 +128,17 @@ run_direct() {
             cache_clear
             return $?
             ;;
+        route-cache|route:cache)
+            route_cache
+            return $?
+            ;;
         queue-restart|queue)
             queue_restart
             return $?
             ;;
         *)
             echo "🔴 未知命令: $cmd"
-            echo "可用命令: migrate | migrate-status | migrate-pending | migrate-rollback | cache-clear | queue-restart"
+            echo "可用命令: migrate | migrate-status | migrate-pending | migrate-rollback | cache-clear | route-cache | queue-restart"
             return $EXIT_FAIL
             ;;
     esac
