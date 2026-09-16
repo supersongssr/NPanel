@@ -38,8 +38,15 @@ class UserController extends Controller
      */
     public function traffic(Request $request)
     {
-        $id = trim((string)$request->query('id', ''));
-        $email = trim((string)$request->query('email', ''));
+        // 标量守卫: ?id[]=1 之类的数组参数强转 string 会触发 "Array to string
+        // conversion" notice, 被 Laravel 转成异常后返回 500 而非契约的 400
+        $rawId = $request->query('id', '');
+        $rawEmail = $request->query('email', '');
+        if (!is_string($rawId) || !is_string($rawEmail)) {
+            return $this->err(400, 'BAD_REQUEST', 'id and email must be scalar strings');
+        }
+        $id = trim($rawId);
+        $email = trim($rawEmail);
 
         if ($id === '' && $email === '') {
             return $this->err(400, 'BAD_REQUEST', 'id or email is required');

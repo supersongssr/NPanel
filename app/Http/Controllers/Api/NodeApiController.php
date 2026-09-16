@@ -768,6 +768,12 @@ class NodeApiController extends Controller
                     NodeDefaults::resetToDefaults($clone);
                     $this->safeCleanupNodeDns($clone->id, 'register.deadClone');
                 } else {
+                    // 备注: clone 节点无需 api_token —— clone 使用主节点的配置(物理机只以
+                    // 主节点 id 拉取唯一一份 /api/node/config, xray 含全部 inbound 槽位),
+                    // 后端节点也只以主节点身份与面板联系(插件/流量上报均用 main 的
+                    // token); clone 行仅承载订阅/DNS/记账, 不独立拉配置或调面板 API。
+                    // 故新建/复用 clone 均不补发 token(回收孤儿经 resetToDefaults
+                    // 顺带带上的 token 亦不会被使用), 留 NULL 为有意行为, 非遗漏。
                     $clone = new SsNode();
                 }
 
