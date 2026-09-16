@@ -51,7 +51,7 @@ These commands are found in `app/Console/Commands` and are loaded automatically 
 | `rate-limit:clear {code?}` | Clear subscription rate limit cache from Redis |
 | `test:autoDeleteExpiredDns` | 模拟测试 AutoDeleteExpiredDns 各场景 (Scenario test harness for AutoDeleteExpiredDns) |
 | `node:generate-api-tokens {--show} {--node=}` | 批量生成 v2 后端节点 API（`/api/v2/backend`）的每节点 Bearer token（`ss_node.api_token`，43 字符 base64url；仅补齐空值，已有 token 保持不变）(Batch-generate per-node Bearer tokens for the v2 backend node API) |
-| `downtime:compensation {--dry-run} {--yes}` | 一次性停机补偿：给 status=0/1 且非管理员用户余额 +3 元（300 分）并写 user_balance_log；storage/downtime_compensation.lock 永久锁 + desc 幂等标记保证仅执行一次。不进 schedule，仅人工手动执行 (One-shot downtime compensation, manual only) |
+| `downtime:compensation {--dry-run} {--yes}` | 一次性停机补偿：给 status=0/1 且非管理员用户余额 +3 元（300 分），写 `user_balance_log` 幂等标记；整批完成后写 `storage/downtime_compensation.lock` 永久锁禁止二次运行。**不进 schedule，仅人工手动执行**（详见 `AI/done/2026-08-13-downtime-compensation-3yuan.md`）(One-shot downtime compensation, manual only) |
 
 ## Scheduled Tasks
 

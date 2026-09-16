@@ -102,7 +102,7 @@ CREATE TABLE dns_records (
 
 ### 4.1 POST /api/node/apply_id
 
-**核心逻辑：节点 ID 回收。** 查找心跳超过 32 天的死亡节点复用其 ID，同时清理该节点的 `dns_records`。若无死亡节点则创建新记录。
+**核心逻辑：节点 ID 回收。** 查找心跳超过 `dns_expire_days`（默认 30 天）的死亡节点复用其 ID，同时清理该节点的 `dns_records`。若无死亡节点则创建新记录。
 
 **返回值:** `{ "node_id": 42 }`
 
