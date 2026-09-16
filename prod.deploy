@@ -2,21 +2,23 @@
 set -e
 
 ####
-# nPanel 自动化部署脚本 (rsync 同步)
+# nPanel 自动化部署脚本 (rsync 同步 + 自动迁移)
 #
 # 用法:
-#   ./prod.deploy                  # 仅同步代码 + 重启 PHP-FPM (默认, 不迁移)
-#   ./prod.deploy --migrate        # 同步后执行数据库迁移 (醒目警告 + 二次确认)
+#   ./prod.deploy                  # 同步 + 自动检测迁移 (有待执行时确认后迁移)
+#   ./prod.deploy --migrate        # 跳过检测, 强制执行迁移 (醒目警告 + 二次确认)
 #   ./prod.deploy --migrate -y     # 同上, 跳过确认 (危险, 仅供自动化/CI)
-#   ./prod.deploy --no-migrate     # 显式关闭迁移 (覆盖环境变量)
+#   ./prod.deploy --no-migrate     # 完全关闭自动迁移 (覆盖环境变量)
 #
 # 环境变量 (等价开关, 命令行参数优先):
-#   DEPLOY_MIGRATE=1               # 等价 --migrate
+#   DEPLOY_MIGRATE=1               # 等价 --migrate (强制迁移)
+#   DEPLOY_MIGRATE=0               # 等价 --no-migrate
 #   DEPLOY_ASSUME_YES=1            # 等价 -y
 #
-# 执行顺序 (--migrate 已确认时):
-#   rsync 同步 -> 数据库迁移 -> 重启 PHP-FPM
-#   (让 "新代码 + 新表结构" 同时生效, 避免中间态)
+# 自动迁移流程 (默认): rsync 同步 -> 远程检测待执行迁移
+#   无待执行  -> 直接重启 PHP-FPM
+#   有待执行  -> 警告 + 二次确认 -> 迁移 -> 重启 (取消则中止, 不重启)
+#   检测失败  -> 警告并提示手动迁移命令, 照常重启
 ####
 
 # --- ANSI 颜色 (非 tty 自动禁用, 避免日志里出现乱码) ---
@@ -35,7 +37,7 @@ else
 fi
 
 # 默认开关
-DO_MIGRATE=0      # 同步后是否自动迁移
+DO_MIGRATE=auto   # auto=自动检测待执行迁移 | force=强制迁移 | off=关闭
 ASSUME_YES=0      # 是否跳过确认
 
 # 从 .env 读取部署配置
@@ -62,13 +64,13 @@ parse_args() {
     while [ $# -gt 0 ]; do
         case "$1" in
             --migrate|-m)
-                DO_MIGRATE=1
+                DO_MIGRATE=force
                 ;;
             --yes|-y)
                 ASSUME_YES=1
                 ;;
             --no-migrate)
-                DO_MIGRATE=0
+                DO_MIGRATE=off
                 ;;
             -h|--help)
                 sed -n '4,22p' "$0"
@@ -87,7 +89,10 @@ parse_args() {
     # 注意: 不能用 `[ ... ] && VAR=...` 形式, 否则条件为假时整条语句返回 1,
     # 会作为 parse_args 的退出码, 在 `set -e` 下导致脚本静默退出。
     if [ "$DEPLOY_MIGRATE" = "1" ]; then
-        DO_MIGRATE=1
+        DO_MIGRATE=force
+    fi
+    if [ "$DEPLOY_MIGRATE" = "0" ]; then
+        DO_MIGRATE=off
     fi
     if [ "$DEPLOY_ASSUME_YES" = "1" ]; then
         ASSUME_YES=1
@@ -164,6 +169,14 @@ do_remote_migrate() {
     printf "${C_GRN}✅ 远程数据库迁移执行完成${C_RST}\n"
 }
 
+# 远程检测是否有待执行迁移 (调用 ./run migrate-pending)
+# 退出码即远端退出码: 0=有待执行迁移, 1=无, 其它=检测失败
+# 注意: 调用方需用 `detect_pending_migrations || RC=$?` 避免 set -e 中止
+detect_pending_migrations() {
+    printf "${C_BLD}🔍 远程检测待执行迁移 (php artisan migrate:status)...${C_RST}\n"
+    ssh "$PROD_DEPLOY_HOST" "cd \"$PROD_DEPLOY_PATH\" && ./run migrate-pending"
+}
+
 # 默认(未启用迁移)的醒目提醒: 告知未迁移 + 手动命令
 remind_manual_migrate() {
     printf "\n${C_YEL}🟡🟡🟡  数据库迁移【未自动执行】  🟡🟡🟡${C_RST}\n"
@@ -204,7 +217,9 @@ deploy_nPanel() {
     printf "${C_GRN}✅ rsync 同步完成！${C_RST}\n"
 
     # 迁移处理: 在重启 PHP-FPM 之前完成, 让 "新代码 + 新表结构" 一起生效
-    if [ "$DO_MIGRATE" = "1" ]; then
+    # DO_MIGRATE: force=强制迁移 | auto=自动检测待执行迁移 | off=关闭
+    MIGRATE_STATE=skip
+    if [ "$DO_MIGRATE" = "force" ]; then
         banner_migrate_warn
         if confirm_migrate; then
             do_remote_migrate
@@ -212,8 +227,29 @@ deploy_nPanel() {
         else
             MIGRATE_STATE=cancel
         fi
-    else
-        MIGRATE_STATE=skip
+    elif [ "$DO_MIGRATE" = "auto" ]; then
+        DETECT_RC=0
+        detect_pending_migrations || DETECT_RC=$?
+        case "$DETECT_RC" in
+            0)
+                # 有待执行迁移: 醒目警告 + 二次确认
+                banner_migrate_warn
+                if confirm_migrate; then
+                    do_remote_migrate
+                    MIGRATE_STATE=done
+                else
+                    MIGRATE_STATE=cancel
+                fi
+                ;;
+            1)
+                MIGRATE_STATE=none
+                printf "${C_GRN}✅ 无待执行迁移, 跳过数据库迁移${C_RST}\n"
+                ;;
+            *)
+                MIGRATE_STATE=unknown
+                printf "${C_YEL}🟡 无法检测远程迁移状态, 本次不自动迁移${C_RST}\n"
+                ;;
+        esac
     fi
 
     # 用户请求迁移却取消了 -> 不重启, 中止 (避免危险中间态)
@@ -221,8 +257,8 @@ deploy_nPanel() {
         abort_after_cancel
     fi
 
-    # 默认(未启用迁移): 醒目提醒手动迁移
-    if [ "$MIGRATE_STATE" = "skip" ]; then
+    # 关闭迁移 或 检测失败: 醒目提醒手动迁移
+    if [ "$MIGRATE_STATE" = "skip" ] || [ "$MIGRATE_STATE" = "unknown" ]; then
         remind_manual_migrate
     fi
 
@@ -237,10 +273,12 @@ main() {
     parse_args "$@"
 
     printf "${C_BLD}🚀 nPanel rsync 部署脚本启动${C_RST}\n"
-    if [ "$DO_MIGRATE" = "1" ]; then
-        printf "${C_YEL}   ⚠ 已启用 --migrate, 同步后将执行数据库迁移 (需二次确认)${C_RST}\n"
+    if [ "$DO_MIGRATE" = "force" ]; then
+        printf "${C_YEL}   ⚠ 已指定 --migrate, 同步后将强制执行数据库迁移 (需二次确认)${C_RST}\n"
+    elif [ "$DO_MIGRATE" = "off" ]; then
+        printf "${C_YEL}   ℹ 已指定 --no-migrate, 本次仅同步代码 (迁移需手动执行)${C_RST}\n"
     else
-        printf "${C_YEL}   ℹ 未启用 --migrate, 本次仅同步代码 (迁移需手动执行)${C_RST}\n"
+        printf "${C_YEL}   ℹ 已启用自动迁移检测, 同步后将检查待执行迁移${C_RST}\n"
     fi
     echo "⏰ 时间: $(date '+%Y-%m-%d %H:%M:%S')"
     echo "=========================================="

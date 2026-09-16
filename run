@@ -6,6 +6,7 @@
 #   ./run                       # 交互菜单
 #   ./run migrate               # 非交互: 应用数据库迁移 (供 prod.deploy 远程触发)
 #   ./run migrate-status        # 非交互: 查看迁移状态
+#   ./run migrate-pending       # 非交互: 检测待执行迁移 (退出码 0=有 1=无 2=失败)
 #   ./run cache-clear           # 非交互: 清理应用缓存
 #
 # 远程触发示例 (prod.deploy 同步完代码后):
@@ -40,6 +41,26 @@ migrate_db() {
 migrate_status() {
     echo "📋 数据库迁移状态:"
     "$PHP_BIN" artisan migrate:status
+}
+
+# 检测是否有待执行迁移 (供 prod.deploy 自动迁移判断)
+# 解析 migrate:status 表格中 Ran? 列为 N/No 的行 (兼容 Laravel 5.x/6+ 输出)
+# 退出码: 0=有待执行迁移, 1=无待执行迁移, 2=检测失败
+check_migrate_pending() {
+    echo "🔍 检查待执行迁移 (php artisan migrate:status)..."
+    STATUS_OUT=$("$PHP_BIN" artisan migrate:status 2>&1)
+    if [ $? -ne 0 ]; then
+        printf '%s\n' "$STATUS_OUT"
+        echo "🔴 无法获取迁移状态"
+        return 2
+    fi
+    PENDING=$(printf '%s\n' "$STATUS_OUT" | grep -cE '^[[:space:]]*\|[[:space:]]*No?[[:space:]]*\|')
+    if [ "$PENDING" -gt 0 ]; then
+        echo "🟡 发现 $PENDING 个待执行迁移"
+        return 0
+    fi
+    echo "✅ 无待执行迁移"
+    return 1
 }
 
 # 回滚最近一次迁移 (危险操作, 仅交互菜单可见, 不暴露给远程非交互调用)
@@ -78,6 +99,10 @@ run_direct() {
             migrate_status
             return $?
             ;;
+        migrate-pending|pending)
+            check_migrate_pending
+            return $?
+            ;;
         migrate-rollback|rollback)
             migrate_rollback
             return $?
@@ -92,7 +117,7 @@ run_direct() {
             ;;
         *)
             echo "🔴 未知命令: $cmd"
-            echo "可用命令: migrate | migrate-status | migrate-rollback | cache-clear | queue-restart"
+            echo "可用命令: migrate | migrate-status | migrate-pending | migrate-rollback | cache-clear | queue-restart"
             return $EXIT_FAIL
             ;;
     esac
