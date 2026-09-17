@@ -65,6 +65,7 @@ class BackendToken
         // 禁用口径与现有节点接口一致: status=0 → users/traffic 403(配置/计费通道切断)。
         // 唯一例外: POST /status 放行 —— 熔断下线(traffic_left<120GB)的节点必须仍能
         // 心跳, 否则月度流量重置后无法自动恢复上线(v1 /api/node/status 从不因 status=0 拒绝)。
+        // (既定语义: status 以流量自动计算为准, 手动置 0 会被心跳翻转 —— 见 NodeController::status 备注)
         if ((int)$node->status === 0 && !$request->is('*/v2/backend/status')) {
             return ['status' => 403, 'code' => 'NODE_DISABLED', 'message' => 'node is disabled'];
         }

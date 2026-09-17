@@ -236,7 +236,8 @@ class NodeController extends Controller
      * 表结构与 SPanel 相同, 行为与旧插件直接写库一致。
      * 另含 120GB 熔断(status 0/1 翻转; traffic_limit=0 不限量节点永不熔断)与
      * clone 集群状态同步 —— 与 NodeApiController::status / syncClusterStatus 同口径
-     * (status 由流量阈值驱动, 手动置 0 的节点也会在心跳时按流量口径自动翻转, 与 v1 一致)。
+     * (status 由流量阈值驱动, 手动置 0 的节点也会在心跳时按流量口径自动翻转, 与 v1 一致;
+     *  既定语义: 自动计算为准 + 120GB 固定预留非比例, 详见方法体内备注)。
      */
     public function status(Request $request)
     {
@@ -320,6 +321,14 @@ class NodeController extends Controller
             // 恢复 ≥ 120GB(如月度流量重置) → status=1。中间件对 POST /status 放行,
             // 熔断节点的心跳/自动恢复通道才存在。traffic_limit=0 视为不限量, 永不熔断
             // (与 users() 的不限量口径一致; v1 无此判断, 不限量节点会被误熔断, 此处修正)。
+            //
+            // ⚠️【既定语义备注 — 非缺陷, 勿当 bug 修】
+            //   1. status 以流量口径自动计算为准: 管理员手动置 0(维护)同样会在下次心跳
+            //      被自动翻转回 1 —— 自动计算为准, 与 v1 完全一致。需要硬下线某节点时
+            //      应吊销其 api_token(置空/轮换), 而非仅置 status=0。
+            //   2. 120GB 是固定预留量, 不按 traffic_limit 比例计算: 剩余不足该固定值即
+            //      熔断, 因此总限额 ≤ 120GB 的节点会恒为下线态 —— 这是对节点限额的
+            //      预期约束(节点月限额应 > 120GB), 不做比例化改造。
             $threshold = 120 * 1024 * 1024 * 1024; // 120GB
             if ($limit !== 0 && $limit - $used < $threshold) {
                 $newStatus = 0;
