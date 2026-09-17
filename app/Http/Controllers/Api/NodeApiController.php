@@ -146,24 +146,31 @@ class NodeApiController extends Controller
         $nodeIpv6 = $request->input("node_ipv6");
 
         $cutoff = $this->resolveDeadNodeCutoff();
-        $node = SsNode::where(function ($query) use ($cutoff) {
-            $query
-                ->where("heartbeat_at", "<", $cutoff)
-                ->orWhere(function ($q) use ($cutoff) {
-                    $q->whereNull("heartbeat_at")->where(
-                        "created_at",
-                        "<",
-                        $cutoff,
-                    );
-                });
-        })
+        $node = $this->deadHeartbeatScope($cutoff)
             ->orderBy("id", "desc")
             ->first();
 
         $recycled = false;
         if ($node) {
-            $recycled = true;
-            $this->safeCleanupNodeDns($node->id, 'applyId');
+            // 原子认领 (竞态收口): 占位心跳不能等到最后 save() 才落库 —— 中间的
+            // safeCleanupNodeDns 是秒级 CF API 调用, select→save 窗口内行内仍是
+            // 旧心跳, 夜间 autoReclaimDeadNodes 的守卫式删除仍可命中 (删行后
+            // save() 静默 0 行, 返回幽灵 node_id). 故先以同源死节点条件做条件
+            // UPDATE 写入占位心跳: 影响 1 行 = 认领成功, 此后所有删除方的
+            // 心跳守卫都会放行; 影响 0 行 = 已被并发回收/复活, 放弃该 ID 降级新建.
+            $claimAt = date("Y-m-d H:i:s");
+            $claimed = $this->deadHeartbeatScope($cutoff)
+                ->where("id", $node->id)
+                ->update(["heartbeat_at" => $claimAt]);
+            if ($claimed > 0) {
+                $recycled = true;
+                $this->safeCleanupNodeDns($node->id, 'applyId');
+            } else {
+                Log::info("[Node API] applyId 候选死节点被并发改变, 降级新建", [
+                    "candidate_id" => $node->id,
+                ]);
+                $node = new SsNode();
+            }
         } else {
             $node = new SsNode();
         }
@@ -183,6 +190,7 @@ class NodeApiController extends Controller
         // applyId→register 间隙按死节点将其连 13 张表硬删 (register 随即 Node not found),
         // register 的克隆回收池也可能误捡他人刚申请的 ID. 节点崩溃不再 register 时,
         // 占位心跳会在 dns_expire_days 后自然过期, 死节点回收语义不变.
+        // (回收路径的占位心跳已在上方认领时提前落库, 此处对新建路径写入/回收路径刷新.)
         $node->heartbeat_at = date("Y-m-d H:i:s");
         $node->save();
 
@@ -640,17 +648,7 @@ class NodeApiController extends Controller
             ->values();
         $cutoff = $this->resolveDeadNodeCutoff();
 
-        $deadNodes = SsNode::where(function ($query) use ($cutoff) {
-            $query
-                ->where("heartbeat_at", "<", $cutoff)
-                ->orWhere(function ($q) use ($cutoff) {
-                    $q->whereNull("heartbeat_at")->where(
-                        "created_at",
-                        "<",
-                        $cutoff,
-                    );
-                });
-        })
+        $deadNodes = $this->deadHeartbeatScope($cutoff)
             ->where("status", 0)
             ->where("id", "!=", $nodeId)
             ->where("is_clone", "!=", $nodeId)
@@ -1571,8 +1569,34 @@ class NodeApiController extends Controller
     }
 
     /**
+     * 心跳超期判定 scope (死节点判定的"心跳半边", 不含 status 过滤):
+     *   heartbeat_at < cutoff 或 (heartbeat_at IS NULL 且 created_at < cutoff)
+     *
+     * 单一事实源: applyId 的候选选取 / 原子认领 (条件 UPDATE 占位心跳) 与
+     * register 的克隆回收池三处共用, 避免选取条件与认领条件漂移.
+     * (status=0 过滤仅 register 回收池需要, 由调用方自行追加.)
+     *
+     * @param  string $cutoff
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    private function deadHeartbeatScope($cutoff)
+    {
+        return SsNode::where(function ($query) use ($cutoff) {
+            $query
+                ->where("heartbeat_at", "<", $cutoff)
+                ->orWhere(function ($q) use ($cutoff) {
+                    $q->whereNull("heartbeat_at")->where(
+                        "created_at",
+                        "<",
+                        $cutoff,
+                    );
+                });
+        });
+    }
+
+    /**
      * 死节点 cutoff 阈值: 读配置 dns_expire_days, 与 AutoDeleteExpiredDns / AutoReclaimDeadNodes
-     * 同源 (三者一致, 避免窗口错位). 未配置或非法时回退 30 天 (与 AutoReclaimDeadNodes 默认一致).
+     * 同源 (三者一致, 避免窗口错位). 未配置或非法时统一回退 30 天 (三处回退默认一致).
      *
      * 此前 applyId / register 硬编码 -32 天, 与配置默认 30 天错位 2 天; 且运维调大 dns_expire_days
      * 时回收路径不会跟随, 会在配置窗口内提前复用节点. 统一由配置驱动后, 调阈值只改 config.

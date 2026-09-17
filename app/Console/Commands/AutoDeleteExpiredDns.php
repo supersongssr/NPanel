@@ -12,7 +12,7 @@ use App\Services\DnsRecordCleanupService;
 /**
  * 定时删除超过指定天数无心跳节点的 DNS 解析记录
  *
- * 阈值优先级: 命令行 --days > config.default.php/.config.php 的 dns_expire_days > DEFAULT_EXPIRE_DAYS (32).
+ * 阈值优先级: 命令行 --days > config.default.php/.config.php 的 dns_expire_days > DEFAULT_EXPIRE_DAYS (30).
  * 定时任务 (Console\Kernel 每日 04:10) 无命令行参数时读取 dns_expire_days 配置.
  *
  * 清理范围：
@@ -36,14 +36,14 @@ class AutoDeleteExpiredDns extends Command
     /**
      * Default expiry threshold in days (命令行 / 配置均未指定时回退值).
      */
-    const DEFAULT_EXPIRE_DAYS = 32;
+    const DEFAULT_EXPIRE_DAYS = 30;
 
     /**
      * Chunk size for node queries.
      */
     const CHUNK_SIZE = 100;
 
-    protected $signature = 'autoDeleteExpiredDns {--dry-run : 仅预览不删除} {--days= : 过期天数阈值 (留空则读配置 dns_expire_days, 仍无则默认 32)}';
+    protected $signature = 'autoDeleteExpiredDns {--dry-run : 仅预览不删除} {--days= : 过期天数阈值 (留空则读配置 dns_expire_days, 仍无则默认 30)}';
     protected $description = '自动删除超过指定天数无心跳节点的DNS解析记录（含独立Token的CDN域名, Cloudflare远端）';
 
     public function handle()

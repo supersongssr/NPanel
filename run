@@ -55,6 +55,17 @@ check_migrate_pending() {
         echo "🔴 无法获取迁移状态"
         return 2
     fi
+    # Laravel migrate:status 在迁移仓库(migrations 表)不存在/无迁移文件时仅输出
+    # "No migrations found" 且退出码仍为 0 —— 此时实为全部迁移待执行, 不能判为
+    # "无待执行", 否则自动迁移与手动迁移提醒双双跳过. 归入检测失败(2), 让
+    # prod.deploy 走 unknown 分支给出人工迁移提示.
+    case "$STATUS_OUT" in
+        *"No migrations found"*)
+            printf '%s\n' "$STATUS_OUT"
+            echo "🔴 迁移仓库不存在或无迁移文件, 无法判定待执行状态 (请手动 migrate:status 确认)"
+            return 2
+            ;;
+    esac
     PENDING=$(printf '%s\n' "$STATUS_OUT" | grep -cE '^[[:space:]]*\|[[:space:]]*No?[[:space:]]*\|')
     if [ "$PENDING" -gt 0 ]; then
         echo "🟡 发现 $PENDING 个待执行迁移"
@@ -80,13 +91,22 @@ cache_clear() {
 # 先 route:clear 清掉残留旧缓存, 再 route:cache 重建, 避免新路由不生效
 route_cache() {
     echo "🧹 重置路由缓存 (php artisan route:clear)..."
-    "$PHP_BIN" artisan route:clear
+    CLEAR_RC=0
+    "$PHP_BIN" artisan route:clear || CLEAR_RC=$?
+    if [ "$CLEAR_RC" -ne 0 ]; then
+        echo "🟡 route:clear 失败, 旧路由缓存可能仍残留 (请检查 artisan 可运行性 / bootstrap/cache 权限)"
+    fi
     echo "📦 重建路由缓存 (php artisan route:cache)..."
     if "$PHP_BIN" artisan route:cache; then
         echo "✅ 路由缓存已重建"
         return $EXIT_OK
     else
-        echo "🔴⛔ 路由缓存重建失败 (旧缓存已清除, 路由将从文件加载)"
+        echo "🔴⛔ 路由缓存重建失败"
+        if [ "$CLEAR_RC" -eq 0 ]; then
+            echo "   (旧缓存已清除, 路由将从文件加载)"
+        else
+            echo "   (旧缓存清除亦失败, 可能残留旧路由缓存导致新路由不生效!)"
+        fi
         echo "   请检查是否存在闭包路由, 稍后手动重试: $PHP_BIN artisan route:cache"
         return $EXIT_FAIL
     fi

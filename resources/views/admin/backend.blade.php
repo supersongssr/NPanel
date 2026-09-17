@@ -77,7 +77,7 @@
                                                                     <button class="btn btn-success btn-sm" type="button" onclick="saveDnsExpireDays()">保存</button>
                                                                 </span>
                                                             </div>
-                                                            <span class="help-block">心跳超过该天数无活跃的节点，其 DNS 解析记录将被定时任务（<code>AutoDeleteExpiredDns</code>，每日 04:10）从 Cloudflare 与本地一并删除，释放 DNS 名额。默认 32，填 0 或非法值回退 32。</span>
+                                                            <span class="help-block">心跳超过该天数无活跃的节点，其 DNS 解析记录将被定时任务（<code>AutoDeleteExpiredDns</code>，每日 04:10）从 Cloudflare 与本地一并删除，释放 DNS 名额。默认 30，填 0 或非法值回退 30。</span>
                                                         </div>
                                                     </div>
                                                 </div>

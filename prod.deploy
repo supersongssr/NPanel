@@ -69,15 +69,18 @@ parse_args() {
         case "$1" in
             --migrate|-m)
                 DO_MIGRATE=force
+                MIGRATE_CLI_SET=1
                 ;;
             --yes|-y)
                 ASSUME_YES=1
                 ;;
             --no-migrate)
                 DO_MIGRATE=off
+                MIGRATE_CLI_SET=1
                 ;;
             -h|--help)
-                sed -n '4,22p' "$0"
+                # 按文件头部 #### 围栏动态提取帮助内容, 不随注释块扩容而截断
+                awk '/^####$/{f++; next} f==1' "$0"
                 exit 0
                 ;;
             *)
@@ -89,14 +92,17 @@ parse_args() {
         shift
     done
 
-    # 环境变量兜底
+    # 环境变量兜底 (仅 CLI 未显式指定迁移开关时生效 —— 命令行参数优先,
+    # 否则 shell 残留的 DEPLOY_MIGRATE=0 会静默压掉显式 --migrate)
     # 注意: 不能用 `[ ... ] && VAR=...` 形式, 否则条件为假时整条语句返回 1,
     # 会作为 parse_args 的退出码, 在 `set -e` 下导致脚本静默退出。
-    if [ "$DEPLOY_MIGRATE" = "1" ]; then
-        DO_MIGRATE=force
-    fi
-    if [ "$DEPLOY_MIGRATE" = "0" ]; then
-        DO_MIGRATE=off
+    if [ -z "$MIGRATE_CLI_SET" ]; then
+        if [ "$DEPLOY_MIGRATE" = "1" ]; then
+            DO_MIGRATE=force
+        fi
+        if [ "$DEPLOY_MIGRATE" = "0" ]; then
+            DO_MIGRATE=off
+        fi
     fi
     if [ "$DEPLOY_ASSUME_YES" = "1" ]; then
         ASSUME_YES=1
@@ -198,7 +204,7 @@ do_remote_route_cache() {
     ROUTE_CACHE_RC=0
     ssh "$PROD_DEPLOY_HOST" "cd \"$PROD_DEPLOY_PATH\" && ./run route-cache" || ROUTE_CACHE_RC=$?
     if [ "$ROUTE_CACHE_RC" -ne 0 ]; then
-        printf "${C_YEL}🟡 路由缓存重建失败 (旧缓存已清除, 路由将从文件加载), 可稍后手动重建:${C_RST}\n"
+        printf "${C_YEL}🟡 路由缓存重建失败 (若上方 route:clear 亦失败, 旧缓存可能残留), 可稍后手动重建:${C_RST}\n"
         printf "     ${C_BLD}ssh \"%s\" \"cd %s && ./run route-cache\"${C_RST}\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH"
     fi
     return 0
@@ -306,7 +312,7 @@ main() {
     echo "⏰ 时间: $(date '+%Y-%m-%d %H:%M:%S')"
     echo "=========================================="
 
-    # check_branch
+    check_branch
     load_deploy_env
     deploy_nPanel
 
