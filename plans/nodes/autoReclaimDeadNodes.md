@@ -317,8 +317,9 @@ $schedule->command('autoReclaimDeadNodes')->dailyAt('04:20')->withoutOverlapping
 - 逐节点删除日志(dry-run 列表 / 实际删除 / 守卫拦截跳过)
 - summary:计划数(planned)、删除数(deleted)、失败数(failed)、守卫拦截数(guarded)
 
-日志(`Log::info`):
-- `tag`、`cutoff`、`total`、`dead`、`alive`、`ratio`、`delete_count`、`deleted_ids`、`failed`、`guarded`
+日志(`Log::info`,`tag` 为消息前缀):
+- 完成日志: `planned`、`deleted`、`failed`、`guarded`、`deleted_ids`
+- 跳过日志(低于下限 / 占比未超): `total`、`dead`、`alive`、`currentRatio`、`ratio`
 
 ---
 
