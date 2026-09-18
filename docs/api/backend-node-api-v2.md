@@ -30,8 +30,14 @@
 路由挂载于独立的 `routes/backendapi.php`（由 `RouteServiceProvider::mapBackendApiRoutes()`
 注册，仅 `prefix('api')`），**刻意不挂 `api` 中间件组的 `throttle:60,1`**：
 ThrottleRequests 无登录态时按出口 IP 计数，同一出口 IP 的全部节点共享 60 req/min 桶
-（20 节点 × 每轮 3 请求即触顶），429 会被插件按 RATE_LIMITED 退避重试形成恶性循环；
-防滥用由 `backend.token` 强鉴权承担，`healthz` 探活高频也是常态。
+（20 节点 × 每轮 3 请求即触顶），429 会被插件按 RATE_LIMITED 退避重试形成恶性循环。
+
+但并非零限流：路由组挂 `backend.ratelimit`(`app/Http/Middleware/BackendRateLimit.php`)
+—— 基于 **Redis** 的按来源 IP 应用层限流，**60 次/分钟/IP**（固定窗口 INCR+EXPIRE）。
+它排在 `backend.token` 之前，被拦截的伪造 Bearer 请求不再触发 `ss_node.api_token`
+的 DB 查询。节点上报周期约 1 小时一轮（3 请求/轮），合法流量远低于阈值，不会误伤；
+Redis 不可用时 fail-open 放行（限流是旁路防护，不阻断上报主链路）。`healthz` 探活
+不鉴权也不限流（高频是常态）。
 
 ---
 
@@ -57,6 +63,7 @@ Authorization: Bearer <ss_node.api_token>
 | 401 | `INVALID_TOKEN` | token is invalid or revoked | token 缺失/错误/超长,或 IP 不在白名单 |
 | 403 | `NODE_DISABLED` | node is disabled | 节点 status=0 |
 | 400 | `BAD_REQUEST` | (见各端点) | 参数校验失败,整批拒收 |
+| 429 | `RATE_LIMITED` | too many requests | 同 IP 超过 60 次/分钟(Redis 应用层限流, 在鉴权之前) |
 | 500 | `INTERNAL` | traffic write failed / status write failed | 事务内写入异常(连接断/死锁等),返回契约信封而非 Laravel 默认异常页 |
 
 ### ss_node 新增列(migration `2026_08_18_140000_add_api_token_to_ss_node_table`)

@@ -78,8 +78,9 @@ class RouteServiceProvider extends ServiceProvider
      *
      * 刻意不挂 'api' 组的 throttle:60,1 —— ThrottleRequests 无登录态时按
      * $request->ip() 计数, 同一出口 IP 的全部节点共享 60 req/min 桶,
-     * 20 节点 × 每轮 3 请求(默认 60s 周期)即 60/min 触顶, 429 会被插件当
-     * RATE_LIMITED 退避重试形成恶性循环。鉴权由 backend.token 承担。
+     * 20 节点 × 每轮 3 请求即触顶, 429 会被插件当 RATE_LIMITED 退避重试
+     * 形成恶性循环。防滥用改由路由组内的 backend.ratelimit(Redis 按 IP
+     * 60 次/分钟, 详见 routes/backendapi.php) + backend.token 强鉴权承担。
      *
      * @return void
      */

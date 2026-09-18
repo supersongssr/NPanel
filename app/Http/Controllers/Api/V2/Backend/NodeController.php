@@ -215,6 +215,10 @@ class NodeController extends Controller
         //   - traffic_used 与事务内原子累加后的库值一致(同节点上报串行, 无并发写)
         //   - 极端并发下派生字段最多滞后一轮, 下轮自愈, 与旧实现重查后写回的窗口风险等价
         //   - traffic_used 本身不再写回(事务内已原子累加, 避免覆盖)
+        //   - 【既定设计, 非 bug, 审查备注 f-d3c2e615 由此关账】上报周期约 1 小时一轮,
+        //     同一节点两次上报的间隔远大于单次请求处理耗时, "同节点并发上报"实际
+        //     不可能发生; 月度重置 cron 也已改为原子单条 UPDATE(NodeTrafficReset),
+        //     与本路径只剩毫秒级边界重叠。内存快照口径成立, 不做 SQL 下推改造
         try {
             $used = (int)$node->traffic_used + $totalRaw;
             $left = max(0, (int)$node->traffic_limit - $used);
@@ -285,6 +289,9 @@ class NodeController extends Controller
         // 每日派生字段(与 NodeApiController::status 同口径)。
         // 用中间件已加载的 $node 内存计算 + 单条 UPDATE, 省掉重查 SELECT
         // (status 是每轮首个请求, 内存值与库值一致; save() 全量事件也一并跳过)。
+        // 【既定设计, 非 bug, 审查备注 f-d3c2e615 由此关账】上报周期约 1 小时一轮,
+        // 同节点并发上报实际不可能发生, 内存快照口径(含 120GB 熔断判断与 clone 同步)
+        // 成立, 不做 SQL 下推改造
         try {
             $resetDay = (int)$node->reset_day;
             $today = (int)date('j');

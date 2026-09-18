@@ -14,7 +14,8 @@
  *   transfer_enable/u+d 为残行过滤, 不适合再入索引(选择性差且写频繁)。
  *
  * 顺带: 现存重复索引 idx_enable_status(与 idx_search 同列同序, 代码中无
- *   FORCE INDEX 引用)在本迁移中一并删除 —— 每行写入省一份索引维护。
+ *   FORCE INDEX 引用)在本迁移中一并删除 —— 每行写入省一份索引维护;
+ *   down() 会对称重建它, 迁移完全可逆。
  *
  * 幂等: up()/down() 先查 information_schema, 重复执行不报错。
  * 契约: xray-plugin-api docs/openapi.yaml
@@ -61,6 +62,14 @@ class AddEnableLevelIndexToUserTable extends Migration
         if ($this->indexExists(self::INDEX)) {
             Schema::table(self::TABLE, function (Blueprint $table) {
                 $table->dropIndex(self::INDEX);
+            });
+        }
+
+        // 对称重建 up() 删除的重复索引(enable,status), 使迁移完全可逆
+        // (回滚不重建 = 该索引永久丢失, 审查修复)
+        if (!$this->indexExists(self::DUP_INDEX)) {
+            Schema::table(self::TABLE, function (Blueprint $table) {
+                $table->index(['enable', 'status'], self::DUP_INDEX);
             });
         }
     }
