@@ -156,8 +156,10 @@ class NodeApiController extends Controller
             // safeCleanupNodeDns 是秒级 CF API 调用, select→save 窗口内行内仍是
             // 旧心跳, 夜间 autoReclaimDeadNodes 的守卫式删除仍可命中 (删行后
             // save() 静默 0 行, 返回幽灵 node_id). 故先以同源死节点条件做条件
-            // UPDATE 写入占位心跳: 影响 1 行 = 认领成功, 此后所有删除方的
-            // 心跳守卫都会放行; 影响 0 行 = 已被并发回收/复活, 放弃该 ID 降级新建.
+            // UPDATE 写入占位心跳: 影响 1 行 = 认领成功, 此后带心跳守卫的删除方
+            // (autoReclaimDeadNodes 等) 都会放行 —— 管理员手动删除无心跳守卫,
+            // 由落库后的存在性回查兜底 (见下方幽灵收口); 影响 0 行 = 已被并发
+            // 回收/复活, 放弃该 ID 降级新建.
             $claimAt = date("Y-m-d H:i:s");
             $claimed = $this->deadHeartbeatScope($cutoff)
                 ->where("id", $node->id)
@@ -174,25 +176,21 @@ class NodeApiController extends Controller
         } else {
             $node = new SsNode();
         }
-        // 身份继承原则: applyId 交付一个“全部默认值”的全新干净节点 (无论新建还是回收).
-        // 全量重置经 NodeDefaults 单点模块, 含 traffic_used=0 + last_traffic_reset_at=null.
-        // register 跟上时在其上记录节点上报值 + if-null 激活基线; 若 register 未跟上
-        // (节点崩溃), traffic_used=0 + 基线 null 也不会触发 32 天安全网误报.
-        NodeDefaults::resetToDefaults($node);
+        $node = $this->persistCleanNode($node, $nodeIp, $nodeIpv6);
 
-        $node->name = "New Node " . ($nodeIp ?: $nodeIpv6);
-        $node->ip = $nodeIp ?: "";
-        $node->ipv6 = $nodeIpv6 ?: "";
-        $node->status = 0;
-        $node->is_clone = 0;
-        // 竞态守卫: 写入占位心跳, 使"刚分配、尚未 register"的节点不再命中死节点判定
-        // (status=0 AND 心跳超期 / 无心跳且创建超期). 否则夜间 autoReclaimDeadNodes 可在
-        // applyId→register 间隙按死节点将其连 13 张表硬删 (register 随即 Node not found),
-        // register 的克隆回收池也可能误捡他人刚申请的 ID. 节点崩溃不再 register 时,
-        // 占位心跳会在 dns_expire_days 后自然过期, 死节点回收语义不变.
-        // (回收路径的占位心跳已在上方认领时提前落库, 此处对新建路径写入/回收路径刷新.)
-        $node->heartbeat_at = date("Y-m-d H:i:s");
-        $node->save();
+        // 幽灵收口 (save 落空回查): save() 对已存在模型 UPDATE 0 行仍返回 true ——
+        // 管理员手动删节点 (AdminController delNode 按 id 直删, 无心跳守卫) 恰落在
+        // 认领后的 CF 清理窗口内时, 上面的 save 会静默落空, 把已不存在的 id 发给
+        // 节点 (register 随即 Node not found). 回查存在性, 命中即降级新建重落,
+        // 保证返回的 node_id 在库里一定存在. 概率极低 (人工动作须命中秒级窗口),
+        // 仅作最后一道兜底.
+        if ($recycled && !SsNode::where("id", $node->id)->exists()) {
+            Log::warning("[Node API] applyId 回收节点在落库前被并发删除 (疑似管理员手动删除), 降级新建", [
+                "vanished_id" => $node->id,
+            ]);
+            $recycled = false;
+            $node = $this->persistCleanNode(new SsNode(), $nodeIp, $nodeIpv6);
+        }
 
         Log::info("[Node API] ID 分配成功", [
             "ip" => $request->ip(),
@@ -203,6 +201,41 @@ class NodeApiController extends Controller
         ]);
 
         return response()->json(["node_id" => $node->id]);
+    }
+
+    /**
+     * 落库一个"全部默认值"的全新干净节点 (新建 / 回收 / 幽灵降级三路共用).
+     *
+     * 身份继承原则: applyId 交付一个“全部默认值”的全新干净节点 (无论新建还是回收).
+     * 全量重置经 NodeDefaults 单点模块, 含 traffic_used=0 + last_traffic_reset_at=null.
+     * register 跟上时在其上记录节点上报值 + if-null 激活基线; 若 register 未跟上
+     * (节点崩溃), traffic_used=0 + 基线 null 也不会触发 32 天安全网误报.
+     *
+     * 竞态守卫: 写入占位心跳, 使"刚分配、尚未 register"的节点不再命中死节点判定
+     * (status=0 AND 心跳超期 / 无心跳且创建超期). 否则夜间 autoReclaimDeadNodes 可在
+     * applyId→register 间隙按死节点将其连 13 张表硬删 (register 随即 Node not found),
+     * register 的克隆回收池也可能误捡他人刚申请的 ID. 节点崩溃不再 register 时,
+     * 占位心跳会在 dns_expire_days 后自然过期, 死节点回收语义不变.
+     * (回收路径的占位心跳已在 applyId 认领时提前落库, 此处对新建路径写入/回收路径刷新.)
+     *
+     * @param  SsNode $node      新建/降级传 new SsNode(), 回收传已认领的存量模型
+     * @param  string $nodeIp    applyId 上报的 IPv4
+     * @param  string $nodeIpv6  applyId 上报的 IPv6
+     * @return SsNode            已 save 的模型
+     */
+    private function persistCleanNode(SsNode $node, $nodeIp, $nodeIpv6)
+    {
+        NodeDefaults::resetToDefaults($node);
+
+        $node->name = "New Node " . ($nodeIp ?: $nodeIpv6);
+        $node->ip = $nodeIp ?: "";
+        $node->ipv6 = $nodeIpv6 ?: "";
+        $node->status = 0;
+        $node->is_clone = 0;
+        $node->heartbeat_at = date("Y-m-d H:i:s");
+        $node->save();
+
+        return $node;
     }
 
     /**

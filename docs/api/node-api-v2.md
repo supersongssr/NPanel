@@ -134,7 +134,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 
 #### 节点 ID 回收机制
 
-面板优先查找心跳超过 **`dns_expire_days`（默认 30 天）** 的死亡节点复用其 ID（cutoff 由配置驱动，与 `autoDeleteExpiredDns` / `autoReclaimDeadNodes` 同源，不再硬编码天数）（同时清理该节点的 `dns_records`），实现 ID 资源回收。若无死亡节点则创建新记录。**回收的旧身份会经 `NodeDefaults::resetToDefaults()` 全量重置为干净默认值**（含 `traffic_used=0`、`traffic_used_daily=0`、`last_traffic_reset_at=null` 及身份/指标/V2 字段），并轮换签发 v2 面板 API token（`api_token`：新建首发、回收轮换即吊销旧凭据，见 [backend-node-api-v2.md](backend-node-api-v2.md)），再交给后续 `register` 激活新基线，保证回收节点不残留前任计费/配置。回收时先以同源死节点条件**原子认领**（条件 UPDATE 写入占位心跳 `heartbeat_at=now`，影响 0 行说明被并发回收/复活则降级新建）再做 CF DNS 清理与落库：使刚分配、尚未 register 的 ID 不再命中任何死节点判定（防 `autoReclaimDeadNodes` 夜间按死节点硬删 / register 克隆回收池误捡，认领先于秒级 CF 清理落库消除 select→save 误删窗口）；节点崩溃不再 register 时，占位心跳会在 `dns_expire_days` 后自然过期，回归死节点池，回收语义不变。
+面板优先查找心跳超过 **`dns_expire_days`（默认 30 天）** 的死亡节点复用其 ID（cutoff 由配置驱动，与 `autoDeleteExpiredDns` / `autoReclaimDeadNodes` 同源，不再硬编码天数）（同时清理该节点的 `dns_records`），实现 ID 资源回收。若无死亡节点则创建新记录。**回收的旧身份会经 `NodeDefaults::resetToDefaults()` 全量重置为干净默认值**（含 `traffic_used=0`、`traffic_used_daily=0`、`last_traffic_reset_at=null` 及身份/指标/V2 字段），并轮换签发 v2 面板 API token（`api_token`：新建首发、回收轮换即吊销旧凭据，见 [backend-node-api-v2.md](backend-node-api-v2.md)），再交给后续 `register` 激活新基线，保证回收节点不残留前任计费/配置。回收时先以同源死节点条件**原子认领**（条件 UPDATE 写入占位心跳 `heartbeat_at=now`，影响 0 行说明被并发回收/复活则降级新建）再做 CF DNS 清理与落库（落库后回查存在性：管理员手动删行无心跳守卫，`save()` UPDATE 0 行静默"成功"时同样降级新建，保证返回的 ID 必在库中）：使刚分配、尚未 register 的 ID 不再命中任何死节点判定（防 `autoReclaimDeadNodes` 夜间按死节点硬删 / register 克隆回收池误捡，认领先于秒级 CF 清理落库消除 select→save 误删窗口）；节点崩溃不再 register 时，占位心跳会在 `dns_expire_days` 后自然过期，回归死节点池，回收语义不变。
 
 **此步骤决定了节点的 IP 栈命运**：apply_id 时写入的 `ip`/`ipv6` 会被 register 阶段强制执行单栈互斥。
 

@@ -13,6 +13,10 @@
  * 不覆盖: 认领影响 0 行的降级路径需在 select→claim 间注入并发写, 单进程测试无法
  * 确定性构造, 由代码审查保证 (同源条件条件 UPDATE, 见控制器内注释).
  *
+ * 落库后的幽灵回查降级 (save() 后 exists() 为假 → 降级新建) 由 Group 3 覆盖:
+ * 借 SsNode saved 模型事件在 provisioning save 刚落库后立即删行, 确定性模拟
+ * "管理员在认领后的 CF 清理窗口内手动删除"的竞态 (SsNode 无生产观察者, 注入安全).
+ *
  * Run: podman exec -e APP_ENV=test php7-npanel php tests/test_node_apply_id_guard.php
  */
 
@@ -117,6 +121,53 @@ assert_test('guard: 二次 applyId 不复用同一 ID', $id2 !== (int)$fixtureId
 $id2IsNew = $id2 > $maxIdBefore;
 
 // =====================================================
+echo "\n=== Group 3: 幽灵收口 — save 落空后回查存在性, 降级新建 ===\n";
+
+// 新 fixture (自增 max id, 死心跳) 供本次回收; GHOST_IP 仅作事件命中标记
+$GHOST_IP = '10.255.255.252';
+$ghostFixture = new SsNode();
+$ghostFixture->name = 'qa_apply_id_guard_ghost';
+$ghostFixture->ip = '192.0.2.2';
+$ghostFixture->status = 0;
+$ghostFixture->is_clone = 0;
+$ghostFixture->heartbeat_at = date('Y-m-d H:i:s', strtotime('-40 days'));
+$ghostFixture->save();
+$ghostId = $ghostFixture->id;
+echo "ghost fixture node#{$ghostId} (heartbeat=-40d)\n";
+
+// 模拟管理员手动删除: provisioning save 刚落库 (name 已重写为 New Node 标记 IP)
+// 即删行 —— 精确复刻 applyId save→回查间隙内的人工删除竞态. 认领用的条件
+// UPDATE 走 query builder 不触发模型事件, 故此回调只会在 persistCleanNode 的
+// save 后命中一次; 降级新建的新行 id 不同, 不会被误删.
+$ghostArmed = true;
+SsNode::saved(function ($node) use ($ghostId, $GHOST_IP, &$ghostArmed) {
+    if ($ghostArmed && (int) $node->id === (int) $ghostId
+        && $node->name === "New Node {$GHOST_IP}") {
+        SsNode::query()->where('id', $ghostId)->delete();
+    }
+});
+
+$req3 = Illuminate\Http\Request::create('/api/node/apply_id', 'POST', [
+    'node_ip' => $GHOST_IP,
+    'node_ipv6' => '',
+]);
+$resp3 = $controller->applyId($req3);
+$body3 = json_decode($resp3->getContent(), true);
+$id3 = isset($body3['node_id']) ? (int) $body3['node_id'] : -1;
+$ghostArmed = false;
+SsNode::flushEventListeners();
+
+assert_test('ghost: 返回 id 不是被删的幽灵 ID', $id3 !== (int) $ghostId,
+    "got {$id3}, want != {$ghostId}");
+assert_test('ghost: 返回 id 在库中真实存在',
+    $id3 > 0 && SsNode::query()->where('id', $id3)->exists(),
+    "node#{$id3} not found");
+assert_test('ghost: 降级行为干净 (新行 = 本次测试产物, 幽灵行已无残留)',
+    !SsNode::query()->where('id', $ghostId)->exists());
+// 降级新建必然插入全新自增行 (> ghostId); 若四号断言失败时行不存在则下句 delete 也是 no-op
+$id3IsNew = $id3 > (int) $ghostId;
+
+// =====================================================
 echo "\n=== Cleanup ===\n";
 SsNode::query()->where('id', $fixtureId)->delete();
 if ($id2IsNew && $id2 > 0) {
@@ -124,6 +175,13 @@ if ($id2IsNew && $id2 > 0) {
     echo "removed fixture #{$fixtureId} + new #{$id2}\n";
 } else {
     echo "removed fixture #{$fixtureId}\n";
+}
+SsNode::query()->where('id', $ghostId)->delete();
+if ($id3IsNew && $id3 > 0 && $id3 !== (int) $fixtureId) {
+    SsNode::query()->where('id', $id3)->delete();
+    echo "removed ghost fixture #{$ghostId} + degraded new #{$id3}\n";
+} else {
+    echo "removed ghost fixture #{$ghostId}\n";
 }
 
 echo "\n===== RESULT: {$passed} passed, {$failed} failed =====\n";
