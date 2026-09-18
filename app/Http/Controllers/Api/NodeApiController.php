@@ -1766,6 +1766,12 @@ class NodeApiController extends Controller
         $config = $this->injectVariables($config, $vars);
 
         // --- Clone node: keep only the matching inbound ---
+        // 设计备注: clone 是面板侧克隆出来的分身行(承载订阅/DNS/记账), 不是独立
+        // 后端节点 —— 后端节点只以主节点身份与面板联系(物理机只按主节点 id 拉取
+        // 唯一一份 config, 插件/流量上报均用 main 的 api_token), 从不关心 clone
+        // 行。clone 自身 api_token 留 NULL 为有意设计(详见 register 裂变分支备注),
+        // 本分支仅覆盖手工/遗留按 clone id 拉取的边缘场景; token 为空导致走旧式
+        // 配置路径(panelApi 裁剪/凭据保留策略见下方 panelApi 注释)属预期行为。
         if ($node->is_clone > 0) {
             $keepTag = $this->v2NetToInboundTag($node->v2_net);
             $config["inbounds"] = array_values(
