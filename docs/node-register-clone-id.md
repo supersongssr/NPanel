@@ -25,7 +25,7 @@ NPanel 的节点注册与 ID 分配完全由后端 **`NodeApiController@register
 
 2. **优先级 2：回收“死亡”节点 (Recycle)**：
    如果既有克隆不足以满足槽位需求，系统会搜索 **“超过 `dns_expire_days`（默认 30 天）没有心跳”** 的节点（包括由于过期或停用被遗弃的旧节点）。
-   - **判定标准**：`heartbeat_at < dns_expire_days 天前` 或 `(heartbeat_at 为空 且 created_at < dns_expire_days 天前)`；阈值读配置 `dns_expire_days`（未配置或非法时回退 30 天），与 `autoDeleteExpiredDns` / `autoReclaimDeadNodes` 三者同源，不再硬编码天数。另：`applyId` 选取死节点后先以同源条件原子认领写入占位心跳（`heartbeat_at=now`，条件 UPDATE 影响 0 行则降级新建；落库后回查存在性，管理员手动删行致 `save()` 静默落空时亦降级新建），刚分配尚未 register 的 ID 不会被本回收池/autoReclaimDeadNodes 误捡；节点崩溃不来 register 时，占位心跳过期后自然回归死节点池。
+   - **判定标准**：`heartbeat_at < dns_expire_days 天前` 或 `(heartbeat_at 为空 且 created_at < dns_expire_days 天前)`；阈值读配置 `dns_expire_days`（未配置或非法时回退 30 天），与 `autoDeleteExpiredDns` / `autoReclaimDeadNodes` 三者同源，不再硬编码天数。另：`applyId` 选取死节点后先以同源条件原子认领写入占位心跳（`heartbeat_at=now`，条件 UPDATE 影响 0 行则降级新建；落库后回查存在性，管理员手动删行致 `save()` 静默落空时亦降级新建），刚分配尚未 register 的 ID 不会被本回收池/autoReclaimDeadNodes 误捡；节点崩溃不来 register 时，占位心跳过期后自然回归死节点池。`register` 的克隆回收池同样原子认领：从池里取出候选后先以同源条件（心跳半边 + `status=0`）条件 UPDATE 写占位心跳，影响 0 行（被并发回收/复活/启用）则换下一个候选、池尽降级 `new SsNode()`；落库后同样回查存在性，命中幽灵 id（管理员手动删行致 `save()` 静默落空）亦降级新建，保证进入 `node_ids` 的 clone id 一定存在（`acquireCloneForSlot` / `persistCloneIdentity`）。另：clone 等级随机区间统一钳制到 `[1,5]` —— `node_level` 由节点侧自由上报无范围校验，超过 5 时 `rand(大, 小)` 在 PHP 7.4 返回 `false` 落库成等级 0（高等级专属 clone 变全员可见）。
    - **分配原则**：先用 `status=0` 排除在用节点，再按 `id` 降序排列（主键有序、零 filesort，优先回收 id 较大的死节点），并限制单次载入上限（`RECYCLE_POOL_LIMIT`，默认 500）防止死节点暴涨时撑爆内存。`applyId` 申请主 ID 时同样改为按 `id` 降序取一条（不再按 `heartbeat_at` 排序）。
    - **清理**：在回收 ID 时，系统会自动清除该 ID 关联的所有旧 DNS 解析记录，确保新节点拥有干净的环境。
 

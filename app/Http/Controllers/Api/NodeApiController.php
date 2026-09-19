@@ -735,6 +735,14 @@ class NodeApiController extends Controller
             $this->clusterDlHost = null;
         }
 
+        // clone 等级随机区间钳制: node_level 由节点侧自由上报 (proxyInstall.sh 的
+        // NODE_LEVEL, 面板侧无范围校验) —— 超过 5 时 rand(大, 小) 在 PHP 7.4 会报
+        // warning 并返回 false, 落库成等级 0 (本应高等级专属的 clone 变成全员可见);
+        // 低于 1 时会得到 0/负等级. 统一钳到合法区间 [1,5]: 主节点 level 仍按上报值
+        // 原样保存, 仅 clone 的随机下界受限 (原公式 min(5, main+2) 的 5 封顶语义不变).
+        $cloneLevelLo = max(1, min($mainLevel, 5));
+        $cloneLevelHi = max($cloneLevelLo, min(5, $mainLevel + 2));
+
         $mainSlot = array_shift($slots);
         $mainIsIpv6 = $mainSlot["ip_type"] === "ipv6";
         // clusterHost (域名) 始终作为 v2_host/v2_sni (TLS 身份, applyV2Preset 第 7 参写入),
@@ -776,7 +784,7 @@ class NodeApiController extends Controller
                 // 是 ipv4 还是 ipv6 由 server 前缀 (n/ipv6n) 判定, 不靠 ip 缺失.
                 $clone->ip = $node->ip ?: "";
                 $clone->ipv6 = $node->ipv6 ?: "";
-                $clone->level = rand($mainLevel, min(5, $mainLevel + 2));
+                $clone->level = rand($cloneLevelLo, $cloneLevelHi);
                 $clone->node_group = $node->node_group;
                 $clone->traffic_rate = $node->traffic_rate;
                 $clone->status = 1;
@@ -797,36 +805,18 @@ class NodeApiController extends Controller
                 );
                 $clone->save();
             } else {
-                $clone = null;
-                if ($deadIdx < $deadNodes->count()) {
-                    $clone = $deadNodes[$deadIdx++];
-                    // 回收的孤儿 clone = 全新干净节点 (同 applyId 回收主节点语义),
-                    // 经 NodeDefaults::resetToDefaults 全清后再作为当前主节点的 clone.
-                    NodeDefaults::resetToDefaults($clone);
-                    $this->safeCleanupNodeDns($clone->id, 'register.deadClone');
-                } else {
-                    // 备注: clone 节点无需 api_token —— clone 使用主节点的配置(物理机只以
-                    // 主节点 id 拉取唯一一份 /api/node/config, xray 含全部 inbound 槽位),
-                    // 后端节点也只以主节点身份与面板联系(插件/流量上报均用 main 的
-                    // token); clone 行仅承载订阅/DNS/记账, 不独立拉配置或调面板 API。
-                    // 故新建/复用 clone 均不补发 token(回收孤儿经 resetToDefaults
-                    // 顺带带上的 token 亦不会被使用), 留 NULL 为有意行为, 非遗漏。
-                    $clone = new SsNode();
-                }
-
-                $clone->name = $node->name;
-                $clone->v2_name = $v2Name;
-                $clone->is_clone = $nodeId;
-                $clone->node_rxtx = $node->node_rxtx;
-                // clone 与主节点同一物理机, 同时存储物理节点的 ip+ipv6 (不做单栈互斥).
-                // 是 ipv4 还是 ipv6 由 server 前缀 (n/ipv6n) 判定, 不靠 ip 缺失.
-                $clone->ip = $node->ip ?: "";
-                $clone->ipv6 = $node->ipv6 ?: "";
-                $clone->level = rand($mainLevel, min(5, $mainLevel + 2));
-                $clone->node_group = $node->node_group;
-                $clone->traffic_rate = $node->traffic_rate;
-                $clone->status = 1;
-                $clone->save();
+                // 原子认领 + 幽灵收口 (与 applyId 同款竞态收口, 细节见方法注释):
+                // 从回收池条件 UPDATE 认领死节点 (认领失败换下一个, 池尽降级新建),
+                // 并落库 clone 身份字段; server / v2 派生字段由下方统一重算.
+                $clone = $this->acquireCloneForSlot(
+                    $node,
+                    $v2Name,
+                    $cloneLevelLo,
+                    $cloneLevelHi,
+                    $deadNodes,
+                    $deadIdx,
+                    $cutoff
+                );
 
                 // clone 连接地址 (server): ipv4 = 连接域名 {random8}n{id}.domain (resolve_dns 建 A 记录;
                 // 随机 8 位前缀降域名特征被识别, DNS subdomain 由 DnsSyncer 从 server 解析, 与前缀解耦);
@@ -889,6 +879,124 @@ class NodeApiController extends Controller
             "ip" => $node->ip,
             "ipv6" => $node->ipv6,
         ]);
+    }
+
+    /**
+     * 为一个新协议槽位获取并落库 clone 节点身份 (新建 / 回收认领 / 幽灵降级三路).
+     *
+     * 竞态收口 (与 applyId 的"原子认领 + 幽灵收口"同款, 两处语义保持一致):
+     *   1. 原子认领: 回收池候选先用与池查询同源的条件 (deadHeartbeatScope +
+     *      status=0 + id) 做条件 UPDATE 写占位心跳. 影响 1 行 = 认领成功 ——
+     *      此后 autoReclaimDeadNodes 等带守卫的删除方都会放行 (行内心跳已新鲜,
+     *      不再命中死节点判定), 并发 register/applyId 也不会再捡到同一行;
+     *      影响 0 行 = 已被并发改变 (回收/复活/启用), 换下一个候选, 池尽降级
+     *      new SsNode(). 认领后的 safeCleanupNodeDns 是秒级 CF API 调用,
+     *      该窗口内行内已有占位心跳, 守卫式删除不再命中.
+     *   2. 幽灵收口: save() 对已存在模型 UPDATE 0 行仍返回 true —— 管理员手动
+     *      删节点 (AdminController delNode 按 id 直删, 无任何守卫) 恰落在 CF
+     *      清理窗口内时, 落库会静默落空, 已不存在的 id 会流入主节点 node_ids
+     *      并返回给节点 (订阅从此少一个槽位, 且 register 仅装机/重装时执行,
+     *      不会自愈). 落库后回查存在性, 命中即降级 new SsNode() 重走新建
+     *      (INSERT 不落空), 保证进入 node_ids 的 clone id 一定存在.
+     *
+     * @param  SsNode $main     主节点 (clone 身份字段来源)
+     * @param  string $v2Name   本集群 v2_name
+     * @param  int    $lo       clone 等级随机下界 (已钳制 1..5)
+     * @param  int    $hi       clone 等级随机上界 (已钳制 1..5)
+     * @param  \Illuminate\Database\Eloquent\Collection $deadNodes 死节点回收池
+     * @param  int    &$deadIdx 池消费游标 (引用: 认领失败的候选被跳过后前移)
+     * @param  string $cutoff   死节点判定阈值 (与池查询同源)
+     * @return SsNode 已落库身份的 clone (server/v2 派生字段由调用方重算)
+     */
+    private function acquireCloneForSlot(
+        SsNode $main,
+        $v2Name,
+        $lo,
+        $hi,
+        $deadNodes,
+        &$deadIdx,
+        $cutoff
+    ) {
+        $claimAt = date("Y-m-d H:i:s");
+        $clone = null;
+        while ($deadIdx < $deadNodes->count()) {
+            $candidate = $deadNodes[$deadIdx++];
+            $claimed = $this->deadHeartbeatScope($cutoff)
+                ->where("status", 0)
+                ->where("id", $candidate->id)
+                ->update(["heartbeat_at" => $claimAt]);
+            if ($claimed > 0) {
+                // 回收的孤儿 clone = 全新干净节点 (同 applyId 回收主节点语义),
+                // 经 NodeDefaults::resetToDefaults 全清后再作为当前主节点的 clone.
+                NodeDefaults::resetToDefaults($candidate);
+                $this->safeCleanupNodeDns($candidate->id, 'register.deadClone');
+                $clone = $candidate;
+                break;
+            }
+            Log::info("[Node API] register 回收候选死节点被并发改变, 换下一个", [
+                "candidate_id" => $candidate->id,
+            ]);
+        }
+
+        $recycled = $clone !== null;
+        if (!$recycled) {
+            // 备注: clone 节点无需 api_token —— clone 使用主节点的配置(物理机只以
+            // 主节点 id 拉取唯一一份 /api/node/config, xray 含全部 inbound 槽位),
+            // 后端节点也只以主节点身份与面板联系(插件/流量上报均用 main 的
+            // token); clone 行仅承载订阅/DNS/记账, 不独立拉配置或调面板 API。
+            // 故新建/复用 clone 均不补发 token(回收孤儿经 resetToDefaults
+            // 顺带带上的 token 亦不会被使用), 留 NULL 为有意行为, 非遗漏。
+            $clone = new SsNode();
+        }
+
+        $this->persistCloneIdentity($clone, $main, $v2Name, $lo, $hi);
+
+        if ($recycled && !SsNode::where("id", $clone->id)->exists()) {
+            Log::warning("[Node API] register 回收 clone 在落库前被并发删除 (疑似管理员手动删除), 降级新建", [
+                "vanished_id" => $clone->id,
+            ]);
+            $clone = new SsNode();
+            $this->persistCloneIdentity($clone, $main, $v2Name, $lo, $hi);
+        }
+
+        return $clone;
+    }
+
+    /**
+     * 落库 clone 的身份字段 (新建 / 回收 / 幽灵降级三路共用, 同 applyId 的
+     * persistCleanNode 定位).
+     *
+     * 字段口径与旧 register 内联版本完全一致 (name/v2_name/is_clone/node_rxtx/
+     * ip/ipv6/level/node_group/traffic_rate/status), 仅新增占位心跳: 与 applyId 的
+     * persistCleanNode 同语义 —— "刚分配、尚未被 main 的 status 同步"的 clone 不以
+     * NULL 心跳 + 旧 created_at 命中心跳超期判定 (回收 clone 的 created_at 沿自旧
+     * 死节点, 天然早于 cutoff); 认领时 DB 已写入占位心跳, 此处保持模型与库一致,
+     * 避免落库把它清回 NULL. main 首次 status 上报后由 syncClusterStatus 接管.
+     *
+     * @param  SsNode $clone   新建/降级传 new SsNode(), 回收传已认领的存量模型
+     * @param  SsNode $main    主节点 (身份字段来源)
+     * @param  string $v2Name  本集群 v2_name
+     * @param  int    $lo      clone 等级随机下界 (已钳制)
+     * @param  int    $hi      clone 等级随机上界 (已钳制)
+     * @return void
+     */
+    private function persistCloneIdentity(SsNode $clone, SsNode $main, $v2Name, $lo, $hi)
+    {
+        $clone->name = $main->name;
+        $clone->v2_name = $v2Name;
+        // 显式指向当前主节点, 确保 clone 始终归属当前主节点 (不会被误判为主节点).
+        $clone->is_clone = $main->id;
+        $clone->node_rxtx = $main->node_rxtx;
+        // clone 与主节点同一物理机, 同时存储物理节点的 ip+ipv6 (不做单栈互斥).
+        // 是 ipv4 还是 ipv6 由 server 前缀 (n/ipv6n) 判定, 不靠 ip 缺失.
+        $clone->ip = $main->ip ?: "";
+        $clone->ipv6 = $main->ipv6 ?: "";
+        $clone->level = rand($lo, $hi);
+        $clone->node_group = $main->node_group;
+        $clone->traffic_rate = $main->traffic_rate;
+        $clone->status = 1;
+        $clone->heartbeat_at = date("Y-m-d H:i:s");
+        $clone->save();
     }
 
     /**
