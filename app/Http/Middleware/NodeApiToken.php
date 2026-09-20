@@ -11,7 +11,7 @@ class NodeApiToken
     {
         $token = $this->extractToken($request);
 
-        if (!$token || $token !== env('API_TOKEN')) {
+        if (!$token || $token !== config('nodeapi.api_token')) {
             if ($request->is('*/node/nginx_config')) {
                 return response('Unauthorized', 401);
             }

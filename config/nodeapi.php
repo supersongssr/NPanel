@@ -10,6 +10,21 @@
  * config() 始终正确; 改动 .env 后需重建 config 缓存(config:cache)。
  */
 return [
+    // /api/node/* 的全局共享 key (env API_TOKEN, 节点装机/心跳鉴权).
+    // 收敛动机同下: 控制器/中间件运行时 env() 在 config:cache 后恒为 null,
+    // 全部节点接口会 401; 经 config 读取后对 config:cache 免疫。
+    // (PingController 的旧路由仍直读 env, 未在本收敛范围。)
+    'api_token' => env('API_TOKEN'),
+
+    // 旧式 ssrpanel 段直连库凭据 (config() 下发占位符 __db*__ 的来源):
+    // DB_REMOTE_HOST 为节点侧直连库地址 (面板与节点异构网络时与 DB_HOST 不同),
+    // 其余与面板自身同源。config:cache 后运行时 env() 恒为 null, 会把回退
+    // 默认值 (127.0.0.1/root/空密码) 填进下发给旧插件的配置, 故一并收敛。
+    'db_host' => env('DB_REMOTE_HOST', env('DB_HOST', '127.0.0.1')),
+    'db_user' => env('DB_USERNAME', 'root'),
+    'db_password' => env('DB_PASSWORD', ''),
+    'db_name' => env('DB_DATABASE', 'npanel'),
+
     // panelApi.api.baseURL 的面板地址: 专用域名优先(NODE_API_BASE_URL), 回退 app.url
     'panel_base_url' => env('NODE_API_BASE_URL'),
 

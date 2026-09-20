@@ -110,7 +110,7 @@ class NodeApiController extends Controller
         if (!$token) {
             $token = $request->get('token');
         }
-        if (!$token || $token !== env('API_TOKEN')) {
+        if (!$token || $token !== config('nodeapi.api_token')) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Unauthorized: invalid or missing token',
@@ -253,7 +253,7 @@ class NodeApiController extends Controller
         if (!$token) {
             $token = $request->get('token');
         }
-        if (!$token || $token !== env('API_TOKEN')) {
+        if (!$token || $token !== config('nodeapi.api_token')) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Unauthorized',
@@ -1863,10 +1863,13 @@ class NodeApiController extends Controller
             "__hy2Port__" => (int) ($node->v2_port ?: 443),
             "__visionPort__" => (int) ($node->v2_port ?: 443),
             "__httpProxyHost__" => $fallbackHost,
-            "__dbHost__" => env("DB_REMOTE_HOST", env("DB_HOST", "127.0.0.1")),
-            "__dbUser__" => env("DB_USERNAME", "root"),
-            "__dbPassword__" => env("DB_PASSWORD", ""),
-            "__dbName__" => env("DB_DATABASE", "npanel"),
+            // 旧式 ssrpanel 段直连库凭据: 经 config/nodeapi.php 读取 (对 config:cache
+            // 免疫; DB_REMOTE_HOST 优先, 回退面板自身 DB_HOST), 运行时 env() 在
+            // config:cache 后恒为 null, 会把回退默认值错填进下发配置.
+            "__dbHost__" => (string) config("nodeapi.db_host"),
+            "__dbUser__" => (string) config("nodeapi.db_user"),
+            "__dbPassword__" => (string) config("nodeapi.db_password"),
+            "__dbName__" => (string) config("nodeapi.db_name"),
             // REALITY 占位符 (仅 vision-reality.json 模板使用):
             //   privateKey/shortId 仅服务端持有 (从 DB 列读);
             //   serverName 偷自己 = 节点完整 host (s{id}.rootDomain), 与 nginx 8443
