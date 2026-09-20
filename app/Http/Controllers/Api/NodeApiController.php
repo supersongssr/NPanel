@@ -432,6 +432,16 @@ class NodeApiController extends Controller
         // (全新/回收身份的 traffic/identity 已由 applyId 的 NodeDefaults::resetToDefaults 全清.)
         NodeDefaults::resetV2Derived($node);
 
+        // 占位心跳 (竞态收口, 与 applyId 的 persistCleanNode 同语义): 同机重装
+        // (proxyInstall.sh Step0 见缓存 NODE_ID 即跳过 applyId 直接 register) 且已死
+        // 超 dns_expire_days 的节点, 从 register 落库到首次 status() 上报的窗口内仍是
+        // "心跳超期"死相 —— autoReclaim/register 回收池均有 status=0 闸门打不中
+        // (status 已置 1), 唯一暴露面是 applyId: 其候选选取与原子认领均无 status
+        // 条件, 且 orderBy id desc 优先挑"最近死掉的最高 id"(恰是正在重装这台),
+        // 会认领并 resetToDefaults 重绑新机器 IP, 两台机器争用同一节点行。
+        // register 即刻刷新心跳堵住该窗口; 后续由 status() 持续续期。
+        $node->heartbeat_at = date("Y-m-d H:i:s");
+
         // v2 面板 API 自愈: 存量节点(在自动签发之前创建、且从未跑过批量命令)重装时
         // 自带 ID 上报、不走 applyId, api_token 可能为空 → /api/node/config 只会
         // 下发旧式 ssrpanel 段。在此补发后, 节点重拉配置即带 panelApi 段;
@@ -788,6 +798,11 @@ class NodeApiController extends Controller
                 $clone->node_group = $node->node_group;
                 $clone->traffic_rate = $node->traffic_rate;
                 $clone->status = 1;
+                // 占位心跳: 复用分支与新建/回收分支 (persistCloneIdentity) 同语义 ——
+                // 既有 clone 的心跳沿自最后一次 status() 同步, 同机重装且死超
+                // dns_expire_days 时同样超期; 此处刷新, 防止 register→首次 status()
+                // 窗口内被并发 applyId (候选/认领均无 status 闸门) 劫走。
+                $clone->heartbeat_at = date("Y-m-d H:i:s");
                 // clone 连接地址 (server): ipv4 = 连接域名 {random8}n{id}.domain (resolve_dns 建 A 记录;
                 // 随机 8 位前缀降域名特征被识别, DNS subdomain 由 DnsSyncer 从 server 解析, 与前缀解耦);
                 // ipv6 = 原生 ipv6 字面量 (ipv6 DNS 解析不可靠, 直连 IP). host/sni 复用 clusterHost.
