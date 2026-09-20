@@ -8,11 +8,12 @@
  *      save() UPDATE 0 行仍静默成功, 幽灵 id 流入 node_ids; 并发 register/applyId
  *      也会捡到同一行互相覆盖. 修复 = applyId 同款"原子认领 (条件 UPDATE 占位
  *      心跳) + 落库后回查存在性" (acquireCloneForSlot / persistCloneIdentity).
- *   2. [logic] node_level 由节点侧自由上报, 超过 5 时 rand(大, 小) 在 PHP 7.4 返回
- *      false 落库成等级 0 (高等级专属 clone 变全员可见). 修复 = 随机区间钳制到 [1,5].
+ *   2. [logic] node_level 由节点侧自由上报, 超过 5 时 rand(大, 小) 在 PHP 7.4 会静默
+ *      交换两参数, clone 落在 [5, node_level] 越出 5 级封顶 (若换用 mt_rand 才会
+ *      warning + false 落库成等级 0). 修复 = 随机区间钳制到 [1,5].
  *
  * 覆盖:
- *   A. node_level=9 注册 → 所有 clone 等级恰为 5 (lo=hi=5, 旧代码会落 0),
+ *   A. node_level=9 注册 → 所有 clone 等级恰为 5 (lo=hi=5, 旧代码会落 5~9 越出封顶),
  *      主节点 level 仍按上报值 9 原样保存.
  *   B. 池内最高 id 死节点被 register 认领为 clone: is_clone=mainId, status=1,
  *      占位心跳非 NULL 且 >= 调用时刻 (认领写入的心跳没有被落库清回 NULL),
@@ -23,8 +24,9 @@
  * 注: 幽灵降级路径 (认领后落库前被管理员删行) 与 applyId 已上线收口结构完全
  * 同款 (save 落空 → exists 回查 → new SsNode 重落), 无单进程注入点, 不在单测覆盖.
  *
- * 隔离性: QA 高位 id (>= QA_BASE_ID), 不触碰既有行; dns_records 无记录 →
- * safeCleanupNodeDns 零 CF API 调用. finally 中清理全部测试行.
+ * 隔离性: QA 高位 id (>= QA_BASE_ID), 不触碰既有行 (前置清理为窄删, 仅删本次确实
+ * 占用的 QA id, 不做高位区无差别删除, 防误删其他测试落在该区段的行);
+ * dns_records 无记录 → safeCleanupNodeDns 零 CF API 调用. finally 中清理全部测试行.
  *
  * Run: podman exec -e APP_ENV=test php7-npanel php /var/www/NPanel/tests/test_register_clone_claim_and_level.php
  */
@@ -77,9 +79,6 @@ $mainId = null;
 $qaIds = [];
 
 try {
-    // —— 前置清理: 保险起见清掉 QA 高位区残留 ——
-    DB::table('ss_node')->where('id', '>=', QA_BASE_ID)->delete();
-
     // ============================================================
     echo "=== A + B: applyId 建主节点 → 造池内死节点 → register ===\n\n";
     // ============================================================
@@ -103,6 +102,13 @@ try {
     $poolId = max(QA_BASE_ID, (int) $highestDead + 1);
     $qaIds[] = $poolId;
     $expired = date('Y-m-d H:i:s', strtotime('-90 days'));
+    // 窄清理 (审查修复): 只删本次确实要占用的 id, 不做高位区无差别删除.
+    // 上一轮崩溃残留在其他 id 的死节点不影响断言 —— poolId = max(QA_BASE_ID,
+    // 死节点最高 id + 1) 恒高于任何残留死节点 id, 首个 clone 槽位仍必命中本行;
+    // 残留恰占同 id (无论死活) 则由下面的窄删清掉, 避免 PK 冲突.
+    DB::table('ss_node')->where('id', $poolId)->delete();
+    DB::table('dns_records')->where('node_id', $poolId)->delete();
+    DB::table('ss_node_traffic_daily')->where('node_id', $poolId)->delete();
     DB::table('ss_node')->insert(array(
         'id'           => $poolId,
         'name'         => 'QA-REGISTER-POOL-' . $poolId,
@@ -138,7 +144,7 @@ try {
         'main level = ' . var_export($main->level, true));
 
     $levels = $clones->pluck('level')->map(function ($l) { return (int) $l; })->all();
-    assert_test('A3: node_level=9 时所有 clone 等级恰为 5 (lo=hi=5, 旧代码会落 0)',
+    assert_test('A3: node_level=9 时所有 clone 等级恰为 5 (lo=hi=5, 旧代码会落 5~9 越出封顶)',
         count($levels) === 5 && count(array_unique($levels)) === 1 && $levels[0] === 5,
         'levels = [' . implode(',', $levels) . ']');
     assert_test('A4: clone 等级全部落在合法区间 [1,5]',
@@ -181,6 +187,10 @@ try {
     $c1Id = $base;      // 候选 1: 造出后立刻删行 → 模拟"选取后被并发回收/删除"
     $c2Id = $base + 1;  // 候选 2: 有效死节点 → 应被认领
     $qaIds = array_merge($qaIds, [$c1Id, $c2Id]);
+    // 窄清理: 同上, 只删本次占用的两个候选 id
+    DB::table('ss_node')->whereIn('id', [$c1Id, $c2Id])->delete();
+    DB::table('dns_records')->whereIn('node_id', [$c1Id, $c2Id])->delete();
+    DB::table('ss_node_traffic_daily')->whereIn('node_id', [$c1Id, $c2Id])->delete();
     foreach (array($c1Id => 'QA-C1', $c2Id => 'QA-C2') as $cid => $nm) {
         DB::table('ss_node')->insert(array(
             'id'           => $cid,

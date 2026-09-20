@@ -746,8 +746,9 @@ class NodeApiController extends Controller
         }
 
         // clone 等级随机区间钳制: node_level 由节点侧自由上报 (proxyInstall.sh 的
-        // NODE_LEVEL, 面板侧无范围校验) —— 超过 5 时 rand(大, 小) 在 PHP 7.4 会报
-        // warning 并返回 false, 落库成等级 0 (本应高等级专属的 clone 变成全员可见);
+        // NODE_LEVEL, 面板侧无范围校验) —— 超过 5 时 rand(大, 小) 在 PHP 7.4 会静默
+        // 交换两参数, clone 实际落在 [5, node_level], 越出 5 级封顶语义 (注意: 若
+        // 日后换用 mt_rand 才会 warning 并返回 false, 落库成等级 0);
         // 低于 1 时会得到 0/负等级. 统一钳到合法区间 [1,5]: 主节点 level 仍按上报值
         // 原样保存, 仅 clone 的随机下界受限 (原公式 min(5, main+2) 的 5 封顶语义不变).
         $cloneLevelLo = max(1, min($mainLevel, 5));
