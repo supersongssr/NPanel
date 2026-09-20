@@ -11,6 +11,9 @@
  * 但并非零限流: backend.ratelimit 提供基于 Redis 的按 IP 应用层限流(60 次/分钟),
  *   挂在 backend.token 之前 —— 被拦截的伪造 Bearer 请求不再触发 ss_node.api_token
  *   的 DB 查询。节点上报周期约 1 小时一轮, 合法流量远低于阈值, 不会误伤。
+ *   【既定设计备注】阈值口径基于 "一个节点一个 id、一台机器一个独立出口 IP" 的正常
+ *   部署形态(单节点仅 3 请求/轮, 远低于 60 次/分钟); 单 IP 聚合数十节点的共享出口
+ *   IP 形态非预期部署, 真出现时再调高 BackendRateLimit::LIMIT 即可。
  *
  * 契约: xray-plugin-api docs/openapi.yaml; 每节点独立 Bearer token(ss_node.api_token)
  * 不挂 session/CSRF, 不与旧 node 组共用 env('API_TOKEN') 全局 key

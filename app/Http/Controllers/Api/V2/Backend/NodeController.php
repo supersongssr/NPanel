@@ -91,7 +91,8 @@ class NodeController extends Controller
      *  - user.u/d 累加乘率值(原子 CASE WHEN 单语句, t 刷新)
      *  - user_traffic_log 存原始字节 + 当次倍率 + 乘率后人类可读值(一条多 VALUES 批量 INSERT;
      *    u/d 列已扩为 BIGINT —— 2026_08_20 迁移, 单值可超 2GiB 安全入库)
-     *  - ss_node.traffic_used 累加原始字节(原子 UPDATE) + traffic_left 派生刷新
+     *  - ss_node.traffic_used 累加原始字节 + traffic_left 库端派生刷新(单条原子 UPDATE,
+     *    不经内存快照, 无重置竞态窗口)
      */
     public function traffic(Request $request)
     {
@@ -200,34 +201,28 @@ class NodeController extends Controller
                     DB::table('user_traffic_log')->insert($chunk);
                 }
 
-                // 节点用量累加原始字节(原子 UPDATE)
+                // 节点用量累加原始字节 + 派生字段刷新, 合并为单条原子 UPDATE(f-d3c2e615 修复):
+                //   - traffic_left 基于库端行值计算 —— MySQL 的 SET 赋值从左到右求值,
+                //     后面的 `traffic_used` 引用取前面刚累加完的新值, 派生值永远与
+                //     同一语句写入的累加值一致;
+                //   - 不再用请求进门时中间件加载的内存快照另行推算后写回 —— 消除
+                //     "月度重置 cron(NodeTrafficReset 原子清零)与上报写回竞态, 把过期
+                //     traffic_left 盖回库"的窗口;
+                //   - GREATEST 饱和与 PHP max(0,·) 同口径; IFNULL 对齐 (int)null = 0;
+                //     heartbeat_at 沿用 PHP 生成的时间串(全应用统一口径, 不用 NOW()
+                //     规避 MySQL 会话时区差异)。
+                $heartbeatAt = date('Y-m-d H:i:s');
                 DB::update(
-                    "UPDATE `ss_node` SET `traffic_used` = `traffic_used` + {$totalRaw} WHERE `id` = {$nodeId}"
+                    "UPDATE `ss_node` SET"
+                    . " `traffic_used` = `traffic_used` + {$totalRaw},"
+                    . " `traffic_left` = GREATEST(0, IFNULL(`traffic_limit`, 0) - `traffic_used`),"
+                    . " `heartbeat_at` = '{$heartbeatAt}'"
+                    . " WHERE `id` = {$nodeId}"
                 );
             });
         } catch (\Exception $e) {
             Log::error('[BackendApi v2] traffic write failed', ['node' => $nodeId, 'err' => $e->getMessage()]);
             return $this->err(500, 'INTERNAL', 'traffic write failed');
-        }
-
-        // 派生字段刷新(剩余流量, 与 NodeApiController::status 口径一致)。
-        // 直接用中间件已加载的 $node 内存计算 + 单条 UPDATE, 省掉重查 SELECT:
-        //   - traffic_used 与事务内原子累加后的库值一致(同节点上报串行, 无并发写)
-        //   - 极端并发下派生字段最多滞后一轮, 下轮自愈, 与旧实现重查后写回的窗口风险等价
-        //   - traffic_used 本身不再写回(事务内已原子累加, 避免覆盖)
-        //   - 【既定设计, 非 bug, 审查备注 f-d3c2e615 由此关账】上报周期约 1 小时一轮,
-        //     同一节点两次上报的间隔远大于单次请求处理耗时, "同节点并发上报"实际
-        //     不可能发生; 月度重置 cron 也已改为原子单条 UPDATE(NodeTrafficReset),
-        //     与本路径只剩毫秒级边界重叠。内存快照口径成立, 不做 SQL 下推改造
-        try {
-            $used = (int)$node->traffic_used + $totalRaw;
-            $left = max(0, (int)$node->traffic_limit - $used);
-            DB::table('ss_node')->where('id', $nodeId)->update([
-                'traffic_left' => $left,
-                'heartbeat_at' => date('Y-m-d H:i:s'),
-            ]);
-        } catch (\Exception $e) {
-            Log::warning('[BackendApi v2] traffic derived refresh failed', ['node' => $nodeId, 'err' => $e->getMessage()]);
         }
 
         return $this->ok(['accepted' => $accepted]);
@@ -287,11 +282,12 @@ class NodeController extends Controller
         }
 
         // 每日派生字段(与 NodeApiController::status 同口径)。
-        // 用中间件已加载的 $node 内存计算 + 单条 UPDATE, 省掉重查 SELECT
-        // (status 是每轮首个请求, 内存值与库值一致; save() 全量事件也一并跳过)。
-        // 【既定设计, 非 bug, 审查备注 f-d3c2e615 由此关账】上报周期约 1 小时一轮,
-        // 同节点并发上报实际不可能发生, 内存快照口径(含 120GB 熔断判断与 clone 同步)
-        // 成立, 不做 SQL 下推改造
+        // 【f-d3c2e615 修复】traffic_left / traffic_*_daily / node_health / 120GB 熔断
+        // status 不再用请求进门时中间件加载的内存快照推算后写回, 而是下推到 SQL 用
+        // UPDATE 执行时的库端行值计算(消除与月度重置 cron 的竞态窗口, 见下方备注);
+        // daysElapsed / daysRemaining 是纯日期运算(不读库), 仍在 PHP 侧算好作常量入 SQL;
+        // 熔断/恢复转换日志与 clone 集群同步所需的 PHP 侧值以写后回读的权威值为准
+        // (一次主键 SELECT, 换取消除竞态窗口)。
         try {
             $resetDay = (int)$node->reset_day;
             $today = (int)date('j');
@@ -314,14 +310,8 @@ class NodeController extends Controller
                 $daysRemaining = max(1, $daysInMonth - $today);
             }
 
-            $used = (int)$node->traffic_used;
-            $limit = (int)$node->traffic_limit;
-            $left = max(0, $limit - $used);
-            $usedDaily = (int)($used / $daysElapsed);
-            $leftDaily = (int)($left / $daysRemaining);
-            $avgUsed = $used / $daysElapsed;
-            $avgRemaining = $left / $daysRemaining;
-            $nodeHealth = $avgUsed > $avgRemaining ? 0 : 1;
+            $heartbeatAt = date('Y-m-d H:i:s', $now);
+            $nodeId = (int)$node->id;
 
             // 120GB 熔断/自动恢复(与 NodeApiController::status 同口径):
             // 剩余 < 120GB → status=0(下线, 中间件对 users/traffic 返回 NODE_DISABLED);
@@ -337,51 +327,62 @@ class NodeController extends Controller
             //      熔断, 因此总限额 ≤ 120GB 的节点会恒为下线态 —— 这是对节点限额的
             //      预期约束(节点月限额应 > 120GB), 不做比例化改造。
             $threshold = 120 * 1024 * 1024 * 1024; // 120GB
-            if ($limit !== 0 && $limit - $used < $threshold) {
-                $newStatus = 0;
-                if ((int)$node->status !== 0) {
+
+            // 派生字段全部下推到 SQL, 用 UPDATE 执行时的库端行值(而非内存快照)计算:
+            // 月度重置 cron(NodeTrafficReset 原子清零)无论落在本次上报前还是上报后,
+            // 派生字段都与同一语句读到的行值一致, 不存在"过期派生值盖回库"的窗口。
+            // 口径对齐原 PHP 实现: GREATEST(0,·) ≡ max(0,·); IFNULL(traffic_limit,0)
+            // ≡ (int)null = 0; FLOOR(·) ≡ (int)(·)(非负截断); IF(cond,0,1) ≡ 三元判断。
+            DB::update(
+                "UPDATE `ss_node` SET"
+                . " `server_uptime` = {$uptime},"
+                . " `traffic_left` = GREATEST(0, IFNULL(`traffic_limit`, 0) - `traffic_used`),"
+                . " `traffic_used_daily` = FLOOR(`traffic_used` / {$daysElapsed}),"
+                . " `traffic_left_daily` = FLOOR(GREATEST(0, IFNULL(`traffic_limit`, 0) - `traffic_used`) / {$daysRemaining}),"
+                . " `node_health` = IF(`traffic_used` / {$daysElapsed} > GREATEST(0, IFNULL(`traffic_limit`, 0) - `traffic_used`) / {$daysRemaining}, 0, 1),"
+                . " `status` = IF(IFNULL(`traffic_limit`, 0) <> 0 AND IFNULL(`traffic_limit`, 0) - `traffic_used` < {$threshold}, 0, 1),"
+                . " `heartbeat_at` = '{$heartbeatAt}'"
+                . " WHERE `id` = {$nodeId}"
+            );
+
+            // 写后回读权威派生值: 熔断/恢复转换日志与 clone 集群同步需要 PHP 侧的
+            // status / node_health, 以库端刚写入的结果为准(不用内存快照推断);
+            // 行被并发删除(fresh=null)时跳过日志与 clone 同步, 不视为失败。
+            $fresh = DB::table('ss_node')->where('id', $nodeId)
+                ->first(['status', 'node_health', 'traffic_left']);
+
+            if ($fresh !== null) {
+                $newStatus = (int)$fresh->status;
+                $nodeHealth = (int)$fresh->node_health;
+
+                if ($newStatus === 0 && (int)$node->status !== 0) {
                     Log::warning('[BackendApi v2] 节点熔断下线', [
-                        'node_id' => (int)$node->id,
+                        'node_id' => $nodeId,
                         'reason' => 'Remaining traffic < 120GB',
-                        'remaining' => $limit - $used,
+                        'traffic_left_gb' => round(((int)$fresh->traffic_left) / 1024 / 1024 / 1024, 2),
                     ]);
-                }
-            } else {
-                $newStatus = 1;
-                if ((int)$node->status !== 1) {
+                } elseif ($newStatus === 1 && (int)$node->status !== 1) {
                     Log::info('[BackendApi v2] 节点自动恢复上线', [
-                        'node_id' => (int)$node->id,
-                        'traffic_left_gb' => round($left / 1024 / 1024 / 1024, 2),
+                        'node_id' => $nodeId,
+                        'traffic_left_gb' => round(((int)$fresh->traffic_left) / 1024 / 1024 / 1024, 2),
                     ]);
                 }
-            }
 
-            $heartbeatAt = date('Y-m-d H:i:s', $now);
-
-            DB::table('ss_node')->where('id', (int)$node->id)->update([
-                'server_uptime' => $uptime,
-                'traffic_left' => $left,
-                'traffic_used_daily' => $usedDaily,
-                'traffic_left_daily' => $leftDaily,
-                'node_health' => $nodeHealth,
-                'status' => $newStatus,
-                'heartbeat_at' => $heartbeatAt,
-            ]);
-
-            // 同步 clone 集群共享状态(与 NodeApiController::syncClusterStatus 同口径):
-            // clone 是同一物理机的协议/IP 分身, 不独立上报 status; main 熔断下线
-            // (status=0)后必须同步, 否则订阅层(按 status=1 过滤)会持续下发失效 clone。
-            // bandwidth v2 不上报, 同步写回 main 当前值以保持集群一致(与 v1 同字段集)。
-            if ((int)$node->is_clone === 0) {
-                SsNode::query()->where('is_clone', (int)$node->id)->update([
-                    'heartbeat_at' => $heartbeatAt,
-                    'status' => $newStatus,
-                    'node_health' => $nodeHealth,
-                    'bandwidth' => (int)$node->bandwidth,
-                ]);
+                // 同步 clone 集群共享状态(与 NodeApiController::syncClusterStatus 同口径):
+                // clone 是同一物理机的协议/IP 分身, 不独立上报 status; main 熔断下线
+                // (status=0)后必须同步, 否则订阅层(按 status=1 过滤)会持续下发失效 clone。
+                // bandwidth v2 不上报, 同步写回 main 当前值以保持集群一致(与 v1 同字段集)。
+                if ((int)$node->is_clone === 0) {
+                    SsNode::query()->where('is_clone', $nodeId)->update([
+                        'heartbeat_at' => $heartbeatAt,
+                        'status' => $newStatus,
+                        'node_health' => $nodeHealth,
+                        'bandwidth' => (int)$node->bandwidth,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
-            Log::error('[BackendApi v2] status write failed', ['node' => $node->id, 'err' => $e->getMessage()]);
+            Log::error('[BackendApi v2] status write failed', ['node' => (int)$node->id, 'err' => $e->getMessage()]);
             return $this->err(500, 'INTERNAL', 'status write failed');
         }
 

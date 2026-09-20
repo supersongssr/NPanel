@@ -35,7 +35,9 @@ ThrottleRequests 无登录态时按出口 IP 计数，同一出口 IP 的全部�
 但并非零限流：路由组挂 `backend.ratelimit`(`app/Http/Middleware/BackendRateLimit.php`)
 —— 基于 **Redis** 的按来源 IP 应用层限流，**60 次/分钟/IP**（固定窗口 INCR+EXPIRE）。
 它排在 `backend.token` 之前，被拦截的伪造 Bearer 请求不再触发 `ss_node.api_token`
-的 DB 查询。节点上报周期约 1 小时一轮（3 请求/轮），合法流量远低于阈值，不会误伤；
+的 DB 查询。节点上报周期约 1 小时一轮（3 请求/轮），合法流量远低于阈值，不会误伤
+（阈值口径基于「一个节点一个 id、一台机器一个独立出口 IP」的正常部署形态，单 IP
+聚合数十节点的共享出口 IP 非预期部署，真出现时调高 `BackendRateLimit::LIMIT` 即可）；
 Redis 不可用时 fail-open 放行（限流是旁路防护，不阻断上报主链路）。`healthz` 探活
 不鉴权也不限流（高频是常态）。
 

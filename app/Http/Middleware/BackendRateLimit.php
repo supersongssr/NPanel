@@ -20,8 +20,14 @@ use Illuminate\Support\Facades\Redis;
  * 一个出口 IP 也远低于阈值, 只拦截明显的暴力刷量; 挂在 backend.token 之前,
  * 被拦截的请求不再进库查询。
  *
- * fail-open: Redis 不可用时放行 + warning 日志 —— 限流是旁路防护, 不能因 Redis
- * 故障阻断节点上报主链路。
+ * 【既定设计, 非 bug, 审查备注(2026-09 复审)】LIMIT=60 与被移除的 throttle:60,1
+ * 数值相同, 但不会复现当年的 429 恶性循环: 正常部署形态是"一个节点一个 id、
+ * 一台机器一个独立出口 IP"(每节点仅 3 请求/轮, 远低于阈值); 单 IP 聚合数十
+ * 节点的共享出口 IP 形态不是预期部署, 真出现时再调 LIMIT 或改为可配置即可。
+ *
+ * fail-open: Redis 不可用时放行 + warning 日志(限流是旁路防护, 不能因 Redis
+ * 故障阻断节点上报主链路); 告警按 WARN_THROTTLE_SECONDS 节流, 防 Redis 故障
+ * 与刷量叠加时逐请求落日志把日志灌爆。
  *
  * 超限响应为契约信封(插件已有退避逻辑):
  *   429 {"error":{"code":"RATE_LIMITED","message":"too many requests"}}
@@ -33,6 +39,12 @@ class BackendRateLimit
 
     /** 窗口长度(秒) */
     const WINDOW = 60;
+
+    /** fail-open 告警节流间隔(秒): Redis 不可用时至多每该时长记一条 warning, 防日志风暴 */
+    const WARN_THROTTLE_SECONDS = 60;
+
+    /** @var int|null 上次 fail-open 告警时间戳(进程内节流, php-fpm 多 worker 各自独立) */
+    private static $lastWarnAt = null;
 
     public function handle(Request $request, Closure $next)
     {
@@ -50,10 +62,16 @@ class BackendRateLimit
                 Redis::expire($key, self::WINDOW);
             }
         } catch (\Exception $e) {
-            Log::warning('[BackendApi v2] rate limit redis unavailable, fail-open', [
-                'ip' => $ip,
-                'err' => $e->getMessage(),
-            ]);
+            // fail-open 告警节流(进程内): Redis 故障 + 被刷的组合下, 逐请求落日志会把
+            // 日志灌爆(审查修复); 每 WARN_THROTTLE_SECONDS 秒至多记一条
+            $nowTs = time();
+            if (self::$lastWarnAt === null || $nowTs - self::$lastWarnAt >= self::WARN_THROTTLE_SECONDS) {
+                self::$lastWarnAt = $nowTs;
+                Log::warning('[BackendApi v2] rate limit redis unavailable, fail-open', [
+                    'ip' => $ip,
+                    'err' => $e->getMessage(),
+                ]);
+            }
             return $next($request);
         }
 
