@@ -53,7 +53,7 @@ Authorization: Bearer <ss_node.api_token>
 
 - token 取自 `ss_node.api_token`(全表唯一索引精确匹配,43 字符 base64url);
   为空或长度 > 64 直接 401,不进库查询
-- `ss_node.status == 0` 的禁用节点返回 403 `NODE_DISABLED`(与 `/api/node/config` 返回 403 口径一致)
+- `ss_node.status == 0` 的禁用节点对 users/traffic 返回 403 `NODE_DISABLED`(与 `/api/node/config` 返回 403 口径一致);**例外:POST /status 放行** —— 熔断下线(剩余流量 < 120GB,见 POST /status 写路径)后心跳是唯一恢复通道,月度流量重置后靠心跳自动重新上线
 - 可选 IP 白名单 `ss_node.api_ip_allowlist`(逗号分隔 IP/CIDR,如 `1.2.3.4,10.0.0.0/8`):
   配置了就强制校验,不匹配返回 401(纵深防御,非唯一鉴权因素)
 - 节点流量耗尽**不算禁用** —— `GET /users` 返回 200 + 空列表(插件据此删光用户)
@@ -63,7 +63,7 @@ Authorization: Bearer <ss_node.api_token>
 | HTTP | code | message | 场景 |
 |---|---|---|---|
 | 401 | `INVALID_TOKEN` | token is invalid or revoked | token 缺失/错误/超长,或 IP 不在白名单 |
-| 403 | `NODE_DISABLED` | node is disabled | 节点 status=0 |
+| 403 | `NODE_DISABLED` | node is disabled | 节点 status=0(仅 users/traffic;POST /status 放行) |
 | 400 | `BAD_REQUEST` | (见各端点) | 参数校验失败,整批拒收 |
 | 429 | `RATE_LIMITED` | too many requests | 同 IP 超过 60 次/分钟(Redis 应用层限流, 在鉴权之前) |
 | 500 | `INTERNAL` | traffic write failed / status write failed | 事务内写入异常(连接断/死锁等),返回契约信封而非 Laravel 默认异常页 |
@@ -208,6 +208,15 @@ php artisan node:generate-api-tokens --node=3   # 查看/生成单节点
 3. 刷新 `ss_node` 每日派生字段(与 `/api/node/status` 的 NodeApiController 同口径,
    保持管理页展示新鲜):`server_uptime`、`traffic_left`、`traffic_used_daily`、
    `traffic_left_daily`、`node_health`(按 `reset_day` 日历折算已过/剩余天数)及 `heartbeat_at`
+4. **120GB 熔断/自动恢复**(与 `/api/node/status` 同口径):`traffic_limit != 0` 且剩余流量
+   < 120GB → `status=0`(下线,users/traffic 随即 403);恢复 ≥ 120GB(如月度流量重置)→
+   `status=1`。`traffic_limit=0` 的不限量节点永不熔断。`status` 以流量口径自动计算为准 ——
+   手动置 0(维护)同样会在下次心跳被翻转回 1,需要硬下线某节点应吊销其 `api_token`
+   (置空/轮换),而非仅置 status=0。120GB 为固定预留量、不按 traffic_limit 比例计算,
+   总限额 ≤ 120GB 的节点会恒为下线态(预期约束:节点月限额应 > 120GB)
+5. main 节点(`is_clone=0`)心跳同步 clone 集群(`is_clone` 指向本节点的全部行)的
+   `heartbeat_at`、`status`、`node_health`、`bandwidth` —— clone 是同一物理机的协议/IP 分身,
+   不独立上报状态;main 熔断下线后必须同步,否则订阅层(按 status=1 过滤)会持续下发失效 clone
 
 **成功响应 (200):**
 ```json
@@ -236,4 +245,4 @@ php artisan node:generate-api-tokens --node=3   # 查看/生成单节点
 
 ---
 
-*文档更新时间: 2026-08-23 | 基于 commit: a7061f61*
+*文档更新时间: 2026-09-20 | 基于 commit: f9c74fd7*

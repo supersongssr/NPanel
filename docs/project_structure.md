@@ -134,13 +134,18 @@
 │   │   ├── Kernel.php
 │   │   ├── Middleware
 │   │   │   ├── Affiliate.php
+│   │   │   ├── BackendRateLimit.php
+│   │   │   ├── BackendToken.php
 │   │   │   ├── CheckForMaintenanceMode.php
 │   │   │   ├── EncryptCookies.php
+│   │   │   ├── NodeApiToken.php
 │   │   │   ├── RedirectIfAuthenticated.php
 │   │   │   ├── SetLocale.php
 │   │   │   ├── TrimStrings.php
 │   │   │   ├── TrustProxies.php
+│   │   │   ├── UserApiToken.php
 │   │   │   ├── VerifyCsrfToken.php
+│   │   │   ├── isActive.php
 │   │   │   ├── isAdmin.php
 │   │   │   ├── isForbidden.php
 │   │   │   ├── isLogin.php
@@ -250,6 +255,7 @@
 │   ├── image.php
 │   ├── logging.php
 │   ├── mail.php
+│   ├── nodeapi.php
 │   ├── permission.php
 │   ├── purifier.php
 │   ├── queue.php
@@ -264,7 +270,14 @@
 │   ├── factories
 │   │   └── UserFactory.php
 │   ├── migrations
-│   │   └── 2026_04_17_202201_add_server_uptime_and_total_traffic_to_ss_node_table.php
+│   │   ├── 2026_06_19_000000_add_v2_xhttp_verify_to_ss_node_table.php
+│   │   ├── 2026_06_22_000000_add_v2_reality_to_ss_node_table.php
+│   │   ├── 2026_06_25_000000_add_v2_ech_to_ss_node_table.php
+│   │   ├── 2026_06_26_000000_add_v2_xhttp_split_to_ss_node_table.php
+│   │   ├── 2026_07_30_000000_add_last_traffic_reset_at_to_ss_node_table.php
+│   │   ├── 2026_08_18_140000_add_api_token_to_ss_node_table.php
+│   │   ├── 2026_08_20_000000_widen_user_traffic_log_bytes_to_bigint.php
+│   │   └── 2026_08_23_100000_add_enable_level_index_to_user_table.php
 │   └── seeds
 │       └── DatabaseSeeder.php
 ├── docs
@@ -5290,6 +5303,8 @@
 │   │   ├── AdminNodeListIsCloneFilterTest.php
 │   │   ├── ExampleTest.php
 │   │   ├── GetNewNodeTest.php
+│   │   ├── NodeApiTokenProvisioningTest.php
+│   │   ├── NodeConfigPanelApiTest.php
 │   │   ├── PingControllerApiTest.php
 │   │   ├── QClientSubscribeTest.php
 │   │   └── QuanXSubscribeTest.php
@@ -5299,6 +5314,10 @@
 │   ├── Unit
 │   │   └── ExampleTest.php
 │   ├── Utils
+│   ├── _debug_v2_detailed.php
+│   ├── _debug_v2_distinct.php
+│   ├── _debug_v2_name_patterns.php
+│   ├── _debug_v2_patterns.php
 │   ├── fake_data
 │   │   ├── README.md
 │   │   ├── generate_all_fake_data.php
@@ -5307,7 +5326,9 @@
 │   │   ├── generate_offline_nodes.php
 │   │   └── generate_stale_nodes.php
 │   ├── get_subscribe_redis_limit.php
+│   ├── qa_logic_sync.php
 │   ├── test_all_subscription_formats.php
+│   ├── test_auto_delete_expired_dns.php
 │   ├── test_clash_comprehensive.php
 │   ├── test_clash_duplicate_names.php
 │   ├── test_clash_empty.php
@@ -5319,11 +5340,18 @@
 │   ├── test_email_logic.php
 │   ├── test_get_new_node.sh
 │   ├── test_get_node_config.sh
+│   ├── test_node_api_cycle.php
+│   ├── test_node_api_register_heartbeat.php
+│   ├── test_node_api_v2_qa.php
+│   ├── test_node_api_v2_qa_r2.php
+│   ├── test_node_api_v2_qa_r3.php
+│   ├── test_node_apply_id_guard.php
 │   ├── test_output_clash.yaml
 │   ├── test_output_loon.conf
 │   ├── test_output_singbox.json
 │   ├── test_output_surfboard.conf
 │   ├── test_ping_api.sh
+│   ├── test_register_clone_claim_and_level.php
 │   ├── test_singbox_edge_cases.php
 │   ├── test_singbox_json.php
 │   ├── test_singbox_outbound_order.php
@@ -5332,7 +5360,8 @@
 │   ├── test_subscription_direct.php
 │   ├── test_subscription_formats.php
 │   ├── test_subscription_formats_with_seeder.php
-│   └── test_subscription_generation.php
+│   ├── test_subscription_generation.php
+│   └── test_user_api_v2_traffic.php
 ├── todo.md
 ├── update.sh
 └── webpack.mix.js

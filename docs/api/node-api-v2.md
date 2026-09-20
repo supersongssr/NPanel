@@ -12,7 +12,7 @@ apply_id → register → resolve_dns → config → status(循环)
 
 **Base URL:** `http://your-domain.com/api/node`
 
-**认证方式:** Token 认证 — 所有接口均需携带 `token` 参数（或 `X-API-Token` 请求头），值为 `.env` 中 `API_TOKEN` 变量。
+**认证方式:** Token 认证 — 所有接口均需携带 `token` 参数（或 `X-API-Token` 请求头），值为 `.env` 中 `API_TOKEN` 变量（经 `config/nodeapi.php` 的 `nodeapi.api_token` 读取，对 `config:cache` 免疫）。
 
 **适用版本:** commit `36f943a8` (2026-05-12) 及之后。
 
@@ -235,7 +235,7 @@ Node API v2 使用标准化字段命名（已通过 migration 完成对 legacy �
 - **客户端指定**：若请求携带 `node_level` 参数，直接使用该等级。
 - **自动计算**：否则由 `node_cost` 驱动：
   - **主节点等级** = `max(1, floor(node_cost))`，最低为 1
-  - **克隆节点等级** = `rand(主节点等级, min(5, 主节点等级+2))`，保证克隆等级 ≥ 主节点
+  - **克隆节点等级** = `rand(max(1, min(主节点等级, 5)), min(5, 主节点等级+2))`，随机区间钳制到 [1,5]：主节点等级由节点侧上报（`node_level`）、面板无范围校验，超过 5 时 clone 取 5、低于 1 时抬到 1（旧公式 `rand(大, 小)` 在 PHP 7.4 会静默交换参数，clone 实际落在 [5, node_level]，越出 5 级封顶语义；若换用 `mt_rand` 才会 warning 并返回 false 落库成等级 0）；主节点等级在合法区间 1..5 时保证克隆等级 ≥ 主节点，主节点等级本身仍按上报值原样保存
 
 #### 域名亲和性分配策略 (Domain Affinity)
 
@@ -581,4 +581,4 @@ resources/templates/
 
 ---
 
-*文档更新时间: 2026-08-19 | 基于 commit: 93f2fa81*
+*文档更新时间: 2026-09-20 | 基于 commit: f9c74fd7*
