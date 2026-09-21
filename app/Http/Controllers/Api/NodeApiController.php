@@ -117,6 +117,10 @@ class NodeApiController extends Controller
             ], 401);
         }
 
+        // 全量列下发 (含 api_token / v2_reality_private 等敏感列) 为有意设计:
+        // 本接口定位为管理员自用 (运维/监控批量拉取), 持有 API_TOKEN 的调用方
+        // 即管理员本人, 不做字段白名单裁剪; 下方文档示例未列出后加列属文档节选,
+        // 非泄漏。(2026-09 复审备注)
         $nodes = SsNode::orderBy('id', 'asc')->get();
 
         return response()->json([
