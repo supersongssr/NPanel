@@ -750,12 +750,14 @@ class NodeApiController extends Controller
         }
 
         // clone 等级随机区间钳制: node_level 由节点侧自由上报 (proxyInstall.sh 的
-        // NODE_LEVEL, 面板侧无范围校验) —— 超过 5 时 rand(大, 小) 在 PHP 7.4 会静默
-        // 交换两参数, clone 实际落在 [5, node_level], 越出 5 级封顶语义 (注意: 若
-        // 日后换用 mt_rand 才会 warning 并返回 false, 落库成等级 0);
-        // 低于 1 时会得到 0/负等级. 统一钳到合法区间 [1,5]: 主节点 level 仍按上报值
-        // 原样保存, 仅 clone 的随机下界受限 (原公式 min(5, main+2) 的 5 封顶语义不变).
-        $cloneLevelLo = max(1, min($mainLevel, 5));
+        // NODE_LEVEL, 面板侧无范围校验) —— 主节点 level 按上报值原样落库不钳制
+        // ($node->level = $mainLevel), 因此 clone 的【下界也不做 5 级封顶】: 约束
+        // 优先级为 "clone 等级不得低于主节点" > "clone 最高 5 级" —— main > 5 时
+        // clone 恒等于 main 等级 (上界 5 封顶被下界顶替), main <= 5 时维持原
+        // [min(5, main+2)] 封顶语义不变. 另: 下界 max(1, ..) 防止上报 0/负值时
+        // rand 出 0/负等级; 上界 max(lo, ..) 兜底 lo <= hi, 避免 PHP 7.4 rand(大, 小)
+        // 静默交换参数 (若日后换用 mt_rand 会 warning 并返回 false, 落库成等级 0).
+        $cloneLevelLo = max(1, $mainLevel);
         $cloneLevelHi = max($cloneLevelLo, min(5, $mainLevel + 2));
 
         $mainSlot = array_shift($slots);
