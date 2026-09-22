@@ -7,7 +7,7 @@
 
 ```
 docker/
-├── docker-compose.yml      # 编排: php7 + redis (mysql/adminer 可选)
+├── docker-compose.yml      # 编排: 仅 php7 (redis/mysql/adminer 可选, 已存在同名容器时勿启用)
 └── php7/
     ├── Dockerfile           # 等价于 podman/pod/php7/Containerfile
     └── custom-php.ini       # 自定义 PHP 配置 (与 podman 方案一致)
@@ -25,7 +25,7 @@ docker --version
 ```sh
 cd docker
 
-# 构建镜像并启动 (php7 + redis)
+# 构建镜像并启动 (php7, 资源限制 1C1G)
 docker compose up -d
 
 # 查看运行状态

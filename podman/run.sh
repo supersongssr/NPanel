@@ -5,6 +5,8 @@
 #   - 不使用 pod: 每个服务都是独立容器, PHP-FPM 由宿主机 Nginx 反代 127.0.0.1:9001
 #   - 统一加入 main 网络: 容器间互通 (如 PHP 连 redis:6379)
 #   - 端口仅绑定 127.0.0.1: 不监听公网
+#   - php7 容器资源限制 1C1G: --cpus 1 --memory 1g (禁用 swap)
+#   - 幂等: 已存在的容器跳过, 不会覆盖/重建宿主机已有服务
 #
 # 用法:
 #   ./run.sh            # 启动 php7-npanel + redis (镜像不存在时自动构建)
@@ -31,11 +33,14 @@ fi
 if podman container exists php7-npanel; then
     echo "==> php7-npanel 已存在, 跳过 (如需重建: podman rm -f php7-npanel && ./run.sh)"
 else
-    echo "==> 启动 php7-npanel (127.0.0.1:9001 -> 9000)"
+    echo "==> 启动 php7-npanel (127.0.0.1:9001 -> 9000, 1C1G)"
     podman run -d \
         --name php7-npanel \
         --network main \
         -p 127.0.0.1:9001:9000 \
+        --cpus 1 \
+        --memory 1g \
+        --memory-swap 1g \
         -v /var/www:/var/www${MOUNT_OPTS:+:$MOUNT_OPTS} \
         --restart always \
         --workdir "$WORKDIR" \

@@ -1,11 +1,11 @@
 # NPanel Docker 编排方案
-# 与 podman/ 方案等价: PHP 7.4 FPM + Redis, 供宿主机 Nginx 反代使用
+# 与 podman/ 方案等价: PHP 7.4 FPM + 可选基础设施, 供宿主机 Nginx 反代使用
 #
 # 启动:   docker compose up -d
 # 构建:   docker compose build --no-cache
 # 查看日志: docker compose logs -f php7
 #
-# 注意: MySQL(5.7) 与 Adminer 按需启用, 默认注释, 见文件底部
+# 注意: Redis / MySQL(5.7) / Adminer 均为注释可选项, 默认不启用;
 
 services:
   # PHP 7.4 FPM — NPanel 运行容器 (对应 podman 方案的 php7-npanel)
@@ -28,24 +28,33 @@ services:
       - /var/www:/var/www
     working_dir: /var/www
     restart: always
-
-  # Redis — 缓存/队列 (对应 podman 方案的 redis 容器)
-  redis:
-    image: redis:alpine
-    container_name: redis
-    networks:
-      - main
-    ports:
-      - "127.0.0.1:6379:6379"
-    volumes:
-      - /opt/redis/data:/data
-    # 对应 podman 方案: --sysctl net.core.somaxconn=1024
-    sysctls:
-      net.core.somaxconn: 1024
-    command: redis-server --appendonly yes
-    restart: always
+    # 资源限制: 1 核 CPU / 1G 内存 (本地 up 同样生效)
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
 
   # ──────── 以下为可选服务, 按需取消注释 ────────
+  # 注意: 若宿主机已存在同名容器 (如手动 docker run 创建的 redis),
+  # compose 会因容器名冲突而 up 失败 (不会覆盖/重建已有容器)。
+  # 此类基础设施建议保留手动管理。
+
+  # Redis — 缓存/队列 (宿主机已有 redis 容器时勿启用, 见上注)
+  # redis:
+  #   image: redis:alpine
+  #   container_name: redis
+  #   networks:
+  #     - main
+  #   ports:
+  #     - "127.0.0.1:6379:6379"
+  #   volumes:
+  #     - /opt/redis/data:/data
+  #   # 对应 podman 方案: --sysctl net.core.somaxconn=1024
+  #   sysctls:
+  #     net.core.somaxconn: 1024
+  #   command: redis-server --appendonly yes
+  #   restart: always
 
   # MySQL 5.7 — 与宿主机现有 mysql 容器等价
   # mysql:

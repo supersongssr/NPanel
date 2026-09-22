@@ -10,12 +10,18 @@ Podman 版运行方案。核心设计决策:
    (如 PHP 连 `redis:6379`);`main` 为预建外部网络,不归 compose 管理。
 3. **端口仅绑定 `127.0.0.1`** — 所有对外端口(9001/6379/3306/8081)都加
    `127.0.0.1` 前缀,不监听公网,由宿主机 Nginx 反代对外提供服务。
+4. **php7 资源限制 1C1G** — `--cpus 1 --memory 1g`(禁用 swap),避免
+   单个站点拖垮宿主机上共存的其他容器。
+5. **不接管已有基础设施** — compose 只默认管理 `php7`;宿主机已存在同名
+   `redis`/`mysql` 等容器时,compose 会因容器名冲突而 `up` 失败(不会
+   覆盖/重建),因此这类服务仅在注释中提供可选项,或用幂等的 `run.sh`
+   (已存在则跳过)。
 
 ## 目录结构
 
 ```
 podman/
-├── compose.yml            # 编排: php7 + redis (mysql/adminer 可选)
+├── compose.yml            # 编排: 仅 php7 (redis/mysql/adminer 可选, 已存在同名容器时勿启用)
 ├── run.sh                 # 无 compose 依赖的纯 podman run 版本 (幂等)
 └── pod/php7/
     ├── Containerfile      # PHP 7.4 FPM 镜像构建
@@ -32,6 +38,9 @@ cd podman
 ./run.sh --rebuild  # 强制重建镜像
 podman ps           # 查看运行状态
 ```
+
+> `run.sh` 对已存在的容器(含宿主机手动创建的 redis)只跳过不重建;
+> 已存在但需应用新的 1C1G 限制时: `podman rm -f php7-npanel && ./run.sh`。
 
 ### 方式二: podman compose
 

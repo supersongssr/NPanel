@@ -31,23 +31,32 @@ services:
       - /var/www:/var/www
     working_dir: /var/www
     restart: always
-
-  # Redis — 缓存/队列
-  redis:
-    image: docker.io/library/redis:alpine
-    container_name: redis
-    networks:
-      - main
-    ports:
-      - "127.0.0.1:6379:6379"
-    volumes:
-      - /opt/redis/data:/data
-    sysctls:
-      net.core.somaxconn: 1024
-    command: redis-server --appendonly yes
-    restart: always
+    # 资源限制: 1 核 CPU / 1G 内存 (podman-compose 转换为 --cpus/--memory)
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
 
   # ──────── 以下为可选服务, 按需取消注释 ────────
+  # 注意: 若宿主机已存在同名容器 (如手动 podman run 创建的 redis),
+  # compose 会因容器名冲突而 up 失败 (不会覆盖/重建已有容器)。
+  # 此类基础设施建议保留手动管理, 或使用幂等的 run.sh (已存在则跳过)。
+
+  # Redis — 缓存/队列 (宿主机已有 redis 容器时勿启用, 见上注)
+  # redis:
+  #   image: docker.io/library/redis:alpine
+  #   container_name: redis
+  #   networks:
+  #     - main
+  #   ports:
+  #     - "127.0.0.1:6379:6379"
+  #   volumes:
+  #     - /opt/redis/data:/data
+  #   sysctls:
+  #     net.core.somaxconn: 1024
+  #   command: redis-server --appendonly yes
+  #   restart: always
 
   # MySQL 5.7
   # mysql:
