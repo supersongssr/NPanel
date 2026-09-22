@@ -923,8 +923,8 @@ class NodeApiController extends Controller
      *
      * @param  SsNode $main     主节点 (clone 身份字段来源)
      * @param  string $v2Name   本集群 v2_name
-     * @param  int    $lo       clone 等级随机下界 (已钳制 1..5)
-     * @param  int    $hi       clone 等级随机上界 (已钳制 1..5)
+     * @param  int    $lo       clone 等级随机下界 (= max(1, 主节点等级), 不做 5 级封顶)
+     * @param  int    $hi       clone 等级随机上界 (= max(lo, min(5, 主节点等级+2)), 默认封顶 5)
      * @param  \Illuminate\Database\Eloquent\Collection $deadNodes 死节点回收池
      * @param  int    &$deadIdx 池消费游标 (引用: 认领失败的候选被跳过后前移)
      * @param  string $cutoff   死节点判定阈值 (与池查询同源)
@@ -998,8 +998,8 @@ class NodeApiController extends Controller
      * @param  SsNode $clone   新建/降级传 new SsNode(), 回收传已认领的存量模型
      * @param  SsNode $main    主节点 (身份字段来源)
      * @param  string $v2Name  本集群 v2_name
-     * @param  int    $lo      clone 等级随机下界 (已钳制)
-     * @param  int    $hi      clone 等级随机上界 (已钳制)
+     * @param  int    $lo      clone 等级随机下界 (= max(1, 主节点等级), 不低于主节点)
+     * @param  int    $hi      clone 等级随机上界 (= max(lo, min(5, 主节点等级+2)))
      * @return void
      */
     private function persistCloneIdentity(SsNode $clone, SsNode $main, $v2Name, $lo, $hi)

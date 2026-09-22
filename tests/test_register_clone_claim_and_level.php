@@ -10,11 +10,13 @@
  *      心跳) + 落库后回查存在性" (acquireCloneForSlot / persistCloneIdentity).
  *   2. [logic] node_level 由节点侧自由上报, 超过 5 时 rand(大, 小) 在 PHP 7.4 会静默
  *      交换两参数, clone 落在 [5, node_level] 越出 5 级封顶 (若换用 mt_rand 才会
- *      warning + false 落库成等级 0). 修复 = 随机区间钳制到 [1,5].
+ *      warning + false 落库成等级 0). 修复 = 随机区间钳制; 后续 (f6003d2b) 口径
+ *      调整为: clone 默认最高 5 级, 但 main 等级高 (>5) 时 clone 不低于 main
+ *      ("clone ≥ main" 优先于 "clone 最高 5 级", 上界封顶被下界顶替).
  *
  * 覆盖:
- *   A. node_level=9 注册 → 所有 clone 等级恰为 5 (lo=hi=5, 旧代码会落 5~9 越出封顶),
- *      主节点 level 仍按上报值 9 原样保存.
+ *   A. node_level=9 注册 → 所有 clone 等级恒等于 9 (不低于 main, 上界 5 级封顶
+ *      被下界顶替), 主节点 level 仍按上报值 9 原样保存.
  *   B. 池内最高 id 死节点被 register 认领为 clone: is_clone=mainId, status=1,
  *      占位心跳非 NULL 且 >= 调用时刻 (认领写入的心跳没有被落库清回 NULL),
  *      node_ids / clone_node_ids 均含该 id.
@@ -144,11 +146,11 @@ try {
         'main level = ' . var_export($main->level, true));
 
     $levels = $clones->pluck('level')->map(function ($l) { return (int) $l; })->all();
-    assert_test('A3: node_level=9 时所有 clone 等级恰为 5 (lo=hi=5, 旧代码会落 5~9 越出封顶)',
-        count($levels) === 5 && count(array_unique($levels)) === 1 && $levels[0] === 5,
+    assert_test('A3: node_level=9 时所有 clone 等级恒等于 9 (不低于 main, 上界 5 封顶被下界顶替)',
+        count($levels) === 5 && count(array_unique($levels)) === 1 && $levels[0] === 9,
         'levels = [' . implode(',', $levels) . ']');
-    assert_test('A4: clone 等级全部落在合法区间 [1,5]',
-        count(array_filter($levels, function ($l) { return $l >= 1 && $l <= 5; })) === count($levels),
+    assert_test('A4: clone 等级全部不低于主节点等级 9 (且 ≥ 1)',
+        count(array_filter($levels, function ($l) { return $l >= 9 && $l >= 1; })) === count($levels),
         'levels = [' . implode(',', $levels) . ']');
 
     // —— B: 原子认领 + 占位心跳 ——

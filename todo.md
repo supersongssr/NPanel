@@ -136,7 +136,7 @@ legacy special outbounds 已在 sing-box 1.11.0 中被弃用，且将在 sing-bo
 
 
 - check
-    - clone 等级随机区间钳制在 [1,5]：主节点等级超 5 时 clone 封顶 5、低于主节点属预期（见 docs/api/node-api-v2.md 阶梯等级引擎）
+    - clone 等级默认最高 5 级；但主节点等级超 5 时 clone 不低于主节点等级（恒等于主节点等级，见 docs/api/node-api-v2.md 阶梯等级引擎）
 
 
 - [v] reinstall & new install 
