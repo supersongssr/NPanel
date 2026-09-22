@@ -1,0 +1,81 @@
+# NPanel Podman 编排方案
+#
+# 核心决策:
+#   - 不使用 pod: 独立容器, PHP-FPM 由宿主机 Nginx 反代 127.0.0.1:9001
+#   - 统一加入 main 网络 (external, 预建): 容器间互通
+#   - 端口仅绑定 127.0.0.1: 不监听公网
+#
+# 启动:   podman-compose up -d   (或 podman compose up -d)
+# 前置:   podman network create main 2>/dev/null || true
+# 构建:   podman-compose build --no-cache
+#
+# 注意: MySQL(5.7) 与 Adminer 按需启用, 默认注释, 见文件底部
+
+services:
+  # PHP 7.4 FPM — NPanel 运行容器
+  php7:
+    build:
+      context: ./pod/php7
+      dockerfile: Containerfile
+    image: localhost/php7-npanel:latest
+    container_name: php7-npanel
+    networks:
+      - main
+    # 仅监听本地回环, 由宿主机 Nginx fastcgi_pass 127.0.0.1:9001 接入
+    ports:
+      - "127.0.0.1:9001:9000"
+    volumes:
+      # 宿主机与容器路径保持一致 (/var/www -> /var/www),
+      # Nginx 的 SCRIPT_FILENAME 与容器内路径天然对齐
+      # SELinux 主机可追加 :Z
+      - /var/www:/var/www
+    working_dir: /var/www
+    restart: always
+
+  # Redis — 缓存/队列
+  redis:
+    image: docker.io/library/redis:alpine
+    container_name: redis
+    networks:
+      - main
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - /opt/redis/data:/data
+    sysctls:
+      net.core.somaxconn: 1024
+    command: redis-server --appendonly yes
+    restart: always
+
+  # ──────── 以下为可选服务, 按需取消注释 ────────
+
+  # MySQL 5.7
+  # mysql:
+  #   image: docker.io/library/mysql:5.7
+  #   container_name: mysql
+  #   networks:
+  #     - main
+  #   ports:
+  #     - "127.0.0.1:3306:3306"
+  #   volumes:
+  #     - /opt/mysql/data:/var/lib/mysql
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD}
+  #   command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+  #   restart: always
+
+  # Adminer — 数据库管理界面
+  # adminer:
+  #   image: docker.io/library/adminer:latest
+  #   container_name: adminer
+  #   networks:
+  #     - main
+  #   ports:
+  #     - "127.0.0.1:8081:8080"
+  #   restart: always
+
+# main 为预建外部网络 (podman network create main), 不由 compose 管理生命周期
+networks:
+  main:
+    name: main
+    external: true
