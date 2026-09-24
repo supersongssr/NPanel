@@ -42,3 +42,7 @@ deploy:
     → 确认后 php artisan downtime:compensation (按提示输入 yes)
   - 验证: 后台 用户余额变动记录 页面可见 desc=停机补偿3元 的记录; storage/downtime_compensation.lock 已生成
 status: done
+
+---
+
+2026-09-24 后续: 命令文件 app/Console/Commands/SendDowntimeCompensation.php 与其测试 tests/test_downtime_compensation.php 已删除。原因: 批次已于 2026-08-13 生产执行完毕、永久锁已落盘，命令无论怎样修复都不可再次运行（复审发现的永久锁/并发缺陷随脚本一并移除，不再需要修复）；历史档案（本文件）保留，新补偿批次请重新实现并沿用本文件的幂等+永久锁经验（注意: 锁应在整批成功后才写入, 失败用户靠 desc 幂等重跑补齐）。
