@@ -131,18 +131,18 @@ mkdir -p storage/framework/views
 mkdir -p storage/framework/testing
 mkdir -p storage/logs
 
-# 生成密钥对 (进入容器执行)
-docker exec -it php7-npanel php artisan key:generate
+# 生成密钥对 (进入容器执行; 容器默认工作目录是 /var/www, 需 -w 指到项目目录)
+docker exec -it -w /var/www/NPanel php7-npanel php artisan key:generate
 ```
 
 ## 常用运维命令
 
 ```sh
 # 执行测试 (APP_ENV=test 注入, 不污染 dev 环境)
-docker exec -e APP_ENV=test php7-npanel php tests/test_xxx.php
+docker exec -e APP_ENV=test -w /var/www/NPanel php7-npanel php tests/test_xxx.php
 
 # 刷新 Composer 自动加载映射
-docker exec php7-npanel php composer.phar dump-autoload
+docker exec -w /var/www/NPanel php7-npanel php composer.phar dump-autoload
 
 # 进入容器
 docker exec -it php7-npanel /bin/bash
