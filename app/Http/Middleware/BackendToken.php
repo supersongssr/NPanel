@@ -71,8 +71,12 @@ class BackendToken
         }
 
         // 可选 IP 白名单(纵深防御): 配置了就强制校验
+        // 校验用 REMOTE_ADDR 而非 $request->ip()(审查 f-ad403d09 同源): TrustProxies
+        // 为 '*' 时 $request->ip() 返回客户端自带 X-Forwarded-For 里的伪造值,
+        // 偷 token 者带假 XFF 即可冒充白名单 IP; 入口 nginx realip 已把真实
+        // 来源(经 CDN 还原 / 直连 TCP 对端)放进 REMOTE_ADDR, 不可伪造。
         $allowlist = trim((string)$node->api_ip_allowlist);
-        if ($allowlist !== '' && !$this->ipAllowed($request->ip(), $allowlist)) {
+        if ($allowlist !== '' && !$this->ipAllowed($request->server('REMOTE_ADDR'), $allowlist)) {
             return ['status' => 401, 'code' => 'INVALID_TOKEN', 'message' => 'token is invalid or revoked'];
         }
 

@@ -8,12 +8,16 @@
  *   同一出口 IP 的全部节点共享一个 60 req/min 桶(20 节点 × 3 请求/轮 ≈ 贴脸
  *   触顶, 429 又被插件按 RATE_LIMITED 退避重试, 恶性循环)。
  *
- * 但并非零限流: backend.ratelimit 提供基于 Redis 的按 IP 应用层限流(60 次/分钟),
- *   挂在 backend.token 之前 —— 被拦截的伪造 Bearer 请求不再触发 ss_node.api_token
- *   的 DB 查询。节点上报周期约 1 小时一轮, 合法流量远低于阈值, 不会误伤。
- *   【既定设计备注】阈值口径基于 "一个节点一个 id、一台机器一个独立出口 IP" 的正常
- *   部署形态(单节点仅 3 请求/轮, 远低于 60 次/分钟); 单 IP 聚合数十节点的共享出口
- *   IP 形态非预期部署, 真出现时再调高 BackendRateLimit::LIMIT 即可。
+ * 但并非零限流: backend.ratelimit 提供基于 Redis 的按 REMOTE_ADDR 应用层限流
+ *   (默认 60 次/分钟, BACKEND_API_RATE_LIMIT 可配), 挂在 backend.token 之前 ——
+ *   被拦截的伪造 Bearer 请求不再触发 ss_node.api_token 的 DB 查询。
+ *   分桶用 REMOTE_ADDR 而非 $request->ip(): TrustProxies='*' 下后者返回客户端
+ *   自带 XFF 里的伪造值, 换个假 IP 就能换新桶; 入口 nginx realip(只取 XFF
+ *   最右侧)已把真实来源放进 REMOTE_ADDR, 伪造头换不了桶(审查 f-ad403d09)。
+ *   【既定设计备注】阈值口径基于 "一个节点一个 id、一台机器一个独立出口 IP" 的
+ *   部署前提(单节点每轮 3 请求, 即使分钟级上报周期也远低于阈值); 多节点共享
+ *   单一出口 IP 的形态在当前部署中不存在, 真出现时调高 BACKEND_API_RATE_LIMIT
+ *   即可(config/backendapi.php), 无需改代码。
  *
  * 契约: xray-plugin-api docs/openapi.yaml; 每节点独立 Bearer token(ss_node.api_token)
  * 不挂 session/CSRF, 不与旧 node 组共用 env('API_TOKEN') 全局 key

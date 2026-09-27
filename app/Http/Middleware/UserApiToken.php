@@ -46,8 +46,11 @@ class UserApiToken
         }
 
         // 可选 IP 白名单(纵深防御): 配置了就强制校验
+        // 校验用 REMOTE_ADDR 而非 $request->ip()(审查 f-ad403d09 同源): TrustProxies
+        // 为 '*' 时 $request->ip() 返回客户端自带 X-Forwarded-For 里的伪造值,
+        // 假 XFF 可冒充白名单 IP; 入口 nginx realip 已把真实来源放进 REMOTE_ADDR。
         $allowlist = trim((string)env('USER_API_IP_ALLOWLIST', ''));
-        if ($allowlist !== '' && !$this->ipAllowed($request->ip(), $allowlist)) {
+        if ($allowlist !== '' && !$this->ipAllowed($request->server('REMOTE_ADDR'), $allowlist)) {
             return $this->deny(401, 'INVALID_TOKEN', 'token is invalid or revoked');
         }
 
