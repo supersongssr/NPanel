@@ -10,8 +10,8 @@
 #   ./run cache-clear           # 非交互: 清理应用缓存
 #   ./run route-cache           # 非交互: 重置并重建路由缓存 (route:clear + route:cache)
 #
-# 远程触发示例 (prod.deploy 同步完代码后):
-#   ssh "$HOST" "cd $PATH && ./run migrate"
+# 远程触发示例 (prod.deploy 同步完代码后, 统一在 php7-npanel-admin 容器内执行):
+#   ssh "$HOST" "podman exec -w $PATH php7-npanel-admin sh ./run migrate"
 ####
 
 # PHP CLI 路径: 优先用 PATH 里的 php (宝塔/crontab 已配好);

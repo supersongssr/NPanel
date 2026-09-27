@@ -11,7 +11,7 @@ set -e
 #   ./prod.deploy --no-migrate     # 完全关闭自动迁移 (覆盖环境变量)
 #
 # 同步后会自动重置并重建路由缓存 (php artisan route:clear + route:cache),
-# 再重启 PHP-FPM, 避免远端残留旧路由缓存导致新路由不生效。
+# 再重启远端 PHP 容器, 避免远端残留旧路由缓存导致新路由不生效。
 #
 # 环境变量 (等价开关, 命令行参数优先):
 #   DEPLOY_MIGRATE=1               # 等价 --migrate (强制迁移)
@@ -22,7 +22,11 @@ set -e
 #   无待执行  -> 直接重建路由缓存
 #   有待执行  -> 警告 + 二次确认 -> 迁移 -> 重建路由缓存 (取消则中止, 不重启)
 #   检测失败  -> 警告并提示手动迁移命令, 照常重建路由缓存
-# 之后统一: 重建路由缓存 (route:clear + route:cache) -> 重启 PHP-FPM
+# 之后统一: 重建路由缓存 (route:clear + route:cache) -> 重启远端 PHP 容器
+#
+# 远端容器约定 (目标主机 h84, /var/www 同路径挂载进容器):
+#   数据库迁移/合并等 artisan 操作统一在 php7-npanel-admin 容器内执行;
+#   部署完成后重启容器: php7-npanel-user php7-npanel-rss php7-npanel-admin
 ####
 
 # --- ANSI 颜色 (非 tty 自动禁用, 避免日志里出现乱码) ---
@@ -43,6 +47,10 @@ fi
 # 默认开关
 DO_MIGRATE=auto   # auto=自动检测待执行迁移 | force=强制迁移 | off=关闭
 ASSUME_YES=0      # 是否跳过确认
+
+# 远端容器配置 (h84 上 /var/www 与容器内同路径挂载)
+REMOTE_ADMIN_CONTAINER="php7-npanel-admin"                                     # 数据库迁移等 artisan 操作统一在此容器内执行
+REMOTE_RESTART_CONTAINERS="php7-npanel-user php7-npanel-rss php7-npanel-admin" # 部署完成后统一重启的容器
 
 # 从 .env 读取部署配置
 load_deploy_env() {
@@ -152,6 +160,7 @@ banner_migrate_warn() {
     printf "${C_RED}##${C_RST}                                                                          ${C_RED}##${C_RST}\n"
     printf "${C_RED}##${C_RST}     目标主机 : ${C_BLD}%-20s${C_RST}                              ${C_RED}##${C_RST}\n" "$PROD_DEPLOY_HOST"
     printf "${C_RED}##${C_RST}     目标路径 : ${C_BLD}%-32s${C_RST}                  ${C_RED}##${C_RST}\n" "$PROD_DEPLOY_PATH"
+    printf "${C_RED}##${C_RST}     执行容器 : ${C_BLD}%-20s${C_RST}                              ${C_RED}##${C_RST}\n" "$REMOTE_ADMIN_CONTAINER"
     printf "${C_RED}##${C_RST}                                                                          ${C_RED}##${C_RST}\n"
     printf "${C_RED}##${C_RST}   🔴 此操作会修改生产数据库表结构, 部分变更不可回滚!                    ${C_RED}##${C_RST}\n"
     printf "${C_RED}##${C_RST}   🔴 请确认本次发布的迁移文件已在本地/预发环境充分测试!                 ${C_RED}##${C_RST}\n"
@@ -172,10 +181,10 @@ confirm_migrate() {
     [ "$REPLY" = "YES" ]
 }
 
-# 远程执行迁移
+# 远程执行迁移 (统一在 php7-npanel-admin 容器内执行, 与生产运行环境一致)
 do_remote_migrate() {
-    printf "${C_BLD}🚀 开始远程执行数据库迁移...${C_RST}\n"
-    ssh "$PROD_DEPLOY_HOST" "cd \"$PROD_DEPLOY_PATH\" && ./run migrate"
+    printf "${C_BLD}🚀 远程执行数据库迁移 (容器 %s)...${C_RST}\n" "$REMOTE_ADMIN_CONTAINER"
+    ssh "$PROD_DEPLOY_HOST" "podman exec -w '$PROD_DEPLOY_PATH' '$REMOTE_ADMIN_CONTAINER' sh ./run migrate"
     printf "${C_GRN}✅ 远程数据库迁移执行完成${C_RST}\n"
 }
 
@@ -183,41 +192,45 @@ do_remote_migrate() {
 # 退出码即远端退出码: 0=有待执行迁移, 1=无, 其它=检测失败
 # 注意: 调用方需用 `detect_pending_migrations || RC=$?` 避免 set -e 中止
 detect_pending_migrations() {
-    printf "${C_BLD}🔍 远程检测待执行迁移 (php artisan migrate:status)...${C_RST}\n"
-    ssh "$PROD_DEPLOY_HOST" "cd \"$PROD_DEPLOY_PATH\" && ./run migrate-pending"
+    printf "${C_BLD}🔍 远程检测待执行迁移 (php artisan migrate:status, 容器 %s)...${C_RST}\n" "$REMOTE_ADMIN_CONTAINER"
+    ssh "$PROD_DEPLOY_HOST" "podman exec -w '$PROD_DEPLOY_PATH' '$REMOTE_ADMIN_CONTAINER' sh ./run migrate-pending"
 }
 
 # 默认(未启用迁移)的醒目提醒: 告知未迁移 + 手动命令
 remind_manual_migrate() {
     printf "\n${C_YEL}🟡🟡🟡  数据库迁移【未自动执行】  🟡🟡🟡${C_RST}\n"
     printf "${C_YEL}   如本次发布包含表结构变更, 请人工确认迁移文件后手动执行:${C_RST}\n\n"
-    printf "     ${C_BLD}ssh \"%s\" \"cd %s && ./run migrate\"${C_RST}\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH"
-    printf "     ${C_BLD}ssh \"%s\" \"cd %s && ./run migrate-status\"${C_RST}\n\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH"
+    printf "     ${C_BLD}ssh \"%s\" \"podman exec -w %s %s sh ./run migrate\"${C_RST}\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH" "$REMOTE_ADMIN_CONTAINER"
+    printf "     ${C_BLD}ssh \"%s\" \"podman exec -w %s %s sh ./run migrate-status\"${C_RST}\n\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH" "$REMOTE_ADMIN_CONTAINER"
 }
 
 # 远程重置并重建路由缓存 (route:clear + route:cache)
 # 同步新代码后远端 bootstrap/cache 可能残留旧路由缓存文件,
 # 需先重置再重建, 否则新路由不生效 / 旧路由残留。
 # 失败时仅警告不中止: 旧缓存已被清除, 应用仍可从路由文件加载, 继续重启 FPM。
+# 远程重置并重建路由缓存 (route:clear + route:cache, 在 admin 容器内执行)
+# 同步新代码后远端 bootstrap/cache 可能残留旧路由缓存文件,
+# 需先重置再重建, 否则新路由不生效 / 旧路由残留。
+# 失败时仅警告不中止: 旧缓存已被清除, 应用仍可从路由文件加载, 继续重启容器。
 do_remote_route_cache() {
-    printf "${C_BLD}📦 远程重置并重建路由缓存 (route:clear + route:cache)...${C_RST}\n"
+    printf "${C_BLD}📦 远程重置并重建路由缓存 (route:clear + route:cache, 容器 %s)...${C_RST}\n" "$REMOTE_ADMIN_CONTAINER"
     ROUTE_CACHE_RC=0
-    ssh "$PROD_DEPLOY_HOST" "cd \"$PROD_DEPLOY_PATH\" && ./run route-cache" || ROUTE_CACHE_RC=$?
+    ssh "$PROD_DEPLOY_HOST" "podman exec -w '$PROD_DEPLOY_PATH' '$REMOTE_ADMIN_CONTAINER' sh ./run route-cache" || ROUTE_CACHE_RC=$?
     if [ "$ROUTE_CACHE_RC" -ne 0 ]; then
         printf "${C_YEL}🟡 路由缓存重建失败 (若上方 route:clear 亦失败, 旧缓存可能残留), 可稍后手动重建:${C_RST}\n"
-        printf "     ${C_BLD}ssh \"%s\" \"cd %s && ./run route-cache\"${C_RST}\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH"
+        printf "     ${C_BLD}ssh \"%s\" \"podman exec -w %s %s sh ./run route-cache\"${C_RST}\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH" "$REMOTE_ADMIN_CONTAINER"
     fi
     return 0
 }
 
-# 用户请求迁移却取消了: 不重启 PHP-FPM (避免新代码上线但表结构没迁移), 中止部署
+# 用户请求迁移却取消了: 不重启容器 (避免新代码上线但表结构没迁移), 中止部署
 abort_after_cancel() {
     printf "\n${C_RED}##############################################################################${C_RST}\n"
     printf "${C_RED}##${C_RST}  ⛔ 已取消自动迁移。${C_RST}\n"
-    printf "${C_RED}##${C_RST}  为安全起见, PHP-FPM ${C_BLD}未重启${C_RST}, 新代码尚未生效。${C_RST}\n"
-    printf "${C_RED}##${C_RST}  请手动完成迁移后再重启 PHP-FPM:${C_RST}\n\n"
-    printf "     ${C_BLD}ssh \"%s\" \"cd %s && ./run migrate\"${C_RST}\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH"
-    printf "     ${C_BLD}ssh \"%s\" '/etc/init.d/php-fpm-74 restart'${C_RST}\n\n" "$PROD_DEPLOY_HOST"
+    printf "${C_RED}##${C_RST}  为安全起见, 远端 PHP 容器 ${C_BLD}未重启${C_RST}, 新代码尚未生效。${C_RST}\n"
+    printf "${C_RED}##${C_RST}  请手动完成迁移后再重启容器:${C_RST}\n\n"
+    printf "     ${C_BLD}ssh \"%s\" \"podman exec -w %s %s sh ./run migrate\"${C_RST}\n" "$PROD_DEPLOY_HOST" "$PROD_DEPLOY_PATH" "$REMOTE_ADMIN_CONTAINER"
+    printf "     ${C_BLD}ssh \"%s\" 'podman restart %s'${C_RST}\n\n" "$PROD_DEPLOY_HOST" "$REMOTE_RESTART_CONTAINERS"
     printf "${C_RED}##############################################################################${C_RST}\n"
     exit 2
 }
@@ -226,7 +239,7 @@ abort_after_cancel() {
 # 主部署流程
 # ----------------------------------------------------------------------
 
-# rsync 同步 + (可选)迁移 + 重启 PHP-FPM
+# rsync 同步 + (可选)迁移 + 重启远端 PHP 容器
 deploy_nPanel() {
     LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)/"
     EXCLUDE_FILE=$(build_exclude_file)
@@ -287,13 +300,13 @@ deploy_nPanel() {
         remind_manual_migrate
     fi
 
-    # 重置并重建路由缓存: 在重启 PHP-FPM 前完成, 让新路由缓存随新代码一起生效
+    # 重置并重建路由缓存: 在重启容器前完成, 让新路由缓存随新代码一起生效
     do_remote_route_cache
 
-    # 服务端开启了 opcache, 重启 PHP-FPM (宝塔 php-fpm-74) 使新代码立即生效
-    printf "${C_BLD}🔄 重启 PHP-FPM (php-fpm-74) 使新代码立即生效...${C_RST}\n"
-    ssh "$PROD_DEPLOY_HOST" '/etc/init.d/php-fpm-74 restart'
-    printf "${C_GRN}✅ PHP-FPM 已重启${C_RST}\n"
+    # 服务端开启了 opcache, 重启远端 PHP 容器使新代码立即生效
+    printf "${C_BLD}🔄 重启远端 PHP 容器 (%s)...${C_RST}\n" "$REMOTE_RESTART_CONTAINERS"
+    ssh "$PROD_DEPLOY_HOST" "podman restart $REMOTE_RESTART_CONTAINERS"
+    printf "${C_GRN}✅ 远端 PHP 容器已重启${C_RST}\n"
 }
 
 # --- 主函数 ---
