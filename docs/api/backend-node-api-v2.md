@@ -165,7 +165,7 @@ php artisan node:generate-api-tokens --node=3   # 查看/生成单节点
 ### 校验(违反即 400 `BAD_REQUEST`,整批拒收)
 
 - `data.items` 必须为对象数组
-- `userId` 严格 `is_int` 且 > 0;`uplinkBytes`/`downlinkBytes` 严格 `is_int` 且 >= 0
+- `userId` 严格 `is_int` 且 0 < userId ≤ 2147483647(INT(11) 容量,对齐 `user.id`/`user_traffic_log.user_id` 列,超出的必为垃圾值,入库会 1264 炸掉整批事务);`uplinkBytes`/`downlinkBytes` 严格 `is_int` 且 >= 0
   —— JSON 中超出 PHP int 范围的数字会解码成 float(如 `1e30`),`(int)` 强转会产生
   垃圾正数直接污染计费,因此**拒收字符串/超大数字**
 - 单条字节上限 `1 << 60`(≈1.15EB):超过必为恶意/损坏数据,防 bigint 溢出
@@ -178,7 +178,7 @@ php artisan node:generate-api-tokens --node=3   # 查看/生成单节点
 |---|---|
 | `user` | `u`/`d` 原子 CASE WHEN 单语句累加**乘率值**(节点 `traffic_rate`),并以 `LEAST(..., 9223372036854775807)` bigint 饱和封顶(而非报错);同时刷新 `t` |
 | `user_traffic_log` | 存**原始字节** + 当次倍率 + 乘率后人类可读值,一条多 VALUES 批量 INSERT(每 500 行一批) |
-| `ss_node` | `traffic_used` 原子累加**原始字节**;事务成功后 best-effort 刷新 `traffic_left` 与心跳(失败仅记日志,不影响已入账流量,下一轮重算) |
+| `ss_node` | `traffic_used` 原子累加**原始字节** + `traffic_left` 库端派生(GREATEST(0, IFNULL(traffic_limit,0) - traffic_used),按同语句累加后的库端行值计算)+ 心跳,合并为**事务内单条原子 UPDATE**;该语句失败会**整事务回滚**并返回 500 `INTERNAL`(用户 `u`/`d` 入账与 `user_traffic_log` 明细同样回滚),由插件 at-least-once 重试补账 |
 
 > 倍率始终以小数字面量参与运算(bigint + decimal 不触发 MySQL 1690 溢出错),
 > 配合 LEAST 封顶实现**饱和而非报错** —— 报错会让插件 at-least-once 无限重试,
@@ -250,4 +250,4 @@ php artisan node:generate-api-tokens --node=3   # 查看/生成单节点
 
 ---
 
-*文档更新时间: 2026-09-20 | 基于 commit: f9c74fd7*
+*文档更新时间: 2026-09-28 | 基于 commit: d46baa98*
