@@ -14,6 +14,7 @@ use App\Components\NodeDefaults;
 use App\Components\DNS\CloudflareProvider;
 use App\Services\DnsRecordCleanupService;
 use App\Services\NodeAddress\NodeAddressService;
+use App\Services\Notification\NotifyService;
 
 class NodeApiController extends Controller
 {
@@ -539,13 +540,29 @@ class NodeApiController extends Controller
         // --- Mirror-overwrite: use node value if reported, reset to default otherwise ---
         // This prevents recycled nodes from carrying stale config from previous owners.
         $node->v2_name = $v2Name;
-        $node->node_rxtx = $request->input(
-            "node_rxtx",
-            $request->input(
-                "node_rxtx_mode",
-                $request->input("billing_mode", "rxtx"),
-            ),
-        );
+        // 计费模式兜底链 node_rxtx → node_rxtx_mode → billing_mode → rxtx (commit 513584e8
+        // 起的既定默认: 双向均值更保险). 三参数均未上报时视为节点端契约缺口
+        // (proxyInstall.sh 正常注册都会带), 按 rxtx 兜底的同时强制推送 Telegram 通知
+        // (broadcast 绕过 telegram.min_level 过滤, 默认 error 级配置下也能送达),
+        // 提醒管理员核对节点端脚本版本.
+        $reportedRxtx = null;
+        foreach (["node_rxtx", "node_rxtx_mode", "billing_mode"] as $rxtxKey) {
+            if ($request->has($rxtxKey)) {
+                $reportedRxtx = $request->input($rxtxKey);
+                break;
+            }
+        }
+        if ($reportedRxtx === null) {
+            $node->node_rxtx = "rxtx";
+            app(NotifyService::class)->broadcast(
+                "节点注册未上报计费模式",
+                "节点 #{$nodeId} register 未携带 node_rxtx / node_rxtx_mode / billing_mode 任意参数, " .
+                "已按默认 rxtx (双向均值) 兜底落库, 请核对节点端脚本版本",
+                ["node_id" => $nodeId, "v2_name" => $v2Name]
+            );
+        } else {
+            $node->node_rxtx = $reportedRxtx;
+        }
         $node->node_cpu =
             $request->has("node_cpu") || $request->has("cpu")
                 ? $request->input("node_cpu", $request->input("cpu"))
