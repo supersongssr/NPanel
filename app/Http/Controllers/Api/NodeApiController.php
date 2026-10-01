@@ -69,6 +69,11 @@ class NodeApiController extends Controller
      * 仅当 v2_name 属于 REALITY_V2_NAMES (vision-reality / vision-reality-min-firefox /
      * xhttp-reality-minClientVer / xhttp-reality-min-firefox) 时生成; 否则为 null (非 REALITY 模式).
      * privateKey 永不进入订阅, pbk 永不进入 xray config (存储在独立 DB 列).
+     *
+     * 复审备注 (2026-09-30, 卡片 f-9dacbb69): 本属性【有意】不声明, 靠 PHP 7.4 动态属性
+     * 隐式生效 (728/730/1359-1366 行读写), 管理员裁决当前不算缺陷 —— 项目锁定 PHP 7.4,
+     * 无功能影响。升级 PHP 8.2+ 时再回来补 `private $clusterReality = null;` 声明
+     * (位置: 本注释块之后), 否则动态属性创建会产生 deprecation 告警。
      */
     /**
      * xhttp-cdn / xhttp-cdn-hy2 模式的 ECH 下载规格缓存:
