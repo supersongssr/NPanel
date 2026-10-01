@@ -17,7 +17,9 @@
                         traffic_left={{round($node->traffic_left /1024/1024/1024)}}G;
                         traffic_used_daily={{round($node->traffic_used_daily/1024/1024/1024)}}G;
                         traffic_left_daily={{round($node->traffic_left_daily / 1024/1024/1024)}}G;    
-                        is_clone={{$node->is_clone}};       
+                        is_clone={{$node->is_clone}};
+                        reset_day={{$node->reset_day}}号;
+                        last_traffic_reset_at={{$node->last_traffic_reset_at ?: '未激活(新节点)'}};
                         </div>
                     </div>
                 </div>
@@ -207,6 +209,17 @@
                                                             <input type="text" class="form-control right" name="traffic_limit" value="{{floor($node->traffic_limit / 1024/1024/1024)}}" id="traffic_limit" placeholder="月流量限制"  >
                                                             <span class="input-group-addon">月流量 G</span>
                                                         </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="reset_day" class="col-md-3 control-label">reset_day </label>
+                                                    <div class="col-md-8">
+                                                        <select class="form-control" name="reset_day" id="reset_day">
+                                                            @for($i = 1; $i <= 31; $i++)
+                                                                <option value="{{$i}}" {{$node->reset_day == $i ? 'selected' : ''}}>{{$i}} 号</option>
+                                                            @endfor
+                                                        </select>
+                                                        <span class="help-block"> 每月流量重置日期，每月第N天自动重置流量统计；当月不足N天时按当月最后一天处理 </span>
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
@@ -689,6 +702,7 @@
             var bandwidth = $('#bandwidth').val();
             var traffic = $('#traffic').val();
             var traffic_limit = $('#traffic_limit').val();
+            var reset_day = $('#reset_day').val();
             var traffic_used = $('#traffic_used').val();
             var monitor_url = $('#monitor_url').val();
             var is_subscribe = $("input:radio[name='is_subscribe']:checked").val();
@@ -752,6 +766,7 @@
                     bandwidth: bandwidth,
                     traffic: traffic,
                     traffic_limit: traffic_limit,
+                    reset_day: reset_day,
                     traffic_used: traffic_used,
                     monitor_url: monitor_url,
                     is_subscribe: is_subscribe,

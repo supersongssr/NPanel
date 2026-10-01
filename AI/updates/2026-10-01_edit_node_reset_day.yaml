@@ -1,0 +1,17 @@
+when: 2026-10-01T12:32:09+08:00
+where:
+  - resources/views/admin/editNode.blade.php
+  - app/Http/Controllers/AdminController.php
+  - tests/test_edit_node_reset_day.php
+why:
+  - /admin/editNode 页面缺少"流量重置日期" (ss_node.reset_day) 的展示与编辑入口,
+    管理员此前只能靠节点上报 API (node_traffic_resetday) 设置, 面板无法管理
+how:
+  - 视图: 在 traffic_limit 下方新增 reset_day 下拉框 (1-31 号, 当前值 selected),
+    help-block 说明小月按当月最后一天处理; JS 增加采集与 AJAX 提交
+  - 视图: 顶部只读信息块追加 reset_day=N号 与 last_traffic_reset_at (空显示"未激活(新节点)")
+  - 控制器: editNode POST 的 $data 增加 reset_day => max(1, min(31, intval(...))) 钳制
+must:
+  - reset_day 仅接受 1-31 (DB 语义: 每月第N天; 计费/重置逻辑 LEAST(reset_day, 当月天数) 兜底小月)
+  - 不改动 last_traffic_reset_at / traffic_used 等由节点上报与定时任务维护的字段
+  - PHP 7.4 语法兼容
