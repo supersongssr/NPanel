@@ -1,5 +1,6 @@
 /node_modules
-/public/clients
+/public/downloads/*
+!/public/downloads/convert.json
 /public/upload
 /public/storage
 /public/hot
