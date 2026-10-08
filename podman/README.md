@@ -39,8 +39,11 @@ cd podman
 podman ps           # 查看运行状态
 ```
 
-> `run.sh` 对已存在的容器(含宿主机手动创建的 redis)只跳过不重建;
+> `run.sh` 需以 root 运行 (redis 步骤要创建 `/opt/redis/data`);
+> 对已存在的容器(含宿主机手动创建的 redis)确保其在运行 —— 停止的会被
+> `podman start` 拉起, 但不会覆盖/重建;
 > 已存在但需应用新的 1C1G 限制时: `podman rm -f php7-npanel && ./run.sh`。
+> rootless podman 下 `--restart always` 需 `loginctl enable-linger <user>` 才能开机自启。
 
 ### 方式二: podman compose
 
@@ -52,6 +55,17 @@ podman network create main 2>/dev/null || true   # 预建外部网络
 podman-compose up -d        # 或: podman compose up -d
 podman-compose ps
 ```
+
+## 从 docker/ 方案迁移 (该方案已移除)
+
+docker/ 编排方案已删除, 部署统一走本目录。曾用过 docker 版的环境迁移要点:
+
+- php7: `docker rm -f php7-npanel` 后执行 `./run.sh`(容器同名, 先删避免冲突;
+  镜像不通用, podman 会按本目录 Containerfile 自行构建)
+- redis 若曾被旧版 docker compose 管理过(redis 还是正式服务的那版):
+  清理旧 compose 项目时**不要**带 `--remove-orphans`, 否则会连 redis 容器
+  一起删掉; 数据卷 `/opt/redis/data` 不受影响, 容器误删后 `./run.sh`
+  会自动重建并复用原数据
 
 ## 与宿主机 Nginx 对接
 
