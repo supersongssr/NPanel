@@ -1,5 +1,9 @@
 # NPanel 节点 ID 申请逻辑分析报告
 
+> 📌 **历史分析报告**:本文写于 applyId「只新建、编号不回收」的旧实现时期,分析结论反映当时行为。
+> 现行实现中 applyId 会优先复用心跳超期的死节点 ID,并在落库时写入占位心跳,权威描述见
+> [node-register-clone-id.md](node-register-clone-id.md) / [node-api-v2.md](api/node-api-v2.md)。
+
 ## 1. 现象描述
 用户在请求节点 ID 时获得了 `1089`。该 ID 的产生并非随机生成，而是后端业务逻辑与数据库机制共同作用的结果。
 
@@ -16,6 +20,8 @@
    - `name`: 设置为 "New Node " 拼接上报的 IP 地址。
    - `ip`/`ipv6`: 记录节点的网络地址。
    - `status`: 初始状态设为 `0` (离线/初始化中)。
+   - `heartbeat_at`: 写入占位心跳(=now),防止分配后未 register 期间命中死节点判定被误删
+     (回收路径在原子认领的条件 UPDATE 中提前写入,新建/回收统一走 `persistCleanNode`)。
 3. **物理入库**：执行 `$node->save()`。
 
 ### C. ID 产生机制

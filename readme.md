@@ -267,6 +267,25 @@ server {
 }
 ```
 
+### 容器化部署(可选)
+
+除上述手工流程外,仓库内置容器化部署方案,免去手工配置 PHP 环境:
+
+- **Podman**(生产在用): 见 [podman/README.md](podman/README.md) — 独立容器接入 main 网络、127.0.0.1 端口绑定、php7 资源限制 1C1G,`run.sh` 一键拉起(需 root,幂等可重复执行)。
+
+### 生产部署与运维命令
+
+代码同步到生产走仓库根的 `prod.deploy` 脚本(详细用法见脚本头部注释):
+
+- `./prod.deploy` — rsync 同步 → 远程自动检测待执行迁移(有则警告 + 二次确认后执行,取消则中止)→ 重建路由缓存(`route:clear` + `route:cache`)→ 重启远端 PHP 容器。
+- **仅 `NPanel` 分支可部署**,其他分支直接中止。
+- 迁移开关: `--migrate` 强制迁移 / `--no-migrate` 关闭自动迁移 / `-y` 跳过确认;环境变量 `DEPLOY_MIGRATE=1|0`、`DEPLOY_ASSUME_YES=1` 为等价开关(命令行参数优先,未设置时默认自动检测)。
+
+配套的 `./run` 菜单脚本提供非交互子命令(供 prod.deploy 远程触发,也可手工使用):
+
+- `./run migrate` / `migrate-status` / `migrate-pending` — 应用迁移 / 查看迁移状态 / 检测待执行迁移(退出码 0=有 1=无 2=失败)。
+- `./run cache-clear` / `route-cache` / `queue-restart` — 清理应用缓存 / 重置并重建路由缓存 / 重启队列。
+
 ## 📖 API 文档
 
 ### 认证相关

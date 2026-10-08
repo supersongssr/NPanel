@@ -317,5 +317,5 @@ podman exec php7-npanel php /var/www/NPanel/composer.phar dump-autoload
 3. **配置缺失或 zone_id 错误**
    任务会保留本地记录，Cloudflare 记录不会释放。需要通过日志或 dry-run 输出提示人工修复配置。
 
-4. **阈值与现有 32 天复用逻辑**
-   当前节点复用逻辑使用 32 天阈值。若定时任务用 30 天，可能出现节点未复用但 DNS 已删除的窗口。上线前必须确认业务是否接受；不接受则将清理阈值统一为 32 天，或清理 DNS 前先禁用节点。
+4. **阈值与节点复用逻辑已统一**
+   节点复用逻辑与定时任务已统一读 `dns_expire_days` (默认 30, 见 `NodeApiController::resolveDeadNodeCutoff` / `AutoReclaimDeadNodes`)，阈值错位风险已消除 (历史：复用曾硬编码 32 天)。

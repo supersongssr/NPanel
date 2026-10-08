@@ -132,7 +132,7 @@ curl -H "Authorization: Bearer $TOKEN" "$BASE/traffic?email=user%40example.com"
 ### 失败响应
 
 - `?id=999999999` → HTTP 404: `{"error":{"code":"USER_NOT_FOUND","message":"user not found"}}`
-- 不带参数 / `id`+`email` 同给 / `id=abc` / `id=0` → HTTP 400 `BAD_REQUEST`
+- 不带参数 / `id`+`email` 同给 / `id=abc` / `id=0` / 传数组等非标量值(如 `?id[]=1`,标量守卫) → HTTP 400 `BAD_REQUEST`
 
 ---
 
@@ -196,7 +196,7 @@ USER_API_IP_ALLOWLIST=
 | `app/Http/Controllers/Api/V2/User/UserController.php` | 控制器(traffic / trafficBatch) |
 | `app/Http/Middleware/UserApiToken.php` | 鉴权中间件 |
 | `routes/api.php` | 路由组 `v2/user`(中间件 `user.api.token`) |
-| `tests/test_user_api_v2_traffic.php` | QA 测试(27 项断言) |
+| `tests/test_user_api_v2_traffic.php` | QA 测试(36 项断言,`USER_API_TOKEN` 配置时) |
 
 ## 测试
 
