@@ -56,6 +56,11 @@ class HandleExceptions
      */
     public function handleError($level, $message, $file = '', $line = 0, $context = [])
     {
+        // [PHP8 兼容补丁] 忽略弃用警告(与 Laravel 9+ 官方行为一致)
+        if ($level & (E_DEPRECATED | E_USER_DEPRECATED)) {
+            return;
+        }
+
         if (error_reporting() & $level) {
             throw new ErrorException($message, 0, $level, $file, $line);
         }

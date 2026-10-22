@@ -765,6 +765,11 @@ class Carbon extends DateTime
 
         $lastErrors = parent::getLastErrors();
 
+        // [PHP8.2 兼容补丁] 无错误时 getLastErrors() 返回 false
+        if ($lastErrors === false) {
+            $lastErrors = ['warning_count' => 0, 'warnings' => [], 'error_count' => 0, 'errors' => []];
+        }
+
         if ($date instanceof DateTime) {
             $instance = static::instance($date);
             $instance::setLastErrors($lastErrors);
@@ -782,8 +787,12 @@ class Carbon extends DateTime
      *
      * @return void
      */
-    private static function setLastErrors(array $lastErrors)
+    private static function setLastErrors($lastErrors)
     {
+        // [PHP8.2 兼容补丁] 接受 false 并归一化为 PHP7 形状
+        if ($lastErrors === false) {
+            $lastErrors = ['warning_count' => 0, 'warnings' => [], 'error_count' => 0, 'errors' => []];
+        }
         static::$lastErrors = $lastErrors;
     }
 

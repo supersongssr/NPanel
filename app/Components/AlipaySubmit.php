@@ -111,7 +111,7 @@ class AlipaySubmit
         $para = $this->buildRequestPara($para_temp);
 
         $sHtml = "<form id='alipaysubmit' name='alipaysubmit' action='" . $this->alipay_gateway_new . "_input_charset=utf-8' method='" . $method . "'>";
-        while (list ($key, $val) = each($para)) {
+        foreach ($para as $key => $val) {
             $sHtml .= "<input type='hidden' name='" . $key . "' value='" . $val . "'/>";
         }
 
@@ -149,17 +149,17 @@ class AlipaySubmit
     function createLinkString($para)
     {
         $arg = "";
-        while (list ($key, $val) = each($para)) {
+        foreach ($para as $key => $val) {
             $arg .= $key . "=" . $val . "&";
         }
 
         // 去掉最后一个&字符
-        $arg = substr($arg, 0, count($arg) - 2);
+        // [PHP8 兼容] 原 count($arg) 对字符串恒返回 1 (PHP7.x 返回 1 并告警), 等价于截去 1 个字符;
+        // PHP 8 起 count() 不再接受字符串(直接 TypeError), 故显式写为 -1 保持原行为
+        $arg = substr($arg, 0, -1);
 
-        // 如果存在转义字符，那么去掉转义
-        if (get_magic_quotes_gpc()) {
-            $arg = stripslashes($arg);
-        }
+        // [PHP8 兼容] magic_quotes 自 PHP 5.4 起移除, get_magic_quotes_gpc() 自 PHP 8.0 起移除,
+        // 该分支自 PHP 5.4 起即为死代码, 直接删除
 
         return $arg;
     }
@@ -174,17 +174,15 @@ class AlipaySubmit
     function createLinkStringUrlEncode($para)
     {
         $arg = "";
-        while (list ($key, $val) = each($para)) {
+        foreach ($para as $key => $val) {
             $arg .= $key . "=" . urlencode($val) . "&";
         }
 
         // 去掉最后一个&字符
-        $arg = substr($arg, 0, count($arg) - 2);
+        // [PHP8 兼容] 同 createLinkString, count() 改为显式 -1 保持原行为
+        $arg = substr($arg, 0, -1);
 
-        // 如果存在转义字符，那么去掉转义
-        if (get_magic_quotes_gpc()) {
-            $arg = stripslashes($arg);
-        }
+        // [PHP8 兼容] magic_quotes 死分支删除 (get_magic_quotes_gpc() PHP 8.0 移除)
 
         return $arg;
     }
@@ -242,9 +240,9 @@ class AlipaySubmit
     function paraFilter($para)
     {
         $para_filter = [];
-        while (list ($key, $val) = each($para)) {
+        foreach ($para as $key => $val) {
             if ($key == "sign" || $key == "sign_type" || $val == "") continue;
-            else    $para_filter[$key] = $para[$key];
+            else    $para_filter[$key] = $val;
         }
 
         return $para_filter;

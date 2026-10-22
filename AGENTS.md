@@ -7,10 +7,11 @@
 
 ### 基本信息
 - PHP 运行环境: Podman 容器
-- **PHP 版本约束: 必须使用 PHP 7.4，严禁使用 PHP 8+ 特性**
+- **PHP 版本约束: 生产运行时为 PHP 8.5（php8-npanel 容器）; 过渡期代码须同时兼容 PHP 7.4（php7-npanel 回滚容器）**
 - 测试目录: `tests/`
 - 环境配置文件: `.claude/ENVIRONMENT.md`
 - 项目上下文: `.claude/PROJECT_CONTEXT.md`
+- 升级背景与 vendor 补丁说明: `docs/php8-upgrade-feasibility.md`、`patches/`
 
 ### Testing
 测试文件位于 `tests/` 文件夹。
@@ -28,9 +29,12 @@
 
 ## Developing 
 
-## PHP 版本强制约束
+## PHP 版本约束
 
-> **必须使用 PHP 7.4，严禁使用 PHP 8.0+ 语法特性。**
+> **生产运行时: PHP 8.5.12（php8-npanel 容器，CVE-2026-109618/109619 修复版）。**
+> **过渡期约束: 新代码仍须兼容 PHP 7.4**（php7-npanel 容器保留为回滚通道），
+> 即：不使用 PHP 8.0+ 独有语法（match、命名参数、构造器提升等），
+> 直至 php7-npanel 容器退役。
 
 ### 禁止使用的 PHP 8+ 特性
 
@@ -90,7 +94,9 @@
 - **代码文件(`app/`、`tests/`)只读执行**,FPM 读取 644/755 即可,属主是 root 也不影响。
 - **新建/移动 PHP 类文件、批量改 namespace 后**,只需刷新 Composer 自动加载映射:
   ```bash
-  podman exec php7-npanel php /var/www/NPanel/composer.phar dump-autoload
+  podman exec php8-npanel php /var/www/NPanel/composer1.phar dump-autoload
+  # ⚠️ 必须用 composer1.phar: vendor/composer/installed.json 为 Composer 1 格式，
+  #    自带的 composer.phar(2.x) 无法解析（历史遗留，与本次升级无关）
   ```
 
 
