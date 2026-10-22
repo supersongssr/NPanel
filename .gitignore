@@ -27,6 +27,7 @@ yarn-error.log
 .tests/
 .links/
 .claude/
+.plans/
 tmp/
 .aider*
 .zed/
